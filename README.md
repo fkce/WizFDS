@@ -5,6 +5,8 @@ The software is Graphical User Interface (**GUI**) for Fire Dynamics Simulator (
 
 GUI is divided into 2 separated tools. All geometrical entities are created in AutoCAD/BricsCAD plugin [(download)](https://github.com/fkce/WizFDS/blob/master/CAD%20plugin/wizFDS.zip). Other boundary conditions are set in web application [(link)](https://wizfds.fkce.pl/login) which communicate with AutoCAD through websocket protocol.
 
+**WizFDS is still under development and may include bugs.** However, we count ou your help and support! 
+
 ## To get more information: 
 1. Visit our official website: https://wizfds.com/
 2. Read wiki pages to find some tutorials: https://github.com/fkce/WizFDS/wiki
