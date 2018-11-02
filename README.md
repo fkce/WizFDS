@@ -18,7 +18,7 @@ netload
 ```
 3. Choose wizFDS.dll file (default location: _C:\Program Files\firemodels\WizFDS\wizFDS.dll_)
 4. Start drawing FDS entities  
-[(show video)](https://github.com/fkce/WizFDS/wiki)
+[(show video tutorial)](https://github.com/fkce/WizFDS/wiki/How-to-start-using%3F#autocad-plugin)
 
 ## Web application
 1. Register & Log in to [WizFDS](https://wizfds.fkce.pl/login)
@@ -27,7 +27,7 @@ netload
 4. Set up boundary conditions
 5. Edit your file in text/vim editor
 6. Download it and run on your / external resources  
-[(show video)](https://github.com/fkce/WizFDS/wiki)
+[(show video tutorial)](https://github.com/fkce/WizFDS/wiki/How-to-start-using%3F#web-application)
 
 # Authors
 WizFDS is founded by F&K Consulting Engineers Ltd - [www.fkce.pl](https://www.fkce.pl)  
