@@ -16,7 +16,7 @@ GUI is divided into 2 separated tools. All geometrical entities are created in A
 ```
 netload
 ```
-3. Choose wizFDS.dll file (default location: C:\Program Files\firemodels\WizFDS\wizFDS.dll)
+3. Choose wizFDS.dll file (default location: _C:\Program Files\firemodels\WizFDS\wizFDS.dll_)
 4. Start drawing FDS entities  
 [(show video)](https://github.com/fkce/WizFDS/wiki)
 
