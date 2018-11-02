@@ -30,5 +30,5 @@ netload
 [(show video)](https://github.com/fkce/WizFDS/wiki)
 
 # Authors
-WizFDS is founded by F&K Consulting Engineers Ltd - [www.fkce.pl](https://www.fkce.pl).  
+WizFDS is founded by F&K Consulting Engineers Ltd - [www.fkce.pl](https://www.fkce.pl)  
 All code was developed mainly by Mateusz Fliszkiewicz & Michał Ilnicki.
