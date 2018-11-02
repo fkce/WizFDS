@@ -27,7 +27,7 @@ netload
 ## Web application
 1. Register & Log in to [WizFDS](https://wizfds.fkce.pl/login)
 2. Create new project and scenario
-3. Connect with Autocad [(read more about known problems with connecting)](https://github.com/fkce/WizFDS/blob/master/)
+3. Connect with Autocad [(read more about known problems with connecting)](https://github.com/fkce/WizFDS/wiki/Known-problems#insecure-websocket-connection)
 4. Set up boundary conditions
 5. Edit your file in text/vim editor
 6. Download it and run on your / external resources  
