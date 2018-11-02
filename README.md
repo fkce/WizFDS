@@ -31,5 +31,4 @@ netload
 
 # Authors
 WizFDS is founded by F&K Consulting Engineers Ltd - [www.fkce.pl](https://www.fkce.pl).  
-Software is intensively used during common designing works.  
 All code was developed mainly by Mateusz Fliszkiewicz & Michał Ilnicki.
