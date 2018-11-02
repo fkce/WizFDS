@@ -3,7 +3,7 @@
 WizFDS is open-source project released under GNU v3.0 license founded by F&K Consulting Engineers Ltd.  
 The software is Graphical User Interface (**GUI**) for Fire Dynamics Simulator (**FDS**).
 
-GUI is divided into 2 separated tools. All geometrical entities are created in AutoCAD/BricsCAD plugin [(download)](https://github.com/fkce/WizFDS/blob/master/CAD%20plugin/wizFDS.zip). All boundary conditions are set in web application [(link)](https://wizfds.fkce.pl/login) which can communicate with AutoCAD through websocket.
+GUI is divided into 2 separated tools. All geometrical entities are created in AutoCAD/BricsCAD plugin [(download)](https://github.com/fkce/WizFDS/blob/master/CAD%20plugin/wizFDS.zip). Other boundary conditions are set in web application [(link)](https://wizfds.fkce.pl/login) which communicate with AutoCAD through websocket protocol.
 
 ## To get more information: 
 1. Visit our official website: https://wizfds.com/
@@ -31,6 +31,3 @@ netload
 
 # Authors
 WizFDS is founded by F&K Consulting Engineers Ltd - [www.fkce.pl](https://www.fkce.pl). Software is intensively used during common designing works. All code was developed mainly by Mateusz Fliszkiewicz & Michał Ilnicki.
-
-# Known problems / bugs
-1. Connecting with insecure websocket (CAD serwer) in FireFox is forrbidden. To allow export data from CAD to browser you have to write in address "about:config", find entity "network.websocket.allowInsecureFromHTTPS" and set it value to "true".
