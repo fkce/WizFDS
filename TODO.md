@@ -2,4 +2,4 @@
 
 ## TODO list:
 
-- [ ] Add email verification on backend
+- [ ] Add email verification on backend during registration process
