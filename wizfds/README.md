@@ -1,8 +1,4 @@
-# AamksGui
-
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 1.5.2.
-
-AaamksGui is graphical module to aamks software.
+# Web application
 
 ## Instalation
 
@@ -32,9 +28,3 @@ Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.
 ## Running end-to-end tests
 
 Run `ng e2e` to execute the end-to-end tests via [Protractor](http://www.protractortest.org/).
-
-
-# TODO
-
-## CAD plugin
-1. DEVC surface, volume not changing layer 
