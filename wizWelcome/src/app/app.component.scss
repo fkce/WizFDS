@@ -1,0 +1,87 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+@media all and (min-width:0px) and (max-width: 1023px) {
+    .header {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        width: calc(100% - 0.4rem);
+        padding: 0 0.2rem 0 0.2rem;
+        .logo {
+            //padding-right: calc(10vw);
+        }
+        .menu {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            p {
+                margin: 0.5rem 0.2rem 0.5rem 0.2rem;
+            }
+            p:hover {
+                color: #009AFF;
+            }
+        }
+        .login {
+            p.login-button {
+                background-color: #454B54;
+                padding: 1rem 2rem 1rem 2rem;
+                border-radius: 2rem;
+                a {
+                    text-decoration: none;
+                    color: #fcfcfc;
+                }
+            }
+            p.login-button:hover {
+                background-color: #009AFF;
+            }
+        }
+    }
+}
+
+@media all and (min-width:1024px) {
+    .header {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        .logo {
+            padding-right: calc(8vw);
+        }
+        .menu {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            p {
+                margin-right: 2rem;
+            }
+            p:hover {
+                color: #009AFF;
+            }
+        }
+        .login {
+            p.login-button {
+                background-color: #454B54;
+                padding: 1rem 2rem 1rem 2rem;
+                border-radius: 2rem;
+                a {
+                    text-decoration: none;
+                    color: #fcfcfc;
+                }
+            }
+            p.login-button:hover {
+                background-color: #009AFF;
+            }
+        }
+    }
+}
+
+.main {
+    width: 100%;
+}

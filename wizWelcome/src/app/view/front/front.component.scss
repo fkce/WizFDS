@@ -1,0 +1,193 @@
+span.blue {
+    color: #009AFF;
+    font-weight: bold;
+}
+.h1 {
+    font-size: 2.5rem;
+    //padding-top: 0.7rem;
+    text-align: center;
+}
+.h2 {
+    font-size: 1.5rem;
+    padding-top: 0.7rem;
+    text-align: center;
+}
+.h3 {
+    font-size: 1.0rem;
+    padding-top: 0.7rem;
+    text-align: center;
+}
+
+.welcome {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 28rem;
+    width: calc(100% - 0.4rem);
+    padding: 0.7rem 0.2rem 0.7rem 0.2rem;
+    border-bottom: 1px solid #95989A;
+    .startup {
+        width: 12rem;
+    }
+}
+
+.about {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: calc(100% - 0.4rem);
+    padding: 1rem 0.2rem 1rem 0.2rem;
+    border-bottom: 1px solid #95989A;
+    background-color: #C7D7E2;
+    .avatar {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        img {
+            width: 10rem;
+        }
+    }
+    .github {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding-top: 2rem;
+        img {
+            width: 3rem;
+            margin-right: 1rem;
+        }
+        a {
+            text-decoration: none;
+            font-size: 1.1rem;
+            color: #454B54;
+        }
+        a:hover {
+            color: #009AFF;
+        }
+    }
+    @media all and (min-width:0px) and (max-width: 800px) {
+        .left {
+            position: relative;
+            left: -45vw;
+            height: 0.5rem;
+            img {
+                width: 2rem;
+            }
+        }
+        .right {
+            position: relative;
+            left: 40vw;
+            height: 0.5rem;
+            top: -2rem;
+            img {
+                width: 3rem;
+            }
+        }
+    }
+    @media all and (min-width:801px) {
+        .left {
+            position: relative;
+            left: -30vw;
+            height: 0.2rem;
+            top: 1rem;
+            img {
+                width: 5rem;
+            }
+        }
+        .right {
+            position: relative;
+            left: 30vw;
+            top: -2rem;
+            height: 0.2rem;
+            img {
+                width: 3rem;
+            }
+        }
+    }
+}
+
+.how-it-works {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    //min-height: 43rem;
+    width: calc(100% - 0.4rem);
+    padding: 0.7rem 0.2rem 0.7rem 0.2rem;
+    border-bottom: 1px solid #95989A;
+    img {
+        max-width: 100%;
+    }
+    .youtube {
+        display: flex;
+        flex-wrap: wrap;
+        font-size: 1.5rem;
+        padding-top: 0.5rem;
+        justify-content: center;
+        align-items: center;
+        span {
+            padding-left: 0.2rem;
+            padding-right: 0.2rem;
+        }
+        img {
+            width: 4rem;
+            padding-right: 1rem;
+        }
+    }
+}
+
+.services {
+    display: flex;
+    flex-direction: column;
+    justify-content: top;
+    align-items: center;
+    //min-height: 38rem;
+    width: calc(100% - 0.4rem);
+    padding: 0.7rem 0.2rem 0.7rem 0.2rem;
+    border-bottom: 1px solid #95989A;
+    background-color: #C7D7E2;
+    img {
+        width: 60rem;
+        max-width: 100%;
+    }
+}
+
+.contact {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    width: 100%;
+    min-height: 22rem;
+    background-image: url(/assets/map.png);
+    background-repeat: no-repeat;
+    background-attachment: relative;
+    background-position: center center; 
+    color: #FCFCFC;
+    .left {
+        width: 50%;
+        min-width: 320px;
+        min-height: 22rem;
+        padding: 0.7rem 0rem 0.7rem 0rem;
+        text-align: center;
+        background-color: #454B54;
+        opacity: 0.85;
+        .c1 {
+            img {
+                width: 10rem;
+            }
+            a {
+                text-decoration: none;
+                color: #FCFCFC;
+            }
+            a:hover {
+                color: #009AFF;
+            }
+        }
+        
+    }
+    .right {
+        width: 50%;
+        min-height: 22rem;
+    }
+}
