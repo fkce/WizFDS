@@ -1,0 +1,206 @@
+@import '../main.component.scss';
+
+$open-time: .1s;
+$close-time: .1s;
+$open-curve: ease-out;
+$close-curve: ease-in;
+$red: #FF516D;
+
+.project-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    height: 2.5rem;
+    background-color: $grey1;
+    box-shadow: 0 -1px 0 $shadow-dark inset;
+    
+    label {
+        font-size: 0.9rem;
+        cursor: pointer;
+    }
+    div.add-project {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        width: 30%;
+        cursor: pointer;
+    }
+    div.add-project:hover {
+        color: $blue;
+        i {
+            color: $blue;
+        }
+    }
+    i:first-child {
+        margin-left: 2px;
+    }
+    .project-categories {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-end;
+        flex-grow: 1;
+        width: auto;
+        .project-category {
+            position: relative;
+            background-color: transparent;
+            color: #ccc;
+            border-radius: 2px;
+            border: 2px solid #ccc;
+            font-size: 0.9rem;
+            font-family: 'Play';
+            padding: 3px 6px 3px 6px;
+            text-align: center;
+            transition-duration: 0.4s;
+            -webkit-transition-duration: 0.4s; 
+            text-decoration: none;
+            overflow: hidden;
+            cursor: pointer;
+            margin-left: 0.4rem;
+        }
+        .project-category:hover {
+            border: 2px solid $blue;
+        }
+        .project-category.activeCategory {
+            background: #b0bec5;
+            color: #000;
+            border: 2px solid #b0bec5;
+        }
+    }
+    i:last-child {
+        margin-left: 2px;
+    }
+    .project-navigation {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        width: 40%;
+    }
+}
+
+
+.project {
+    display: grid;
+    grid-template-columns: 25% 15% 45% auto;
+    grid-column-gap: 1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    align-items: center;
+    height: 2.5rem;
+	border-bottom: 1px solid $border-light;
+    box-shadow: 0 -1px 0 $shadow-dark inset;
+    background-color: $grey2;
+    user-select: none;
+    input {
+        border: none;
+        box-shadow: none;
+        background-color: none;
+    }
+    label {
+        font-size: 0.9rem;
+        cursor: pointer;
+    }
+    .project-controls {
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-end;
+        align-items: center;
+        .add-button:hover {
+            color: $blue;
+            i {
+                color: $blue;
+            }
+        }
+        .delete-button:hover {
+            color: $red;
+            i {
+                color: $red;
+            }
+        }
+    }
+    
+}
+
+.scenario {
+    border-bottom: 1px solid $border-light;
+    background-color: $grey3;
+    overflow: hidden;
+    user-select: none;
+    input {
+        background-color: none;
+        border: none;
+        box-shadow: none;
+    }
+    .scenario-item {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: nowrap;
+        align-items: center;
+		height: 2.5rem;
+		border-left: 2px solid $grey3;
+		.scenario-signature {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			justify-content: space-between;
+            flex-grow: 1;
+            p.s1 {
+                padding-left: 2rem;
+                cursor: pointer;
+            }
+            p.s3 {
+                cursor: pointer;
+                width: 100%;
+                height: 2.5rem;
+            }
+		}
+		.scenario-controls {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			justify-content: flex-end;
+			padding-right: 1rem;
+		}
+	}
+
+	.scenario-item:hover {
+		background-color: $grey-hover;
+		i.ico {
+			color: $blue;
+        }
+	}
+	.scenario-item:last-child {
+        border-top: 1px solid $grey2;
+		border-bottom: none;
+        font-size: 0.9rem;
+    }
+    .scenario-item:last-child:hover {
+        background-color: $grey3;
+        color: $blue;
+        font-size: 0.9rem;
+    }
+
+	.scenario-item.activeScenario {
+		background-color: $grey-hover;
+		border-left: 2px solid $blue;
+		i.ico {
+			color: $blue;
+		}
+	}
+}
+
+.scenario.open {
+    max-height: 100rem;
+	transition: max-height $open-time $open-curve;
+}
+
+.scenario.close {
+    max-height: 0rem;
+    transition: max-height $close-time cubic-bezier(0, 1, 0, 1);
+    border: none;
+}

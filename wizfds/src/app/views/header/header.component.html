@@ -1,0 +1,93 @@
+<div class="header-container">
+
+  <div class="header-left">
+    <img src="assets/images/wizfds.png">
+  </div>
+
+
+  <div class="header-right">
+
+    <div class="left-top">
+
+      <div>
+        <span>
+          <a routerLink="">
+            <i class="material-icons" matTooltip="Projects" [matTooltipDisabled]="!main.showTooltips" (click)="activate('projects')" [ngClass]="{'active': uiState.active == 'projects'}">view_list</i>
+          </a>
+        </span>
+        <span *ngIf="main.currentProject != undefined">
+          &nbsp;|&nbsp; {{main.currentProject.name}} ({{main.currentProject.id}}) &nbsp;|&nbsp;
+        </span>
+        <span *ngIf="main.currentProject != undefined && main.currentFdsScenario != undefined">
+          {{main.currentFdsScenario.name}} ({{main.currentFdsScenario.id}}) &nbsp;|&nbsp;
+        </span>
+      </div>
+      <div class="cad-path">
+        <span *ngIf="main.currentFdsScenario != undefined && main.currentFdsScenario.acFile != '' && main.currentFdsScenario.acPath">
+          {{ main.currentFdsScenario.acPath }}{{ main.currentFdsScenario.acFile }}
+        </span>
+      </div>
+
+    </div>
+
+    <div class="center-top">
+
+    </div>
+
+    <div class="right-top">
+      <div class="id">
+        <p>{{ main.userName }}</p>
+        <p class="email">(id: {{ main.userId }}, {{ main.email }})</p>
+      </div>
+      <div class="menu">
+        &nbsp;&nbsp;
+        <a routerLink="settings">
+          <i class="material-icons" matTooltip="Settings" [matTooltipDisabled]="!main.showTooltips" (click)="activate('settings')" [ngClass]="{'active': uiState.active == 'settings'}">settings</i>
+        </a>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+      </div>
+      <div class="menu" matTooltip="Log out" [matTooltipDisabled]="!main.showTooltips" (click)="logOut()">
+        <i class="material-icons">exit_to_app</i>
+      </div>
+    </div>
+
+    <div class="left-bottom">
+      <div class="buttons" *ngIf="main.currentProject != undefined && main.currentFdsScenario != undefined">
+        <div class="menu" (click)="updateFdsScenario(main.currentProject.id, main.currentFdsScenario.id)">
+          <i class="material-icons" matTooltip="Save scenario" [matTooltipDisabled]="!main.showTooltips">save</i>
+          &nbsp;&nbsp;|&nbsp;&nbsp;
+        </div>
+        <div class="menu" (click)="updateFdsLibrary()">
+          <i class="material-icons" matTooltip="Save library" [matTooltipDisabled]="!main.showTooltips">library_books</i>
+          &nbsp;&nbsp;|&nbsp;&nbsp;
+        </div>
+        <div class="menu" (click)="downloadFdsInputFile()">
+          <i class="material-icons" matTooltip="Download *.fds" [matTooltipDisabled]="!main.showTooltips">file_download</i>
+          &nbsp;&nbsp;|&nbsp;&nbsp;
+        </div>
+      </div>
+    </div>
+
+    <div class="center-bottom" (click)="showDiagnosticData()">
+      Download:&nbsp;<a href="https://github.com/fkce/WizFDS/tree/master/CAD%20plugin" target="_blank"><i class="material-icons" matTooltip="Download CAD plugin" [matTooltipDisabled]="!main.showTooltips">font_download</i></a>
+    </div>
+
+    <div class="right-bottom">
+      <div class="menu">
+        <a routerLink="library">
+          <i class="material-icons" matTooltip="Library editor" [matTooltipDisabled]="!main.showTooltips" (click)="activate('library')" [ngClass]="{'active': uiState.active == 'library'}">library_books</i>
+        </a>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+      </div>
+      <div class="menu" *ngIf="main.currentProject != undefined && main.currentFdsScenario != undefined && websocket.isConnected"
+        (click)="getCadGeometryWeb()">
+        <i class="material-icons" matTooltip="Get CAD geometry" [matTooltipDisabled]="!main.showTooltips">360</i>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+      </div>
+      <div class="menu">
+        <i class="material-icons" (click)="connectCad()" matTooltip="Connect CAD" [matTooltipDisabled]="!main.showTooltips" [ngClass]="{'connected':websocket.isConnected}">dvr</i>
+      </div>
+    </div>
+  </div>
+
+</div>

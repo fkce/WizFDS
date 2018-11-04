@@ -1,0 +1,88 @@
+<div class="amper-container">
+  <div class="form-box">
+    <div class="form-title">
+      <label class='header'>User settings</label>
+    </div>
+    <div class="form-row">
+      <div>
+        <label>User name:</label>
+        <div class="field-container">
+          <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="main.userName" stringInput>
+        </div>
+      </div>
+      <div>
+        <label>E-mail:</label>
+        <div class="field-container">
+          <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="main.email" stringInput>
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div>
+        <label>CAD websocket address:</label>
+        <div class="field-container">
+          <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="main.websocket.host" stringInput>
+        </div>
+      </div>
+      <div>
+        <label>CAD websocket port:</label>
+        <div class="field-container">
+          <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="main.websocket.port" decimalInput>
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div>
+        <label>Default editor:</label>
+        <div class="field-container">
+          <ng-select [items]="['vim','default']" [(ngModel)]="main.editor" [searchable]="false" [clearable]="false"></ng-select>
+        </div>
+      </div>
+      <div>
+        <label>Show tooltips:</label>
+        <div class="field-container">
+          <mat-checkbox [(ngModel)]="main.showTooltips"></mat-checkbox>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-title">
+      <label class='header'>Password</label>
+    </div>
+    <div class="form-row">
+      <div>
+        <label>Change password:</label>
+        <div class="field-container">
+          <mat-checkbox [(ngModel)]="changePassword"></mat-checkbox>
+        </div>
+      </div>
+      <div *ngIf="changePassword">
+        <label>Enter old password:</label>
+        <div class="field-container">
+          <input type="password" [(ngModel)]="oldPassword" stringInput>
+        </div>
+      </div>
+      <div *ngIf="changePassword">
+        <label>Enter new password:</label>
+        <div class="field-container">
+          <input type="password" [(ngModel)]="newPassword" stringInput>
+        </div>
+      </div>
+      <div *ngIf="changePassword">
+        <label>Repeat new password:</label>
+        <div class="field-container">
+          <input type="password" [(ngModel)]="newPasswordRepeat" stringInput>
+        </div>
+      </div>
+      <div *ngIf="changePassword && newPassword != newPasswordRepeat && newPassword != '' && newPasswordRepeat != ''">
+        <label>Passwords not matching ...</label>
+      </div>
+      <div *ngIf="changePassword && newPassword == newPasswordRepeat && newPassword != '' && newPasswordRepeat != ''">
+        <div class="field-container">
+          <button>Change password</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

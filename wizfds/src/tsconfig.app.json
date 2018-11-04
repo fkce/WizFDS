@@ -1,0 +1,21 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../out-tsc/app",
+    "baseUrl": "./",
+    "paths": {
+      "@services/*": [ "./app/services/*" ],
+      "@directives/*": [ "./app/directives/*" ],
+      "@enums/*": [ "./app/enums/*" ],
+      "@pipes/*": [ "./app/pipes/*" ],
+      "@env/*": [ "./environments/*" ],
+      "@node_modules/*": [ "../../node_modules/*" ]
+    },
+    "module": "es2015",
+    "types": []
+  },
+  "exclude": [
+    "test.ts",
+    "**/*.spec.ts"
+  ]
+}

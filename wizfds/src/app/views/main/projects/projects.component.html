@@ -1,0 +1,82 @@
+<div class="project-header">
+    <div class="add-project" (click)="newProject()">
+        <i class="material-icons">add_box</i>
+        <label>&nbsp;New project</label>
+    </div>
+    <div class="project-navigation" *ngIf="projects.length > uiStateService.projects.listRange">
+        <i class="material-icons" *ngIf="uiStateService.projects.begin > 0" (click)="uiStateService.decreaseProjectsRange()">chevron_left</i>
+        <div>{{uiStateService.projects.begin}} - {{uiStateService.projects.begin + uiStateService.projects.listRange > projects.length
+            ? projects.length : uiStateService.projects.begin + uiStateService.projects.listRange}}</div>
+        <i class="material-icons" *ngIf="uiStateService.projects.begin + uiStateService.projects.listRange < projects.length" (click)="uiStateService.increaseProjectsRange()">chevron_right</i>
+    </div>
+    <div class="project-categories">
+        <div class="project-category" [ngClass]="category.active ? 'activeCategory' : ''" (click)="category.triggerActive(); changeCategoryActivity(category.uuid, categoryIndex)"
+            *ngFor="let category of main.categories; index as categoryIndex" ng-show="category.visible==true">
+            <p>{{category.label}}</p>
+        </div>
+    </div>
+</div>
+<div *ngFor="let project of projects | slice: uiStateService.projects.begin:(uiStateService.projects.begin + uiStateService.projects.listRange); index as projectIndex">
+    <div class="project" *ngIf="checkProjectCategory(project.category)">
+        <div>
+            <i class="material-icons mr+" *ngIf="main.currentProject == undefined || project.id != main.currentProject.id" (click)="setCurrentProject(project.id)">expand_more</i>
+            <i class="material-icons mr+" *ngIf="main.currentProject != undefined && project.id == main.currentProject.id" (click)="unsetCurrentProject()">expand_less</i>
+            <input type="text" [(ngModel)]="project.name" [ngModelOptions]="{updateOn:'blur'}" (ngModelChange)="updateProject(project.id)" stringInput>
+        </div>
+        <div>
+            <ng-select class="mr+" [items]="main.categories" bindLabel="label" bindValue="uuid" placeholder="Select category" [(ngModel)]="project.category"
+                [searchable]="false" [clearable]="false" (ngModelChange)="updateProject(project.id)"></ng-select>
+        </div>
+        <div>
+            <input type="text" [(ngModel)]="project.description" [ngModelOptions]="{updateOn:'blur'}" (ngModelChange)="updateProject(project.id)"
+            />
+        </div>
+        <div class="project-controls">
+            &nbsp;|&nbsp;
+            <div class="delete-button" (click)="deleteProject(project.id)">
+                <i class="material-icons red" matTooltip="Delete project">delete_forever</i>
+            </div>
+            &nbsp;|
+        </div>
+    </div>
+
+    <div class="scenario" [ngClass]="main.currentProject != undefined && project.id == main.currentProject.id ? 'open' : 'close'">
+        <div class="scenario-item" *ngFor="let fdsScenario of project.fdsScenarios; index as fdsScenarioIndex;" [ngClass]="main.currentFdsScenario != undefined && fdsScenario.id == main.currentFdsScenario.id ? 'activeScenario' : ''">
+            <div class="scenario-signature">
+                <p class="s1" (click)="setCurrentFdsScenario(project.id, fdsScenario.id)">
+                    <i class="material-icons ico mr+">apps</i>
+                </p>
+                <p class="s2">
+                    <input type="text" [(ngModel)]="fdsScenario.name" [ngModelOptions]="{updateOn:'blur'}" (ngModelChange)="updateFdsScenario(project.id, fdsScenario.id)"
+                    stringInput />
+                </p>
+                <p class="s3" (click)="setCurrentFdsScenario(project.id, fdsScenario.id)"> </p>
+            </div>
+            <div class="scenario-controls">
+                <!-- TODO:
+                    1. Get fds scenario from server
+                    2. Generate fds file & download
+                &nbsp;|&nbsp;
+                <span>
+                    <i class="material-icons" matTooltip="Download *.fds" (click)="downloadFdsScenario(project.id, fdsScenario.id)">file_download</i>
+                </span>
+                -->
+                &nbsp;|&nbsp;
+                <span>
+                    <i class="material-icons red" matTooltip="Delete scenario" (click)="deleteFdsScenario(project.id, fdsScenario.id)">delete_forever</i>
+                </span>
+                &nbsp;|
+            </div>
+        </div>
+        <div class="scenario-item">
+            <div class="scenario-signature">
+                <p class="s1" (click)="addFdsScenario(project.id)">
+                    <i class="material-icons">add_box</i>
+                    <span>&nbsp;New scenario</span>
+                </p>
+            </div>
+            <div class="scenario-controls">
+            </div>
+        </div>
+    </div>
+</div>

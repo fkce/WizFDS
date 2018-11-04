@@ -1,0 +1,18 @@
+<!--The content below is only a placeholder and can be replaced.-->
+<mat-progress-bar class="progress" mode="indeterminate" *ngIf="httpManager.progress"></mat-progress-bar>
+
+<div class="header">
+  <app-header></app-header>
+</div>
+<div class="container">
+  <div class="menu">
+    <app-menu></app-menu>
+  </div>
+  <div class="main">
+    <app-main></app-main>
+  </div>
+</div>
+<div class="footer">
+WizFDS ver. {{ version }}
+</div>
+<notifier-container></notifier-container>

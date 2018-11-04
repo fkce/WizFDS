@@ -1,0 +1,54 @@
+<div class="amper-container">
+
+  <div class="form-box">
+    <div class="form-title">
+      <label class="header">Combustion</label>
+    </div>
+    <div class="form-row">
+      <div>
+        <label>Turn on combustion reaction:</label>
+        <div class="field-container">
+          <mat-checkbox [(ngModel)]="fires.combustion.turnOnReaction"></mat-checkbox>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-title">
+      <label class="header">Radiataion</label>
+    </div>
+    <div class="form-row">
+      <div>
+        <label>Turn on radiation:</label>
+        <div class="field-container">
+          <mat-checkbox [(ngModel)]="fires.combustion.radiation"></mat-checkbox>
+        </div>
+      </div>
+      <div *ngIf="fires.fuels.length > 0">
+        <label>Radiative fraction:</label>
+        <div class="field-container">
+          <input type=text [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="fires.fuels[0].radiative_fraction" decimalInput>
+        </div>
+      </div>
+      <div *ngIf="fires.fuels.length > 0">
+        <label>Radcal ID:</label>
+        <div class="field-container">
+          <ng-select [items]="RADCALS" bindLabel="label" bindValue="value" placeholder="Select Radcal" [(ngModel)]="fires.fuels[0].fuel_radcal_id"
+            [searchable]="false" [clearable]="false"> </ng-select>
+        </div>
+      </div>
+      <div>
+        <label>Number of radiation angles:</label>
+        <div class="field-container">
+          <input type=text [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="fires.combustion.number_radiation_angles" decimalInput>
+        </div>
+      </div>
+      <div>
+        <label>Time step increment:</label>
+        <div class="field-container">
+          <input type=text [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="fires.combustion.time_step_increment" decimalInput>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

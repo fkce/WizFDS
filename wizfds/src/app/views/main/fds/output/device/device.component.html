@@ -1,0 +1,238 @@
+<div class="single-amper-container">
+
+  <div class="list">
+    <div class="list-title" (click)="add()">
+      <i class="material-icons">add_box</i> Add DEVC
+    </div>
+    <perfect-scrollbar #devcScrollbar (psScrollY)="scrollbarUpdate('devc')">
+      <div class="list-items">
+        <div class="list-item" *ngFor="let devcItem of devcs | slice: ui.output.devc.begin:(ui.output.devc.begin + ui.listRange)">
+          <a (click)="activate(devcItem.id)" [ngClass]="{active: devcItem === devc}">{{devcItem.id}}</a>
+          <i class="material-icons red" (click)="delete(devcItem.id)">delete_forever</i>
+        </div>
+      </div>
+    </perfect-scrollbar>
+    <div class="list-bottom" *ngIf="devcs.length > ui.listRange">
+      <i class="material-icons" *ngIf="ui.output.devc.begin > 0" (click)="uiStateService.decreaseRange('devcs.devc')">chevron_left</i>
+      <div>{{ui.output.devc.begin}} - {{ui.output.devc.begin + ui.listRange > devcs.length ? devcs.length : ui.output.devc.begin
+        + ui.listRange}}</div>
+      <i class="material-icons" *ngIf="ui.output.devc.begin + ui.listRange < devcs.length" (click)="uiStateService.increaseRange('devcs.devc')">chevron_right</i>
+    </div>
+  </div>
+
+  <div class="form-box" [ngClass]="objectType == 'current' ? 'current' : 'library'">
+    <div *ngIf="!devc">
+      <label>Select or add new device</label>
+    </div>
+    <div *ngIf="devc">
+
+      <div class="form-title">
+        <label>{{devc.id}} definition</label>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label>Id:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="devc.id" stringInput>
+          </div>
+        </div>
+        <div>
+          <label>Device type:</label>
+          <div class="field-container">
+            <ng-select class="custom" [items]="DEVC.devcType" bindLabel="label" bindValue="value" placeholder="Select type" [(ngModel)]="devc.type"
+              [clearable]="false"></ng-select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label>Set point:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="devc.setpoint" decimalInput>
+          </div>
+        </div>
+        <div>
+          <label>Select qunatity:</label>
+          <div class="field-container">
+            <ng-select class="custom" [items]="QUANTITIES" bindLabel="id" placeholder="Select quantity" [(ngModel)]="devc.quantity" 
+            [clearable]="false"></ng-select>
+          </div>
+        </div>
+        <div>
+          <label>Initial state:</label>
+          <div class="field-container">
+            <ng-select class="short" [items]="DEVC.devcInitialState" bindLabel="label" bindValue="value" placeholder="Initial state"
+              [(ngModel)]="devc.initial_state" [clearable]="false"></ng-select>
+          </div>
+        </div>
+        <div>
+          <label>Latch:</label>
+          <div class="field-container">
+            <ng-select class="short" [items]="DEVC.devcLatch" bindLabel="label" bindValue="value" placeholder="Initial state" [(ngModel)]="devc.latch"
+              [clearable]="false"></ng-select>
+          </div>
+        </div>
+        <div>
+          <label>Trip direction:</label>
+          <div class="field-container">
+            <ng-select class="short" [items]="DEVC.devcTripDirection" bindLabel="label" bindValue="value" placeholder="Trip direction"
+              [(ngModel)]="devc.trip_direction" [clearable]="false"></ng-select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label>Geometry type:</label>
+          <div class="field-container">
+            <ng-select class="custom" [items]="DEVC.devcGeomType" bindLabel="label" bindValue="value" placeholder="Select geometry type"
+              [(ngModel)]="devc.geometrical_type" [clearable]="false"></ng-select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row" *ngIf="devc.geometrical_type == 'point'">
+        <div>
+          <label>X:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="devc.xyz.x" decimalInput>
+            <ng-katex equation="m"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>Y:</label>
+          <div class="field-container ">
+            <input type="text " [ngModelOptions]="{updateOn: 'blur'} " [(ngModel)]="devc.xyz.y " decimalInput>
+            <ng-katex equation="m"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>Z:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="devc.xyz.z" decimalInput>
+            <ng-katex equation="m"></ng-katex>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row" *ngIf="devc.geometrical_type != 'point'">
+        <div>
+          <label>X1:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="devc.xb.x1" (blur)="updateCad('obst')" decimalInput>
+            <ng-katex equation="m"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>X2:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="devc.xb.x2" (blur)="updateCad('obst')" decimalInput>
+            <ng-katex equation="m"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>Y1:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="devc.xb.y1" (blur)="updateCad('obst')" decimalInput>
+            <ng-katex equation="m"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>Y2:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="devc.xb.y2" (blur)="updateCad('obst')" decimalInput>
+            <ng-katex equation="m"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>Z1:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="devc.xb.z1" (blur)="updateCad('obst')" decimalInput>
+            <ng-katex equation="m"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>Z2:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="devc.xb.z2" (blur)="updateCad('obst')" decimalInput>
+            <ng-katex equation="m"></ng-katex>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label>Statistics:</label>
+          <div class="field-container">
+            <ng-select class="custom" [items]="DEVC.devcStatistics" bindLabel="label" bindValue="value" placeholder="Select statistics" 
+              [(ngModel)]="devc.statistics.statistics" [clearable]="true"></ng-select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-title" *ngIf="showSpecs()">
+        <label class='header'>Species</label>
+      </div>
+      <div class="form-row" *ngIf="showSpecs()">
+        <div>
+          <label>Add {{ devc.quantity.id }} species:</label>
+          <div class="field-container">
+            <ng-select class="custom" [items]="SPECIES" bindLabel="id" placeholder="Select species" multiple="true" hideSelected="true"
+              [(ngModel)]="devc.quantity.specs" [closeOnSelect]="false"></ng-select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-title" *ngIf="showParts()">
+        <label class='header'>Parts</label>
+      </div>
+      <div class="form-row" *ngIf="showParts()">
+        <div>
+          <label>Add {{ devc.quantity.id }} parts:</label>
+          <div class="field-container">
+            <ng-select class="custom" [items]="SPECIES" bindLabel="id" placeholder="Select species" multiple="true" hideSelected="true"
+              [(ngModel)]="devc.quantity.parts" [closeOnSelect]="false"></ng-select>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="lib-wrapper">
+    <div class="lib-drawer" [ngClass]="ui.output.devc.lib=='closed' ? 'closed' : 'opened'">
+      <div class="lib-label-wrapper">
+        <div class="lib-label" (click)="toggleLibrary()">
+          <label>LIBRARY</label>
+        </div>
+      </div>
+      <div class="lib-area">
+        <div class="list">
+          <div class="list-title" (click)="add(true)">
+            <i class="material-icons">add_box</i> Add DEVC
+          </div>
+          <perfect-scrollbar #devcLibScrollbar (psScrollY)="scrollbarUpdate( 'libDevc')">
+            <div class="list-items">
+              <div class="list-item" *ngFor="let devcItem of lib.devcs | slice: ui.output.libDevc.begin:(ui.output.libDevc.begin + ui.listRange)">
+                <a (click)="activate(devcItem.id, true)" [ngClass]="{active: devcItem===devc}">{{devcItem.id}}</a>
+                <i class="material-icons" matTooltip="Merge current item with library" [matTooltipDisabled]="!main.showTooltips" (click)="mergeLibraryItem(devcItem.id)">merge_type</i>
+                <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.showTooltips" (click)="createCadLayer(devcItem.id)">layers</i>
+                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.showTooltips" (click)="importLibraryItem(devcItem.id)">content_copy</i>
+                <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.showTooltips" (click)="delete(devcItem.id, true)">delete_forever</i>
+              </div>
+            </div>
+          </perfect-scrollbar>
+          <div class="list-bottom" *ngIf="libDevcs.length> ui.listRange">
+            <i class="material-icons" *ngIf="ui.output.libDevc.begin > 0" (click)="uiStateService.decreaseRange('devcs.libDevc')">chevron_left</i>
+            <div>{{ui.output.libDevc.begin}} - {{ui.output.libDevc.begin + ui.listRange > libDevcs.length ? libDevcs.length :
+              ui.output.libDevc.begin + ui.listRange}}</div>
+            <i class="material-icons" *ngIf="ui.output.libDevc.begin + ui.listRange < libDevcs.length" (click)="uiStateService.increaseRange('devcs.libDevc')">chevron_right</i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
