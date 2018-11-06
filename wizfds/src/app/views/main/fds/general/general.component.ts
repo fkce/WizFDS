@@ -30,5 +30,5 @@ export class GeneralComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.mainSub.unsubscribe();
   }
-  
+
 }

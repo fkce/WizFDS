@@ -78,8 +78,11 @@ export class FdsScenarioService {
       });
       let fdsScenario = this.main.projects[projectIndex].fdsScenarios[fdsScenarioIndex];
       this.httpManager.put(this.main.hostAddres + '/api/fdsScenario/' + fdsScenario.id, JSON.stringify({ type: 'head', data: { id: fdsScenario.id, name: fdsScenario.name } })).then((result: Result) => {
-        if (this.main.currentFdsScenario != undefined)
+        if (this.main.currentFdsScenario != undefined) {
           this.main.currentFdsScenario = fdsScenario;
+          // Change chid after scenario name update
+          this.main.currentFdsScenario.fdsObject.general.head.chid = this.main.currentFdsScenario.name;
+        }
 
         this.notifierService.notify(result.meta.status, result.meta.details[0]);
       });

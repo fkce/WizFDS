@@ -46,7 +46,7 @@
                 <p class="s1" (click)="setCurrentFdsScenario(project.id, fdsScenario.id)">
                     <i class="material-icons ico mr+">apps</i>
                 </p>
-                <p class="s2">
+                <p class="s2" (click)="setCurrentFdsScenario(project.id, fdsScenario.id)">
                     <input type="text" [(ngModel)]="fdsScenario.name" [ngModelOptions]="{updateOn:'blur'}" (ngModelChange)="updateFdsScenario(project.id, fdsScenario.id)"
                     stringInput />
                 </p>
