@@ -2,4 +2,6 @@
 
 ## TODO list:
 
+### Web aplication
 - [ ] Add email verification on backend during registration process
+- [ ] Highlight and rewind list when AC select object function is used
