@@ -180,28 +180,16 @@ namespace WizFDS.Utils
                 acLyrTbl = acTrans.GetObject(acCurDb.LayerTableId, OpenMode.ForRead) as LayerTable;
 
                 Dictionary<string, short> layers = new Dictionary<string, short>();
-                layers.Add("!FDS_MESH", 2);
-                layers.Add("!FDS_MESH[open]", 3);
-                layers.Add("!FDS_SLCF[slice]", 242);
-                layers.Add("!FDS_DEVC[device]", 7);
-                layers.Add("!FDS_FIRE[fire]", 1);
-                layers.Add("!FDS_HIDDEN", 7);
-                layers.Add("!FDS_VENT[vent]", 6);
-                layers.Add("!FDS_JETF[jetfan]", 54);
-                layers.Add("!FDS_OBST[inert](0)", 123);
-                layers.Add("!FDS_OBST[curt](0)", 3);
-                layers.Add("!FDS_OBST[supply](0)", 4);
-                layers.Add("!FDS_OBST[gypsum_board](0)", 254);
-                layers.Add("!FDS_OBST[brick](0)", 32);
-                layers.Add("!FDS_OBST[concrete](0)", 252);
-                layers.Add("!FDS_OBST[ceiling](0)", 247);
-                layers.Add("!FDS_OBST[door_wood](0)", 14);
-                layers.Add("!FDS_OBST[door_fire](0)", 14);
-                layers.Add("!FDS_OBST[steel](0)", 61);
-                layers.Add("!FDS_OBST[steel_duct](0)", 150);
-                layers.Add("!FDS_OBST[glass](0)", 140);
-                layers.Add("!FDS_OBST[glass_fire](0)", 140);
-                layers.Add("!FDS_HOLE(0)", 140);
+                    layers.Add("!FDS_MESH", 2);
+                    layers.Add("!FDS_MESH[open]", 3);
+                    layers.Add("!FDS_SLCF[slice]", 242);
+                    layers.Add("!FDS_DEVC[device]", 7);
+                    layers.Add("!FDS_FIRE[fire]", 1);
+                    layers.Add("!FDS_HIDDEN", 7);
+                    layers.Add("!FDS_VENT[vent]", 6);
+                    layers.Add("!FDS_JETF[jetfan]", 54);
+                    layers.Add("!FDS_OBST[inert](0)", 123);
+                    layers.Add("!FDS_HOLE(0)", 140);
 
                 foreach (KeyValuePair<string, short> layer in layers)
                 {
