@@ -29,14 +29,14 @@
             }
         }
         .login {
+            a {
+                text-decoration: none;
+                color: #fcfcfc;
+            }
             p.login-button {
                 background-color: #454B54;
                 padding: 1rem 2rem 1rem 2rem;
                 border-radius: 2rem;
-                a {
-                    text-decoration: none;
-                    color: #fcfcfc;
-                }
             }
             p.login-button:hover {
                 background-color: #009AFF;

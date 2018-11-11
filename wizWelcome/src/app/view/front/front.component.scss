@@ -38,7 +38,7 @@ span.blue {
     justify-content: center;
     align-items: center;
     width: calc(100% - 0.4rem);
-    padding: 1rem 0.2rem 1rem 0.2rem;
+    padding: 2rem 0.2rem 2rem 0.2rem;
     border-bottom: 1px solid #95989A;
     background-color: #C7D7E2;
     .avatar {
@@ -114,16 +114,16 @@ span.blue {
     align-items: center;
     //min-height: 43rem;
     width: calc(100% - 0.4rem);
-    padding: 0.7rem 0.2rem 0.7rem 0.2rem;
+    padding: 2rem 0.2rem 2rem 0.2rem;
     border-bottom: 1px solid #95989A;
     img {
         max-width: 100%;
     }
-    .youtube {
+    .wiki {
         display: flex;
         flex-wrap: wrap;
         font-size: 1.5rem;
-        padding-top: 0.5rem;
+        padding-top: 2rem;
         justify-content: center;
         align-items: center;
         span {
@@ -133,6 +133,14 @@ span.blue {
         img {
             width: 4rem;
             padding-right: 1rem;
+        }
+        a {
+            text-decoration: none;
+            //font-size: 1.1rem;
+            color: #454B54;
+        }
+        a:hover {
+            color: #009AFF;
         }
     }
 }
@@ -144,7 +152,7 @@ span.blue {
     align-items: center;
     //min-height: 38rem;
     width: calc(100% - 0.4rem);
-    padding: 0.7rem 0.2rem 0.7rem 0.2rem;
+    padding: 2rem 0.2rem 2rem 0.2rem;
     border-bottom: 1px solid #95989A;
     background-color: #C7D7E2;
     img {
