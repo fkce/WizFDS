@@ -1,7 +1,7 @@
 <p align="center"><img alt="WizFDS" src="https://wizfds.fkce.pl/welcome/assets/wizfds.svg"></p>
 
-WizFDS is open-source project released under GNU v3.0 license founded by F&K Consulting Engineers Ltd.  
 The software is Graphical User Interface (**GUI**) for Fire Dynamics Simulator (**FDS**).
+WizFDS is open-source project released under GNU v3.0 license founded by F&K Consulting Engineers Ltd.  
 
 GUI is divided into 2 separated tools. All geometrical entities are created in AutoCAD/BricsCAD plugin [(download)](https://github.com/fkce/WizFDS/releases). Other boundary conditions are set in web application [(link)](https://wizfds.com/login) which communicate with AutoCAD through websocket protocol.
 
