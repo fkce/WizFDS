@@ -232,10 +232,10 @@
             <div class="list-items">
               <div class="list-item" *ngFor="let jetfanItem of lib.jetfans | slice: ui.ventilation.libJetfan.begin:(ui.ventilation.libJetfan.begin + ui.listRange)">
                 <a (click)="activate(jetfanItem.id, true)" [ngClass]="{active: jetfanItem === jetfan}">{{jetfanItem.id}}</a>
-                <i class="material-icons" matTooltip="Merge current item with library" [matTooltipDisabled]="!main.showTooltips" (click)="mergeLibraryItem(jetfanItem.id) ">merge_type</i>
-                <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.showTooltips" (click)="createCadLayer(jetfanItem.id)">layers</i>
-                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.showTooltips" (click)="importLibraryItem(jetfanItem.id)">content_copy</i>
-                <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.showTooltips" (click)="delete(jetfanItem.id, true)">delete_forever</i>
+                <i class="material-icons" matTooltip="Merge current item with library" [matTooltipDisabled]="!main.tooltips" (click)="mergeLibraryItem(jetfanItem.id) ">merge_type</i>
+                <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.tooltips" (click)="createCadLayer(jetfanItem.id)">layers</i>
+                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.tooltips" (click)="importLibraryItem(jetfanItem.id)">content_copy</i>
+                <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.tooltips" (click)="delete(jetfanItem.id, true)">delete_forever</i>
               </div>
             </div>
           </perfect-scrollbar>

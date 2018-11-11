@@ -155,9 +155,9 @@
           <div class="list-items" scrollbar="{axis:'y', alwaysVisible:true, autoUpdate:true, thumbSize: 15}" scrollname="libSurf">
             <div class="list-item" *ngFor="let surfItem of lib.surfs | slice:ui.geometry.libSurf.begin:(ui.geometry.libSurf.begin + ui.listRange)">
               <a (click)="activate(surfItem.id, true)" [ngClass]="{activeLib: surfItem === surf}"> {{surfItem.id}} </a>
-              <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.showTooltips" (click)="createCad(surfItem.id)">layers</i>
-              <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.showTooltips" (click)="importLibraryItem(surfItem.id);">content_copy</i>
-              <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.showTooltips" (click)="delete(surfItem.id)">delete_forever</i>
+              <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.tooltips" (click)="createCad(surfItem.id)">layers</i>
+              <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.tooltips" (click)="importLibraryItem(surfItem.id);">content_copy</i>
+              <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.tooltips" (click)="delete(surfItem.id)">delete_forever</i>
             </div>
           </div>
           <div class="list-bottom">

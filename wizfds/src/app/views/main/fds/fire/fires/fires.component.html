@@ -273,9 +273,9 @@
               <div class="list-item " *ngFor="let fireItem of lib.fires | slice: ui.fires.libFire.begin:(ui.fires.libFire.begin
                   + ui.listRange) ">
                 <a (click)="activate(fireItem.id, true) " [ngClass]="{active: fireItem===fire} ">{{fireItem.id}}</a>
-                <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.showTooltips" (click)="createCadLayer(fireItem.id)">layers</i>
-                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.showTooltips" (click)="importLibraryItem(fireItem.id)">content_copy</i>
-                <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.showTooltips" (click)="delete(fireItem.id, true)">delete_forever</i>
+                <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.tooltips" (click)="createCadLayer(fireItem.id)">layers</i>
+                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.tooltips" (click)="importLibraryItem(fireItem.id)">content_copy</i>
+                <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.tooltips" (click)="delete(fireItem.id, true)">delete_forever</i>
               </div>
             </div>
           </perfect-scrollbar>

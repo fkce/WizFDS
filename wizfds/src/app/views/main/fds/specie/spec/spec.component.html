@@ -83,8 +83,8 @@
               <div class="list-item" *ngFor="let specItem of lib.specs | slice: ui.specie.libSpec.begin:(ui.specie.libSpec.begin
                   + ui.listRange)">
                 <a (click)="activate(specItem.id, true)" [ngClass]="{active: specItem===spec}">{{specItem.id}}</a>
-                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.showTooltips" (click)="importLibraryItem(specItem.id)">content_copy</i>
-                <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.showTooltips" (click)="delete(specItem.id, true)">delete_forever</i>
+                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.tooltips" (click)="importLibraryItem(specItem.id)">content_copy</i>
+                <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.tooltips" (click)="delete(specItem.id, true)">delete_forever</i>
               </div>
             </div>
           </perfect-scrollbar>

@@ -18,6 +18,18 @@ export class MainService {
     private httpManager: HttpManagerService,
     private readonly notifierService: NotifierService
   ) { 
+    this.getSettings();
+  }
+
+  public getMain(): Observable<Main> {
+    return of(this.main);
+  }
+
+  /**
+   * Get user settings from database
+   * table users
+   */
+  public getSettings() {
     this.httpManager.get(this.main.hostAddres + '/api/settings').then((result:Result) => {
       let main = new Main(JSON.stringify(result.data));
       this.main.hostAddres = main.hostAddres;
@@ -32,8 +44,12 @@ export class MainService {
     });
   }
 
-  public getMain(): Observable<Main> {
-    return of(this.main);
+  public updateSettings() {
+    this.httpManager.put(this.main.hostAddres + '/api/settings/'+this.main.userId, this.main.toJSON()).then((result:Result) => {
+
+      this.notifierService.notify(result.meta.status, result.meta.details[0]);
+    });
+
   }
 
   /** Get max id from list */

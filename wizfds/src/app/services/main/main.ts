@@ -1,7 +1,9 @@
 import { Project } from '@services/project/project';
 import { FdsScenario } from '@services/fds-scenario/fds-scenario';
 import { Category } from '@services/category/category';
-import { environment } from '@env/environment'
+import { environment } from '@env/environment';
+
+import { toString } from 'lodash';
 
 export interface WebsocketInterface {
     host: string,
@@ -11,15 +13,15 @@ export interface MainInterface {
     userId: number,
     userName: string,
     editor: string,
-    projects: Project[],
+    projects?: Project[],
     websocket: WebsocketInterface,
     timeout: number,
-    currentProject: Project,
-    currentFdsScenario: FdsScenario,
-    categories: Category[],
+    currentProject?: Project,
+    currentFdsScenario?: FdsScenario,
+    categories?: Category[],
     hostAddres: string,
     email: string,
-    showTooltips: boolean
+    tooltips: boolean
 }
 export class Main {
     private _userId: number;
@@ -34,7 +36,7 @@ export class Main {
     private _hostAddres: string;
     private _email: string;
     private _progress: boolean;
-    private _showTooltips: boolean;
+    private _tooltips: boolean;
 
     constructor(jsonString: string) {
 
@@ -45,17 +47,19 @@ export class Main {
         this.userName = base.userName || undefined;
         this.editor = base.editor || "normal";
         this.projects = [];
-        this.websocket = base.websocket || {
-            host: "localhost",
-            port: 2012,
-        };
+        this.websocket = {
+            host: 'localhost',
+            port: 2012
+        }
+        this.websocket.host = (base['websocketHost'] != undefined && base['websocketHost'] != '') ? base['websocketHost'] : 'localhost';
+        this.websocket.port = (base['websocketPort'] != undefined && base['websocketPort'] != '') ? base['websocketPort'] : 2012;
         this.timeout = base.timeout || 3600;
         this.currentProject = base.currentProject || undefined;
         this.currentFdsScenario = base.currentFdsScenario || undefined;
         this.categories = [];
         this.hostAddres = base.hostAddres || environment.host;
         this.email = base.email || '';
-        this.showTooltips = base.showTooltips || true;
+        this.tooltips = (toString(base.tooltips) == 't' || base.tooltips == true) ? true : false;
     }
 
     /**
@@ -235,19 +239,37 @@ export class Main {
     }
 
     /**
-     * Getter showTooltips
+     * Getter tooltips
      * @return {boolean}
      */
-	public get showTooltips(): boolean {
-		return this._showTooltips;
-	}
+    public get tooltips(): boolean {
+        return this._tooltips;
+    }
 
     /**
-     * Setter showTooltips
+     * Setter tooltips
      * @param {boolean} value
      */
-	public set showTooltips(value: boolean) {
-		this._showTooltips = value;
-	}
+    public set tooltips(value: boolean) {
+        this._tooltips = value;
+    }
+
+
+    /**
+     * Export to json
+     */
+    public toJSON(): string {
+        let main = {
+            userId: this.userId,
+            userName: this.userName,
+            editor: this.editor,
+            websocket: this.websocket,
+            timeout: this.timeout,
+            hostAddres: this.hostAddres,
+            email: this.email,
+            tooltips: (this.tooltips) ? 'true' : 'false'
+        }
+        return JSON.stringify(main);
+    }
 
 }

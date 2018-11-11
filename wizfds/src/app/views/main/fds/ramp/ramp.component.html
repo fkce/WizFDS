@@ -68,8 +68,8 @@
             <div class="list-items">
               <div class="list-item" *ngFor="let rampItem of lib.ramps | slice: ui.ramps.libRamp.begin:(ui.ramps.libRamp.begin + ui.listRange)">
                 <a (click)="activate(rampItem.id, true)" [ngClass]="{active: rampItem === ramp}">{{rampItem.id}}</a>
-                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.showTooltips" (click)="importLibraryItem(rampItem.id)">content_copy</i>
-                <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.showTooltips" (click)="delete(rampItem.id, true)">delete_forever</i>
+                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.tooltips" (click)="importLibraryItem(rampItem.id)">content_copy</i>
+                <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.tooltips" (click)="delete(rampItem.id, true)">delete_forever</i>
               </div>
             </div>
           </perfect-scrollbar>

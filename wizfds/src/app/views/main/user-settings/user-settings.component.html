@@ -41,7 +41,14 @@
       <div>
         <label>Show tooltips:</label>
         <div class="field-container">
-          <mat-checkbox [(ngModel)]="main.showTooltips"></mat-checkbox>
+          <mat-checkbox [(ngModel)]="main.tooltips"></mat-checkbox>
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div>
+        <div class="field-container">
+          <button (click)="saveSettings()">Save settings</button>
         </div>
       </div>
     </div>

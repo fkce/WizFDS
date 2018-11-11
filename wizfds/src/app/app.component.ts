@@ -59,10 +59,10 @@ export class AppComponent {
     // For developing purpose
     if (isDevMode()) {
       setTimeout(() => {
-        this.setCurrentFdsScenario(2, 2);
+        this.setCurrentFdsScenario(2, 12);
       }, 1000);
       setTimeout(() => {
-        //this.router.navigate(['fds/geometry/surface']);
+        this.router.navigate(['settings']);
       }, 2000);
     }
   }

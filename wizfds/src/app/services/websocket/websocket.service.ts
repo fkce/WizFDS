@@ -161,6 +161,7 @@ export class WebsocketService {
           if (this.main.currentFdsScenario != undefined) {
             this.fds = this.main.currentFdsScenario.fdsObject;
             this.fExport(message.data);
+            this.notifierService.notify('success', 'Geometry imported');
           }
           break;
         }
@@ -214,6 +215,7 @@ export class WebsocketService {
           if (this.main.currentFdsScenario != undefined) {
             this.fds = this.main.currentFdsScenario.fdsObject;
             this.fExport(message.data);
+            this.notifierService.notify('success', 'Geometry imported');
           }
           else {
             answer.status = "error";
@@ -227,6 +229,7 @@ export class WebsocketService {
             this.fds = this.main.currentFdsScenario.fdsObject;
             console.log(this.fds);
             this.fSelect(message.data);
+            this.notifierService
           }
           else {
             answer.status = "error";

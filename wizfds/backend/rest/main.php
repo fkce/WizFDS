@@ -55,15 +55,14 @@ function updateSettings($args) {
 			"id" => $user_id,
 			"userName" => nullToEmpty($postData->userName),
 			"editor" => nullToEmpty($postData->editor),
-			"current_project_id" => nullToEmpty($postData->current_project_id),
-			"current_scenario_id" => nullToEmpty($postData->current_scenario_id),
-			"websocket_host" => nullToEmpty($postData->websocket_host),
-			"websocket_port" => nullToEmpty($postData->websocket_port),
+			"websocket_host" => nullToEmpty($postData->websocket->host),
+			"websocket_port" => nullToEmpty($postData->websocket->port),
+			"email" => nullToEmpty($postData->email),
 			"tooltips" => nullToEmpty($postData->tooltips)
 		);
 		
 		global $db;
-		$result=$db->pg_change("update users set username=$2, editor=$3, current_project_id=$4, current_scenario_id=$5, websocket_host=$6, websocket_port=$7, tooltips=$8 where id=$1;", $data);
+		$result=$db->pg_change("update users set username=$2, editor=$3, websocket_host=$4, websocket_port=$5, email=$6, tooltips=$7 where id=$1;", $data);
 
 	} catch(Exception $e) {
 		$result = "error";
@@ -73,7 +72,7 @@ function updateSettings($args) {
 		$answer=Array(
 			"meta"=>Array(
 				"status" => "success",
-				"from" => "updateUser()",
+				"from" => "updateSettings()",
 				"details" => Array("User settings have been successfully updated")
 			),
 			"data"=>$data
@@ -82,13 +81,13 @@ function updateSettings($args) {
 		$answer=Array(
 			"meta"=>Array(
 				"status" => "error",
-				"from" => "updateUser()",
+				"from" => "updateSettings()",
 				"details" => Array("An error has occur - settings were not saved properly")
 			),
 			"data" => Array()
 		);
 	}
-	echo json_encode($res);	
+	echo json_encode($answer);	
 }
 
 ?>

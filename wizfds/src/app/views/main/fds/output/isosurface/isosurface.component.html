@@ -108,9 +108,9 @@
             <div class="list-items">
               <div class="list-item" *ngFor="let isofItem of lib.isofs | slice: ui.output.libIsof.begin:(ui.output.libIsof.begin + ui.listRange)">
                 <a (click)="activate(isofItem.id, true)" [ngClass]="{active: isofItem===isof}">{{isofItem.id}}</a>
-                <i class="material-icons" matTooltip="Merge current item with library" [matTooltipDisabled]="!main.showTooltips" (click)="mergeLibraryItem(isofItem.id)">merge_type</i>
-                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.showTooltips" (click)="importLibraryItem(isofItem.id)">content_copy</i>
-                <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.showTooltips" (click)="delete(isofItem.id, true)">delete_forever</i>
+                <i class="material-icons" matTooltip="Merge current item with library" [matTooltipDisabled]="!main.tooltips" (click)="mergeLibraryItem(isofItem.id)">merge_type</i>
+                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.tooltips" (click)="importLibraryItem(isofItem.id)">content_copy</i>
+                <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.tooltips" (click)="delete(isofItem.id, true)">delete_forever</i>
               </div>
             </div>
           </perfect-scrollbar>

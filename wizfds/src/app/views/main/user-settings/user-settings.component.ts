@@ -30,4 +30,11 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
     this.mainSub.unsubscribe();
   }
 
+  /**
+   * Save settings
+   */
+  public saveSettings() {
+    this.mainService.updateSettings();
+  }
+
 }
