@@ -7,7 +7,7 @@ GUI is divided into 2 separated tools. All geometrical entities are created in A
 
 **WizFDS is still under development and may include bugs.** However, we count on your help and support!
 
-**We also assume that you have basic knowladge about FDS software**. If not start from reading [FDS User Guide](https://github.com/firemodels/fds/releases/download/FDS6.7.0/FDS_User_Guide.pdf).
+**We also assume that you have basic knowladge of FDS software**. If not start from reading [FDS User Guide](https://github.com/firemodels/fds/releases/download/FDS6.7.0/FDS_User_Guide.pdf).
 
 ## To get more information: 
 1. Visit our official website: https://wizfds.com/
