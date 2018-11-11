@@ -180,7 +180,7 @@
           <label>Add {{ devc.quantity.id }} species:</label>
           <div class="field-container">
             <ng-select class="custom" [items]="SPECIES" bindLabel="id" placeholder="Select species" multiple="true" hideSelected="true"
-              [(ngModel)]="devc.quantity.specs" [closeOnSelect]="false"></ng-select>
+              [(ngModel)]="devc.quantity.specs" [closeOnSelect]="false" [clearSearchOnAdd]="true"></ng-select>
           </div>
         </div>
       </div>
@@ -193,7 +193,7 @@
           <label>Add {{ devc.quantity.id }} parts:</label>
           <div class="field-container">
             <ng-select class="custom" [items]="SPECIES" bindLabel="id" placeholder="Select species" multiple="true" hideSelected="true"
-              [(ngModel)]="devc.quantity.parts" [closeOnSelect]="false"></ng-select>
+              [(ngModel)]="devc.quantity.parts" [closeOnSelect]="false" [clearSearchOnAdd]="true"></ng-select>
           </div>
         </div>
       </div>

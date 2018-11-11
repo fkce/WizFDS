@@ -8,7 +8,7 @@
                 <label>Select qunatities:</label>
                 <div class="field-container">
                     <ng-select [items]="QUANTITIES" bindLabel="id" placeholder="Select boundary quantities" multiple="true" hideSelected="true"
-                        [(ngModel)]="main.currentFdsScenario.fdsObject.output.bndfs" [closeOnSelect]="false"></ng-select>
+                        [(ngModel)]="main.currentFdsScenario.fdsObject.output.bndfs" [closeOnSelect]="false" [clearSearchOnAdd]="true"></ng-select>
                 </div>
             </div>
         </div>
@@ -21,7 +21,7 @@
                 <label>Add {{ bndf.id }} species:</label>
                 <div class="field-container">
                     <ng-select [items]="SPECIES" bindLabel="id" placeholder="Select species" multiple="true" hideSelected="true" [(ngModel)]="bndf.specs"
-                        [closeOnSelect]="false"></ng-select>
+                        [closeOnSelect]="false" [clearSearchOnAdd]="true"></ng-select>
                 </div>
             </div>
         </div>
@@ -34,7 +34,7 @@
                 <label>Add {{ bndf.id }} parts:</label>
                 <div class="field-container">
                     <ng-select [items]="SPECIES" bindLabel="id" placeholder="Select species" multiple="true" hideSelected="true" [(ngModel)]="bndf.parts"
-                        [closeOnSelect]="false"></ng-select>
+                        [closeOnSelect]="false" [clearSearchOnAdd]="true"></ng-select>
                 </div>
             </div>
         </div>

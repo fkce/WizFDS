@@ -71,7 +71,7 @@
           <label>Add {{ isof.quantity.id }} species:</label>
           <div class="field-container">
             <ng-select class="custom" [items]="SPECIES" bindLabel="id" placeholder="Select species" multiple="true" hideSelected="true"
-              [(ngModel)]="isof.quantity.specs" [closeOnSelect]="false"></ng-select>
+              [(ngModel)]="isof.quantity.specs" [closeOnSelect]="false" [clearSearchOnAdd]="true"></ng-select>
           </div>
         </div>
       </div>
@@ -84,7 +84,7 @@
           <label>Add {{ isof.quantity.id }} parts:</label>
           <div class="field-container">
             <ng-select class="custom" [items]="SPECIES" bindLabel="id" placeholder="Select species" multiple="true" hideSelected="true"
-              [(ngModel)]="isof.quantity.parts" [closeOnSelect]="false"></ng-select>
+              [(ngModel)]="isof.quantity.parts" [closeOnSelect]="false" [clearSearchOnAdd]="true"></ng-select>
           </div>
         </div>
       </div>
