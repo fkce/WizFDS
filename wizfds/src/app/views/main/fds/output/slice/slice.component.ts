@@ -148,7 +148,7 @@ export class SliceComponent implements OnInit, OnDestroy {
     // Create new slcf object with unique id
     if (!library) {
       let element = { id: 'SLCF' + this.mainService.getListId(this.slcfs, 'slcf') };
-      this.slcfs.push(new Slcf(JSON.stringify(element), this.fds.specie.specs, this.fds.parts.parts));
+      this.slcfs.push(new Slcf(JSON.stringify(element), this.fds.specie.specs, this.fds.particle.parts));
       this.activate(element.id);
     }
     else {

@@ -3,9 +3,8 @@ import { Xb, Xyz, Quantity } from '../primitives';
 import { FdsEntities } from '../../../enums/fds/entities/fds-entities';
 import { Prop } from './prop';
 import { Spec } from '../specie/spec';
-import { Part } from './part';
+import { Part } from '../particle/part';
 import { FdsGuiEntities } from '../../../enums/fds/entities/fds-gui-entities';
-import { FdsEnums } from '../../../enums/fds/enums/fds-enums';
 import { get, toString, find, toNumber, toInteger, includes, filter, map } from 'lodash';
 import { quantities } from '../../../enums/fds/enums/fds-enums-quantities';
 

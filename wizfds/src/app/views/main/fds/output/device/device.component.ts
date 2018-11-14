@@ -148,7 +148,7 @@ export class DeviceComponent implements OnInit, OnDestroy {
     // Create new devc object with unique id
     if (!library) {
       let element = { id: 'DEVC' + this.mainService.getListId(this.devcs, 'devc') };
-      this.devcs.push(new Devc(JSON.stringify(element), this.fds.specie.specs, this.fds.parts.parts));
+      this.devcs.push(new Devc(JSON.stringify(element), this.fds.specie.specs, this.fds.particle.parts));
       this.activate(element.id);
     }
     else {

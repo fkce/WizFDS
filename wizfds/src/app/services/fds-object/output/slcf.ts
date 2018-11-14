@@ -1,12 +1,8 @@
-import { FdsEntities } from '../../../enums/fds/entities/fds-entities';
 import { IdGeneratorService } from '../../id-generator/id-generator.service';
 import { Xb, Quantity } from '../primitives';
 import { Spec } from '../specie/spec';
-import { Part } from './part';
-import { FdsEnums } from '../../../enums/fds/enums/fds-enums';
-import { map, toString, get, toNumber, find, filter, includes, forEach } from 'lodash';
-import { quantities } from '../../../enums/fds/enums/fds-enums-quantities';
-
+import { Part } from '../particle/part';
+import { map, toString, get, toNumber, forEach } from 'lodash';
 
 export interface SlcfObject {
     id: string,

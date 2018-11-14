@@ -1,7 +1,7 @@
 import { FdsEntities } from '../../../enums/fds/entities/fds-entities';
 import { IdGeneratorService } from '../../id-generator/id-generator.service';
 import { Spec } from '../specie/spec';
-import { Part } from './part';
+import { Part } from '../particle/part';
 import { FdsEnums } from '../../../enums/fds/enums/fds-enums';
 import { get, map, find, filter, includes, merge } from 'lodash';
 import { quantities } from '../../../enums/fds/enums/fds-enums-quantities';

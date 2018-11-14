@@ -106,7 +106,7 @@ export class IsosurfaceComponent implements OnInit, OnDestroy {
     // Create new isof object with unique id
     if (!library) {
       let element = { id: 'ISOF' + this.mainService.getListId(this.isofs, 'isof') };
-      this.isofs.push(new Isof(JSON.stringify(element), this.fds.specie.specs, this.fds.parts.parts));
+      this.isofs.push(new Isof(JSON.stringify(element), this.fds.specie.specs, this.fds.particle.parts));
       this.activate(element.id);
     }
     else {

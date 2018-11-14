@@ -11,7 +11,7 @@ import { SurfVent } from './ventilation/surf-vent';
 import { Vent } from './ventilation/vent';
 import { JetFan } from './ventilation/jet-fan';
 import { Ramp } from './ramp/ramp';
-import { Part } from './output/part';
+import { Part } from './particle/part';
 import { Spec } from './specie/spec';
 import { Fire } from './fire/fire';
 import { Combustion } from './fire/combustion';
@@ -31,7 +31,7 @@ export interface FdsObject {
   geometry: { obsts: Obst[], holes: Hole[], opens: Open[], matls: Matl[], meshes: Mesh[], surfs: Surf[] },
   ventilation: { surfs: SurfVent[], vents: Vent[], jetfans: JetFan[] },
   ramps: { ramps: Ramp[] },
-  parts: { parts: Part[] },
+  particle: { parts: Part[] },
   specie: { specs: Spec[], surfs: Surf[] }, //vents: Vent[] 
   fires: { fires: Fire[], combustion: Combustion, fuels: Fuel[] };
   output: { general: Dump, devcs: Devc[], props: Prop[], bndfs: Bndf[], slcfs: Slcf[], isofs: Isof[], ctrls: Ctrl[] },
@@ -43,7 +43,7 @@ export class Fds {
   geometry = { obsts: [], holes: [], opens: [], matls: [], meshes: [], surfs: [] };
   ventilation = { surfs: [], vents: [], jetfans: [] };
   ramps = { ramps: [] };
-  parts = { parts: [] };
+  particle = { parts: [] };
   specie = { specs: [], surfs: [], vents: [] } 
   fires = { fires: [], combustion: new Combustion(JSON.stringify({})), fuels: [] };
   output = { general: new Dump(JSON.stringify({})), devcs: [], props: [], bndfs: [], slcfs: [], isofs: [], ctrls: [] };
@@ -65,11 +65,11 @@ export class Fds {
 
     // Create props
     this.output.props = get(base, 'output.props') === undefined ? [] : map(base.output.props, (prop) => {
-      return new Prop(JSON.stringify(prop), this.ramps.ramps, this.parts.parts);
+      return new Prop(JSON.stringify(prop), this.ramps.ramps, this.particle.parts);
     });
 
     // Create parts
-    this.parts.parts = get(base, 'parts.parts') === undefined ? [] : map(base.parts.parts, (part) => {
+    this.particle.parts = get(base, 'parts.parts') === undefined ? [] : map(base.particle.parts, (part) => {
       return new Part(JSON.stringify(part));
     });
 
@@ -81,7 +81,7 @@ export class Fds {
 
     // Create devices after props, parts and species initialization
     this.output.devcs = get(base, 'output.devcs') === undefined ? [] : map(base.output.devcs, (devc) => {
-      return new Devc(JSON.stringify(devc), this.output.props, this.specie.specs, this.parts.parts);
+      return new Devc(JSON.stringify(devc), this.output.props, this.specie.specs, this.particle.parts);
     });
 
     // Create geometry objects
@@ -131,19 +131,19 @@ export class Fds {
     this.output.general = get(base, 'general') === undefined ? new Dump("{}") : new Dump(JSON.stringify(base.general));
 
     this.output.bndfs = get(base, 'output.bndfs') === undefined ? [] : map(base.output.bndfs, (bndf) => {
-      return new Bndf(JSON.stringify(bndf), this.specie.specs, this.parts.parts);
+      return new Bndf(JSON.stringify(bndf), this.specie.specs, this.particle.parts);
     });
 
     this.output.slcfs = get(base, 'output.slcfs') === undefined ? [] : map(base.output.slcfs, (slcf) => {
-      return new Slcf(JSON.stringify(slcf), this.specie.specs, this.parts.parts);
+      return new Slcf(JSON.stringify(slcf), this.specie.specs, this.particle.parts);
     });
 
     this.output.isofs = get(base, 'output.isofs') === undefined ? [] : map(base.output.isofs, (isof) => {
-      return new Isof(JSON.stringify(isof), this.specie.specs, this.parts.parts);
+      return new Isof(JSON.stringify(isof), this.specie.specs, this.particle.parts);
     });
 
     this.output.props = get(base, 'output.props') === undefined ? [] : map(base.output.props, (prop) => {
-      return new Prop(JSON.stringify(prop), this.ramps.ramps, this.parts.parts);
+      return new Prop(JSON.stringify(prop), this.ramps.ramps, this.particle.parts);
     });
 
     this.output.ctrls = get(base, 'output.ctrls') === undefined ? [] : map(base.output.ctrls, (ctrl) => {

@@ -1,6 +1,7 @@
-import { get, map, toString } from "lodash";
 import { Spec } from "./specie/spec";
-import { Part } from "./output/part";
+import { Part } from "./particle/part";
+
+import { get, map, toString } from "lodash";
 
 export interface XbObject {
     x1: number,
