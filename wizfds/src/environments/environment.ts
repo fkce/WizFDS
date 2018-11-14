@@ -6,5 +6,5 @@
 export const environment = {
   production: false,
   host: 'https://wizfds.ayz.pl',
-  version: '0.1.0'
+  version: '0.2.0 beta'
 };

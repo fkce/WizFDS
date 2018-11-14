@@ -58,7 +58,7 @@ mat-progress-bar.progress {
         background-color: $grey3;
         border: 1px solid $border-dark;
         margin-right: 1rem;
-        height: auto;
+        height: auto !important;
         min-height: 30rem;
 
         // Hiding lib & help
