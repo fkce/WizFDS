@@ -215,20 +215,21 @@ export class SliceComponent implements OnInit, OnDestroy {
 
   /** Create CAD element */
   public createCad(id: string = '') {
-    if (this.websocketService.isConnected) {
-      this.slcfOld = cloneDeep(this.slcf);
+    if (this.websocketService.isConnected && id != '') {
+      let slcf = find(this.lib.slcfs, function (o) { return o.id == id; });
+      this.slcfOld = cloneDeep(slcf);
 
       // Prepare message
       let message: WebsocketMessageObject = {
         method: 'createSlcfWeb',
         data: {
           id: id,
-          direction: this.slcf.direction,
-          value: this.slcf.value
+          direction: slcf.direction,
+          value: slcf.value
         },
         id: this.websocketService.idGenerator(),
         requestID: '',
-        status: "waiting"
+        status: 'waiting'
       }
 
       // Send message to CAD
@@ -239,8 +240,9 @@ export class SliceComponent implements OnInit, OnDestroy {
 
   /** Create CAD layer */
   public createCadLayer(id: string = '') {
-    if (this.websocketService.isConnected) {
-      this.slcfOld = cloneDeep(this.slcf);
+    if (this.websocketService.isConnected && id != '') {
+      let slcf = find(this.lib.slcfs, function (o) { return o.id == id; });
+      this.slcfOld = cloneDeep(slcf);
 
       // Prepare message
       let message: WebsocketMessageObject = {
@@ -250,7 +252,7 @@ export class SliceComponent implements OnInit, OnDestroy {
         },
         id: this.websocketService.idGenerator(),
         requestID: '',
-        status: "waiting"
+        status: 'waiting'
       }
 
       // Send message to CAD
