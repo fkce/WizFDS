@@ -39,7 +39,18 @@ export class Xb {
             this.z1 = get(base, 'z1', 0);
             this.z2 = get(base, 'z2', 1);
         }
-        this.area = get(base, 'area', 1);
+
+        let area: number = 0;
+        if (this.z1 == this.z2) {
+            area = Math.abs((this.x2 - this.x1) * (this.y2 - this.y1));
+        }
+        else if (this.y1 == this.y2) {
+            area = Math.abs((this.x2 - this.x1) * (this.z2 - this.z1));
+        }
+        else if (this.x1 == this.x2) {
+            area = Math.abs((this.z2 - this.z1) * (this.z2 - this.z1));
+        }
+        this.area = area;
     }
 
     /** Recalculate area */
@@ -57,6 +68,7 @@ export class Xb {
             }
             this.area = area;
         }, 50);
+        return area;
     }
 
     /**

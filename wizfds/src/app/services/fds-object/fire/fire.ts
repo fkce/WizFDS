@@ -49,7 +49,6 @@ export class Fire {
         if (base.vent != undefined) {
             this.vent = new VentFire(JSON.stringify(base.vent));
             this.surf.hrr.area = this.vent.xb.area;
-
         } else {
             this.vent = new VentFire(JSON.stringify({}));
             this.surf.hrr.area = this.vent.xb.area;

@@ -700,7 +700,7 @@ export class CadService {
           libFire.id = '';
           libFire.idAC = acElement.idAC;
           libFire.vent.xb = new Xb(JSON.stringify(acElement.vent.xb));
-          libFire.calcArea();
+          //libFire.calcArea();
           libFire.vent.xyz = new Xyz(JSON.stringify(acElement.vent.xyz));
           // Import library surf into current scenario
           updatedElements.push(new Fire(JSON.stringify(libFire.toJSON()), this.main.currentFdsScenario.fdsObject.ramps.ramps));
@@ -714,8 +714,8 @@ export class CadService {
         let originalElement: Fire = sortedCurrentElements[res];
 
         // Rewrite properties and leave unchanged others
-        originalElement.vent.xb = new Xb(JSON.stringify(acElement.xb));
-        // surf czy sie nie zmienil?
+        originalElement.vent.xb = new Xb(JSON.stringify(acElement.vent.xb));
+        originalElement.vent.xyz = new Xyz(JSON.stringify(acElement.vent.xyz));
 
         // Create new element based on new data
         let newElement = new Fire(JSON.stringify(originalElement.toJSON()), this.main.currentFdsScenario.fdsObject.ramps.ramps);

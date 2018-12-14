@@ -40,6 +40,7 @@ export class MainService {
       this.main.email = main.email;
       this.main.websocket.host = main.websocket.host;
       this.main.websocket.port = main.websocket.port;
+      this.main.tooltips = main.tooltips;
       this.notifierService.notify(result.meta.status, result.meta.details[0]);
     });
   }
