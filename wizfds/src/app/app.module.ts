@@ -86,6 +86,7 @@ import { FuelComponent } from './views/main/fds/fire/fuel/fuel.component';
 import { SpecComponent } from './views/main/fds/specie/spec/spec.component';
 import { JsonFdsService } from './services/json-fds/json-fds.service';
 import { LibraryEditorComponent } from './views/main/library-editor/library-editor.component';
+import { IdInputDirective } from './directives/inputs/id-input.directive';
 
 
 @NgModule({
@@ -124,6 +125,7 @@ import { LibraryEditorComponent } from './views/main/library-editor/library-edit
     FuelComponent,
     SpecComponent,
     LibraryEditorComponent,
+    IdInputDirective,
   ],
   imports: [
     BrowserModule,

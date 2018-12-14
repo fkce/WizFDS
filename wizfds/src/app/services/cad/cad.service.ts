@@ -697,7 +697,7 @@ export class CadService {
             }
           }
 
-          libFire.id = '';
+          //libFire.id = '';
           libFire.idAC = acElement.idAC;
           libFire.vent.xb = new Xb(JSON.stringify(acElement.vent.xb));
           //libFire.calcArea();

@@ -1,9 +1,9 @@
 import { Directive, ElementRef } from '@angular/core';
 
 @Directive({
-  selector: '[stringInput]'
+  selector: '[idInput]'
 })
-export class StringInputDirective {
+export class IdInputDirective {
 
   private el: HTMLInputElement;
 
@@ -16,9 +16,7 @@ export class StringInputDirective {
   }
 
   formatInput() {
-    if (this.el.value.length > 0) {
-      this.el.size = this.el.value.length;
-    }
+    this.el.value = this.el.value.replace(/\s+/g, '');
   }
 
 }
