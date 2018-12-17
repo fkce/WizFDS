@@ -50,7 +50,7 @@ export class JetfanComponent implements OnInit, OnDestroy {
 
   // Scrolbars containers
   @ViewChild('jetfanScrollbar') jetfanScrollbar: PerfectScrollbarComponent;
-  @ViewChild('jetfanLibScrollbar') jetfanLibScrollbar: PerfectScrollbarComponent;
+  @ViewChild('libJetfanScrollbar') libJetfanScrollbar: PerfectScrollbarComponent;
 
   // Enums
   ENUMS_JETFAN = FdsEnums.JETFAN;

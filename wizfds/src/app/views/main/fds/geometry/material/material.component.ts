@@ -43,7 +43,7 @@ export class MaterialComponent implements OnInit, OnDestroy {
 
   // Scrolbars containers
   @ViewChild('matlScrollbar') matlScrollbar: PerfectScrollbarComponent;
-  @ViewChild('matlLibScrollbar') matlLibScrollbar: PerfectScrollbarComponent;
+  @ViewChild('libMatlScrollbar') libMatlScrollbar: PerfectScrollbarComponent;
 
   constructor(
     private mainService: MainService,

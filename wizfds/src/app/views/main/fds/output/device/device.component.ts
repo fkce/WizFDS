@@ -49,7 +49,7 @@ export class DeviceComponent implements OnInit, OnDestroy {
 
   // Scrolbars containers
   @ViewChild('devcScrollbar') devcScrollbar: PerfectScrollbarComponent;
-  @ViewChild('devcLibScrollbar') devcLibScrollbar: PerfectScrollbarComponent;
+  @ViewChild('libDevcScrollbar') libDevcScrollbar: PerfectScrollbarComponent;
 
   // Enums
   QUANTITIES = map(filter(quantities, function (o) { return includes(o.type, 'd') }), function (o) { return new Quantity(JSON.stringify(o)) });
@@ -184,7 +184,7 @@ export class DeviceComponent implements OnInit, OnDestroy {
 
   /** Update scroll position */
   public scrollbarUpdate(element: string) {
-    set(this.ui.output, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.devcs().y);
+    set(this.ui.output, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.geometry().y);
   }
 
   /** Toggle library */

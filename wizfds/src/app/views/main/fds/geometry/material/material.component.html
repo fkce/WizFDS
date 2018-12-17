@@ -110,10 +110,10 @@
           <div class="list-title" (click)="add(true)">
             <i class="material-icons">add_box</i> Add MATL
           </div>
-          <perfect-scrollbar #matlLibScrollbar (psScrollY)="scrollbarUpdate('libMatl')">
+          <perfect-scrollbar #libMatlScrollbar (psScrollY)="scrollbarUpdate('libMatl')">
             <div class="list-items">
               <div class="list-item" *ngFor="let matlItem of lib.matls | slice: ui.geometry.libMatl.begin:(ui.geometry.libMatl.begin + ui.listRange)">
-                <a (click)="activate(matlItem.id, true)" [ngClass]="{active: matlItem === matl}">{{matlItem.id}}</a>
+                <a (click)="activate(matlItem.id, true)" [ngClass]="{activeLib: matlItem === matl}">{{matlItem.id}}</a>
                 <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.tooltips" (click)="importLibraryItem(matlItem.id)">content_copy</i>
                 <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.tooltips" (click)="delete(matlItem.id, true)">delete_forever</i>
               </div>

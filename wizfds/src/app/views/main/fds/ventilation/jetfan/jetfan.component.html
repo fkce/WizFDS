@@ -228,10 +228,10 @@
           <div class="list-title" (click)="add(true)">
             <i class="material-icons">add_box</i> Add JETFAN
           </div>
-          <perfect-scrollbar #jetfanLibScrollbar (psScrollY)="scrollbarUpdate('libJetfan')">
+          <perfect-scrollbar #libJetfanScrollbar (psScrollY)="scrollbarUpdate('libJetfan')">
             <div class="list-items">
               <div class="list-item" *ngFor="let jetfanItem of lib.jetfans | slice: ui.ventilation.libJetfan.begin:(ui.ventilation.libJetfan.begin + ui.listRange)">
-                <a (click)="activate(jetfanItem.id, true)" [ngClass]="{active: jetfanItem === jetfan}">{{jetfanItem.id}}</a>
+                <a (click)="activate(jetfanItem.id, true)" [ngClass]="{activeLib: jetfanItem === jetfan}">{{jetfanItem.id}}</a>
                 <i class="material-icons" matTooltip="Merge current item with library" [matTooltipDisabled]="!main.tooltips" (click)="mergeLibraryItem(jetfanItem.id) ">merge_type</i>
                 <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.tooltips" (click)="createCadLayer(jetfanItem.id)">layers</i>
                 <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.tooltips" (click)="importLibraryItem(jetfanItem.id)">content_copy</i>

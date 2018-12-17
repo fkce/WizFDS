@@ -54,7 +54,7 @@ export class FiresComponent implements OnInit, OnDestroy {
 
   // Scrolbars containers
   @ViewChild('fireScrollbar') fireScrollbar: PerfectScrollbarComponent;
-  @ViewChild('fireLibScrollbar') fireLibScrollbar: PerfectScrollbarComponent;
+  @ViewChild('libFireScrollbar') libFireScrollbar: PerfectScrollbarComponent;
 
   constructor(
     private mainService: MainService,
@@ -185,7 +185,7 @@ export class FiresComponent implements OnInit, OnDestroy {
 
   /** Update scroll position */
   public scrollbarUpdate(element: string) {
-    set(this.ui.fires, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.fires().y);
+    set(this.ui.fires, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.geometry().y);
   }
 
   /** Toggle library */

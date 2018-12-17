@@ -14,7 +14,8 @@
     </perfect-scrollbar>
     <div class="list-bottom" *ngIf="geometry.surfs.length > ui.listRange">
       <i class="material-icons" *ngIf="ui.geometry.surf.begin > 0" (click)="uiStateService.decreaseRange('geometry.surf')">chevron_left</i>
-      <div>{{ui.geometry.surf.begin}} - {{ui.geometry.surf.begin + ui.listRange > geometry.surfs.length ? geometry.surfs.length
+      <div>{{ui.geometry.surf.begin}} - {{ui.geometry.surf.begin + ui.listRange > geometry.surfs.length ?
+        geometry.surfs.length
         : ui.geometry.surf.begin + ui.listRange}}</div>
       <i class="material-icons" *ngIf="ui.geometry.surf.begin + ui.listRange < geometry.surfs.length" (click)="uiStateService.increaseRange('geometry.surf')">chevron_right</i>
     </div>
@@ -38,14 +39,15 @@
         <div>
           <label>Color:</label>
           <div class="field-container">
-            <ng-select [items]="COLORS" bindLabel="label" bindValue="value" placeholder="Select color" [(ngModel)]="surf.color" [searchable]="true"
-              [clearable]="false" [disabled]="!surf.editable"></ng-select>
+            <ng-select [items]="COLORS" bindLabel="label" bindValue="value" placeholder="Select color" [(ngModel)]="surf.color"
+              [searchable]="true" [clearable]="false" [disabled]="!surf.editable"></ng-select>
           </div>
         </div>
         <div>
           <label>Transparency:</label>
           <div class="field-container">
-            <input type=text [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="surf.transparency" [disabled]="!surf.editable" decimalInput>
+            <input type=text [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="surf.transparency" [disabled]="!surf.editable"
+              decimalInput>
           </div>
         </div>
       </div>
@@ -53,8 +55,8 @@
         <div>
           <label>Backing:</label>
           <div class="field-container">
-            <ng-select [items]="BACKING" bindLabel="label" bindValue="value" placeholder="Select color" [(ngModel)]="surf.backing" [searchable]="false"
-              [clearable]="false" [disabled]="!surf.editable"></ng-select>
+            <ng-select [items]="BACKING" bindLabel="label" bindValue="value" placeholder="Select color" [(ngModel)]="surf.backing"
+              [searchable]="false" [clearable]="false" [disabled]="!surf.editable"></ng-select>
           </div>
         </div>
         <div>
@@ -118,8 +120,10 @@
             <div>
               <label>Select material:</label>
               <div class="field-container">
-                <unique-select *ngIf="objectType == 'current'" [allElements]="matls" [usedElements]="layer.materials" [(currentElement)]="material.material"></unique-select>
-                <unique-select *ngIf="objectType == 'library'" [allElements]="libMatls" [usedElements]="layer.materials" [(currentElement)]="material.material"></unique-select>
+                <unique-select *ngIf="objectType == 'current'" [allElements]="matls" [usedElements]="layer.materials"
+                  [(currentElement)]="material.material"></unique-select>
+                <unique-select *ngIf="objectType == 'library'" [allElements]="libMatls" [usedElements]="layer.materials"
+                  [(currentElement)]="material.material"></unique-select>
               </div>
             </div>
             <div>
@@ -152,18 +156,22 @@
           <div class="list-title" (click)="add(true)">
             <i class="material-icons">add_box</i> Add SURF
           </div>
-          <div class="list-items" scrollbar="{axis:'y', alwaysVisible:true, autoUpdate:true, thumbSize: 15}" scrollname="libSurf">
-            <div class="list-item" *ngFor="let surfItem of lib.surfs | slice:ui.geometry.libSurf.begin:(ui.geometry.libSurf.begin + ui.listRange)">
-              <a (click)="activate(surfItem.id, true)" [ngClass]="{activeLib: surfItem === surf}"> {{surfItem.id}} </a>
-              <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.tooltips" (click)="createCad(surfItem.id)">layers</i>
-              <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.tooltips" (click)="importLibraryItem(surfItem.id);">content_copy</i>
-              <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.tooltips" (click)="delete(surfItem.id)">delete_forever</i>
+          <perfect-scrollbar #libSurfScrollbar (psScrollY)="scrollbarUpdate('libSurf')">
+            <div class="list-items">
+              <div class="list-item" *ngFor="let surfItem of lib.surfs | slice:ui.geometry.libSurf.begin:(ui.geometry.libSurf.begin + ui.listRange)">
+                <a (click)="activate(surfItem.id, true)" [ngClass]="{activeLib: surfItem === surf}">{{surfItem.id}}</a>
+                <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.tooltips" (click)="createCad(surfItem.id)">layers</i>
+                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.tooltips"
+                  (click)="importLibraryItem(surfItem.id);">content_copy</i>
+                <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.tooltips" (click)="delete(surfItem.id, true)">delete_forever</i>
+              </div>
             </div>
-          </div>
+          </perfect-scrollbar>
           <div class="list-bottom">
             <div class="list-controls" *ngIf="libSurfs.length > ui.listRange">
               <i class="material-icons" *ngIf="ui.geometry.libSurf.begin > 0" (click)="uiStateService.decreaseRange('geometry.libSurf')">chevron_left</i>
-              <div>{{ui.geometry.libSurf.begin}} - {{ui.geometry.libSurf.begin + ui.listRange > libSurfs.length ? libSurfs.length
+              <div>{{ui.geometry.libSurf.begin}} - {{ui.geometry.libSurf.begin + ui.listRange > libSurfs.length ?
+                libSurfs.length
                 : ui.geometry.libSurf.begin + ui.listRange}}</div>
               <i class="material-icons" *ngIf="ui.geometry.libSurf.begin + ui.listRange < libSurfs.length" (click)="uiStateService.increaseRange('geometry.libSurf')">chevron_right</i>
             </div>

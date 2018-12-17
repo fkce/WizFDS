@@ -126,24 +126,24 @@
 
   </div>
 
-  <div class=" lib-wrapper ">
-    <div class="lib-drawer " [ngClass]="ui.fires.fuel.lib=='closed' ? 'closed' : 'opened' ">
-      <div class="lib-label-wrapper ">
-        <div class="lib-label " (click)="toggleLibrary() ">
+  <div class="lib-wrapper">
+    <div class="lib-drawer" [ngClass]="ui.fires.fuel.lib=='closed' ? 'closed' : 'opened'">
+      <div class="lib-label-wrapper">
+        <div class="lib-label" (click)="toggleLibrary()">
           <label>LIBRARY</label>
         </div>
       </div>
-      <div class="lib-area ">
-        <div class="list ">
-          <div class="list-title " (click)="add(true) ">
-            <i class="material-icons ">add_box</i> Add FUEL
+      <div class="lib-area">
+        <div class="list">
+          <div class="list-title" (click)="add(true)">
+            <i class="material-icons">add_box</i> Add FUEL
           </div>
-          <perfect-scrollbar #fuelLibScrollbar (psScrollY)="scrollbarUpdate( 'libFuel') ">
-            <div class="list-items ">
-              <div class="list-item " *ngFor="let fuelItem of lib.fuels | slice: ui.fires.libFuel.begin:(ui.fires.libFuel.begin + ui.listRange) ">
-                <a (click)="activate(fuelItem.id, true) " [ngClass]="{active: fuelItem===fuel} ">{{fuelItem.id}}</a>
-                <i class="material-icons " (click)="importLibraryItem(fuelItem.id) ">merge_type</i>
-                <i class="material-icons red " (click)="delete(fuelItem.id, true) ">delete_forever</i>
+          <perfect-scrollbar #libFuelScrollbar (psScrollY)="scrollbarUpdate('libFuel')">
+            <div class="list-items">
+              <div class="list-item" *ngFor="let fuelItem of lib.fuels | slice: ui.fires.libFuel.begin:(ui.fires.libFuel.begin + ui.listRange)">
+                <a (click)="activate(fuelItem.id, true)" [ngClass]="{activeLib: fuelItem===fuel}">{{fuelItem.id}}</a>
+                <i class="material-icons" (click)="importLibraryItem(fuelItem.id)">merge_type</i>
+                <i class="material-icons red" (click)="delete(fuelItem.id, true)">delete_forever</i>
               </div>
             </div>
           </perfect-scrollbar>

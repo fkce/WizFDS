@@ -43,7 +43,7 @@ export class SpecComponent implements OnInit, OnDestroy {
 
   // Scrolbars containers
   @ViewChild('specScrollbar') specScrollbar: PerfectScrollbarComponent;
-  @ViewChild('specLibScrollbar') specLibScrollbar: PerfectScrollbarComponent;
+  @ViewChild('libSpecScrollbar') libSpecScrollbar: PerfectScrollbarComponent;
 
   constructor(
     private mainService: MainService,
@@ -138,7 +138,7 @@ export class SpecComponent implements OnInit, OnDestroy {
 
   /** Update scroll position */
   public scrollbarUpdate(element: string) {
-    set(this.ui.specie, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.fires().y);
+    set(this.ui.specie, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.geometry().y);
   }
 
   /** Toggle library */

@@ -49,7 +49,7 @@ export class SliceComponent implements OnInit, OnDestroy {
 
   // Scrolbars containers
   @ViewChild('slcfScrollbar') slcfScrollbar: PerfectScrollbarComponent;
-  @ViewChild('slcfLibScrollbar') slcfLibScrollbar: PerfectScrollbarComponent;
+  @ViewChild('libSlcfScrollbar') libSlcfScrollbar: PerfectScrollbarComponent;
 
   // Enums
   QUANTITIES = map(filter(quantities, function (o) { return includes(o.type, 's') }), function (o) { return new Quantity(JSON.stringify(o)) });
@@ -184,7 +184,7 @@ export class SliceComponent implements OnInit, OnDestroy {
 
   /** Update scroll position */
   public scrollbarUpdate(element: string) {
-    set(this.ui.output, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.slcfs().y);
+    set(this.ui.output, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.geometry().y);
   }
 
   /** Toggle library */

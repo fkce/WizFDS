@@ -159,10 +159,10 @@
           <div class="list-title" (click)="add(true)">
             <i class="material-icons">add_box</i> Add SLCF
           </div>
-          <perfect-scrollbar #slcfLibScrollbar (psScrollY)="scrollbarUpdate( 'libSlcf')">
+          <perfect-scrollbar #libSlcfScrollbar (psScrollY)="scrollbarUpdate('libSlcf')">
             <div class="list-items">
               <div class="list-item" *ngFor="let slcfItem of lib.slcfs | slice: ui.output.libSlcf.begin:(ui.output.libSlcf.begin + ui.listRange)">
-                <a (click)="activate(slcfItem.id, true)" [ngClass]="{active: slcfItem===slcf}">{{slcfItem.id}}</a>
+                <a (click)="activate(slcfItem.id, true)" [ngClass]="{activeLib: slcfItem===slcf}">{{slcfItem.id}}</a>
                 <i class="material-icons" matTooltip="Merge current item with library" [matTooltipDisabled]="!main.tooltips" (click)="mergeLibraryItem(slcfItem.id)">merge_type</i>
                 <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.tooltips" (click)="createCadLayer(slcfItem.id)">layers</i>
                 <i class="material-icons" matTooltip="Create CAD layer and slice" [matTooltipDisabled]="!main.tooltips" (click)="createCad(slcfItem.id)">create</i>

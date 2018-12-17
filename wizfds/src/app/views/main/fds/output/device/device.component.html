@@ -213,10 +213,10 @@
           <div class="list-title" (click)="add(true)">
             <i class="material-icons">add_box</i> Add DEVC
           </div>
-          <perfect-scrollbar #devcLibScrollbar (psScrollY)="scrollbarUpdate( 'libDevc')">
+          <perfect-scrollbar #libDevcScrollbar (psScrollY)="scrollbarUpdate('libDevc')">
             <div class="list-items">
               <div class="list-item" *ngFor="let devcItem of lib.devcs | slice: ui.output.libDevc.begin:(ui.output.libDevc.begin + ui.listRange)">
-                <a (click)="activate(devcItem.id, true)" [ngClass]="{active: devcItem===devc}">{{devcItem.id}}</a>
+                <a (click)="activate(devcItem.id, true)" [ngClass]="{activeLib: devcItem===devc}">{{devcItem.id}}</a>
                 <i class="material-icons" matTooltip="Merge current item with library" [matTooltipDisabled]="!main.tooltips" (click)="mergeLibraryItem(devcItem.id)">merge_type</i>
                 <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.tooltips" (click)="createCadLayer(devcItem.id)">layers</i>
                 <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.tooltips" (click)="importLibraryItem(devcItem.id)">content_copy</i>

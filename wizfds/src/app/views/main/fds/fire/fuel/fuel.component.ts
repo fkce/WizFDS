@@ -47,7 +47,7 @@ export class FuelComponent implements OnInit, OnDestroy {
 
   // Scrolbars containers
   @ViewChild('fuelScrollbar') fuelScrollbar: PerfectScrollbarComponent;
-  @ViewChild('fuelLibScrollbar') fuelLibScrollbar: PerfectScrollbarComponent;
+  @ViewChild('libFuelScrollbar') libFuelScrollbar: PerfectScrollbarComponent;
 
   constructor(
     private mainService: MainService,
@@ -149,7 +149,7 @@ export class FuelComponent implements OnInit, OnDestroy {
 
   /** Update scroll position */
   public scrollbarUpdate(element: string) {
-    set(this.ui.fires, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.fires().y);
+    set(this.ui.fires, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.geometry().y);
   }
 
   /** Toggle library */

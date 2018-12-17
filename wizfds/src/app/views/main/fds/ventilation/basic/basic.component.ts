@@ -56,7 +56,7 @@ export class BasicComponent implements OnInit, OnDestroy {
   // Scrolbars containers
   @ViewChild('ventScrollbar') ventScrollbar: PerfectScrollbarComponent;
   @ViewChild('surfScrollbar') surfScrollbar: PerfectScrollbarComponent;
-  @ViewChild('surfLibScrollbar') surfLibScrollbar: PerfectScrollbarComponent;
+  @ViewChild('libSurfScrollbar') libSurfScrollbar: PerfectScrollbarComponent;
 
   // Enums
   ENUMS_SURF = FdsEnums.SURF;

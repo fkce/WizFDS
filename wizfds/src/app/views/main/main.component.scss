@@ -114,7 +114,7 @@
         position: relative;
         
         .lib-drawer {
-            width: 15rem;
+            width: 20rem;
             height: 100%;
             display: flex;
             flex-direction: row;
@@ -126,7 +126,7 @@
         .lib-drawer.opened {
             //transition: margin-left $open-time ease-in-out;
             transition: margin-left 1.0s ease-in-out;
-            margin-left: -15rem;
+            margin-left: -20rem;
         }
 
         .lib-drawer.closed {
@@ -164,7 +164,7 @@
             height: 100%;
             background-color: $grey2;
             .list {
-                width: 12rem;
+                width: 17rem;
             }
         }
     }

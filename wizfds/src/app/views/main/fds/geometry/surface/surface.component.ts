@@ -49,6 +49,7 @@ export class SurfaceComponent implements OnInit, OnDestroy {
 
   // Scrolbars containers
   @ViewChild('surfScrollbar') surfScrollbar: PerfectScrollbarComponent;
+  @ViewChild('libSurfScrollbar') libSurfScrollbar: PerfectScrollbarComponent;
 
   // Enums
   COLORS = colors;

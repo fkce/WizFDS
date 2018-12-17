@@ -244,10 +244,10 @@
             <div class="list-title" (click)="add('surf', true)">
               <i class="material-icons">add_box</i> Add SURF
             </div>
-            <perfect-scrollbar #surfLibScrollbar (psScrollY)="scrollbarUpdate('libSurf')">
+            <perfect-scrollbar #libSurfScrollbar (psScrollY)="scrollbarUpdate('libSurf')">
               <div class="list-items">
                 <div class="list-item" *ngFor="let surfItem of libSurfs | slice: ui.ventilation.libSurf.begin:(ui.ventilation.libSurf.begin + ui.listRange)">
-                  <a (click)="activate(surfItem.id, 'surf', true)" [ngClass]="{active: surfItem === surf}">{{surfItem.id}}</a>
+                  <a (click)="activate(surfItem.id, 'surf', true)" [ngClass]="{activeLib: surfItem === surf}">{{surfItem.id}}</a>
                   <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.tooltips" (click)="createCadLayer(surfItem.id)">layers</i>
                   <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.tooltips" (click)="importLibraryItem(surfItem.id)">content_copy</i>
                   <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.tooltips" (click)="delete(surfItem.id, 'surf', true)">delete_forever</i>
