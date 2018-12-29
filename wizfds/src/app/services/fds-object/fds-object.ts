@@ -21,18 +21,20 @@ import { Bndf } from './output/bndf';
 import { Slcf } from './output/slcf';
 import { Isof } from './output/isof';
 import { Ctrl } from './output/ctrl';
-import { get, map, toNumber, find, filter, includes } from 'lodash';
+import { get, map, toNumber, find, filter, includes, forEach } from 'lodash';
 import { Fuel } from './fire/fuel';
 import { quantities } from '../../enums/fds/enums/fds-enums-quantities';
 import { Dump } from './output/dump';
+import { SurfSpec } from './specie/surf-spec';
+import { VentSpec } from './specie/vent';
 
-export interface FdsObject {
+export interface IFds {
   general: General,
   geometry: { obsts: Obst[], holes: Hole[], opens: Open[], matls: Matl[], meshes: Mesh[], surfs: Surf[] },
   ventilation: { surfs: SurfVent[], vents: Vent[], jetfans: JetFan[] },
   ramps: { ramps: Ramp[] },
   particle: { parts: Part[] },
-  specie: { specs: Spec[], surfs: Surf[] }, //vents: Vent[] 
+  specie: { specs: Spec[], surfs: SurfSpec[], vents: VentSpec[] }, 
   fires: { fires: Fire[], combustion: Combustion, fuels: Fuel[] };
   output: { general: Dump, devcs: Devc[], props: Prop[], bndfs: Bndf[], slcfs: Slcf[], isofs: Isof[], ctrls: Ctrl[] },
 }
@@ -50,8 +52,8 @@ export class Fds {
 
   constructor(jsonString: string) {
 
-    let base: FdsObject;
-    base = <FdsObject>JSON.parse(jsonString);
+    let base: IFds;
+    base = <IFds>JSON.parse(jsonString);
 
     // Create general
     this.general = get(base, 'general') === undefined ? new General("{}") : new General(JSON.stringify(base.general));
@@ -73,11 +75,31 @@ export class Fds {
       return new Part(JSON.stringify(part));
     });
 
-    // Create species
+    // Create species & injection
     this.specie.specs = get(base, 'specie.specs') === undefined ? [] : map(base.specie.specs, function (spec) {
       return new Spec(JSON.stringify(spec));
-    })
+    });
+    // Update lumped species in specs
+    forEach(this.specie.specs, (spec: Spec) => {
+      let baseSpec = find(base.specie.specs, (o: Spec) => {
+        return o.id == spec.id;
+      });
+      if (baseSpec.lumpedSpecs.length > 0) {
+        spec.lumpedSpecs = map(baseSpec.lumpedSpecs, (baseLumpedSpec) => {
+          let tmpSpec = find(this.specie.specs, (currentSpec: Spec) => {
+            return currentSpec.id == baseLumpedSpec['spec_id'];
+          });
+          return { spec: tmpSpec, mass_fraction: baseLumpedSpec.mass_fraction, volume_fraction: baseLumpedSpec.volume_fraction };
+        });
+      }
+    });
     // Create surfs & vents
+    this.specie.surfs = get(base, 'specie.surfs') === undefined ? [] : map(base.specie.surfs, (surf) => {
+      return new SurfSpec(JSON.stringify(surf), this.ramps.ramps, this.specie.specs);
+    });
+    this.specie.vents = get(base, 'specie.vents') === undefined ? [] : map(base.specie.vents, (vent) => {
+      return new VentSpec(JSON.stringify(vent), this.specie.surfs);
+    });
 
     // Create devices after props, parts and species initialization
     this.output.devcs = get(base, 'output.devcs') === undefined ? [] : map(base.output.devcs, (devc) => {
@@ -151,7 +173,7 @@ export class Fds {
     });
   }
 
-  // TODO Removers !!!
+  // TODO Removers - to save remove dependent objects !!!
 
   /** Prepare FDS object to export to DB */
   // TODO finish
@@ -186,7 +208,9 @@ export class Fds {
         ctrls: map(this.output.ctrls, (ctrl: Ctrl) => { return ctrl.toJSON(); })
       },
       specie: {
-        specs: map(this.specie.specs, (spec: Spec) => {return spec.toJSON(); })
+        specs: map(this.specie.specs, (spec: Spec) => {return spec.toJSON(); }),
+        surfs: map(this.specie.surfs, (surfspec: SurfSpec) => {return surfspec.toJSON(); }),
+        vents: map(this.specie.vents, (ventspec: VentSpec) => {return ventspec.toJSON(); })
       },
       ramps: this.ramps
     }

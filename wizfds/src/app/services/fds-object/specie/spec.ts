@@ -1,8 +1,14 @@
 import { FdsEntities } from '../../../enums/fds/entities/fds-entities';
 import { IdGeneratorService } from '../../id-generator/id-generator.service';
-import { toNumber, get, toString } from 'lodash';
+import { toNumber, get, toString, find, map } from 'lodash';
 
-export interface SpecObject {
+export interface ILumpedSpec {
+	spec: Spec,
+	mass_fraction: number,
+	volume_fraction: number
+}
+
+export interface ISpec {
 	id: string,
 	idOld: string,
 	uuid: string,
@@ -10,7 +16,12 @@ export interface SpecObject {
 	formula: string,
 	mw: number,
 	spec: string,
+	lumped_component_only: boolean,
+	background: boolean,
+	lumpedSpecs: Spec[],
+	lumpedType: string
 }
+
 export class Spec {
 
 	private _id: string;
@@ -20,11 +31,15 @@ export class Spec {
 	private _formula: string;
 	private _mw: number;
 	private _spec: string;
+	private _lumped_component_only: boolean;
+	private _background: boolean;
+	private _lumpedSpecs: ILumpedSpec[];
+	private _lumpedType: string;
 
 	constructor(jsonString: string) {
 
-		let base: SpecObject;
-		base = <SpecObject>JSON.parse(jsonString);
+		let base: ISpec;
+		base = <ISpec>JSON.parse(jsonString);
 
 		let idGeneratorService = new IdGeneratorService;
 
@@ -39,6 +54,26 @@ export class Spec {
 		this.mw = toNumber(get(base, 'mw', spec.mw.default[0]));
 
 		this.spec = toString(get(base, 'spec', 'No SPEC'));
+
+		this.lumped_component_only = (get(base, 'lumped_component_only', spec.lumped_component_only.default[0]) == true);
+		this.background = (get(base, 'background', spec.background.default[0]) == true);
+
+		this.lumpedSpecs = [];
+		this.lumpedType = toString(get(base, 'lumpedType', 'massFraction'));
+	}
+
+	public addLumpedSpecs(jsonString: string, specs: Spec[]) {
+		let base: ISpec;
+		base = <ISpec>JSON.parse(jsonString);
+
+        let lumpedSpecs = base.lumpedSpecs != undefined && base.lumpedSpecs.length > 0 ? map(base.lumpedSpecs, (lumpedSpec) => {
+            if (lumpedSpec['spec_id'] != undefined && lumpedSpec['spec_id'] != '') {
+                let spec = <Spec> find(specs, function (o: Spec) { return o.id == lumpedSpec.spec['spec_id'] });
+                return { spec: spec, mass_fraction: lumpedSpec['mass_fraction'], volume_fraction: lumpedSpec['volume_fraction'] };
+            }
+		}) : [];
+
+		return lumpedSpecs;
 	}
 
     /**
@@ -155,8 +190,76 @@ export class Spec {
 		this._id = value == 'No SPEC' ? this.idOld : this._id = value;
 	}
 
+    /**
+     * Getter lumped_component_only
+     * @return {boolean}
+     */
+	public get lumped_component_only(): boolean {
+		return this._lumped_component_only;
+	}
+
+    /**
+     * Setter lumped_component_only
+     * @param {boolean} value
+     */
+	public set lumped_component_only(value: boolean) {
+		this._lumped_component_only = value;
+	}
+
+    /**
+     * Getter background
+     * @return {boolean}
+     */
+	public get background(): boolean {
+		return this._background;
+	}
+
+    /**
+     * Setter background
+     * @param {boolean} value
+     */
+	public set background(value: boolean) {
+		this._background = value;
+	}
+
+    /**
+     * Getter lumpedSpecs
+     * @return {ILumpedSpec[]}
+     */
+	public get lumpedSpecs(): ILumpedSpec[] {
+		return this._lumpedSpecs;
+	}
+
+    /**
+     * Setter lumpedSpecs
+     * @param {ILumpedSpec[]} value
+     */
+	public set lumpedSpecs(value: ILumpedSpec[]) {
+		this._lumpedSpecs = value;
+	}
+
+    /**
+     * Getter lumpedType
+     * @return {string}
+     */
+	public get lumpedType(): string {
+		return this._lumpedType;
+	}
+
+    /**
+     * Setter lumpedType
+     * @param {string} value
+     */
+	public set lumpedType(value: string) {
+		this._lumpedType = value;
+	}
+
 	/** Export to json */
 	public toJSON(): object {
+        let lumpedSpecs = map(this.lumpedSpecs, function (o: ILumpedSpec) {
+            return { spec_id: o.spec.id, mass_fraction: o.mass_fraction, volume_fraction: o.volume_fraction }
+		});
+
 		let spec = {
 			id: this.id,
 			idOld: this.idOld,
@@ -164,7 +267,11 @@ export class Spec {
 			editable: this.editable,
 			formula: this.formula,
 			mw: this.mw,
-			spec: this.spec
+			spec: this.spec,
+			lumped_component_only: this.lumped_component_only,
+			background: this.background,
+			lumpedSpecs: lumpedSpecs,
+			lumpedType: this.lumpedType
 		}
 		return spec;
 	}

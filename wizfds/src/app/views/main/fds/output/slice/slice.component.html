@@ -125,7 +125,7 @@
         <div *ngIf="quantity.spec == true">
           <label>Add {{ quantity.id }} species:</label>
           <div class="field-container">
-            <ng-select [items]="SPECIES" bindLabel="id" placeholder="Select species" multiple="true" hideSelected="true" [(ngModel)]="quantity.specs"
+            <ng-select [items]="specs" bindLabel="id" placeholder="Select species" multiple="true" hideSelected="true" [(ngModel)]="quantity.specs"
               [closeOnSelect]="false" [clearSearchOnAdd]="true"></ng-select>
           </div>
         </div>
@@ -138,7 +138,7 @@
         <div *ngIf="quantity.part == true">
           <label>Add {{ quantity.id }} parts:</label>
           <div class="field-container">
-            <ng-select [items]="SPECIES" bindLabel="id" placeholder="Select species" multiple="true" hideSelected="true" [(ngModel)]="quantity.parts"
+            <ng-select [items]="specs" bindLabel="id" placeholder="Select species" multiple="true" hideSelected="true" [(ngModel)]="quantity.parts"
               [closeOnSelect]="false" [clearSearchOnAdd]="true"></ng-select>
           </div>
         </div>

@@ -1,10 +1,10 @@
 import { FdsEntities } from '@enums/fds/entities/fds-entities';
 import { IdGeneratorService } from '@services/id-generator/id-generator.service';
-import { SurfVent } from './surf-vent';
+import { SurfSpec } from './surf-spec';
 import { Xb } from '../primitives';
 import { find } from 'lodash';
 
-export interface IVent {
+export interface IVentSpec {
     id: string,
     uuid: string,
     idAC: number,
@@ -14,7 +14,7 @@ export interface IVent {
     surf: any
 }
 
-export class Vent {
+export class VentSpec {
     private _id: string;
     private _uuid: string;
     private _idAC: number;
@@ -22,10 +22,10 @@ export class Vent {
     private _elevation: number;
     private _surf: any;
 
-    constructor(jsonString: string, surfs: SurfVent[] = undefined) {
+    constructor(jsonString: string, surfs: SurfSpec[] = undefined) {
 
-        let base: IVent;
-        base = <IVent>JSON.parse(jsonString);
+        let base: IVentSpec;
+        base = <IVentSpec>JSON.parse(jsonString);
 
         let idGeneratorService = new IdGeneratorService;
 
@@ -38,7 +38,7 @@ export class Vent {
 
 		this.xb = new Xb(JSON.stringify(base.xb), 'vent') || new Xb(JSON.stringify({}), 'vent');
 
-        surfs && base.surf_id != undefined ? this.surf = find(surfs, function (surf) { return surf.id == base.surf_id; }) : this.surf = undefined;
+        this.surf = surfs && base.surf_id != undefined ? find(surfs, function (surf) { return surf.id == base.surf_id; }) : undefined;
 
     }
 
@@ -112,3 +112,4 @@ export class Vent {
     }
 
 }
+

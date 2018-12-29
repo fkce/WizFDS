@@ -64,6 +64,9 @@
     <div class="n2" routerLink="fds/specie/spec" (click)="activate('spec')">
       <a [ngClass]="{'active': uiState.active == 'spec'}">Spec</a>
     </div>
+    <div class="n2" routerLink="fds/specie/injection" (click)="activate('injection')">
+      <a [ngClass]="{'active': uiState.active == 'injection'}">Injection</a>
+    </div>
   </div>
 
   <div class="n1" (click)="toggleMenu('output')">

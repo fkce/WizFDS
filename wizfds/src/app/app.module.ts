@@ -87,6 +87,7 @@ import { SpecComponent } from './views/main/fds/specie/spec/spec.component';
 import { JsonFdsService } from './services/json-fds/json-fds.service';
 import { LibraryEditorComponent } from './views/main/library-editor/library-editor.component';
 import { IdInputDirective } from './directives/inputs/id-input.directive';
+import { InjectionComponent } from './views/main/fds/specie/injection/injection.component';
 
 
 @NgModule({
@@ -126,6 +127,7 @@ import { IdInputDirective } from './directives/inputs/id-input.directive';
     SpecComponent,
     LibraryEditorComponent,
     IdInputDirective,
+    InjectionComponent,
   ],
   imports: [
     BrowserModule,

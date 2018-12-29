@@ -10,12 +10,16 @@ import { Slcf } from '@services/fds-object/output/slcf';
 import { Isof } from '@services/fds-object/output/isof';
 import { Devc } from '@services/fds-object/output/devc';
 import { get, map } from 'lodash';
+import { SurfSpec } from '@services/fds-object/specie/surf-spec';
+import { VentSpec } from '@services/fds-object/specie/vent';
 
 export interface LibraryObject {
 	ramps: Ramp[],
 	matls: Matl[],
 	surfs: Surf[],
-	ventsurfs: Surf[],
+	ventsurfs: SurfVent[],
+	specsurfs: SurfSpec[],
+	specvents: VentSpec[],
 	jetfans: JetFan[],
 	fires: Fire[],
 	fuels: Fuel[],
@@ -31,6 +35,8 @@ export class Library {
 	private _matls: Matl[];
 	private _surfs: Surf[];
 	private _ventsurfs: SurfVent[];
+	private _specsurfs: SurfSpec[];
+	private _specvents: VentSpec[];
 	private _jetfans: JetFan[];
 	private _fires: Fire[];
 	private _fuels: Fuel[];
@@ -43,6 +49,18 @@ export class Library {
 
 		let base: LibraryObject;
 		base = <LibraryObject>JSON.parse(jsonString);
+
+		this.specs = get(base, 'specs') === undefined ? [] : map(base.specs, (spec) => {
+			return new Spec(JSON.stringify(spec));
+		});
+
+		this.specsurfs = get(base, 'specsurfs') === undefined ? [] : map(base.specsurfs, (specsurf) => {
+			return new SurfSpec(JSON.stringify(specsurf), this.ramps, this.specs);
+		});
+
+		this.specvents = get(base, 'specvents') === undefined ? [] : map(base.specvents, (specvent) => {
+			return new VentSpec(JSON.stringify(specvent), this.specsurfs);
+		});
 
 		this.ramps = get(base, 'ramps') === undefined ? [] : map(base.ramps, (ramp) => {
 			return new Ramp(JSON.stringify(ramp));
@@ -62,7 +80,6 @@ export class Library {
 
 		this.jetfans = get(base, 'jetfans') === undefined ? [] : map(base.jetfans, (jetfan) => {
 			return new JetFan(JSON.stringify(jetfan), this.ramps);
-
 		});
 
 		this.fires = get(base, 'fires') === undefined ? [] : map(base.fires, (fire) => {
@@ -71,10 +88,6 @@ export class Library {
 
 		this.fuels = get(base, 'fuels') === undefined ? [] : map(base.fuels, (fuel) => {
 			return new Fuel(JSON.stringify(fuel));
-		});
-
-		this.specs = get(base, 'specs') === undefined ? [] : map(base.specs, (spec) => {
-			return new Spec(JSON.stringify(spec));
 		});
 
 		this.slcfs = get(base, 'slcfs') === undefined ? [] : map(base.slcfs, (slcf) => {
@@ -153,6 +166,22 @@ export class Library {
      */
 	public set ventsurfs(value: SurfVent[]) {
 		this._ventsurfs = value;
+	}
+
+    /**
+     * Getter specsurfs
+     * @return {SurfSpec[]}
+     */
+	public get specsurfs(): SurfSpec[] {
+		return this._specsurfs;
+	}
+
+    /**
+     * Setter specsurfs
+     * @param {SurfSpec[]} value
+     */
+	public set specsurfs(value: SurfSpec[]) {
+		this._specsurfs = value;
 	}
 
     /**
@@ -267,6 +296,22 @@ export class Library {
 		this._devcs = value;
 	}
 
+    /**
+     * Getter specvents
+     * @return {VentSpec[]}
+     */
+	public get specvents(): VentSpec[] {
+		return this._specvents;
+	}
+
+    /**
+     * Setter specvents
+     * @param {VentSpec[]} value
+     */
+	public set specvents(value: VentSpec[]) {
+		this._specvents = value;
+	}
+
 	/** Export to json */
 	public toJSON(): object {
 		let library = {
@@ -278,6 +323,8 @@ export class Library {
 			fires: this.fires,
 			fuels: this.fuels,
 			specs: this.specs,
+			specsurfs: this.specsurfs,
+			specvents: this.specvents,
 			slcfs: this.slcfs,
 			isofs: this.isofs,
 			devcs: this.devcs,

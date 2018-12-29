@@ -1,9 +1,9 @@
-import { FdsEntities } from '../../../enums/fds/entities/fds-entities';
-import { IdGeneratorService } from '../../id-generator/id-generator.service';
+import { FdsEntities } from '@enums/fds/entities/fds-entities';
+import { IdGeneratorService } from '@services/id-generator/id-generator.service';
 import { Ramp } from '../ramp/ramp';
 import { get, toString, toNumber, find, round } from 'lodash';
 
-export interface SurfVentObject {
+export interface ISurfVent {
     id: string,
     uuid: string,
     idAC: number,
@@ -33,8 +33,8 @@ export class SurfVent {
 
     constructor(jsonString: string, ramps: Ramp[]) {
 
-        let base: SurfVentObject;
-        base = <SurfVentObject>JSON.parse(jsonString);
+        let base: ISurfVent;
+        base = <ISurfVent>JSON.parse(jsonString);
 
         let idGeneratorService = new IdGeneratorService;
 

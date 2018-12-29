@@ -145,7 +145,7 @@ export const FdsEnums =
                 { label: 'Material', value: 'matl' },
                 { label: 'Fire', value: 'fire' },
                 { label: 'Ventilation', value: 'vent' },
-                { label: 'Pressure', value: 'pres' }
+                { label: 'Specie', value: 'spec' }
             ],
 
         },
@@ -164,7 +164,11 @@ export const FdsEnums =
             specieMassFractionFlowType: [
                 { label: 'Volume flow', value: 'volumeFlow' },
                 { label: 'Velocity', value: 'velocity' },
-                { label: 'Total mass flux', value: 'totalMassFlux' }
+                { label: 'Total mass flux', value: 'massFluxTotal' }
+            ],
+            lumpedType: [
+                { label: 'Mass fraction', value: 'massFraction' },
+                { label: 'Volume fraction', value: 'volumeFraction' }
             ],
         },
         SLCF: {

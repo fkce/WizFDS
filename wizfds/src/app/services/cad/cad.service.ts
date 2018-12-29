@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Mesh } from '../fds-object/geometry/mesh';
-import { map, sortBy, filter, each, find, cloneDeep } from 'lodash';
+import { upperCase, forEach, sortBy, filter, each, find, cloneDeep } from 'lodash';
 import { Obst } from '../fds-object/geometry/obst';
 import { Surf } from '../fds-object/geometry/surf';
 import { MainService } from '../main/main.service';
@@ -16,10 +16,11 @@ import { SurfVent } from '../fds-object/ventilation/surf-vent';
 import { Vent } from '../fds-object/ventilation/vent';
 import { JetFan } from '../fds-object/ventilation/jet-fan';
 import { Fire } from '../fds-object/fire/fire';
-import { forEach } from 'lodash';
-import { upperCase } from 'lodash';
 import { Devc } from '../fds-object/output/devc';
 import { Slcf } from '../fds-object/output/slcf';
+import { VentSpec } from '@services/fds-object/specie/vent';
+import { SurfSpec } from '@services/fds-object/specie/surf-spec';
+import { Spec } from '@services/fds-object/specie/spec';
 
 @Injectable()
 export class CadService {
@@ -444,7 +445,7 @@ export class CadService {
     return updatedElements;
   }
 
-  /**
+  /*
    * Transform CAD VENTSURF elements
    * @param acElements CAD elements
    * @param currentElements Current fds elements
@@ -648,6 +649,154 @@ export class CadService {
     return updatedElements;
   }
 
+  /*
+   * Transform CAD SPECSURF elements
+   * @param acElements CAD elements
+   * @param currentElements Current fds elements
+   */
+  transformSpecSurfs(acElements: object[], currentElements: SurfSpec[]) {
+
+    this.libraryService.getLibrary().subscribe(lib => this.lib = lib);
+    let updatedElements = [];
+
+    // Sort AC and current elements
+    var sortedAcElements = this.sortAcElements(acElements, 'ssurf');
+    var sortedCurrentElements = this.sortCurrentElements(currentElements);
+
+    // For each sorted AC element
+    each(sortedAcElements, (acElement) => {
+
+      // Check if element already exists
+      let res = this.binaryIndexOf(acElement, sortedCurrentElements, 'idAC');
+      // If surf element not exists in currnet scenario
+      if (res == -1) {
+        // Find surf in library
+        let tempSpec = find(this.lib.specsurfs, function (o) {
+          return o.id == acElement.id;
+        });
+        let libSpec = cloneDeep(tempSpec);
+
+        // Import surf from library if exists
+        if (libSpec != undefined) {
+
+          // Import ramp from library
+          let ramp = find(this.main.currentFdsScenario.fdsObject.ramps.ramps, function (o) {
+            return o.id == libSpec.ramp.id;
+          });
+
+          if (ramp == undefined) {
+            let tempRamp = find(this.lib.ramps, function (o) {
+              return o.id == libSpec.ramp.id;
+            });
+            let libRamp = cloneDeep(tempRamp);
+
+            if (libRamp != undefined) {
+              // Copy to current fds scenario ramp
+              this.main.currentFdsScenario.fdsObject.ramps.ramps.push(new Ramp(JSON.stringify(libRamp.toJSON())));
+            }
+          }
+
+          // Import species from library
+          if (libSpec.specieFlowType == 'massFlux' && libSpec.massFlux.length > 0) {
+
+            forEach(libSpec.massFlux, (massFluxSpec) => {
+              let tempSpec = find(this.lib.specs, function(o) {
+                return o.id == massFluxSpec.spec.id;
+              });
+              let libSpec = cloneDeep(tempSpec);
+
+              // Copy to current fds scenario specs
+              if (libSpec != undefined) {
+                this.main.currentFdsScenario.fdsObject.specie.specs.push(new Spec(JSON.stringify(libSpec.toJSON())));
+              }
+            });
+          }
+          else if (libSpec.specieFlowType == 'massFraction' && libSpec.massFraction.length > 0) {
+
+            forEach(libSpec.massFlux, (massFractionSpec) => {
+              let tempSpec = find(this.lib.specs, function(o) {
+                return o.id == massFractionSpec.spec.id;
+              });
+              let libSpec = cloneDeep(tempSpec);
+
+              // Copy to current fds scenario specs
+              if (libSpec != undefined) {
+                this.main.currentFdsScenario.fdsObject.specie.specs.push(new Spec(JSON.stringify(libSpec.toJSON())));
+              }
+            });
+          }
+
+          libSpec.idAC = acElement.idAC;
+          // Import library surf into current scenario
+          updatedElements.push(new SurfSpec(JSON.stringify(libSpec.toJSON()), this.main.currentFdsScenario.fdsObject.ramps.ramps, this.main.currentFdsScenario.fdsObject.specie.specs));
+        }
+        else {
+          // If it is not in library
+          updatedElements.push(new SurfSpec(JSON.stringify(acElement), this.main.currentFdsScenario.fdsObject.ramps.ramps, this.main.currentFdsScenario.fdsObject.specie.specs));
+        }
+      }
+      else {
+        let originalElement: SurfSpec = sortedCurrentElements[res];
+
+        // Rewrite properties and leave unchanged others
+        originalElement.id = acElement.id;
+
+        // Create new element based on new data
+        let newElement = new SurfSpec(JSON.stringify(originalElement.toJSON()), this.main.currentFdsScenario.fdsObject.ramps.ramps, this.main.currentFdsScenario.fdsObject.specie.specs);
+        // Add element
+        updatedElements.push(newElement);
+        // Delete from current elements
+        sortedCurrentElements.splice(res, 1);
+      }
+    });
+
+    // Rewrite ids
+    updatedElements = this.rewriteIds(updatedElements, 'SPES');
+
+    return updatedElements;
+  }
+
+  /**
+   * Transform CAD SPEC elements
+   * @param acElements CAD elements
+   * @param currentElements Current fds elements
+   */
+  transformSpecVents(acElements: object[], currentElements: VentSpec[]) {
+    let updatedElements = [];
+
+    // Sort AC and current elements
+    let sortedAcElements = this.sortAcElements(acElements);
+    let sortedCurrentElements = this.sortCurrentElements(currentElements);
+
+    // For each sorted AC element
+    each(sortedAcElements, (acElement) => {
+      // Check if element already exists
+      let res = this.binaryIndexOf(acElement, sortedCurrentElements, 'idAC');
+      // If element not exists
+      if (res == -1) {
+        acElement.id = '';
+        updatedElements.push(new VentSpec(JSON.stringify(acElement), this.main.currentFdsScenario.fdsObject.specie.surfs));
+      }
+      else {
+        let originalElement: Vent = sortedCurrentElements[res];
+
+        // Rewrite properties and leave unchanged others
+        originalElement.xb = new Xb(JSON.stringify(acElement.xb));
+
+        // Create new element based on new data
+        let newElement = new VentSpec(JSON.stringify(originalElement.toJSON()), this.main.currentFdsScenario.fdsObject.specie.surfs);
+        // Add element
+        updatedElements.push(newElement);
+        // Delete from current elements
+        sortedCurrentElements.splice(res, 1);
+      }
+    });
+
+    // Rewrite ids
+    updatedElements = this.rewriteIds(updatedElements, 'SPEV');
+
+    return updatedElements;
+  }
   /**
    * Transform CAD FIRE elements
    * @param acElements CAD elements

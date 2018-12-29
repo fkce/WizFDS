@@ -362,7 +362,7 @@ export class WebsocketService {
       this.fds.ventilation.vents.push(vent);
     });
 
-    /** Vent Surfs */
+    /** Jetfans */
     // Transform CAD elements
     let newJetfans = this.cadService.transformJetfans(data.ventilation.jetfans, this.fds.ventilation.jetfans);
     // Clone and delete current elements
@@ -373,6 +373,26 @@ export class WebsocketService {
     });
 
     /** Vent Surfs */
+    // Transform CAD elements
+    let newSpecSurfs = this.cadService.transformSpecSurfs(data.specie.surfs, this.fds.specie.surfs);
+    // Clone and delete current elements
+    remove(this.fds.specie.surfs);
+    // Set new meshes to current scenario
+    each(newSpecSurfs, (spec) => {
+      this.fds.specie.surfs.push(spec);
+    });
+
+    /** Vent */
+    // Transform CAD elements
+    let newSpecs = this.cadService.transformSpecVents(data.specie.vents, this.fds.specie.vents);
+    // Clone and delete current elements
+    remove(this.fds.specie.vents);
+    // Set new meshes to current scenario
+    each(newSpecs, (spec) => {
+      this.fds.specie.vents.push(spec);
+    });
+
+    /** Fire */
     // Transform CAD elements
     let newFires = this.cadService.transformFires(data.fires.fires, this.fds.fires.fires);
     // Clone and delete current elements
@@ -425,6 +445,9 @@ export class WebsocketService {
           break;
         case 'jetfan':
           this.router.navigate(['fds/ventilation/jetfan', { idAC: idAC }]);
+          break;
+        case 'spec':
+          this.router.navigate(['fds/specie/injection', { idAC: idAC }]);
           break;
         case 'fire':
           this.router.navigate(['fds/fire/fire', { idAC: idAC }]);
@@ -523,6 +546,14 @@ export class WebsocketService {
 
     if (result >= 0) {
       element.type = 'jetfan';
+      element.index = result;
+      return element;
+    }
+
+    result = findIndex(this.fds.specie.vents, function (elem) { return elem.idAC == idAC; });
+
+    if (result >= 0) {
+      element.type = 'spev';
       element.index = result;
       return element;
     }

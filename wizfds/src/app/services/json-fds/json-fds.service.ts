@@ -1,26 +1,21 @@
 import { Injectable, isDevMode } from '@angular/core';
-import { Main } from '../main/main';
-import { MainService } from '../main/main.service';
+import { Main } from '@services/main/main';
+import { MainService } from '@services/main/main.service';
 import { NotifierService } from 'angular-notifier';
-import { FdsEntities } from '../../enums/fds/entities/fds-entities';
-import { FdsObject } from '../fds-object/fds-object';
-import { General } from '../fds-object/general/general';
-import { forEach, forOwn, isSet, unset, toUpper, has, includes, isArray, join, merge, cloneDeep, mergeWith, concat, find, replace, each, isObject } from 'lodash';
+import { FdsEntities } from '@enums/fds/entities/fds-entities';
+import { IFds } from '@services/fds-object/fds-object';
+import { forEach, forOwn, unset, toUpper, has, includes, isArray, join, cloneDeep, concat, replace, each } from 'lodash';
 import { sprintf } from 'sprintf-js';
-import { Mesh } from '../fds-object/geometry/mesh';
-import { Xb } from '../fds-object/primitives';
-import { Open } from '../fds-object/geometry/open';
-import { Fire } from '../fds-object/fire/fire';
-import { Ramp } from '../fds-object/ramp/ramp';
-import { Surf } from '../fds-object/geometry/surf';
-import { SurfVent } from '../fds-object/ventilation/surf-vent';
-import { JetFan } from '../fds-object/ventilation/jet-fan';
-import { Matl } from '../fds-object/geometry/matl';
-import { count, materialize } from 'rxjs/operators';
-import { Obst } from '../fds-object/geometry/obst';
-import { Slcf } from '../fds-object/output/slcf';
-import { Isof } from '../fds-object/output/isof';
-import { Devc } from '../fds-object/output/devc';
+import { Fire } from '@services/fds-object/fire/fire';
+import { Surf } from '@services/fds-object/geometry/surf';
+import { SurfVent } from '@services/fds-object/ventilation/surf-vent';
+import { JetFan } from '@services/fds-object/ventilation/jet-fan';
+import { Matl } from '@services/fds-object/geometry/matl';
+import { Slcf } from '@services/fds-object/output/slcf';
+import { Isof } from '@services/fds-object/output/isof';
+import { Devc } from '@services/fds-object/output/devc';
+import { SurfSpec } from '@services/fds-object/specie/surf-spec';
+import { Spec } from '@services/fds-object/specie/spec';
 
 @Injectable()
 export class JsonFdsService {
@@ -32,6 +27,7 @@ export class JsonFdsService {
     't_begin', 't_end', 'dt_restart',
     'c', 'o', 'h', 'n', 'radiation_fraction', 'soot_yield', 'co_yield', 'heat_of_combustion',
     'hrrpua', 'color',
+    'mw'
   ];
   fdsHidden: string[] = ['uuid'];
   rampInited: string[] = [];
@@ -150,7 +146,7 @@ export class JsonFdsService {
       }
       else if (this.fdsEntities[amper][key]['type'] == 'RealTriplet') {
         //if(isDevMode()) console.log(key + ': RealTriplet = ' + value);
-        if(key == 'xyz' && value['x'] != undefined) {
+        if (key == 'xyz' && value['x'] != undefined) {
           result.push(sprintf('%s=%s,%s,%s', toUpper(key), value['x'], value['y'], value['z']));
         }
         else {
@@ -290,12 +286,14 @@ export class JsonFdsService {
       else if (fire.surf.fire_type == "radially_spreading") {
 
         let vent = cloneDeep(fire.vent.toJSON());
+        vent['spread_rate'] = fire.surf.hrr.spread_rate;
         let parsedVent = this.parseAmper(vent, 'vent');
         if (parsedVent) fireString.push(sprintf("&VENT SURF_ID='%s', %s /", fire.id, parsedVent));
 
         let hrr = cloneDeep(fire.surf.hrr.toJSON());
         unset(hrr, 'ramp_q');
         unset(hrr, 'tau_q');
+        unset(hrr, 'spread_rate');
         let parsedHrr = this.parseAmper(hrr, 'surf');
         let parsedSurf = this.parseAmper(fire.surf.toJSON(), 'surf');
         if (parsedHrr && parsedSurf) fireString.push(sprintf('&SURF %s, %s /', parsedSurf, parsedHrr));
@@ -466,7 +464,7 @@ export class JsonFdsService {
 
   /**
    * Parse vent surfs 
-   * @param surfs 
+   * @param matls 
    */
   public matlAmper(matls: Matl[]): string[] {
 
@@ -526,7 +524,7 @@ export class JsonFdsService {
           }
 
         });
-        if(matls.length > 0) {
+        if (matls.length > 0) {
           surfString.push(sprintf("&SURF %s,%s, THICKNESS=%s /", parsedSurf, join(matls, ','), join(thickness, ',')));
         }
         else {
@@ -543,6 +541,94 @@ export class JsonFdsService {
     else return Array();
   }
 
+  /**
+   * Parse spec 
+   * @param specs 
+   */
+  public specAmper(specs: Spec[]): string[] {
+
+    let specString: string[] = [];
+
+
+    forEach(specs, (o) => {
+      let spec = cloneDeep(o.toJSON());
+      let lumpedSpecString: string[] = [];
+      let i = 1;
+      if (o.lumpedSpecs.length > 0) {
+        forEach(o.lumpedSpecs, (lumpedSpec) => {
+          lumpedSpecString.push(sprintf(" SPEC_ID(%s)='%s'", i, lumpedSpec.spec.id));
+          i++;
+        });
+      }
+      let parsedSpec = this.parseAmper(spec, 'spec');
+
+      (parsedSpec && lumpedSpecString.length > 0) ? specString.push(sprintf("&SPEC %s,%s /", parsedSpec, join(lumpedSpecString, ','))) : specString.push(sprintf("&SPEC %s /", parsedSpec));
+
+    });
+
+    if (specString.length > 0) return specString;
+    else return Array();
+  }
+
+  /**
+   * Parse specsurfs 
+   * @param specsurfs 
+   */
+  public specSurfAmper(surfs: SurfSpec[]): string[] {
+
+    let specSurfString: string[] = [];
+
+    forEach(surfs, (o) => {
+      let surf = cloneDeep(o.toJSON());
+      let specsString: string[] = [];
+      let i = 1;
+
+      if (o.specieFlowType == 'massFlux') {
+        unset(surf, 'vel');
+        unset(surf, 'volume_flow');
+        unset(surf, 'mass_flux_total');
+        unset(surf, 'specieMassFraction');
+        forEach(o.massFlux, (massFlux) => {
+          specsString.push(sprintf(" SPEC_ID(%s)='%s', MASS_FLUX(%s)=%s", i, massFlux.spec.id, i, massFlux.mass_flux));
+          i++;
+        });
+      }
+      else if (o.specieFlowType == 'massFraction') {
+        if (o.specieMassFractionFlowType == 'velocity') {
+          unset(surf, 'volume_flow');
+          unset(surf, 'mass_flux_total');
+        }
+        else if (o.specieMassFractionFlowType == 'volumeFlow') {
+          unset(surf, 'vel');
+          unset(surf, 'mass_flux_total');
+        }
+        else if (o.specieMassFractionFlowType == 'massFluxTotal') {
+          unset(surf, 'vel');
+          unset(surf, 'volume_flow');
+        }
+        unset(surf, 'specieMassFlux');
+        forEach(o.massFlux, (massFraction) => {
+          specsString.push(sprintf(" SPEC_ID(%s)='%s', MASS_FRACTION(%s)=%s", i, massFraction.spec.id, i, massFraction.mass_flux));
+          i++;
+        });
+
+      }
+
+      let parsedSurf = this.parseAmper(surf, 'surf');
+
+      if (parsedSurf) specSurfString.push(sprintf("&SURF %s,%s /", parsedSurf, join(specsString, ',')));
+
+      // RAMP
+      if (o.ramp != undefined && !includes(this.rampInited, o.ramp.id)) {
+        specSurfString = concat(specSurfString, this.parseRamp(o.ramp.steps, o.ramp.id));
+        this.rampInited.push(o.ramp.id);
+        specSurfString.push('');
+      }
+    });
+
+    if (specSurfString.length > 0) return specSurfString;
+    else return Array();
+  }
   /**
    * Parse slcfs 
    * @param slcfs 
@@ -647,7 +733,7 @@ export class JsonFdsService {
    * Convert json to fds text file
    * @param fds 
    */
-  public json2fds(fds: FdsObject): string[] {
+  public json2fds(fds: IFds): string[] {
 
     let fdsObject = cloneDeep(fds);
     let fdsInput: string[] = [];
@@ -689,6 +775,17 @@ export class JsonFdsService {
     fdsInput = concat(fdsInput, this.jetfanAmper(fdsObject.ventilation.jetfans));
     fdsInput.push('');
 
+    fdsInput = concat(fdsInput, Array('# ---- Specie ----'));
+    fdsInput = concat(fdsInput, Array('## ---- Specs ----'));
+    fdsInput = concat(fdsInput, this.specAmper(fdsObject.specie.specs));
+    fdsInput.push('');
+    fdsInput = concat(fdsInput, Array('## ---- Surfs ----'));
+    fdsInput = concat(fdsInput, this.specSurfAmper(fdsObject.specie.surfs));
+    fdsInput.push('');
+    fdsInput = concat(fdsInput, Array('## ---- Vents ----'));
+    fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.specie.vents, 'vent'));
+    fdsInput.push('');
+
     fdsInput = concat(fdsInput, Array('# ---- Output ----'));
     fdsInput = concat(fdsInput, Array('## ---- General ----'));
     fdsInput = concat(fdsInput, this.simpleAmper(Array(fdsObject.output.general), 'dump'));
@@ -697,9 +794,7 @@ export class JsonFdsService {
     fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.output.bndfs, 'bndf'));
     //fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.output.parts, 'part'));
     fdsInput.push('');
-    fdsInput = concat(fdsInput, Array('## ---- Specie ----'));
-    fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.specie.specs, 'spec'));
-    fdsInput.push('');
+
     fdsInput = concat(fdsInput, Array('## ---- Slice ----'));
     fdsInput = concat(fdsInput, this.slcfAmper(fdsObject.output.slcfs));
     fdsInput.push('');

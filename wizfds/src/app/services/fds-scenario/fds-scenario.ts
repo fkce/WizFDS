@@ -1,4 +1,4 @@
-import { Fds, FdsObject } from '../fds-object/fds-object';
+import { Fds } from '../fds-object/fds-object';
 import { UiState } from '../ui-state/ui-state';
 
 export interface FdsScenarioInterface {

@@ -12,7 +12,8 @@ import { IdGeneratorService } from '@services/id-generator/id-generator.service'
 import { species } from '@enums/fds/enums/fds-enums-species';
 
 import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
-import { find, findIndex, cloneDeep, set, map } from 'lodash';
+import { find, findIndex, cloneDeep, set, map, filter } from 'lodash';
+import { FdsEnums } from '@enums/fds/enums/fds-enums';
 
 @Component({
   selector: 'app-spec',
@@ -33,9 +34,11 @@ export class SpecComponent implements OnInit, OnDestroy {
   spec: Spec;
   specOld: Spec;
   objectType: string = 'current'; // Lib or current
+  lumpedSpecs: Spec[];
 
   // Enums
   SPECIES: Spec[];
+  ENUMS_SPEC = FdsEnums.SPEC;
 
   mainSub;
   uiSub;
@@ -66,7 +69,8 @@ export class SpecComponent implements OnInit, OnDestroy {
     // Activate last element
     this.specs.length > 0 ? this.spec = this.specs[this.ui.specie['spec'].elementIndex] : this.spec = undefined;
 
-    this.SPECIES = map(species, function(o) { return new Spec(JSON.stringify(o)) });
+    this.SPECIES = map(species, function (o) { return new Spec(JSON.stringify(o)) });
+    this.lumpedSpecs = this.getLumpedSpecies();
   }
 
   ngAfterViewInit() {
@@ -95,6 +99,7 @@ export class SpecComponent implements OnInit, OnDestroy {
       this.ui.specie['libSpec'].elementIndex = findIndex(this.libSpecs, { id: id });
       this.specOld = cloneDeep(this.spec);
     }
+    this.lumpedSpecs = this.getLumpedSpecies();
   }
 
   /** Push new element */
@@ -156,5 +161,34 @@ export class SpecComponent implements OnInit, OnDestroy {
   }
 
   // COMPONENT METHODS
+  public getLumpedSpecies(): Spec[] {
+    let lumpedSpecs = [];
+    if (this.objectType == 'current') {
+      lumpedSpecs = filter(this.specs, function (o: Spec) {
+        return o.lumped_component_only;
+      });
+    }
+    else if (this.objectType == 'library') {
+      lumpedSpecs = filter(this.libSpecs, function (o: Spec) {
+        return o.lumped_component_only;
+      });
+    }
+
+    return lumpedSpecs;
+  }
+  /**
+   * Add specie
+   */
+  public addSpecie() {
+    this.spec.lumpedSpecs.push({ spec: undefined, mass_fraction: 0, volume_fraction: 0 });
+  }
+
+  /**
+   * Delete specie
+   * @param index Array index
+   */
+  public deleteSpecie(index: number) {
+    this.spec.lumpedSpecs.splice(index, 1);
+  }
 
 }

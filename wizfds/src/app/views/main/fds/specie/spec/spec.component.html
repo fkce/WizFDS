@@ -14,7 +14,8 @@
     </perfect-scrollbar>
     <div class="list-bottom" *ngIf="specs.length > ui.listRange">
       <i class="material-icons" *ngIf="ui.specie.spec.begin > 0" (click)="uiStateService.decreaseRange('specs.spec')">chevron_left</i>
-      <div>{{ui.specie.spec.begin}} - {{ui.specie.spec.begin + ui.listRange > specs.length ? specs.length : ui.specie.spec.begin
+      <div>{{ui.specie.spec.begin}} - {{ui.specie.spec.begin + ui.listRange > specs.length ? specs.length :
+        ui.specie.spec.begin
         + ui.listRange}}</div>
       <i class="material-icons" *ngIf="ui.specie.spec.begin + ui.listRange < specs.length" (click)="uiStateService.increaseRange('specs.spec')">chevron_right</i>
     </div>
@@ -34,14 +35,14 @@
         <div *ngIf="spec.spec == 'No SPEC'">
           <label>Id:</label>
           <div class="field-container">
-            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="spec.id" idInput stringInput/>
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="spec.id" idInput stringInput />
           </div>
         </div>
         <div>
           <label>Predefined specie:</label>
           <div class="field-container">
-            <ng-select class="custom" [items]="SPECIES" bindLabel="id" bindValue="id" placeholder="Select species" [(ngModel)]="spec.spec"
-              [searchable]="false" [clearable]="false"></ng-select>
+            <ng-select class="custom" [items]="SPECIES" bindLabel="id" bindValue="id" placeholder="Select species"
+              [(ngModel)]="spec.spec" [searchable]="false" [clearable]="false"></ng-select>
           </div>
         </div>
       </div>
@@ -58,6 +59,67 @@
           <div class="field-container">
             <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="spec.mw" decimalInput />
             <ng-katex equation="g/mol"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>Lumped specie:</label>
+          <div class="field-container">
+            <mat-checkbox [(ngModel)]="spec.lumped_component_only"></mat-checkbox>
+          </div>
+        </div>
+        <div>
+          <label>Background specie:</label>
+          <div class="field-container">
+            <mat-checkbox [(ngModel)]="spec.background"></mat-checkbox>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row" *ngIf="!spec.lumped_component_only">
+        <div>
+          <label>Add lumped specie:</label>
+          <div class="field-container">
+            <i (click)="addSpecie()" class="material-icons">add_box</i>
+          </div>
+        </div>
+
+        <div>
+          <label>Type:</label>
+          <div class="field-container">
+            <ng-select class="custom" [items]="ENUMS_SPEC.lumpedType" bindLabel="label" bindValue="value"
+              placeholder="Select type" [(ngModel)]="spec.lumpedType" [clearable]="false"></ng-select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row" *ngFor="let specItem of spec.lumpedSpecs; index as specIndex">
+        <div>
+          <label>Specie {{ specIndex }}:</label>
+          <div class="field-container">
+            <ng-select class="custom" [items]="lumpedSpecs" bindLabel="id" placeholder="Select specie"
+              [(ngModel)]="spec.lumpedSpecs[specIndex].spec" [clearable]="true"></ng-select>
+          </div>
+        </div>
+
+        <div *ngIf="spec.lumpedType == 'volumeFraction'">
+          <label>Volume fraction:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="spec.lumpedSpecs[specIndex].volume_fraction"
+              decimalInput>
+          </div>
+        </div>
+        <div *ngIf="spec.lumpedType == 'massFraction'">
+          <label>Mass fraction:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="spec.lumpedSpecs[specIndex].mass_fraction"
+              decimalInput>
+          </div>
+        </div>
+
+        <div>
+          <label>Delete:</label>
+          <div class="field-container">
+            <i class="material-icons red" (click)="deleteSpecie(specIndex)">delete_forever</i>
           </div>
         </div>
       </div>
@@ -83,14 +145,16 @@
               <div class="list-item" *ngFor="let specItem of lib.specs | slice: ui.specie.libSpec.begin:(ui.specie.libSpec.begin
                   + ui.listRange)">
                 <a (click)="activate(specItem.id, true)" [ngClass]="{activeLib: specItem===spec}">{{specItem.id}}</a>
-                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.tooltips" (click)="importLibraryItem(specItem.id)">content_copy</i>
+                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.tooltips"
+                  (click)="importLibraryItem(specItem.id)">content_copy</i>
                 <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.tooltips" (click)="delete(specItem.id, true)">delete_forever</i>
               </div>
             </div>
           </perfect-scrollbar>
           <div class="list-bottom" *ngIf="libSpecs.length> ui.listRange">
             <i class="material-icons" *ngIf="ui.specie.libSpec.begin > 0" (click)="uiStateService.decreaseRange('specs.libSpec')">chevron_left</i>
-            <div>{{ui.specie.libSpec.begin}} - {{ui.specie.libSpec.begin + ui.listRange > libSpecs.length ? libSpecs.length :
+            <div>{{ui.specie.libSpec.begin}} - {{ui.specie.libSpec.begin + ui.listRange > libSpecs.length ?
+              libSpecs.length :
               ui.specie.libSpec.begin + ui.listRange}}</div>
             <i class="material-icons" *ngIf="ui.specie.libSpec.begin + ui.listRange < libSpecs.length" (click)="uiStateService.increaseRange('specs.libSpec')">chevron_right</i>
           </div>

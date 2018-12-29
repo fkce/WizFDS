@@ -39,6 +39,7 @@ export class SliceComponent implements OnInit, OnDestroy {
   libSlcfs: Slcf[];
   slcf: Slcf;
   slcfOld: Slcf;
+  specs: Spec[];
   objectType: string = 'current'; // Lib or current
 
   wsSub;
@@ -54,7 +55,6 @@ export class SliceComponent implements OnInit, OnDestroy {
   // Enums
   QUANTITIES = map(filter(quantities, function (o) { return includes(o.type, 's') }), function (o) { return new Quantity(JSON.stringify(o)) });
   DIRECTIONS = FdsEnums.SLCF.directions;
-  SPECIES: Spec[];
 
   constructor(
     private mainService: MainService,
@@ -76,7 +76,7 @@ export class SliceComponent implements OnInit, OnDestroy {
     this.fds = this.main.currentFdsScenario.fdsObject;
     this.slcfs = this.main.currentFdsScenario.fdsObject.output.slcfs;
     this.libSlcfs = this.lib.slcfs;
-    this.SPECIES = this.main.currentFdsScenario.fdsObject.specie.specs;
+    this.specs = this.main.currentFdsScenario.fdsObject.specie.specs;
 
     // Subscribe websocket requests status for websocket CAD sync
     this.wsSub = this.websocketService.requestStatus.subscribe(
