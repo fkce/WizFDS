@@ -438,6 +438,28 @@ namespace WizFDS.Ribbon
                 fdsVentilationPanelSource.Items.Add(fJetfanBtn);
                 #endregion
 
+                #region FDS Specie Panel
+                // FDS Specie Panel
+                Autodesk.Windows.RibbonPanelSource fdsSpeciePanelSource = new RibbonPanelSource();
+                fdsSpeciePanelSource.Title = "FDS Specie";
+                RibbonPanel fdsSpeciePanel = new RibbonPanel();
+                fdsSpeciePanel.Source = fdsSpeciePanelSource;
+                Tab.Panels.Add(fdsSpeciePanel);
+
+                RibbonButton fSpecBtn = new RibbonButton();
+                fSpecBtn.Name = "Specie";
+                fSpecBtn.Text = "Specie";
+                fSpecBtn.ShowText = true;
+                fSpecBtn.ShowImage = true;
+                fSpecBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
+                fSpecBtn.LargeImage = Images.getBitmap(Properties.Resources.ventLarge);
+                fSpecBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
+                fSpecBtn.Size = RibbonItemSize.Large;
+                fSpecBtn.CommandHandler = new RibbonCommandHandler();
+
+                fdsSpeciePanelSource.Items.Add(fSpecBtn);
+                #endregion
+
                 #region FDS Fire Panel
                 // FDS Fire Panel
                 Autodesk.Windows.RibbonPanelSource fdsFirePanelSource = new RibbonPanelSource();
@@ -786,6 +808,9 @@ namespace WizFDS.Ribbon
                         case "Jetfan":
                             acDoc.SendStringToExecute("fJetfan\n", true, false, true);
                             break;
+                        case "Specie":
+                            acDoc.SendStringToExecute("fSpec\n", true, false, true);
+                            break;
                         case "Fire":
                             acDoc.SendStringToExecute("fFire\n", true, false, true);
                             break;
@@ -890,8 +915,6 @@ namespace WizFDS.Ribbon
                             break;
                         
                     }
-
-
                 }
             }
         }

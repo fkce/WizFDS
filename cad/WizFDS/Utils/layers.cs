@@ -139,6 +139,7 @@ namespace WizFDS.Utils
                     layers.Add("!FDS_JETF[jetfan]", 54);
                     layers.Add("!FDS_OBST[inert](0)", 123);
                     layers.Add("!FDS_HOLE(0)", 140);
+                    layers.Add("!FDS_SPEC[specie]", 201);
 
                     foreach (KeyValuePair<string, short> layer in layers)
                     {
@@ -190,6 +191,7 @@ namespace WizFDS.Utils
                     layers.Add("!FDS_JETF[jetfan]", 54);
                     layers.Add("!FDS_OBST[inert](0)", 123);
                     layers.Add("!FDS_HOLE(0)", 140);
+                    layers.Add("!FDS_SPEC[specie]", 201);
 
                 foreach (KeyValuePair<string, short> layer in layers)
                 {

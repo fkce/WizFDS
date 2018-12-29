@@ -491,6 +491,127 @@ namespace WizFDS.Export
                 this.jetfans.Add(jetfan);
             }
         }
+        private class Specie
+        {
+            public class Surf
+            {
+                public string id { get; set; }
+                public double idAC { get; set; }
+                public Flow flow { get; set; }
+            }
+            public class Vent
+            {
+                public double idAC { get; set; }
+                public Xb xb { get; set; }
+                public string surf_id { get; set; }
+                public float elevation { get; set; }
+            }
+
+            public List<Surf> surfs { get; set; }
+            public List<Vent> vents { get; set; }
+
+            public Specie()
+            {
+                this.surfs = new List<Surf>();
+                this.vents = new List<Vent>();
+            }
+
+            private float GetElevation(string layerName)
+            {
+                try
+                {
+                    float elevation = float.Parse(layerName.Substring(layerName.IndexOf("(") + 1, layerName.IndexOf(")") - layerName.IndexOf("(") - 1));
+                    return elevation;
+                }
+                catch
+                {
+                    return 0;
+                }
+            }
+            private string GetLayerId(string layerName)
+            {
+                string id = "";
+                if (layerName.Contains("[") && layerName.Contains("]"))
+                {
+                    if (layerName.IndexOf("]") - layerName.IndexOf("[") - 1 > 0)
+                        id = layerName.Substring(layerName.IndexOf("[") + 1, layerName.IndexOf("]") - layerName.IndexOf("[") - 1);
+                }
+                return id;
+            }
+            private Flow GetFlow(string layerName)
+            {
+                string id = "";
+                if (layerName.Contains("[") && layerName.Contains("]"))
+                {
+                    if (layerName.IndexOf("]") - layerName.IndexOf("[") - 1 > 0)
+                        id = layerName.Substring(layerName.IndexOf("[") + 1, layerName.IndexOf("]") - layerName.IndexOf("[") - 1);
+                }
+                double volFlow;
+                bool isNumeric = double.TryParse(id, out volFlow);
+                if (isNumeric)
+                {
+                    return new Flow
+                    {
+                        type = "volumeFlow",
+                        volume_flow = Math.Round(volFlow / 3600, 2),
+                        volume_flow_per_hour = volFlow
+                    };
+                } else
+                {
+                    return null;
+                }
+            }
+            public void AddSurf(LayerTableRecord acLyrTblRec)
+            {
+                Surf surf = new Surf
+                {
+                    id = this.GetLayerId(acLyrTblRec.Name),
+                    idAC = Convert.ToInt64(acLyrTblRec.ObjectId.Handle.ToString(), 16)
+                };
+                if (!surf.id.StartsWith("spec"))
+                {
+                    this.surfs.Add(surf);
+                }
+            }
+            public void AddSurf(string layer, Handle acHandle)
+            {
+                Surf surf = new Surf
+                {
+                    id = this.GetLayerId(layer),
+                    idAC = Convert.ToInt64(acHandle.ToString(), 16),
+                    flow = GetFlow(layer)
+                };
+                this.surfs.Add(surf);
+            }
+            public bool HasSurf(Specie specie, string layer)
+            {
+                foreach (var surf in specie.surfs)
+                {
+                    if (surf.id.Contains(this.GetLayerId(layer)))
+                        return true;
+                }
+                return false;
+            }
+            public void AddVent(Entity acEnt)
+            {
+                Vent vent = new Vent()
+                {
+                    idAC = Convert.ToInt64(acEnt.Handle.ToString(), 16),
+                    xb = new Xb
+                    {
+                        x1 = Math.Round(acEnt.GeometricExtents.MinPoint.X, 4),
+                        x2 = Math.Round(acEnt.GeometricExtents.MaxPoint.X, 4),
+                        y1 = Math.Round(acEnt.GeometricExtents.MinPoint.Y, 4),
+                        y2 = Math.Round(acEnt.GeometricExtents.MaxPoint.Y, 4),
+                        z1 = Math.Round(acEnt.GeometricExtents.MinPoint.Z, 4),
+                        z2 = Math.Round(acEnt.GeometricExtents.MaxPoint.Z, 4),
+                    },
+                    surf_id = this.GetLayerId(acEnt.Layer),
+                    elevation = this.GetElevation(acEnt.Layer)
+                };
+                this.vents.Add(vent);
+            }
+        }
         private class Output
         {
             public class Slcf
@@ -675,6 +796,7 @@ namespace WizFDS.Export
         {
             public Geometry geometry { get; set; }
             public Ventilation ventilation { get; set; }
+            public Specie specie { get; set; }
             public Output output { get; set; }
             public Fires fires { get; set; }
             public string acFile { get; set; }
@@ -685,6 +807,7 @@ namespace WizFDS.Export
         {
             Geometry geometry = new Geometry();
             Ventilation ventilation = new Ventilation();
+            Specie specie = new Specie();
             Output output = new Output();
             Fires fires = new Fires();
 
@@ -771,7 +894,7 @@ namespace WizFDS.Export
                                             }
                                         }
                                     }
-                                    if (acEnt.Layer.Contains("!FDS_JETF") && acEnt is Solid3d)
+                                    else if (acEnt.Layer.Contains("!FDS_JETF") && acEnt is Solid3d)
                                     {
                                         ventilation.AddJetfan(acEnt);
                                     }
@@ -782,6 +905,22 @@ namespace WizFDS.Export
                                     else if (acEnt.Layer.Contains("!FDS_DEVC"))
                                     {
                                         output.AddDevc(acEnt);
+                                    }
+                                    else if (acEnt.Layer.Contains("!FDS_SPEC"))
+                                    {
+                                        if (acEnt is ExtrudedSurface)
+                                        {
+                                            specie.AddVent(acEnt);
+                                            if (specie.surfs.Count > 0)
+                                            {
+                                                if (!specie.HasSurf(specie, acEnt.Layer))
+                                                    specie.AddSurf(acEnt.Layer, acEnt.Handle);
+                                            }
+                                            else
+                                            {
+                                                specie.AddSurf(acEnt.Layer, acEnt.Handle);
+                                            }
+                                        }
                                     }
                                 }
                                 catch (System.Exception e)
@@ -797,6 +936,7 @@ namespace WizFDS.Export
                         geometry = geometry,
                         fires = fires,
                         ventilation = ventilation,
+                        specie = specie,
                         output = output,
                         acFile = acApp.GetSystemVariable("DWGNAME").ToString(),
                         acPath = acApp.GetSystemVariable("DWGPREFIX").ToString()

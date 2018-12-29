@@ -189,6 +189,7 @@
     <Compile Include="Modelling\Geometry\ObstCeiling.cs" />
     <Compile Include="Modelling\Geometry\ObstPoly.cs" />
     <Compile Include="Modelling\Geometry\Open.cs" />
+    <Compile Include="Modelling\Specie\Spec.cs" />
     <Compile Include="Modelling\Ventilation\Vent.cs" />
     <Compile Include="Properties\Resources.Designer.cs" />
     <Compile Include="Properties\Settings1.Designer.cs">
