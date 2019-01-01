@@ -50,6 +50,10 @@ export class Library {
 		let base: LibraryObject;
 		base = <LibraryObject>JSON.parse(jsonString);
 
+		this.ramps = get(base, 'ramps') === undefined ? [] : map(base.ramps, (ramp) => {
+			return new Ramp(JSON.stringify(ramp));
+		});
+
 		this.specs = get(base, 'specs') === undefined ? [] : map(base.specs, (spec) => {
 			return new Spec(JSON.stringify(spec));
 		});
@@ -60,10 +64,6 @@ export class Library {
 
 		this.specvents = get(base, 'specvents') === undefined ? [] : map(base.specvents, (specvent) => {
 			return new VentSpec(JSON.stringify(specvent), this.specsurfs);
-		});
-
-		this.ramps = get(base, 'ramps') === undefined ? [] : map(base.ramps, (ramp) => {
-			return new Ramp(JSON.stringify(ramp));
 		});
 
 		this.matls = get(base, 'matls') === undefined ? [] : map(base.matls, (matl) => {

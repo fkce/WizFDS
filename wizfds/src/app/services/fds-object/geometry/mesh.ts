@@ -1,39 +1,37 @@
-import { IdGeneratorService } from '../../../services/id-generator/id-generator.service'
-import { FdsEntities } from '../../../enums/fds/entities/fds-entities'
-import { Xb } from '../primitives';
-import { WebsocketService } from '../../websocket/websocket.service';
-import { Injector } from '@angular/core/src/di/injector';
+import { IdGeneratorService } from '@services/id-generator/id-generator.service'
+import { FdsEntities } from '@enums/fds/entities/fds-entities'
+import { Xb, Color } from '../primitives';
 import { get, round, toNumber, toString } from 'lodash';
 
-export interface MeshObject {
+export interface IMesh {
     id: string,
     uuid: string,
     idAC: number,
+    color: Color,
     isize: number,
     jsize: number,
     ksize: number,
     ijk: number[],
     xb: Xb,
-    cells: number,
-    color: string
+    cells: number
 }
 
 export class Mesh {
     private _id: string;
     private _uuid: string;
     private _idAC: number;
+    private _color: Color;
     private _isize: number;
     private _jsize: number;
     private _ksize: number;
     private _ijk: number[];
     private _xb: Xb;
     private _cells: number;
-    private _color: string;
 
     constructor(jsonString: string) {
 
-        let base: MeshObject;
-        base = <MeshObject>JSON.parse(jsonString);
+        let base: IMesh;
+        base = <IMesh>JSON.parse(jsonString);
 
         let idGeneratorService = new IdGeneratorService;
 
@@ -42,6 +40,7 @@ export class Mesh {
         this.id = base.id || '';
         this.uuid = base.uuid || idGeneratorService.genUUID();
         this.idAC = base.idAC || 0;
+        this.color = base.color != undefined && typeof base.color === 'object' ? new Color(JSON.stringify(base.color)) : new Color(JSON.stringify('{}'), 'YELLOW');
 
         this.xb = new Xb(JSON.stringify(base.xb)) || new Xb(JSON.stringify({}));
 
@@ -52,7 +51,6 @@ export class Mesh {
         this.ksize = toNumber(get(base, 'ksize', 0.1));
 
         this.cells = this.calcCells();
-        this.color = toString(get(base, 'color', mesh.color.default[0]));
 
         this.calcIjk();
     }
@@ -109,6 +107,22 @@ export class Mesh {
      */
 	public set idAC(value: number) {
 		this._idAC = value;
+	}
+
+    /**
+     * Getter color
+     * @return {Color}
+     */
+	public get color(): Color {
+		return this._color;
+	}
+
+    /**
+     * Setter color
+     * @param {Color} value
+     */
+	public set color(value: Color) {
+		this._color = value;
 	}
 
     /**
@@ -261,22 +275,6 @@ export class Mesh {
 		this._cells = value;
 	}
 
-    /**
-     * Getter color
-     * @return {string}
-     */
-	public get color(): string {
-		return this._color;
-	}
-
-    /**
-     * Setter color
-     * @param {string} value
-     */
-	public set color(value: string) {
-		this._color = value;
-    }
-
     /** getter/setter x1 */
     get x1() {
         return this.xb.x1;
@@ -341,12 +339,12 @@ export class Mesh {
             id: this.id,
             uuid: this.uuid,
             idAC: this.idAC,
+            color: this.color,
             ijk: this.ijk,
             isize: this.isize,
             jsize: this.jsize,
             ksize: this.ksize,
-            xb: this.xb.toJSON(),
-            color: this._color
+            xb: this.xb.toJSON()
         }
         return mesh;
     }

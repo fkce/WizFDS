@@ -867,7 +867,7 @@ namespace WizFDS.Export
             }
         }
 
-        // Slcf
+        // Slcf - change color in other objects while creating 
         public static isCreatedObject CreateSlcfWeb(dynamic data)
         {
             Editor ed = acApp.DocumentManager.MdiActiveDocument.Editor;
@@ -887,8 +887,18 @@ namespace WizFDS.Export
                         Utils.Utils.Init();
                         string layer = "!FDS_SLCF[]";
                         if(data.id != null && data.id != "")
-                            layer = ImportUtils.CreateSlcfLayer(data.id.ToString());
-
+                        {
+                            layer = "!FDS_SLCF[" + data.id.ToString() + "]";
+                            // Check if color is sent from Web
+                            if(data.color != null && data.color.rgb.Count > 0)
+                            {
+                                Utils.Layers.CreateLayer("!FDS_SLCF[" + data.id.ToString() + "]", Color.FromRgb((byte)data.color.rgb[0], (byte)data.color.rgb[1], (byte)data.color.rgb[2]));
+                            }
+                            else
+                            {
+                                Utils.Layers.CreateLayer("!FDS_SLCF[" + data.id.ToString() + "]");
+                            }
+                        }
 
                         Extents3d ext = Utils.Utils.GetAllElementsBoundingBox();
 
@@ -1257,7 +1267,10 @@ namespace WizFDS.Export
                     if (data.id == null || data.id.ToString() == "")
                         return isCreated;
 
-                    ObjectId acObjId = Utils.Layers.CreateLayer("!FDS_OBST[" + data.id.ToString() + "](0)", true);
+                    // Check if color is sent from Web
+                    ObjectId acObjId = (data.color != null && data.color.rgb.Count > 0) ?
+                        Utils.Layers.CreateLayer("!FDS_OBST[" + data.id.ToString() + "](0)", Color.FromRgb((byte)data.color.rgb[0], (byte)data.color.rgb[1], (byte)data.color.rgb[2]), true) :
+                        Utils.Layers.CreateLayer("!FDS_OBST[" + data.id.ToString() + "](0)", true);
 
                     dynamic surf = new System.Dynamic.ExpandoObject();
                     // Start a transaction
@@ -1363,7 +1376,10 @@ namespace WizFDS.Export
                     if (data.id == null || data.id.ToString() == "")
                         return isCreated;
 
-                    ObjectId acObjId = Utils.Layers.CreateLayer("!FDS_VENT[" + data.id.ToString() + "]", true);
+                    // Check if color is sent from Web
+                    ObjectId acObjId = (data.color != null && data.color.rgb.Count > 0) ?
+                        Utils.Layers.CreateLayer("!FDS_VENT[" + data.id.ToString() + "]", Color.FromRgb((byte)data.color.rgb[0], (byte)data.color.rgb[1], (byte)data.color.rgb[2]), true) :
+                        Utils.Layers.CreateLayer("!FDS_VENT[" + data.id.ToString() + "]", true);
 
                     dynamic surf = new System.Dynamic.ExpandoObject();
                     // Start a transaction
@@ -1450,6 +1466,115 @@ namespace WizFDS.Export
             }
         }
 
+        // Spec surf 
+        public static isCreatedObject CreateSpecSurfWeb(dynamic data)
+        {
+            Editor ed = acApp.DocumentManager.MdiActiveDocument.Editor;
+            Document acDoc = acApp.DocumentManager.MdiActiveDocument;
+            Database acCurDb = acDoc.Database;
+
+            isCreatedObject isCreated;
+            isCreated.isCreated = false;
+            isCreated.acObj = null;
+
+            try
+            {
+                using (DocumentLock docLock = acDoc.LockDocument())
+                {
+                    Utils.Utils.Init();
+                    if (data.id == null || data.id.ToString() == "")
+                        return isCreated;
+
+                    // Check if color is sent from Web
+                    ObjectId acObjId = (data.color != null && data.color.rgb.Count > 0) ?
+                        Utils.Layers.CreateLayer("!FDS_SPEC[" + data.id.ToString() + "]", Color.FromRgb((byte)data.color.rgb[0], (byte)data.color.rgb[1], (byte)data.color.rgb[2]), true) :
+                        Utils.Layers.CreateLayer("!FDS_SPEC[" + data.id.ToString() + "]", true);
+
+                    dynamic surf = new System.Dynamic.ExpandoObject();
+                    // Start a transaction
+                    using (Transaction acTrans = acCurDb.TransactionManager.StartTransaction())
+                    {
+                        LayerTableRecord acLyrTblRec = acTrans.GetObject(acObjId, OpenMode.ForRead) as LayerTableRecord;
+                        surf.idAC = Convert.ToInt64(acLyrTblRec.Handle.ToString(), 16);
+
+                        isCreated.acObj = surf;
+                        isCreated.isCreated = true;
+                    }
+
+                    Utils.Utils.End();
+                    return isCreated;
+                }
+            }
+            catch (System.Exception e)
+            {
+                ed.WriteMessage("\nProgram exception: " + e.ToString());
+                return isCreated;
+            }
+        }
+        public static bool UpdateSpecSurfWeb(dynamic data)
+        {
+            Editor ed = acApp.DocumentManager.MdiActiveDocument.Editor;
+            Document acDoc = acApp.DocumentManager.MdiActiveDocument;
+            Database acCurDb = acDoc.Database;
+
+            try
+            {
+                if (data.idAC != null)
+                {
+                    if (data.idAC.ToString() != "")
+                    {
+                        using (DocumentLock docLock = acDoc.LockDocument())
+                        {
+                            long ln = Convert.ToInt64(data.idAC.ToString());
+                            Handle hn = ImportUtils.GetHandleFromIdAC(ln);
+                            ObjectId idAC = acCurDb.GetObjectId(false, hn, 0);
+
+                            if (data.id != null && data.id.ToString() != "")
+                            {
+                                string layerName = ImportUtils.UpdateSpecLayer(idAC, data.id.ToString());
+                                return true;
+                            }
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch (System.Exception e)
+            {
+                ed.WriteMessage("\nProgram exception: " + e.ToString());
+                return false;
+            }
+            return false;
+        }
+        public static bool DeleteSpecSurfWeb(dynamic data)
+        {
+            Editor ed = acApp.DocumentManager.MdiActiveDocument.Editor;
+            Document acDoc = acApp.DocumentManager.MdiActiveDocument;
+            Database acCurDb = acDoc.Database;
+            try
+            {
+                if(data.idAC != null && data.idAC.ToString() != "")
+                {
+                    using (DocumentLock docLock = acDoc.LockDocument())
+                    {
+                        Utils.Utils.Init();
+                        long ln = Convert.ToInt64(data.idAC.ToString());
+                        Handle hn = ImportUtils.GetHandleFromIdAC(ln);
+                        ObjectId idAC = acCurDb.GetObjectId(false, hn, 0);
+                        ImportUtils.DeleteLayer(idAC);
+                        Utils.Utils.End();
+                    }
+                    return true;
+                }
+                return false;
+            }
+            catch (System.Exception e)
+            {
+                ed.WriteMessage("\nProgram exception: " + e.ToString());
+                return false;
+            }
+        }
+
         // Jetfan surf
         public static isCreatedObject CreateJetfanSurfWeb(dynamic data)
         {
@@ -1469,7 +1594,10 @@ namespace WizFDS.Export
                     if (data.id == null || data.id.ToString() == "")
                         return isCreated;
 
-                    ObjectId acObjId = Utils.Layers.CreateLayer("!FDS_JFAN[" + data.id.ToString() + "]", true);
+                    // Check if color is sent from Web
+                    ObjectId acObjId = (data.color != null && data.color.rgb.Count > 0) ?
+                        Utils.Layers.CreateLayer("!FDS_JFAN[" + data.id.ToString() + "]", Color.FromRgb((byte)data.color.rgb[0], (byte)data.color.rgb[1], (byte)data.color.rgb[2]), true) :
+                        Utils.Layers.CreateLayer("!FDS_JFAN[" + data.id.ToString() + "]", true);
 
                     dynamic surf = new System.Dynamic.ExpandoObject();
                     // Start a transaction
@@ -1512,7 +1640,10 @@ namespace WizFDS.Export
                     if (data.id == null || data.id.ToString() == "")
                         return isCreated;
 
-                    ObjectId acObjId = Utils.Layers.CreateLayer("!FDS_SLCF[" + data.id.ToString() + "]", true);
+                    // Check if color is sent from Web
+                    ObjectId acObjId = (data.color != null && data.color.rgb.Count > 0) ?
+                        Utils.Layers.CreateLayer("!FDS_SLCF[" + data.id.ToString() + "]", Color.FromRgb((byte)data.color.rgb[0], (byte)data.color.rgb[1], (byte)data.color.rgb[2]), true) :
+                        Utils.Layers.CreateLayer("!FDS_SLCF[" + data.id.ToString() + "]", true);
 
                     dynamic surf = new System.Dynamic.ExpandoObject();
                     // Start a transaction
@@ -1555,7 +1686,10 @@ namespace WizFDS.Export
                     if (data.id == null || data.id.ToString() == "")
                         return isCreated;
 
-                    ObjectId acObjId = Utils.Layers.CreateLayer("!FDS_DEVC[" + data.id.ToString() + "]", true);
+                    // Check if color is sent from Web
+                    ObjectId acObjId = (data.color != null && data.color.rgb.Count > 0) ?
+                        Utils.Layers.CreateLayer("!FDS_DEVC[" + data.id.ToString() + "]", Color.FromRgb((byte)data.color.rgb[0], (byte)data.color.rgb[1], (byte)data.color.rgb[2]), true) :
+                        Utils.Layers.CreateLayer("!FDS_DEVC[" + data.id.ToString() + "]", true);
 
                     dynamic surf = new System.Dynamic.ExpandoObject();
                     // Start a transaction
@@ -1598,7 +1732,10 @@ namespace WizFDS.Export
                     if (data.id == null || data.id.ToString() == "")
                         return isCreated;
 
-                    ObjectId acObjId = Utils.Layers.CreateLayer("!FDS_FIRE[" + data.id.ToString() + "]", true);
+                    // Check if color is sent from Web
+                    ObjectId acObjId = (data.color != null && data.color.rgb.Count > 0) ?
+                        Utils.Layers.CreateLayer("!FDS_FIRE[" + data.id.ToString() + "]", Color.FromRgb((byte)data.color.rgb[0], (byte)data.color.rgb[1], (byte)data.color.rgb[2]), true) :
+                        Utils.Layers.CreateLayer("!FDS_FIRE[" + data.id.ToString() + "]", true);
 
                     dynamic surf = new System.Dynamic.ExpandoObject();
                     // Start a transaction

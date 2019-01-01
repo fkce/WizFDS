@@ -221,11 +221,15 @@ export class SurfaceComponent implements OnInit, OnDestroy {
     if (this.websocketService.isConnected) {
       this.surfOld = cloneDeep(this.surf);
 
+      // Find clicked object
+      let surf = find(this.libSurfs, ['id', id]);
+
       // Prepare message
       let message: WebsocketMessageObject = {
         method: 'createObstSurfWeb',
         data: {
-          id: id
+          id: id,
+          color: surf.color
         },
         id: this.websocketService.idGenerator(),
         requestID: '',

@@ -2,12 +2,13 @@ import { FdsEntities } from '@enums/fds/entities/fds-entities';
 import { IdGeneratorService } from '@services/id-generator/id-generator.service';
 import { Ramp } from '../ramp/ramp';
 import { get, toString, toNumber, find, round } from 'lodash';
+import { Color } from '../primitives';
 
 export interface ISurfVent {
     id: string,
     uuid: string,
     idAC: number,
-    color: string,
+    color: Color,
     transparency: number,
     flow: any,
     tmp_front: number,
@@ -22,7 +23,7 @@ export class SurfVent {
     private _id: string;
     private _uuid: string;
     private _idAC: number;
-    private _color: string;
+    private _color: Color;
     private _transparency: number;
     private _flow: any;
     private _tmp_front: number;
@@ -43,7 +44,7 @@ export class SurfVent {
         this.id = base.id || '';
         this.uuid = base.uuid || idGeneratorService.genUUID();
         this.idAC = base.idAC || 0;
-        this.color = toString(get(base, 'color', surf.color.default[0]));
+        this.color = base.color != undefined && typeof base.color === 'object' ? new Color(JSON.stringify(base.color)) : new Color(JSON.stringify('{}'), 'BLUE');
         this.transparency = toNumber(get(base, 'transparency', surf.transparency.default[0]));
 
         this.flow = {
@@ -124,22 +125,21 @@ export class SurfVent {
         this._idAC = value;
     }
 
-
     /**
      * Getter color
-     * @return {string}
+     * @return {Color}
      */
-    public get color(): string {
-        return this._color;
-    }
+	public get color(): Color {
+		return this._color;
+	}
 
     /**
      * Setter color
-     * @param {string} value
+     * @param {Color} value
      */
-    public set color(value: string) {
-        this._color = value;
-    }
+	public set color(value: Color) {
+		this._color = value;
+	}
 
     /**
      * Getter transparency

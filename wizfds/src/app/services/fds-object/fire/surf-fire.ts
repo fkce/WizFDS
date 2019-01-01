@@ -1,14 +1,15 @@
-import { FdsEntities } from '../../../enums/fds/entities/fds-entities';
-import { IdGeneratorService } from '../../id-generator/id-generator.service';
+import { FdsEntities } from '@enums/fds/entities/fds-entities';
+import { IdGeneratorService } from '@services/id-generator/id-generator.service';
 import { Ramp } from '../ramp/ramp';
 import { get, toString, find } from 'lodash';
 import { Hrr } from './hrr';
+import { Color } from '../primitives';
 
 export interface SurfFireObject {
     id: string,
     uuid: string,
     idAC: number,
-    color: string,
+    color: Color,
     fire_type: string,
     hrr: Hrr,
     ramp: Ramp,
@@ -20,7 +21,7 @@ export class SurfFire {
     private _id: string;
     private _uuid: string;
     private _idAC: number;
-    private _color: string;
+    private _color: Color;
     private _fire_type: string;
     private _hrr: Hrr;
     private _ramp: Ramp;
@@ -37,7 +38,7 @@ export class SurfFire {
         this.id = base.id || '';
         this.uuid = base.uuid || idGeneratorService.genUUID();
         this.idAC = base.idAC || 0;
-        this.color = (get(base, 'color', surf.color.default[0])) as string;
+        this.color = base.color != undefined && typeof base.color === 'object' ? new Color(JSON.stringify(base.color)) : new Color(JSON.stringify('{}'), 'RED');
         this.fire_type = get(base, 'fire_type', 'constant_hrr') as string;
 
         this.hrr = base.hrr != undefined ? new Hrr(JSON.stringify(base.hrr)): new Hrr(JSON.stringify('{}'));
@@ -95,17 +96,17 @@ export class SurfFire {
 
     /**
      * Getter color
-     * @return {string}
+     * @return {Color}
      */
-	public get color(): string {
+	public get color(): Color {
 		return this._color;
 	}
 
     /**
      * Setter color
-     * @param {string} value
+     * @param {Color} value
      */
-	public set color(value: string) {
+	public set color(value: Color) {
 		this._color = value;
 	}
 

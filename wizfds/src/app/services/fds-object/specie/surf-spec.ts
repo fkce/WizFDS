@@ -1,9 +1,9 @@
 import { FdsEntities } from '@enums/fds/entities/fds-entities';
-import { FdsEnums } from '@enums/fds/enums/fds-enums';
 import { IdGeneratorService } from '@services/id-generator/id-generator.service';
 import { Ramp } from '../ramp/ramp';
-import { get, toString, toNumber, find, round, each, map, forEach } from 'lodash';
+import { get, toString, toNumber, find, map } from 'lodash';
 import { Spec } from './spec';
+import { Color } from '../primitives';
 
 export interface IMassFlux {
     spec: Spec,
@@ -19,7 +19,7 @@ export interface ISurfSpec {
     id: string,
     uuid: string,
     idAC: number,
-    color: string,
+    color: Color,
     transparency: number,
     ramp: Ramp,
     ramp_id: any,
@@ -36,7 +36,7 @@ export class SurfSpec {
     private _id: string;
     private _uuid: string;
     private _idAC: number;
-    private _color: string;
+    private _color: Color;
     private _transparency: number;
     private _ramp: Ramp;
     private _specieFlowType: string;
@@ -59,7 +59,7 @@ export class SurfSpec {
         this.id = base.id || '';
         this.uuid = base.uuid || idGeneratorService.genUUID();
         this.idAC = base.idAC || 0;
-        this.color = toString(get(base, 'color', surf.color.default[0]));
+        this.color = base.color != undefined && typeof base.color === 'object' ? new Color(JSON.stringify(base.color)) : new Color(JSON.stringify('{}'), 'DARK ORANGE');
         this.transparency = toNumber(get(base, 'transparency', surf.transparency.default[0]));
 
         this.specieFlowType = toString(get(base, 'specieFlowType', 'massFlux'));
@@ -133,22 +133,21 @@ export class SurfSpec {
         this._idAC = value;
     }
 
-
     /**
      * Getter color
-     * @return {string}
+     * @return {Color}
      */
-    public get color(): string {
-        return this._color;
-    }
+	public get color(): Color {
+		return this._color;
+	}
 
     /**
      * Setter color
-     * @param {string} value
+     * @param {Color} value
      */
-    public set color(value: string) {
-        this._color = value;
-    }
+	public set color(value: Color) {
+		this._color = value;
+	}
 
     /**
      * Getter transparency

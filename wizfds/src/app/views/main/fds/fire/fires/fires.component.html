@@ -43,8 +43,26 @@
         <div>
           <label>Color:</label>
           <div class="field-container">
-            <ng-select [items]="COLORS" bindLabel="label" bindValue="value" placeholder="Select color" [(ngModel)]="fire.surf.color"
+            <ng-select [items]="COLORS" bindLabel="label" bindValue="value" placeholder="Select color" [(ngModel)]="fire.surf.color.value"
               [searchable]="true" [clearable]="false"></ng-select>
+          </div>
+        </div>
+        <div *ngIf="fire.surf.color && fire.surf.color.value == ''">
+          <label>R:</label>
+          <div class="field-container">
+            <input [(ngModel)]="fire.surf.color.rgb[0]" rgbInput>
+          </div>
+        </div>
+        <div *ngIf="fire.surf.color && fire.surf.color.value == ''">
+          <label>G:</label>
+          <div class="field-container">
+            <input [(ngModel)]="fire.surf.color.rgb[1]" rgbInput>
+          </div>
+        </div>
+        <div *ngIf="fire.surf.color && fire.surf.color.value == ''">
+          <label>B:</label>
+          <div class="field-container">
+            <input [(ngModel)]="fire.surf.color.rgb[2]" rgbInput>
           </div>
         </div>
       </div>

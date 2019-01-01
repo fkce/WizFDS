@@ -82,6 +82,7 @@ export class FdsScenarioService {
           this.main.currentFdsScenario = fdsScenario;
           // Change chid after scenario name update
           this.main.currentFdsScenario.fdsObject.general.head.chid = this.main.currentFdsScenario.name;
+          this.main.currentFdsScenario.fdsObject.general.head.title = this.main.currentFdsScenario.name +' scenario';
         }
 
         this.notifierService.notify(result.meta.status, result.meta.details[0]);

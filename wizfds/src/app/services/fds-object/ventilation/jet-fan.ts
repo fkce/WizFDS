@@ -1,14 +1,14 @@
-import { Xb } from '../primitives';
-import { FdsEntities } from '../../../enums/fds/entities/fds-entities';
-import { IdGeneratorService } from '../../id-generator/id-generator.service';
+import { Xb, Color } from '../primitives';
+import { FdsEntities } from '@enums/fds/entities/fds-entities';
+import { IdGeneratorService } from '@services/id-generator/id-generator.service';
 import { Ramp } from '../ramp/ramp';
-import { find, get, toNumber, toArray, toString, round } from 'lodash';
+import { find, get, toNumber, toString, round } from 'lodash';
 
-export interface JetFanInterface {
+export interface IJetFan {
     id: string,
     uuid: string,
     idAC: number,
-    color: string,
+    color: Color,
     transparency: number,
     elevation: number,
     xb: Xb,
@@ -35,7 +35,7 @@ export class JetFan {
     private _id: string;
     private _uuid: string;
     private _idAC: number;
-    private _color: string;
+    private _color: Color;
     private _transparency: number;
     private _elevation: number;
     private _xb: Xb;
@@ -49,8 +49,8 @@ export class JetFan {
 
     constructor(jsonString: string, ramps: Ramp[]) {
 
-        let base: JetFanInterface;
-        base = <JetFanInterface>JSON.parse(jsonString);
+        let base: IJetFan;
+        base = <IJetFan>JSON.parse(jsonString);
 
         let idGeneratorService = new IdGeneratorService;
 
@@ -62,7 +62,7 @@ export class JetFan {
         this.id = base.id || '';
         this.uuid = base.uuid || idGeneratorService.genUUID();
         this.idAC = base.idAC || 0;
-        this.color = toString(get(base, 'color', surf.color.default[0]));
+        this.color = base.color != undefined && typeof base.color === 'object' ? new Color(JSON.stringify(base.color)) : new Color(JSON.stringify('{}'), 'COLD GREY');
         this.transparency = toNumber(get(base, 'transparency', surf.transparency.default));
 
         this.xb = new Xb(JSON.stringify(base.xb)) || new Xb(JSON.stringify({}));
@@ -162,118 +162,232 @@ export class JetFan {
         }
     }
 
-    public get id(): string {
-        return this._id;
-    }
+    /**
+     * Getter id
+     * @return {string}
+     */
+	public get id(): string {
+		return this._id;
+	}
 
-    public set id(value: string) {
-        this._id = value;
-    }
+    /**
+     * Setter id
+     * @param {string} value
+     */
+	public set id(value: string) {
+		this._id = value;
+	}
 
-    public get uuid(): string {
-        return this._uuid;
-    }
+    /**
+     * Getter uuid
+     * @return {string}
+     */
+	public get uuid(): string {
+		return this._uuid;
+	}
 
-    public set uuid(value: string) {
-        this._uuid = value;
-    }
+    /**
+     * Setter uuid
+     * @param {string} value
+     */
+	public set uuid(value: string) {
+		this._uuid = value;
+	}
 
-    public get idAC(): number {
-        return this._idAC;
-    }
 
-    public set idAC(value: number) {
-        this._idAC = value;
-    }
+    /**
+     * Getter idAC
+     * @return {number}
+     */
+	public get idAC(): number {
+		return this._idAC;
+	}
 
-    public get color(): string {
-        return this._color;
-    }
+    /**
+     * Setter idAC
+     * @param {number} value
+     */
+	public set idAC(value: number) {
+		this._idAC = value;
+	}
 
-    public set color(value: string) {
-        this._color = value;
-    }
+    /**
+     * Getter color
+     * @return {Color}
+     */
+	public get color(): Color {
+		return this._color;
+	}
 
-    public get transparency(): number {
-        return this._transparency;
-    }
+    /**
+     * Setter color
+     * @param {Color} value
+     */
+	public set color(value: Color) {
+		this._color = value;
+	}
 
-    public set transparency(value: number) {
-        this._transparency = value;
-    }
+    /**
+     * Getter transparency
+     * @return {number}
+     */
+	public get transparency(): number {
+		return this._transparency;
+	}
 
-    public get elevation(): number {
-        return this._elevation;
-    }
+    /**
+     * Setter transparency
+     * @param {number} value
+     */
+	public set transparency(value: number) {
+		this._transparency = value;
+	}
 
-    public set elevation(value: number) {
-        this._elevation = value;
-    }
+    /**
+     * Getter elevation
+     * @return {number}
+     */
+	public get elevation(): number {
+		return this._elevation;
+	}
 
-    public get xb(): Xb {
-        return this._xb;
-    }
+    /**
+     * Setter elevation
+     * @param {number} value
+     */
+	public set elevation(value: number) {
+		this._elevation = value;
+	}
 
-    public set xb(value: Xb) {
-        this._xb = value;
-    }
+    /**
+     * Getter xb
+     * @return {Xb}
+     */
+	public get xb(): Xb {
+		return this._xb;
+	}
 
-    public get flow(): any {
-        return this._flow;
-    }
+    /**
+     * Setter xb
+     * @param {Xb} value
+     */
+	public set xb(value: Xb) {
+		this._xb = value;
+	}
 
-    public set flow(value: any) {
-        this._flow = value;
-    }
+    /**
+     * Getter flow
+     * @return {any}
+     */
+	public get flow(): any {
+		return this._flow;
+	}
 
-    public get heater(): object {
-        return this._heater;
-    }
+    /**
+     * Setter flow
+     * @param {any} value
+     */
+	public set flow(value: any) {
+		this._flow = value;
+	}
 
-    public set heater(value: object) {
-        this._heater = value;
-    }
+    /**
+     * Getter heater
+     * @return {object}
+     */
+	public get heater(): object {
+		return this._heater;
+	}
 
-    public get louver(): object {
-        return this._louver;
-    }
+    /**
+     * Setter heater
+     * @param {object} value
+     */
+	public set heater(value: object) {
+		this._heater = value;
+	}
 
-    public set louver(value: object) {
-        this._louver = value;
-    }
+    /**
+     * Getter louver
+     * @return {object}
+     */
+	public get louver(): object {
+		return this._louver;
+	}
 
-    public get ramp(): Ramp {
-        return this._ramp;
-    }
+    /**
+     * Setter louver
+     * @param {object} value
+     */
+	public set louver(value: object) {
+		this._louver = value;
+	}
 
-    public set ramp(value: Ramp) {
-        this._ramp = value;
-    }
+    /**
+     * Getter ramp
+     * @return {Ramp}
+     */
+	public get ramp(): Ramp {
+		return this._ramp;
+	}
 
-    public get direction(): string {
-        return this._direction;
-    }
+    /**
+     * Setter ramp
+     * @param {Ramp} value
+     */
+	public set ramp(value: Ramp) {
+		this._ramp = value;
+	}
 
-    public set direction(value: string) {
-        this._direction = value;
-    }
+    /**
+     * Getter direction
+     * @return {string}
+     */
+	public get direction(): string {
+		return this._direction;
+	}
 
-    public get area(): object {
-        return this._area;
-    }
+    /**
+     * Setter direction
+     * @param {string} value
+     */
+	public set direction(value: string) {
+		this._direction = value;
+	}
 
-    public set area(value: object) {
-        this._area = value;
-    }
+    /**
+     * Getter area
+     * @return {object}
+     */
+	public get area(): object {
+		return this._area;
+	}
 
-    public get devc(): object {
-        return this._devc;
-    }
+    /**
+     * Setter area
+     * @param {object} value
+     */
+	public set area(value: object) {
+		this._area = value;
+	}
 
-    public set devc(value: object) {
-        this._devc = value;
-    }
+    /**
+     * Getter devc
+     * @return {object}
+     */
+	public get devc(): object {
+		return this._devc;
+	}
 
+    /**
+     * Setter devc
+     * @param {object} value
+     */
+	public set devc(value: object) {
+		this._devc = value;
+    }
+    
+    /** Export to JSON */
     public toJSON() {
         var flow = {};
 
@@ -294,7 +408,6 @@ export class JetFan {
                 type: 'massFlow',
                 mass_flow: this.flow.mass_flow
             }
-
 
         } else {
             flow = {};
@@ -327,6 +440,7 @@ export class JetFan {
             id: this.id,
             uuid: this.uuid,
             idAC: this.idAC,
+            color: this.color,
             direction: this.direction,
             elevation: this.elevation,
             flow: flow,

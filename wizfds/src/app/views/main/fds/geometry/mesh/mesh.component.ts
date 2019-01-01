@@ -14,6 +14,7 @@ import { WebsocketMessageObject } from '@services/websocket/websocket-message';
 import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
 import { NotifierService } from '../../../../../../../node_modules/angular-notifier';
 import { set, cloneDeep, find, forEach, findIndex } from 'lodash';
+import { colors } from '@enums/fds/enums/fds-enums-colors';
 
 @Component({
   selector: 'app-mesh',
@@ -44,6 +45,9 @@ export class MeshComponent implements OnInit, OnDestroy {
   // Scrolbars containers
   @ViewChild('meshScrollbar') meshScrollbar: PerfectScrollbarComponent;
   @ViewChild('openScrollbar') openScrollbar: PerfectScrollbarComponent;
+
+  // Enums
+  COLORS = colors;
 
   constructor(
     private mainService: MainService,

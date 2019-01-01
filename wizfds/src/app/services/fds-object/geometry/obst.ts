@@ -1,12 +1,12 @@
 import { Surf } from './surf';
-import { IdGeneratorService } from '../../id-generator/id-generator.service';
+import { IdGeneratorService } from '@services/id-generator/id-generator.service';
 import { Xb } from "../primitives";
 import { Devc } from '../output/devc';
 import { find, get, set, toArray } from 'lodash';
 import { Ctrl } from '../output/ctrl';
-import { FdsEntities } from '../../../enums/fds/entities/fds-entities';
+import { FdsEntities } from '@enums/fds/entities/fds-entities';
 
-export interface SurfObject {
+export interface ISurf {
 		type?: string,
 		oldType?: string,
 		surf_id?: string | Surf, // base object include only id to not export to db whole object of surf
@@ -21,13 +21,19 @@ export interface SurfObject {
 		surf_id6?: string | Surf
 }
 
-export interface ObstObject {
+export interface IObst {
 	id: string,
 	uuid: string,
 	idAC: number,
 	xb: Xb,
-	surf: SurfObject,
+	surf: ISurf,
 	elevation: number,
+	thicken: boolean,
+	overlay: boolean,
+	permit_hole: boolean,
+	removable: boolean,
+	ctrl: Ctrl,
+	devc: Devc,
 	ctrl_id: string,
 	devc_id: string
 }
@@ -37,7 +43,7 @@ export class Obst {
 	private _uuid: string;
 	private _idAC: number;
 	private _xb: Xb;
-	private _surf: SurfObject;
+	private _surf: ISurf;
 	private _elevation: number;
 	private _thicken: boolean;
 	private _overlay: boolean;
@@ -48,8 +54,8 @@ export class Obst {
 
 	constructor(jsonString: string, surfs: Surf[] = undefined, devcs: Devc[] = undefined) {
 
-		let base: ObstObject;
-		base = <ObstObject>JSON.parse(jsonString);
+		let base: IObst;
+		base = <IObst>JSON.parse(jsonString);
 
 		let idGeneratorService = new IdGeneratorService;
 
@@ -265,17 +271,17 @@ export class Obst {
 
     /**
      * Getter surf
-     * @return {SurfObject}
+     * @return {ISurf}
      */
-	public get surf(): SurfObject {
+	public get surf(): ISurf {
 		return this._surf;
 	}
 
     /**
      * Setter surf
-     * @param {SurfObject} value
+     * @param {ISurf} value
      */
-	public set surf(value: SurfObject) {
+	public set surf(value: ISurf) {
 		this._surf = value;
 	}
 

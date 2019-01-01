@@ -369,6 +369,46 @@ namespace WizFDS.Utils
             }
             return id;
         }
+        public static ObjectId CreateLayer(string layer, Color color, bool returnId)
+        {
+            // Get the current document and database
+            Document acDoc = acApp.DocumentManager.MdiActiveDocument;
+            Database acCurDb = acDoc.Database;
+
+            ObjectId id = ObjectId.Null;
+
+            // Start a transaction
+            using (Transaction acTrans = acCurDb.TransactionManager.StartTransaction())
+            {
+                // Open the Layer table for read
+                LayerTable acLyrTbl;
+                acLyrTbl = acTrans.GetObject(acCurDb.LayerTableId, OpenMode.ForRead) as LayerTable;
+
+                if (acLyrTbl.Has(layer) == false)
+                {
+                    LayerTableRecord acLyrTblRec = new LayerTableRecord();
+
+                    // Assign the layer the ACI color 1 and a name
+                    acLyrTblRec.Color = color;
+                    acLyrTblRec.Name = layer;
+
+                    // Upgrade the Layer table for write
+                    acLyrTbl.UpgradeOpen();
+
+                    // Append the new layer to the Layer table and the transaction
+                    acLyrTbl.Add(acLyrTblRec);
+                    acTrans.AddNewlyCreatedDBObject(acLyrTblRec, true);
+                    acTrans.Commit();
+                    id = acLyrTblRec.ObjectId;
+                }
+                else
+                {
+                    id = acLyrTbl[layer];
+                }
+            }
+            return id;
+        }
+
         public static void CreateBasicLayersCfast()
         {
             if (Utils.layersCreatedCfast == false)

@@ -398,6 +398,64 @@ namespace WizFDS.Export
             }
         }
 
+        public static string UpdateSpecLayer(ObjectId objectId, string webLayer)
+        {
+            // TODO: trzeba zalozyc filtr po webLayer i zmieniac wszystkie warstwy w petli poniwaz moze byc kilka tych samych warstw na roznych pietrach 
+            Editor ed = acApp.DocumentManager.MdiActiveDocument.Editor;
+            Document acDoc = Application.DocumentManager.MdiActiveDocument;
+            Database acCurDb = acDoc.Database;
+            // Start a transaction
+            using (Transaction acTrans = acCurDb.TransactionManager.StartTransaction())
+            {
+                // This example returns the layer table for the current database
+                LayerTable acLyrTbl;
+                acLyrTbl = acTrans.GetObject(acCurDb.LayerTableId, OpenMode.ForRead) as LayerTable;
+                string layerName = "";
+                string oldLayerName = "";
+
+                // Pobierz starą nazwę warstwy
+                LayerTableRecord acLyrTblRecOld;
+                acLyrTblRecOld = acTrans.GetObject(objectId, OpenMode.ForRead) as LayerTableRecord;
+
+                Regex regEx = new Regex(@"\[(.+)\]", RegexOptions.IgnoreCase);
+                Match match = regEx.Match(acLyrTblRecOld.Name);
+                ed.WriteMessage("Match success: " + match.Success.ToString());
+                if (match.Success)
+                {
+                    System.Text.RegularExpressions.Group group = match.Groups[1];
+                    oldLayerName = group.ToString();
+                }
+                ed.WriteMessage("Old layer: " + oldLayerName);
+
+                // Step through the Layer table and print each layer name
+                foreach (ObjectId acObjId in acLyrTbl)
+                {
+                    LayerTableRecord acLyrTblRec;
+                    acLyrTblRec = acTrans.GetObject(acObjId, OpenMode.ForRead) as LayerTableRecord;
+
+                    if (acLyrTblRec.Name.Contains(oldLayerName))
+                    {
+                        regEx = new Regex(@"\((.)\)", RegexOptions.IgnoreCase);
+                        match = regEx.Match(acLyrTblRec.Name);
+                        if (match.Success)
+                        {
+                            System.Text.RegularExpressions.Group group = match.Groups[1];
+                            Int32.TryParse(group.ToString(), out currentFloor);
+                            layerName = "!FDS_SPEC[" + webLayer + "](" + currentFloor + ")";
+                        }
+                        acLyrTblRec.UpgradeOpen();
+                        acLyrTblRec.Name = layerName;
+                        Random r = new Random();
+                        acLyrTblRec.Color = Color.FromColorIndex(ColorMethod.ByAci, (Int16)(r.Next(225)));
+
+                        ed.WriteMessage("\n" + acLyrTblRec.Name);
+                    }
+                }
+                acTrans.Commit();
+                return "";
+            }
+        }
+
         public static string CreateVentLayer(string webLayer)
         {
             Document acDoc = Application.DocumentManager.MdiActiveDocument;

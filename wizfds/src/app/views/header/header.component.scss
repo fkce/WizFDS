@@ -2,7 +2,7 @@
 
 .header-container {
     display: grid;
-    grid-template-columns: 14% auto;
+    grid-template-columns: minmax(9rem, 14%) minmax(78rem, auto);
     grid-column-gap: 1rem;
     .header-left {
         display: flex;

@@ -16,7 +16,7 @@ import { colors } from '@enums/fds/enums/fds-enums-colors';
 import { NotifierService } from '../../../../../../../node_modules/angular-notifier';
 
 import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
-import { find, findIndex, cloneDeep, set, filter } from 'lodash';
+import { find, findIndex, cloneDeep, set, filter, forEach } from 'lodash';
 import { WebsocketMessageObject } from '@services/websocket/websocket-message';
 import { VentSpec } from '@services/fds-object/specie/vent';
 import { SurfSpec } from '@services/fds-object/specie/surf-spec';
@@ -258,10 +258,42 @@ export class InjectionComponent implements OnInit, OnDestroy {
         // TODO: warrning that ramp was not imported because name already exists
       }
     }
+
+    // Import species from library
+    console.log(libSurf);
+    if (libSurf.specieFlowType == 'massFlux' && libSurf.massFlux.length > 0) {
+
+      forEach(libSurf.massFlux, (massFluxSpec) => {
+        let tempSpec = find(this.lib.specs, function (o) {
+          return o.id == massFluxSpec.spec.id;
+        });
+        let libSpec = cloneDeep(tempSpec);
+
+        // Copy to current fds scenario specs
+        if (libSpec != undefined) {
+          this.main.currentFdsScenario.fdsObject.specie.specs.push(new Spec(JSON.stringify(libSpec.toJSON())));
+        }
+      });
+    }
+    else if (libSurf.specieFlowType == 'massFraction' && libSurf.massFraction.length > 0) {
+
+      forEach(libSurf.massFraction, (massFractionSpec) => {
+        let tempSpec = find(this.lib.specs, function (o) {
+          return o.id == massFractionSpec.spec.id;
+        });
+        let libSpec = cloneDeep(tempSpec);
+
+        // Copy to current fds scenario specs
+        if (libSpec != undefined) {
+          this.main.currentFdsScenario.fdsObject.specie.specs.push(new Spec(JSON.stringify(libSpec.toJSON())));
+        }
+      });
+    }
+
     let surf = cloneDeep(libSurf);
     surf.uuid = idGeneratorService.genUUID()
     surf.ramp = ramp != undefined ? ramp : libRamp;
-    this.surfs.push(surf);
+    this.surfs.push(new SurfSpec(JSON.stringify(surf), this.ramps, this.specs));
   }
 
   /** Create CAD layer */
@@ -269,11 +301,15 @@ export class InjectionComponent implements OnInit, OnDestroy {
     if (this.websocketService.isConnected) {
       this.surfOld = cloneDeep(this.surf);
 
+      // Find clicked object
+      let surf = find(this.libSurfs, ['id', id]);
+
       // Prepare message
       let message: WebsocketMessageObject = {
         method: 'createSpecSurfWeb',
         data: {
-          id: id
+          id: id,
+          color: surf.color
         },
         id: this.websocketService.idGenerator(),
         requestID: '',
@@ -323,7 +359,7 @@ export class InjectionComponent implements OnInit, OnDestroy {
       this.surf.massFraction.push({ spec: undefined, mass_fraction: 0 })
     }
   }
-  
+
   /**
    * Delete specie
    * @param index Array index

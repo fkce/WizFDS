@@ -89,6 +89,17 @@ namespace WizFDS.Websocket
                         status = "success";
                         break;
 
+                    case "createSpecSurfWeb":
+                        isCreated = ImportFds.CreateSpecSurfWeb(message.getData());
+                        if (isCreated.isCreated)
+                        {
+                            status = "success";
+                            data = isCreated.acObj;
+                        }
+                        else status = "error";
+                        status = "success";
+                        break;
+
                     case "createFireSurfWeb":
                         isCreated = ImportFds.CreateFireSurfWeb(message.getData());
                         if (isCreated.isCreated)

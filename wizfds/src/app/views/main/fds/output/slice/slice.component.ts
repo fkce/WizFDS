@@ -225,7 +225,8 @@ export class SliceComponent implements OnInit, OnDestroy {
         data: {
           id: id,
           direction: slcf.direction,
-          value: slcf.value
+          value: slcf.value,
+          color: { rgb: [165,0,41] }
         },
         id: this.websocketService.idGenerator(),
         requestID: '',
@@ -248,7 +249,8 @@ export class SliceComponent implements OnInit, OnDestroy {
       let message: WebsocketMessageObject = {
         method: 'createSlcfSurfWeb',
         data: {
-          id: id
+          id: id,
+          color: { rgb: [165,0,41] }
         },
         id: this.websocketService.idGenerator(),
         requestID: '',

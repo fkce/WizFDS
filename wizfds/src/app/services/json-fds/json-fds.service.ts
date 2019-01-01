@@ -16,6 +16,7 @@ import { Isof } from '@services/fds-object/output/isof';
 import { Devc } from '@services/fds-object/output/devc';
 import { SurfSpec } from '@services/fds-object/specie/surf-spec';
 import { Spec } from '@services/fds-object/specie/spec';
+import { Color } from '@services/fds-object/primitives';
 
 @Injectable()
 export class JsonFdsService {
@@ -80,6 +81,20 @@ export class JsonFdsService {
       if (includes(this.fdsHidden, key)) {
         unset(json, key);
         return;
+      }
+
+      // Change color
+      if (key == 'color') {
+        console.log(json);
+        console.log(key);
+        console.log(value);
+        if (value['value'] && value['value'] != '') {
+          value = value['value'];
+        }
+        else {
+          key = 'rgb';
+          value = value['rgb'];
+        }
       }
 
       // If default values - unset
@@ -360,23 +375,23 @@ export class JsonFdsService {
       }
 
       // OBST
-      let obst = cloneDeep(jetfan.toJSON());
-      obst['color'] = 'SILVER';
+      let obst: any = cloneDeep(jetfan.toJSON());
+      obst['color'] = jetfan.color;
       if (jetfan.devc['active']) obst['devc_id'] = jetfan.id + '_devc';
       let parsedObst = this.parseAmper(obst, 'obst');
       if (parsedObst) jetfanString.push(sprintf("&OBST %s /", parsedObst));
 
       // VENT IN
-      let ventIn = cloneDeep(jetfan.toJSON());
+      let ventIn: any = cloneDeep(jetfan.toJSON());
       ventIn['id'] = jetfan.id + '_vent_in';
       ventIn['surf_id'] = 'HVAC';
-      ventIn['color'] = 'BLUE';
+      ventIn['color'] = new Color(JSON.stringify({}), 'BLUE');
 
       // VENT OUT
-      let ventOut = cloneDeep(jetfan.toJSON());
+      let ventOut: any = cloneDeep(jetfan.toJSON());
       ventOut['id'] = jetfan.id + '_vent_out';
       ventOut['surf_id'] = 'HVAC';
-      ventOut['color'] = 'RED';
+      ventOut['color'] = new Color(JSON.stringify({}), 'RED');
       if (jetfan.louver['active']) {
         ventOut['uvw'] = [ventOut.louver.tangential1, ventOut.louver.tangential2, ventOut.louver.tangential3];
       }

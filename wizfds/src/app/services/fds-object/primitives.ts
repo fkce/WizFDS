@@ -1,9 +1,10 @@
 import { Spec } from "./specie/spec";
 import { Part } from "./particle/part";
 
-import { get, map, toString } from "lodash";
+import { get, map, toString, find, forEach, isEqual } from "lodash";
+import { colors } from "@enums/fds/enums/fds-enums-colors";
 
-export interface XbObject {
+export interface IXb {
     x1: number,
     x2: number,
     y1: number,
@@ -23,8 +24,8 @@ export class Xb {
 
     constructor(jsonString: string, type?: string) {
 
-        let base: XbObject;
-        if (jsonString != undefined) base = <XbObject>JSON.parse(jsonString);
+        let base: IXb;
+        if (jsonString != undefined) base = <IXb>JSON.parse(jsonString);
 
         this.x1 = get(base, 'x1', 0);
         this.x2 = get(base, 'x2', 1);
@@ -202,7 +203,7 @@ export class Xb {
     }
 }
 
-export interface XyzObject {
+export interface IXyz {
     x: number,
     y: number,
     z: number
@@ -214,8 +215,8 @@ export class Xyz {
 
     constructor(jsonString: string) {
 
-        let base: XyzObject;
-        if (jsonString != undefined) base = <XyzObject>JSON.parse(jsonString);
+        let base: IXyz;
+        if (jsonString != undefined) base = <IXyz>JSON.parse(jsonString);
 
         this.x = get(base, 'x', 0);
         this.y = get(base, 'y', 0);
@@ -281,7 +282,7 @@ export class Xyz {
 
 }
 
-export interface QuantityObject {
+export interface IQuantity {
     id: string,
     quantity: string,
     spec: boolean,
@@ -299,8 +300,8 @@ export class Quantity {
 
     constructor(jsonString: string) {
 
-        let base: QuantityObject;
-        base = <QuantityObject>JSON.parse(jsonString);
+        let base: IQuantity;
+        base = <IQuantity>JSON.parse(jsonString);
 
         this.id = toString(get(base, 'id', ''));
         this.quantity = toString(get(base, 'quantity', ''));
@@ -421,5 +422,162 @@ export class Quantity {
             parts: parts
         }
         return quantity;
+    }
+}
+
+export interface IColor {
+    label: string,
+    value: string,
+    rgb: number[],
+    show: boolean
+}
+export class Color {
+    private _label: string;
+    private _value: string;
+    private _rgb: number[];
+    private _show: boolean;
+
+    constructor(jsonString: string, value?: string, rgb?: number[]) {
+
+        let base: IColor;
+        base = <IColor>JSON.parse(jsonString);
+
+        // Check if color indicated
+        let tmpLabel = 'White';
+        let tmpValue = 'WHITE';
+        let tmpRgb = [255, 255, 255];
+        let tmpShow = true;
+        let isRgb = false;
+        // If isset value
+        if (value != undefined) {
+            let tmpColor = find(colors, ['value', value]);
+            tmpLabel = tmpColor.label;
+            tmpValue = tmpColor.value;
+            tmpRgb = tmpColor.rgb;
+            tmpShow = tmpColor.show;
+        }
+        // If isset rgb
+        else if (rgb != undefined && rgb.length > 0){
+            // Check if predefined color exists
+            forEach(colors, (tmpColor) => {
+                if (isEqual(rgb, tmpColor.rgb)) {
+                    tmpLabel = tmpColor.label;
+                    tmpValue = tmpColor.value;
+                    tmpRgb = tmpColor.rgb;
+                    tmpShow = tmpColor.show;
+                    isRgb = true;
+                }
+            });
+            // If not set RGB
+            if (!isRgb) {
+                tmpLabel = colors[0].label;
+                tmpValue = colors[0].value;
+                tmpRgb = rgb;
+                tmpShow = colors[0].show;
+            }
+        }
+
+        this.label = toString(get(base, 'label', tmpLabel));
+        this.value = toString(get(base, 'value', tmpValue));
+
+        this.rgb = base.rgb != undefined && base.rgb.length > 0 ? [base.rgb[0], base.rgb[1], base.rgb[2]] : tmpRgb;
+        this.show = (get(base, 'show', tmpShow) == true);
+    }
+
+    /**
+     * Get color from COLORS array
+     * @param rgb int[]
+     */
+    public getColor(rgb: number[]) {
+        let tmpColor;
+        forEach(colors, (color) => {
+            if (isEqual(rgb, color.rgb)) tmpColor = color;
+        });
+        // Set color with RGB only
+        if(tmpColor.rgb == undefined) {
+            tmpColor = colors[0];
+            tmpColor.rgb = rgb;
+        }
+        return tmpColor;
+    }
+
+    /**
+     * Getter label
+     * @return {string}
+     */
+    public get label(): string {
+        return this._label;
+    }
+
+    /**
+     * Setter label
+     * @param {string} value
+     */
+    public set label(value: string) {
+        this._label = value;
+    }
+
+    /**
+     * Getter value
+     * @return {string}
+     */
+    public get value(): string {
+        return this._value;
+    }
+
+    /**
+     * Setter value
+     * @param {string} value
+     */
+    public set value(value: string) {
+        this._value = value;
+        let color = find(colors, ['value', value]);
+        this.label = color.label;
+        this.rgb = color.rgb;
+        this.show = color.show;
+    }
+
+    /**
+     * Getter rgb
+     * @return {number[]}
+     */
+    public get rgb(): number[] {
+        return this._rgb;
+    }
+
+    /**
+     * Setter rgb
+     * @param {number[]} value
+     */
+    public set rgb(value: number[]) {
+        this._rgb = value;
+    }
+
+    /**
+     * Getter show
+     * @return {boolean}
+     */
+    public get show(): boolean {
+        return this._show;
+    }
+
+    /**
+     * Setter show
+     * @param {boolean} value
+     */
+    public set show(value: boolean) {
+        this._show = value;
+    }
+
+    /** Export to JSON */
+    toJSON(): object {
+
+        let color: object = {
+            value: this.value,
+            label: this.label,
+            rgb: this.rgb,
+            show: this.show
+        }
+        return color;
     }
 }

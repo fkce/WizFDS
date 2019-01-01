@@ -75,6 +75,7 @@ namespace WizFDS.Export
                 {
                     public string type { get; set; }
                     public string surf_id { get; set; }
+                    public int[] color { get; set; }
                 }
                 public double idAC { get; set; }
                 public Xb xb { get; set; }
@@ -91,6 +92,7 @@ namespace WizFDS.Export
             {
                 public string id { get; set; }
                 public double idAC { get; set; }
+                public int[] color { get; set; }
             }
             public class Open
             {
@@ -135,6 +137,22 @@ namespace WizFDS.Export
                 }
                 return id;
             }
+            private int[] GetLayerColor(string layerName)
+            {
+                // Get the current document and database
+                Document acDoc = acApp.DocumentManager.MdiActiveDocument;
+                Database acCurDb = acDoc.Database;
+
+                // Start a transaction
+                using (Transaction acTrans = acCurDb.TransactionManager.StartTransaction())
+                {
+                    // Open the Layer table for read
+                    LayerTable acLyrTbl;
+                    acLyrTbl = acTrans.GetObject(acCurDb.LayerTableId, OpenMode.ForRead) as LayerTable;
+                    LayerTableRecord acLyrTblRec = acTrans.GetObject(acLyrTbl[layerName], OpenMode.ForRead) as LayerTableRecord;
+                    return new int[] { (int)acLyrTblRec.Color.ColorValue.R, (int)acLyrTblRec.Color.ColorValue.G, (int)acLyrTblRec.Color.ColorValue.B };
+                }
+            }
 
             public void AddMesh(Entity acEnt)
             {
@@ -161,7 +179,8 @@ namespace WizFDS.Export
                 Surf surf = new Surf
                 {
                     id = this.GetLayerId(acLyrTblRec.Name),
-                    idAC = Convert.ToInt64(acLyrTblRec.ObjectId.Handle.ToString(), 16)
+                    idAC = Convert.ToInt64(acLyrTblRec.ObjectId.Handle.ToString(), 16),
+                    color = new int[] { (int)acLyrTblRec.Color.ColorValue.R, (int)acLyrTblRec.Color.ColorValue.G, (int)acLyrTblRec.Color.ColorValue.B }
                 };
                 this.surfs.Add(surf);
             }
@@ -170,7 +189,8 @@ namespace WizFDS.Export
                 Surf surf = new Surf
                 {
                     id = this.GetLayerId(layer),
-                    idAC = Convert.ToInt64(acHandle.ToString(), 16)
+                    idAC = Convert.ToInt64(acHandle.ToString(), 16),
+                    color = GetLayerColor(layer)
                 };
                 this.surfs.Add(surf);
             }
@@ -200,7 +220,8 @@ namespace WizFDS.Export
                     surf = new Obst.SurfObst
                     {
                         type = "surf_id",
-                        surf_id = this.GetLayerId(acEnt.Layer)
+                        surf_id = this.GetLayerId(acEnt.Layer),
+                        color = new int[] { (int)acEnt.Color.ColorValue.R, (int)acEnt.Color.ColorValue.G, (int)acEnt.Color.ColorValue.B }
                     },
                     elevation = this.GetElevation(acEnt.Layer)
                 };
@@ -242,7 +263,6 @@ namespace WizFDS.Export
                 };
                 this.opens.Add(open);
             }
-
         }
         private class Ventilation
         {
@@ -251,6 +271,7 @@ namespace WizFDS.Export
                 public string id { get; set; }
                 public double idAC { get; set; }
                 public Flow flow { get; set; }
+                public int[] color { get; set; }
             }
             public class Obst
             {
@@ -278,6 +299,7 @@ namespace WizFDS.Export
                 public Xb xb { get; set; }
                 public string surf_id { get; set; }
                 public string direction { get; set; }
+                public int[] color { get; set; }
             }
 
             public List<Surf> surfs { get; set; }
@@ -315,6 +337,23 @@ namespace WizFDS.Export
                 }
                 return id;
             }
+            private int[] GetLayerColor(string layerName)
+            {
+                // Get the current document and database
+                Document acDoc = acApp.DocumentManager.MdiActiveDocument;
+                Database acCurDb = acDoc.Database;
+
+                // Start a transaction
+                using (Transaction acTrans = acCurDb.TransactionManager.StartTransaction())
+                {
+                    // Open the Layer table for read
+                    LayerTable acLyrTbl;
+                    acLyrTbl = acTrans.GetObject(acCurDb.LayerTableId, OpenMode.ForRead) as LayerTable;
+                    LayerTableRecord acLyrTblRec = acTrans.GetObject(acLyrTbl[layerName], OpenMode.ForRead) as LayerTableRecord;
+                    return new int[] { (int)acLyrTblRec.Color.ColorValue.R, (int)acLyrTblRec.Color.ColorValue.G, (int)acLyrTblRec.Color.ColorValue.B };
+                }
+            }
+
             private Flow GetFlow(string layerName)
             {
                 string id = "";
@@ -343,7 +382,8 @@ namespace WizFDS.Export
                 Surf surf = new Surf
                 {
                     id = this.GetLayerId(acLyrTblRec.Name),
-                    idAC = Convert.ToInt64(acLyrTblRec.ObjectId.Handle.ToString(), 16)
+                    idAC = Convert.ToInt64(acLyrTblRec.ObjectId.Handle.ToString(), 16),
+                    color = new int[] { (int)acLyrTblRec.Color.ColorValue.R, (int)acLyrTblRec.Color.ColorValue.G, (int)acLyrTblRec.Color.ColorValue.B }
                 };
                 if (!surf.id.StartsWith("jetfan"))
                 {
@@ -356,7 +396,8 @@ namespace WizFDS.Export
                 {
                     id = this.GetLayerId(layer),
                     idAC = Convert.ToInt64(acHandle.ToString(), 16),
-                    flow = GetFlow(layer)
+                    flow = GetFlow(layer),
+                    color = GetLayerColor(layer)
                 };
                 this.surfs.Add(surf);
             }
@@ -486,7 +527,8 @@ namespace WizFDS.Export
 
                     },
                     surf_id = this.GetLayerId(acEnt.Layer),
-                    direction = dir
+                    direction = dir,
+                    color = this.GetLayerColor(acEnt.Layer)
                 };
                 this.jetfans.Add(jetfan);
             }
@@ -498,6 +540,7 @@ namespace WizFDS.Export
                 public string id { get; set; }
                 public double idAC { get; set; }
                 public Flow flow { get; set; }
+                public int[] color { get; set; }
             }
             public class Vent
             {
@@ -538,6 +581,23 @@ namespace WizFDS.Export
                 }
                 return id;
             }
+            private int[] GetLayerColor(string layerName)
+            {
+                // Get the current document and database
+                Document acDoc = acApp.DocumentManager.MdiActiveDocument;
+                Database acCurDb = acDoc.Database;
+
+                // Start a transaction
+                using (Transaction acTrans = acCurDb.TransactionManager.StartTransaction())
+                {
+                    // Open the Layer table for read
+                    LayerTable acLyrTbl;
+                    acLyrTbl = acTrans.GetObject(acCurDb.LayerTableId, OpenMode.ForRead) as LayerTable;
+                    LayerTableRecord acLyrTblRec = acTrans.GetObject(acLyrTbl[layerName], OpenMode.ForRead) as LayerTableRecord;
+                    return new int[] { (int)acLyrTblRec.Color.ColorValue.R, (int)acLyrTblRec.Color.ColorValue.G, (int)acLyrTblRec.Color.ColorValue.B };
+                }
+            }
+
             private Flow GetFlow(string layerName)
             {
                 string id = "";
@@ -566,7 +626,8 @@ namespace WizFDS.Export
                 Surf surf = new Surf
                 {
                     id = this.GetLayerId(acLyrTblRec.Name),
-                    idAC = Convert.ToInt64(acLyrTblRec.ObjectId.Handle.ToString(), 16)
+                    idAC = Convert.ToInt64(acLyrTblRec.ObjectId.Handle.ToString(), 16),
+                    color = new int[] { (int)acLyrTblRec.Color.ColorValue.R, (int)acLyrTblRec.Color.ColorValue.G, (int)acLyrTblRec.Color.ColorValue.B }
                 };
                 if (!surf.id.StartsWith("spec"))
                 {
@@ -579,7 +640,8 @@ namespace WizFDS.Export
                 {
                     id = this.GetLayerId(layer),
                     idAC = Convert.ToInt64(acHandle.ToString(), 16),
-                    flow = GetFlow(layer)
+                    flow = GetFlow(layer),
+                    color = GetLayerColor(layer)
                 };
                 this.surfs.Add(surf);
             }
@@ -741,6 +803,7 @@ namespace WizFDS.Export
                 }
                 public string surf_id { get; set; }
                 public Vent vent { get; set; }
+                public int[] color { get; set; }
             }
 
             public List<Fire> fires { get; set; }
@@ -760,6 +823,22 @@ namespace WizFDS.Export
                 catch
                 {
                     return "";
+                }
+            }
+            private int[] GetLayerColor(string layerName)
+            {
+                // Get the current document and database
+                Document acDoc = acApp.DocumentManager.MdiActiveDocument;
+                Database acCurDb = acDoc.Database;
+
+                // Start a transaction
+                using (Transaction acTrans = acCurDb.TransactionManager.StartTransaction())
+                {
+                    // Open the Layer table for read
+                    LayerTable acLyrTbl;
+                    acLyrTbl = acTrans.GetObject(acCurDb.LayerTableId, OpenMode.ForRead) as LayerTable;
+                    LayerTableRecord acLyrTblRec = acTrans.GetObject(acLyrTbl[layerName], OpenMode.ForRead) as LayerTableRecord;
+                    return new int[] { (int)acLyrTblRec.Color.ColorValue.R, (int)acLyrTblRec.Color.ColorValue.G, (int)acLyrTblRec.Color.ColorValue.B };
                 }
             }
 
@@ -786,7 +865,8 @@ namespace WizFDS.Export
                             y = Math.Round(Math.Round(acEnt.GeometricExtents.MinPoint.Y, 4) + ((Math.Round(acEnt.GeometricExtents.MaxPoint.Y, 4) - Math.Round(acEnt.GeometricExtents.MinPoint.Y, 4)) / 2), 4),
                             z = Math.Round(Math.Round(acEnt.GeometricExtents.MinPoint.Z, 4) + ((Math.Round(acEnt.GeometricExtents.MaxPoint.Z, 4) - Math.Round(acEnt.GeometricExtents.MinPoint.Z, 4)) / 2), 4)
                         }
-                    }
+                    },
+                    color = this.GetLayerColor(acEnt.Layer)
                 };
                 this.fires.Add(fire);
             }

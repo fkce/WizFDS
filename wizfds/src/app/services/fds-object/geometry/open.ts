@@ -1,11 +1,11 @@
-import { Xb } from '../primitives';
-import { IdGeneratorService } from '../../../services/id-generator/id-generator.service'
-import { FdsEntities } from '../../../enums/fds/entities/fds-entities'
+import { Xb, Color } from '../primitives';
+import { IdGeneratorService } from '@services/id-generator/id-generator.service'
 
-export interface OpenObject {
+export interface IOpen {
     id: string,
     uuid: string,
     idAC: number,
+    color: Color,
     xb: Xb,
     surf_id: string
 }
@@ -14,20 +14,21 @@ export class Open {
     private _id: string;
     private _uuid: string;
     private _idAC: number;
+    private _color: Color;
     private _xb: Xb;
     private _surf_id: string;
 
     constructor(jsonString: string) {
 
-        let base: OpenObject;
-        base = <OpenObject>JSON.parse(jsonString);
+        let base: IOpen;
+        base = <IOpen>JSON.parse(jsonString);
 
         let idGeneratorService = new IdGeneratorService;
-        let vent = FdsEntities.vent;
 
         this.id = base.id || '';
         this.uuid = base.uuid || idGeneratorService.genUUID();
         this.idAC = base.idAC || 0;
+        this.color = base.color != undefined && typeof base.color === 'object' ? new Color(JSON.stringify(base.color)) : new Color(JSON.stringify('{}'), 'GREEN');
 		this.xb = new Xb(JSON.stringify(base.xb), 'open') || new Xb(JSON.stringify({}), 'open');
         this.surf_id = base.surf_id || 'OPEN';
     }
@@ -79,6 +80,22 @@ export class Open {
      */
 	public set idAC(value: number) {
 		this._idAC = value;
+	}
+
+    /**
+     * Getter color
+     * @return {Color}
+     */
+	public get color(): Color {
+		return this._color;
+	}
+
+    /**
+     * Setter color
+     * @param {Color} value
+     */
+	public set color(value: Color) {
+		this._color = value;
 	}
 
     /**

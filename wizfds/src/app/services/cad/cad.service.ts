@@ -1,13 +1,13 @@
 import { Injectable } from '@angular/core';
 import { Mesh } from '../fds-object/geometry/mesh';
-import { upperCase, forEach, sortBy, filter, each, find, cloneDeep } from 'lodash';
+import { upperCase, forEach, sortBy, filter, each, find, cloneDeep, isEqual } from 'lodash';
 import { Obst } from '../fds-object/geometry/obst';
 import { Surf } from '../fds-object/geometry/surf';
 import { MainService } from '../main/main.service';
 import { Main } from '../main/main';
 import { Library } from '../library/library';
 import { LibraryService } from '../library/library.service';
-import { Xb, Quantity, Xyz } from '../fds-object/primitives';
+import { Xb, Xyz, Color } from '../fds-object/primitives';
 import { Ramp } from '../fds-object/ramp/ramp';
 import { Matl } from '../fds-object/geometry/matl';
 import { Open } from '../fds-object/geometry/open';
@@ -234,11 +234,13 @@ export class CadService {
           // Import library surf into current scenario
           updatedElements.push(new Surf(JSON.stringify(libSurf.toJSON()), this.main.currentFdsScenario.fdsObject.geometry.matls));
         }
+        // If it is not in library
         else {
-          // If it is not in library
+          acElement.color = new Color(JSON.stringify({}), undefined, acElement.color);
           updatedElements.push(new Surf(JSON.stringify(acElement), this.main.currentFdsScenario.fdsObject.geometry.matls));
         }
       }
+      // Element is in current scenario
       else {
         let originalElement: Surf = sortedCurrentElements[res];
 
@@ -496,6 +498,7 @@ export class CadService {
         }
         else {
           // If it is not in library
+          acElement.color = new Color(JSON.stringify({}), undefined, acElement.color);
           updatedElements.push(new SurfVent(JSON.stringify(acElement), this.main.currentFdsScenario.fdsObject.ramps.ramps));
         }
       }
@@ -623,6 +626,7 @@ export class CadService {
           acElement.id = '';
 
           // If it is not in library
+          acElement.color = new Color(JSON.stringify({}), undefined, acElement.color);
           updatedElements.push(new JetFan(JSON.stringify(acElement), this.main.currentFdsScenario.fdsObject.ramps.ramps));
         }
       }
@@ -713,7 +717,7 @@ export class CadService {
           }
           else if (libSpec.specieFlowType == 'massFraction' && libSpec.massFraction.length > 0) {
 
-            forEach(libSpec.massFlux, (massFractionSpec) => {
+            forEach(libSpec.massFraction, (massFractionSpec) => {
               let tempSpec = find(this.lib.specs, function(o) {
                 return o.id == massFractionSpec.spec.id;
               });
@@ -732,6 +736,7 @@ export class CadService {
         }
         else {
           // If it is not in library
+          acElement.color = new Color(JSON.stringify({}), undefined, acElement.color);
           updatedElements.push(new SurfSpec(JSON.stringify(acElement), this.main.currentFdsScenario.fdsObject.ramps.ramps, this.main.currentFdsScenario.fdsObject.specie.specs));
         }
       }
@@ -797,6 +802,7 @@ export class CadService {
 
     return updatedElements;
   }
+
   /**
    * Transform CAD FIRE elements
    * @param acElements CAD elements
@@ -856,6 +862,7 @@ export class CadService {
         }
         else {
           // If it is not in library
+          acElement.color = new Color(JSON.stringify({}), undefined, acElement.color);
           updatedElements.push(new Fire(JSON.stringify(acElement), this.main.currentFdsScenario.fdsObject.ramps.ramps));
         }
       }

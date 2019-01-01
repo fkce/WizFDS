@@ -1,9 +1,10 @@
 import { Matl } from './matl';
-import { FdsEntities } from '../../../enums/fds/entities/fds-entities';
-import { IdGeneratorService } from '../../id-generator/id-generator.service';
+import { FdsEntities } from '@enums/fds/entities/fds-entities';
+import { IdGeneratorService } from '@services/id-generator/id-generator.service';
 import { map, toString, get, toNumber, each, find } from 'lodash';
+import { Color } from '@services/fds-object/primitives';
 
-export interface Layers {
+export interface ILayers {
     materials: {
         material: Matl,
         fraction: number
@@ -11,16 +12,16 @@ export interface Layers {
     thickness: number
 }
 
-export interface SurfObject {
+export interface ISurf {
     id: string,
     uuid: string,
     idAC: number,
     editable: boolean,
-    color: string,
+    color: Color,
     backing: string,
     adiabatic: boolean,
     transparency: number,
-    layers: Layers[]
+    layers: ILayers[]
 }
 
 export class Surf {
@@ -29,16 +30,16 @@ export class Surf {
     private _uuid: string;
     private _idAC: number;
     private _editable: boolean;
-    private _color: string;
+    private _color: Color;
     private _backing: string;
     private _adiabatic: boolean;
     private _transparency: number;
-    private _layers: Layers[];
+    private _layers: ILayers[];
 
     constructor(jsonString: string, matls: Matl[] = undefined) {
 
-        let base: SurfObject;
-        base = <SurfObject>JSON.parse(jsonString);
+        let base: ISurf;
+        base = <ISurf>JSON.parse(jsonString);
 
         let idGeneratorService = new IdGeneratorService;
 
@@ -49,7 +50,7 @@ export class Surf {
         this.idAC = base.idAC || 0;
 
         this.editable = base.editable || true;
-        this.color = toString(get(base, 'color', surf.color.default[0]));
+        this.color = base.color != undefined && typeof base.color === 'object' ? new Color(JSON.stringify(base.color)) : new Color(JSON.stringify('{}'));
 
         this.adiabatic = (get(base, 'adiabatic', surf.adiabatic.default[0]) == true);
         this.transparency = toNumber(get(base, 'transparency', surf.transparency.default));
@@ -103,77 +104,149 @@ export class Surf {
         this.layers[layerIndex].materials.splice(matlIndex, 1);
     };
 
-    public get id(): string {
-        return this._id;
-    }
+    /**
+     * Getter id
+     * @return {string}
+     */
+	public get id(): string {
+		return this._id;
+	}
 
-    public set id(value: string) {
-        this._id = value;
-    }
+    /**
+     * Setter id
+     * @param {string} value
+     */
+	public set id(value: string) {
+		this._id = value;
+	}
 
-    public get uuid(): string {
-        return this._uuid;
-    }
+    /**
+     * Getter uuid
+     * @return {string}
+     */
+	public get uuid(): string {
+		return this._uuid;
+	}
 
-    public set uuid(value: string) {
-        this._uuid = value;
-    }
+    /**
+     * Setter uuid
+     * @param {string} value
+     */
+	public set uuid(value: string) {
+		this._uuid = value;
+	}
 
-    public get idAC(): number {
-        return this._idAC;
-    }
+    /**
+     * Getter idAC
+     * @return {number}
+     */
+	public get idAC(): number {
+		return this._idAC;
+	}
 
-    public set idAC(value: number) {
-        this._idAC = value;
-    }
+    /**
+     * Setter idAC
+     * @param {number} value
+     */
+	public set idAC(value: number) {
+		this._idAC = value;
+	}
 
-    public get editable(): boolean {
-        return this._editable;
-    }
+    /**
+     * Getter editable
+     * @return {boolean}
+     */
+	public get editable(): boolean {
+		return this._editable;
+	}
 
-    public set editable(value: boolean) {
-        this._editable = value;
-    }
+    /**
+     * Setter editable
+     * @param {boolean} value
+     */
+	public set editable(value: boolean) {
+		this._editable = value;
+	}
 
-    public get color(): string {
-        return this._color;
-    }
+    /**
+     * Getter color
+     * @return {Color}
+     */
+	public get color(): Color {
+		return this._color;
+	}
 
-    public set color(value: string) {
-        this._color = value;
-    }
+    /**
+     * Setter color
+     * @param {Color} value
+     */
+	public set color(value: Color) {
+		this._color = value;
+	}
 
-    public get backing(): string {
-        return this._backing;
-    }
+    /**
+     * Getter backing
+     * @return {string}
+     */
+	public get backing(): string {
+		return this._backing;
+	}
 
-    public set backing(value: string) {
-        this._backing = value;
-    }
+    /**
+     * Setter backing
+     * @param {string} value
+     */
+	public set backing(value: string) {
+		this._backing = value;
+	}
 
-    public get adiabatic(): boolean {
-        return this._adiabatic;
-    }
+    /**
+     * Getter adiabatic
+     * @return {boolean}
+     */
+	public get adiabatic(): boolean {
+		return this._adiabatic;
+	}
 
-    public set adiabatic(value: boolean) {
-        this._adiabatic = value;
-    }
+    /**
+     * Setter adiabatic
+     * @param {boolean} value
+     */
+	public set adiabatic(value: boolean) {
+		this._adiabatic = value;
+	}
 
-    public get transparency(): number {
-        return this._transparency;
-    }
+    /**
+     * Getter transparency
+     * @return {number}
+     */
+	public get transparency(): number {
+		return this._transparency;
+	}
 
-    public set transparency(value: number) {
-        this._transparency = value;
-    }
+    /**
+     * Setter transparency
+     * @param {number} value
+     */
+	public set transparency(value: number) {
+		this._transparency = value;
+	}
 
-    public get layers(): Layers[] {
-        return this._layers;
-    }
+    /**
+     * Getter layers
+     * @return {ILayers[]}
+     */
+	public get layers(): ILayers[] {
+		return this._layers;
+	}
 
-    public set layers(value: Layers[]) {
-        this._layers = value;
-    }
+    /**
+     * Setter layers
+     * @param {ILayers[]} value
+     */
+	public set layers(value: ILayers[]) {
+		this._layers = value;
+	}
 
     public toJSON(): object {
         let surf: object = {

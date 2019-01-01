@@ -3,8 +3,9 @@ import { Ramp } from "../ramp/ramp";
 import { SurfFire } from './surf-fire';
 import { VentFire } from './vent-fire';
 import { round } from 'lodash';
+import { Color } from '../primitives';
 
-export interface FireObject {
+export interface IFire {
     id: string,
     uuid: string,
     idAC: number,
@@ -23,8 +24,8 @@ export class Fire {
 
     constructor(jsonString: string, ramps: Ramp[] = undefined) {
 
-        let base: FireObject;
-        base = <FireObject>JSON.parse(jsonString);
+        let base: IFire;
+        base = <IFire>JSON.parse(jsonString);
 
         let idGeneratorService = new IdGeneratorService;
 
@@ -44,6 +45,9 @@ export class Fire {
         } else {
             this.surf = new SurfFire(JSON.stringify({}));
             this.surf.id = this.id;
+        }
+        if (base['color'] != undefined) {
+            this.surf.color = new Color(JSON.stringify(base['color']));
         }
 
         if (base.vent != undefined) {

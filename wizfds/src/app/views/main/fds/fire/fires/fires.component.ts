@@ -222,11 +222,15 @@ export class FiresComponent implements OnInit, OnDestroy {
     if (this.websocketService.isConnected) {
       this.fireOld = cloneDeep(this.fire);
 
+      // Find clicked object
+      let fire = find(this.libFires, ['id', id]);
+
       // Prepare message
       let message: WebsocketMessageObject = {
         method: 'createFireSurfWeb',
         data: {
-          id: id
+          id: id,
+          color: fire.surf.color
         },
         id: this.websocketService.idGenerator(),
         requestID: '',

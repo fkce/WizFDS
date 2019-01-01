@@ -18,6 +18,7 @@ import { NotifierService } from 'angular-notifier';
 import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
 import { set, cloneDeep, find, forEach, findIndex, filter } from 'lodash';
 import { WebsocketMessageObject } from '@services/websocket/websocket-message';
+import { colors } from '@enums/fds/enums/fds-enums-colors';
 
 @Component({
   selector: 'app-jetfan',
@@ -54,6 +55,7 @@ export class JetfanComponent implements OnInit, OnDestroy {
 
   // Enums
   ENUMS_JETFAN = FdsEnums.JETFAN;
+  COLORS = colors;
 
   constructor(
     private mainService: MainService,
@@ -265,11 +267,15 @@ export class JetfanComponent implements OnInit, OnDestroy {
     if (this.websocketService.isConnected) {
       this.jetfanOld = cloneDeep(this.jetfan);
 
+      // Find clicked object
+      let jetfan = find(this.libJetfans, ['id', id]);
+
       // Prepare message
       let message: WebsocketMessageObject = {
         method: 'createJetfanSurfWeb',
         data: {
-          id: id
+          id: id,
+          color: jetfan.color
         },
         id: this.websocketService.idGenerator(),
         requestID: '',

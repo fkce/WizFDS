@@ -88,6 +88,7 @@ import { JsonFdsService } from './services/json-fds/json-fds.service';
 import { LibraryEditorComponent } from './views/main/library-editor/library-editor.component';
 import { IdInputDirective } from './directives/inputs/id-input.directive';
 import { InjectionComponent } from './views/main/fds/specie/injection/injection.component';
+import { RgbInputDirective } from './directives/inputs/rgb-input.directive';
 
 
 @NgModule({
@@ -128,6 +129,7 @@ import { InjectionComponent } from './views/main/fds/specie/injection/injection.
     LibraryEditorComponent,
     IdInputDirective,
     InjectionComponent,
+    RgbInputDirective,
   ],
   imports: [
     BrowserModule,

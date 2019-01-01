@@ -145,7 +145,25 @@
             <label>Color:</label>
             <div class="field-container">
               <ng-select class="custom" [items]="COLORS" bindLabel="label" bindValue="value" placeholder="Select color"
-                [(ngModel)]="surf.color" [searchable]="true" [clearable]="false"></ng-select>
+                [(ngModel)]="surf.color.value" [searchable]="true" [clearable]="false"></ng-select>
+            </div>
+          </div>
+          <div *ngIf="surf.color && surf.color.value == ''">
+            <label>R:</label>
+            <div class="field-container">
+              <input [(ngModel)]="surf.color.rgb[0]" rgbInput>
+            </div>
+          </div>
+          <div *ngIf="surf.color && surf.color.value == ''">
+            <label>G:</label>
+            <div class="field-container">
+              <input [(ngModel)]="surf.color.rgb[1]" rgbInput>
+            </div>
+          </div>
+          <div *ngIf="surf.color && surf.color.value == ''">
+            <label>B:</label>
+            <div class="field-container">
+              <input [(ngModel)]="surf.color.rgb[2]" rgbInput>
             </div>
           </div>
         </div>
