@@ -148,22 +148,22 @@ export class RampComponent implements OnInit, OnDestroy {
 
   /** Import from library */
   public importLibraryItem(id: string) {
+    console.log(id);
     let idGeneratorService = new IdGeneratorService;
     let libRamp = find(this.lib.ramps, function (o) { return o.id == id; });
+    console.log(libRamp);
     if (libRamp != undefined && libRamp.id) {
       // Check if ramp already exists
-      let libRamp = find(this.ramps, function (o) { return o.id == libRamp.id });
+      let currentRamp = find(this.ramps, function (o) { return o.id == libRamp.id });
+      console.log(currentRamp);
       // If ramp do not exists import from library
-      if (libRamp == undefined) {
-        let libRamp = find(this.lib.ramps, function (o) { return o.id == libRamp.id });
+      if (currentRamp == undefined) {
         let ramp = cloneDeep(libRamp);
         ramp.uuid = idGeneratorService.genUUID();
+        console.log(ramp);
         this.ramps.push(ramp);
       }
     }
-    let ramp = cloneDeep(libRamp);
-    ramp.uuid = idGeneratorService.genUUID()
-    this.ramps.push(ramp);
   }
 
   // COMPONENT METHODS
