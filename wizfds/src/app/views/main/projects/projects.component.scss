@@ -101,6 +101,9 @@ $red: #FF516D;
         box-shadow: none;
         background-color: none;
     }
+    input.description {
+        max-width: 100%;
+    }
     label {
         font-size: 0.9rem;
         cursor: pointer;

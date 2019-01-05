@@ -28,8 +28,7 @@
                 [searchable]="false" [clearable]="false" (ngModelChange)="updateProject(project.id)"></ng-select>
         </div>
         <div>
-            <input type="text" [(ngModel)]="project.description" [ngModelOptions]="{updateOn:'blur'}" (ngModelChange)="updateProject(project.id)"
-            />
+            <input class="description" type="text" [(ngModel)]="project.description" [ngModelOptions]="{updateOn:'blur'}" (ngModelChange)="updateProject(project.id)" stringInput/>
         </div>
         <div class="project-controls">
             &nbsp;|&nbsp;
@@ -61,6 +60,10 @@
                     <i class="material-icons" matTooltip="Download *.fds" (click)="downloadFdsScenario(project.id, fdsScenario.id)">file_download</i>
                 </span>
                 -->
+                &nbsp;|&nbsp;
+                <span>
+                    <i class="material-icons" matTooltip="Duplicate scenario" (click)="duplicateFdsScenario(project.id, fdsScenario.id)">file_copy</i>
+                </span>
                 &nbsp;|&nbsp;
                 <span>
                     <i class="material-icons red" matTooltip="Delete scenario" (click)="deleteFdsScenario(project.id, fdsScenario.id)">delete_forever</i>

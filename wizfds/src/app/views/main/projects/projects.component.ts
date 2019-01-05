@@ -67,17 +67,18 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** 
-   * Set/unset project to current in main object 
+  /**
+   * Set/unset project to current in main object
+   * @param index 
    */
-  setCurrentProject(index: number) {
+  public setCurrentProject(index: number) {
     if (this.main.currentProject != undefined && this.main.currentFdsScenario != undefined) {
       this.fdsScenarioService.updateFdsScenario(this.main.currentProject.id, this.main.currentFdsScenario.id);
     }
     this.projectService.setCurrnetProject(index);
     this.main.currentFdsScenario = undefined;
   }
-  unsetCurrentProject() {
+  public unsetCurrentProject() {
     if (this.main.currentProject != undefined && this.main.currentFdsScenario != undefined) {
       this.fdsScenarioService.updateFdsScenario(this.main.currentProject.id, this.main.currentFdsScenario.id);
     }
@@ -99,13 +100,19 @@ export class ProjectsComponent implements OnInit, OnDestroy {
       });
   }
 
-  /** Update project name/desc/category in DB */
-  updateProject(projectId: number) {
+  /**
+   * Update project name/desc/category in DB
+   * @param projectId 
+   */
+  public updateProject(projectId: number) {
     this.projectService.updateProject(projectId);
   }
 
-  /** Delete project from DB */
-  deleteProject(projectId: number) {
+  /**
+   * Delete project from DB
+   * @param projectId 
+   */
+  public deleteProject(projectId: number) {
     let project: Project = find(this.main.projects, function (o) { return o.id == projectId });
     this.projectService.deleteProject(projectId).then((result: Result) => {
       ;
@@ -157,6 +164,15 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     this.fdsScenarioService.createFdsScenario(projectId);
   }
 
+  /**
+   * Duplicate FDS scenario
+   * @param projectId Project id
+   * @param fdsScenarioId FDS scenario id
+   */
+  public duplicateFdsScenario(projectId: number, fdsScenarioId: number) {
+    this.fdsScenarioService.duplicateFdsScenario(projectId, fdsScenarioId);
+  }
+
   /** Set fds scenario name  */
   public updateFdsScenario(projectId: number, fdsScenarioId: number) {
     this.fdsScenarioService.updateFdsScenario(projectId, fdsScenarioId, 'head');
@@ -174,6 +190,5 @@ export class ProjectsComponent implements OnInit, OnDestroy {
 
     this.fdsScenarioService.deleteFdsScenario(projectId, fdsScenarioId);
   }
-
 
 }
