@@ -104,6 +104,7 @@ namespace WizFDS.Websocket
 
     public class acWebSocketCtrl : IExtensionApplication
     {
+        private static string version = "0.2.1"; 
         public static SyncControl syncCtrl;
         Editor ed = acApp.DocumentManager.MdiActiveDocument.Editor;
         Document acDoc = acApp.DocumentManager.MdiActiveDocument;
@@ -144,7 +145,7 @@ namespace WizFDS.Websocket
                 acDoc.SendStringToExecute("TASKBAR\n0\n", true, false, true);
 
                 //Ustawienie pojedynczego okna - ewentualnie przetrzymywać orginalną zmienną
-                ed.WriteMessage("\n\nInitializing WizFDS ...");
+                ed.WriteMessage("\n\nInitializing WizFDS ver. "+ version);
                 ed.WriteMessage("\nWizFDS sync turned on. Waiting for connection from web application ...");
 
                 // Ribbon
