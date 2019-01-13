@@ -105,7 +105,7 @@ export class FdsScenarioService {
     }
     // Sync all data
     else if (syncType == 'all') {
-      let fdsScenario = this.main.projects[projectIndex].fdsScenarios[fdsScenarioIndex];
+      let fdsScenario = this.main.currentFdsScenario;
 
       this.httpManager.put(this.main.hostAddres + '/api/fdsScenario/' + fdsScenario.id, JSON.stringify({ type: 'all', data: fdsScenario.toJSON() })).then((result: Result) => {
         this.main.projects[projectIndex].fdsScenarios[fdsScenarioIndex] = fdsScenario;

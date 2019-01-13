@@ -1,5 +1,7 @@
 <div class="ramp-container">
-  <div class="ramp-chart" #rampChart></div>
+  <div class="ramp-chart" #rampChart>
+    <i class="save-image material-icons" (click)="saveChart()" matTooltip="Get image file" [matTooltipDisabled]="!main.tooltips">image</i>
+  </div>
   <div class="ramp-steps">
     <div class="ramp-step">
       <div>
@@ -24,17 +26,20 @@
     <div class="ramp-step" *ngFor="let step of (ramp.steps | stepsSort); index as stepIndex">
       <div>
         <div class="field-container">
-          <input [ngModelOptions]="{ updateOn:'blur' }" [ngModel]="step.t" (ngModelChange)="setT($event, stepIndex)" (blur)="updateChart()" decimalInput>
+          <input [ngModelOptions]="{ updateOn:'blur' }" [ngModel]="step.t" (ngModelChange)="setT($event, stepIndex)"
+            (blur)="updateChart()" decimalInput>
           <ng-katex equation="{{units[0]}}"></ng-katex>
         </div>
       </div>
       <div>
         <div *ngIf="editor == undefined" class="field-container">
-          <input [ngModel]="getF(stepIndex)" [ngModelOptions]="{ updateOn:'blur' }" (ngModelChange)="setF($event, stepIndex)" (blur)="updateChart()" decimalInput>
+          <input [ngModel]="getF(stepIndex)" [ngModelOptions]="{ updateOn:'blur' }" (ngModelChange)="setF($event, stepIndex)"
+            (blur)="updateChart()" decimalInput>
           <ng-katex equation="{{units[1]}}"></ng-katex>
         </div>
         <div *ngIf="editor" class="field-container">
-          <input [ngModel]="getPureF(stepIndex)" [ngModelOptions]="{ updateOn:'blur' }" (ngModelChange)="setPureF($event, stepIndex)" (blur)="updateChart()" decimalInput>
+          <input [ngModel]="getPureF(stepIndex)" [ngModelOptions]="{ updateOn:'blur' }" (ngModelChange)="setPureF($event, stepIndex)"
+            (blur)="updateChart()" decimalInput>
           <ng-katex equation="{{units[1]}}"></ng-katex>
         </div>
       </div>

@@ -50,42 +50,42 @@
           <div>
             <label>X1:</label>
             <div class="field-container">
-              <input [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="vent.xb.x1" (blur)="updateCad('hole')" decimalInput>
+              <input [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="vent.xb.x1" decimalInput>
               <ng-katex equation="m"></ng-katex>
             </div>
           </div>
           <div>
             <label>X2:</label>
             <div class="field-container">
-              <input [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="vent.xb.x2" (blur)="updateCad('hole')" decimalInput>
+              <input [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="vent.xb.x2" decimalInput>
               <ng-katex equation="m"></ng-katex>
             </div>
           </div>
           <div>
             <label>Y1:</label>
             <div class="field-container">
-              <input [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="vent.xb.y1" (blur)="updateCad('hole')" decimalInput>
+              <input [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="vent.xb.y1" decimalInput>
               <ng-katex equation="m"></ng-katex>
             </div>
           </div>
           <div>
             <label>Y2:</label>
             <div class="field-container">
-              <input [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="vent.xb.y2" (blur)="updateCad('hole')" decimalInput>
+              <input [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="vent.xb.y2" decimalInput>
               <ng-katex equation="m"></ng-katex>
             </div>
           </div>
           <div>
             <label>Z1:</label>
             <div class="field-container">
-              <input [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="vent.xb.z1" (blur)="updateCad('hole')" decimalInput>
+              <input [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="vent.xb.z1" decimalInput>
               <ng-katex equation="m"></ng-katex>
             </div>
           </div>
           <div>
             <label>Z2:</label>
             <div class="field-container">
-              <input [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="vent.xb.z2" (blur)="updateCad('hole')" decimalInput>
+              <input [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="vent.xb.z2" decimalInput>
               <ng-katex equation="m"></ng-katex>
             </div>
           </div>
@@ -171,7 +171,7 @@
           <div *ngIf="surf.flow.type=='velocity'">
             <label>Velocity:</label>
             <div class="field-container">
-              <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="surf.flow.vel" (blur)="updateCad('hole')" decimalInput>
+              <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="surf.flow.vel" decimalInput>
               <ng-katex equation="m/s"></ng-katex>
             </div>
           </div>
@@ -189,7 +189,7 @@
           <div *ngIf="surf.flow.type=='massFlow'">
             <label>Mass flow:</label>
             <div class="field-container">
-              <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="surf.flow.mass_flow" (blur)="updateCad('hole')" decimalInput>
+              <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="surf.flow.mass_flow" decimalInput>
               <ng-katex equation="kg/s"></ng-katex>
             </div>
           </div>
@@ -236,14 +236,14 @@
           <div *ngIf="surf.isActiveLouver">
             <label>Tangential velocity horizontal:</label>
             <div class="field-container">
-              <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="surf.vel_t[0]" (blur)="updateCad('hole')" decimalInput>
+              <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="surf.vel_t[0]" decimalInput>
               <ng-katex equation="m/s"></ng-katex>
             </div>
           </div>
           <div *ngIf="surf.isActiveLouver">
             <label>Tangential velocity vertical:</label>
             <div class="field-container">
-              <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="surf.vel_t[1]" (blur)="updateCad('hole')" decimalInput>
+              <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="surf.vel_t[1]" decimalInput>
               <ng-katex equation="m/s"></ng-katex>
             </div>
           </div>

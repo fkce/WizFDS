@@ -8,7 +8,9 @@ import * as d3Scale from 'd3-scale';
 import * as d3Shape from 'd3-shape';
 import * as d3Array from 'd3-array';
 import * as d3Axis from 'd3-axis';
-import { forEach, sortBy, round, find, toNumber } from 'lodash';
+
+import { saveAs } from 'file-saver';
+import { forEach, sortBy, round, find, toNumber, cloneDeep } from 'lodash';
 import { LibraryService } from '../../../../../services/library/library.service';
 import { Library } from '../../../../../services/library/library';
 
@@ -174,7 +176,7 @@ export class RampChartComponent implements OnInit, OnChanges {
       .attr("text-anchor", "middle")
       .attr("x", (this.width + this.margin.left + this.margin.right) / 2)
       .attr("y", this.height + this.margin.top + this.margin.bottom - 5)
-      .text(this.xLabel);
+      .text(this.xLabel +' ['+ this.units[0] +']');
 
     this.svg.append("text")
       .attr("class", "y label")
@@ -183,7 +185,7 @@ export class RampChartComponent implements OnInit, OnChanges {
       .attr("transform", "rotate(-90)")
       .attr("x", (this.height + this.margin.top + this.margin.bottom) / -2)
       .attr("y", 15)
-      .text(this.yLabel);
+      .text(this.yLabel+' ['+ this.units[1] +']');
   }
 
   /** Update chart */
@@ -223,7 +225,8 @@ export class RampChartComponent implements OnInit, OnChanges {
     // Draw line
     this.line = d3Shape.line()
       .x((d: any) => this.x(d[0]))
-      .y((d: any) => this.y(d[1]));
+      .y((d: any) => this.y(d[1]))
+      .curve(d3Shape.curveLinear);
     this.svg.append("path")
       .datum(steps)
       .attr("class", "line")
@@ -242,7 +245,7 @@ export class RampChartComponent implements OnInit, OnChanges {
       .attr("class", "dot")
       .attr('transform', `translate(${this.margin.left}, ${this.margin.top})`)
       .attr("r", 6)
-      .attr("fill", "rgb(20,250,50)")
+      .attr("fill", "rgb(0,168,243)")
       .attr("cx", (d) => { return this.x(d.x); })
       .attr("cy", (d) => { return this.y(d.y); });
 
@@ -251,7 +254,75 @@ export class RampChartComponent implements OnInit, OnChanges {
       .attr('transform', `translate(${this.margin.left - 10}, ${this.margin.top - 10})`)
       .attr("x", (d) => { return this.x(d.x); })
       .attr("y", (d) => { return this.y(d.y); });
+  }
 
+  /**
+   * Save ramp chart
+   */
+  public saveChart() {
+    var svgString = this.getSVGString(this.svg.node());
+    // Pass Blob and filesize String to the callback
+    this.svgString2Image(svgString, 2 * this.width, 2 * this.height, 'png', save); 
+
+    function save(dataBlob) {
+      // FileSaver.js function
+      saveAs(dataBlob, this.xLabel +'-'+ this.yLabel +'-ramp.png'); 
+    }
+  }
+
+  /**
+   * Generate svn string
+   * @param svgNode 
+   */
+  public getSVGString(svgNode) {
+    svgNode.setAttribute('xlink', 'http://www.w3.org/1999/xlink');
+    let cssStyleText = "text { fill: #000; }";
+
+    var serializer = new XMLSerializer();
+    var svgString = serializer.serializeToString(svgNode);
+    // Add custom style
+    svgString = svgString.replace('xlink">', 'xlink"><style xmlns="http://www.w3.org/1999/xhtml" type="text/css">'+ cssStyleText +'</style>');
+    // Fix root xlink without namespace
+    svgString = svgString.replace(/(\w+)?:?xlink=/g, 'xmlns:xlink='); 
+    // Safari NS namespace fix
+    svgString = svgString.replace(/NS\d+:href/g, 'xlink:href'); 
+
+    return svgString;
+  }
+
+
+  /**
+   * Convert svg to image
+   * @param svgString 
+   * @param width 
+   * @param height 
+   * @param format 
+   * @param callback 
+   */
+  public svgString2Image(svgString, width, height, format, callback) {
+    var format = format ? format : 'png';
+
+    // Convert SVG string to data URL
+    var imgsrc = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString))); 
+
+    var canvas = document.createElement("canvas");
+    var context = canvas.getContext("2d");
+
+    canvas.width = width;
+    canvas.height = height;
+
+    var image = new Image();
+    image.onload = function () {
+      context.clearRect(0, 0, width, height);
+      context.drawImage(image, 0, 0, width, height);
+
+      canvas.toBlob(function (blob) {
+        var filesize = Math.round(blob.size / 1024) + ' KB';
+        if (callback) callback(blob, filesize);
+      });
+    };
+
+    image.src = imgsrc;
   }
 
 }

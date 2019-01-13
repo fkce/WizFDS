@@ -59,7 +59,7 @@ export class AppComponent {
     // For developing purpose
     if (isDevMode()) {
       setTimeout(() => {
-        this.setCurrentFdsScenario(2, 12);
+        this.setCurrentFdsScenario(2, 49);
       }, 1000);
       setTimeout(() => {
         this.router.navigate(['/']);

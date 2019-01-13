@@ -5,6 +5,7 @@
     justify-content: flex-start;
 
     .ramp-chart {
+        position: relative;
         width: 100%;
         height: 400px;
 
@@ -24,6 +25,12 @@
                 fill: #999;
 
             }
+        }
+
+        i.save-image {
+            position: absolute;
+            top: 1rem;
+            right: 0.5rem;
         }
 
     }
