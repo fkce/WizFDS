@@ -159,24 +159,43 @@ span.blue {
         width: 60rem;
         max-width: 100%;
     }
+    .outsourcing {
+        display: flex;
+        align-items: center;
+        margin-top: 1rem;
+        i {
+            font-size: 2rem;
+            padding-right: 1rem;
+        }
+        a {
+            text-decoration: none;
+            font-weight: bold;
+            //font-size: 1.1rem;
+            color: #454B54;
+        }
+        a:hover {
+            color: #009AFF;
+        }
+    }
 }
 
 .contact {
     display: flex;
-    justify-content: center;
-    align-items: flex-start;
+    justify-content: space-between;
+    align-items: stretch;
+    flex-wrap: wrap;
     width: 100%;
-    min-height: 22rem;
     background-image: url(/assets/map.png);
     background-repeat: no-repeat;
     background-attachment: relative;
     background-position: center center; 
     color: #FCFCFC;
     .left {
-        width: 50%;
+        display: flex;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        flex: 50%;
         min-width: 320px;
-        min-height: 22rem;
-        padding: 0.7rem 0rem 0.7rem 0rem;
         text-align: center;
         background-color: #454B54;
         opacity: 0.85;
@@ -192,10 +211,34 @@ span.blue {
                 color: #009AFF;
             }
         }
-        
+        @media all and (min-width:1170px) {
+            .c1 {
+                padding: 2rem 1.5rem 2rem 1.5rem;
+            }
+            .c2 {
+                color: #454B54;
+                padding: 2rem 1.5rem 2rem 1.5rem;
+                background-color: #FFF;
+            }
+        }
+        @media all and (min-width:0px) and (max-width: 1169px) {
+            .c1 {
+                padding: 0.5rem 1.5rem 0.5rem 1.5rem;
+                width: 100%;
+            }
+            .c2 {
+                color: #454B54;
+                padding: 0.5rem 1.5rem 0.5rem 1.5rem;
+                background-color: #FFF;
+                width: 100%;
+            }
+        }
     }
     .right {
-        width: 50%;
-        min-height: 22rem;
+        display: flex;
+        justify-content: left;
+        flex: 50%;
+        opacity: 0.85;
+        text-align: center;
     }
 }

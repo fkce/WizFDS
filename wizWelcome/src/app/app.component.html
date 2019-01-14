@@ -1,28 +1,25 @@
-<!--The content below is only a placeholder and can be replaced.-->
+<div class="container">
 
-<div class='container'>
-
-
-  <div class='header'>
-    <div class='logo'>
-      <img src='assets/wizfds.svg'>
+  <div class="header">
+    <div class="logo">
+      <img src="assets/wizfds.svg">
     </div>
-    <div class='menu'>
+    <div class="menu">
       <p [ngx-scroll-to]="'#home'">HOME</p>
       <p [ngx-scroll-to]="'#about'">ABOUT</p>
       <p [ngx-scroll-to]="'#how-it-works'">HOW IT WORKS</p>
+      <p><a href="https://github.com/fkce/WizFDS/wiki" target="_blank">TUTORIAL</a></p>
       <p [ngx-scroll-to]="'#services'">SERVICES</p>
       <p [ngx-scroll-to]="'#contact'">CONTACT</p>
     </div>
-    <div class='login'>
-      <p class='login-button'><a href='/login'>LOG IN</a></p>
+    <div class="login">
+      <p class="login-button"><a href="/login">LOG IN</a></p>
     </div>
   </div>
 
-
-  <div class='main'>
+  <div class="main">
     <app-main></app-main>
   </div>
 
-
 </div>
+<cookie-law learnMore="/assets/cookies.html" name="WizFDSCookieLaw"></cookie-law>

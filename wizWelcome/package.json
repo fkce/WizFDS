@@ -4,7 +4,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve --open",
-    "build": "ng build --prod --base-href=/welcome/",
+    "build-prod": "ng build --prod --base-href=/welcome/",
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e"
@@ -21,6 +21,7 @@
     "@angular/platform-browser-dynamic": "^7.0.2",
     "@angular/router": "^7.0.2",
     "@nicky-lenaers/ngx-scroll-to": "^1.0.0",
+    "angular2-cookie-law": "^7.0.0",
     "core-js": "^2.5.4",
     "rxjs": "^6.3.3",
     "zone.js": "^0.8.26"
