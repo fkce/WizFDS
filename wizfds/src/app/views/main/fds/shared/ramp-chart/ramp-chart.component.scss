@@ -6,24 +6,34 @@
 
     .ramp-chart {
         position: relative;
-        width: 100%;
+        width: 60%;
         height: 400px;
+
+        .svg {
+            width: 100%;
+        }
 
         .axis path,
         .axis line {
-            stroke: #999;
+            stroke: #aaa;
+            shape-rendering: crispEdges;
         }
 
         .axis text {
-            fill: #999;
+            fill: #aaa;
+            font-size: 0.65rem;
+        }
+
+        text.label {
+            font-size: 1rem;
+            font-family: "Play";
+            fill: #eee;
         }
 
         g {
             text {
-                font-size: 10px;
-                font-family: "Play";
-                fill: #999;
-
+                fill: #aaa;
+                font-size: 0.65rem;
             }
         }
 
@@ -32,9 +42,7 @@
             top: 1rem;
             right: 0.5rem;
         }
-
     }
-
 
     .ramp-steps{
         .ramp-step {
@@ -62,7 +70,6 @@
             }
         }
     }
-
 
 }
 

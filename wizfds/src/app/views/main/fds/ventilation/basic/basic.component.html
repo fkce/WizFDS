@@ -19,6 +19,8 @@
         <i class="material-icons" *ngIf="ui.ventilation.vent.begin + ui.listRange < ventilation.vents.length" (click)="uiStateService.increaseRange('ventilation.vent')">chevron_right</i>
       </div>
     </div>
+
+
     <div class="form-box">
       <div class="form-row" *ngIf="!vent">
         <label>Select or add new vent</label>
@@ -96,7 +98,6 @@
   </div>
 
 
-
   <div class="single-amper-container">
     <div class="list">
       <div class="list-title" (click)="add('surf')">
@@ -118,7 +119,8 @@
       </div>
     </div>
 
-    <div class="form-box">
+
+    <div class="form-box" [ngClass]="objectType == 'current' ? 'current' : 'library'">
       <div class="form-row" *ngIf="!surf">
         <label>Select or add new surf</label>
       </div>
@@ -250,6 +252,8 @@
         </div>
       </div>
     </div>
+
+
     <div class="lib-wrapper">
       <div class="lib-drawer" [ngClass]="ui.ventilation.surf.lib == 'closed' ? 'closed' : 'opened'">
         <div class="lib-label-wrapper">

@@ -1784,7 +1784,7 @@ export const FdsEntities =
             type: 'Real',
             units: 's',
             default: [
-              200.
+              100.
             ],
             help: '',
             pattern: '',

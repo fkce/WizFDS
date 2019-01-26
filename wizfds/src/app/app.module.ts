@@ -89,6 +89,7 @@ import { LibraryEditorComponent } from './views/main/library-editor/library-edit
 import { IdInputDirective } from './directives/inputs/id-input.directive';
 import { InjectionComponent } from './views/main/fds/specie/injection/injection.component';
 import { RgbInputDirective } from './directives/inputs/rgb-input.directive';
+import { ParabolaChartComponent } from './views/main/fds/shared/parabola-chart/parabola-chart.component';
 
 
 @NgModule({
@@ -109,6 +110,7 @@ import { RgbInputDirective } from './directives/inputs/rgb-input.directive';
     StringInputDirective,
     MaterialComponent,
     RampChartComponent,
+    ParabolaChartComponent,
     RampFilterPipe,
     StepsSortPipe,
     SurfaceComponent,

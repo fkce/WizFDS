@@ -1,0 +1,39 @@
+.parabola-chart {
+  position: relative;
+  width: 60%;
+  height: 25rem;
+
+  svg {
+    width: 100%;
+  }
+
+  .axis path,
+  .axis line {
+    stroke: #aaa;
+    shape-rendering: crispEdges;
+  }
+
+  .axis text {
+    fill: #aaa;
+    font-size: 0.65rem;
+  }
+
+  text.label {
+    font-size: 1rem;
+    font-family: "Play";
+    fill: #eee;
+  }
+
+  g {
+    text {
+      fill: #aaa;
+      font-size: 0.65rem;
+    }
+  }
+
+  i.save-image {
+    position: absolute;
+    top: 1rem;
+    right: 0.5rem;
+  }
+}
