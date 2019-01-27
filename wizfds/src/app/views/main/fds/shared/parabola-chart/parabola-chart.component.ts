@@ -229,8 +229,8 @@ export class ParabolaChartComponent implements OnInit, OnChanges {
     gdots.append("text")
       .text((d) => { return round(d.y, 2); })
       .attr("x", (d) => { return this.x(d.x); })
-      .attr("y", (d) => { return this.y(d.y + 100); })
-      .attr('transform', `translate(${this.margin.left}, ${this.margin.top})`);
+      .attr("y", (d) => { return this.y(d.y); })
+      .attr('transform', `translate(${this.margin.left - 10}, ${this.margin.top - 10})`);
   }
 
   /**
