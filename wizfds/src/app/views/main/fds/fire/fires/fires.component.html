@@ -188,7 +188,7 @@
         [rampId]="fire.surf.ramp.id" [value]="fire.surf.hrr.value * fire.surf.hrr.area" [objectType]="objectType"
         [xLabel]="'Time'" [yLabel]="'HRR'" [units]="['s','kW']"></ramp-chart>
 
-      <parabola-chart *ngIf="fire.surf.fire_type=='radially_spreading'" [maxTime]="fire.totalTime()" [maxHrr]="fire.totalHrr()"
+      <parabola-chart *ngIf="fire.surf.fire_type=='radially_spreading' && fire.surf.hrr.alpha > 0" [maxTime]="fire.totalTime()" [maxHrr]="fire.totalHrr()"
         [alpha]="fire.surf.hrr.alpha" [objectType]="objectType" [xLabel]="'Time'" [yLabel]="'HRR'" [units]="['s','kW']"></parabola-chart>
 
       <!-- dodac inne wykresy -->

@@ -32,10 +32,10 @@ export class RampChartComponent implements OnInit, OnChanges {
   @Input() private containerWidth: string;
   @Input() private editor: string;
 
-  private main: Main;
-  private lib: Library;
-  private ramps: Ramp[];
-  private libRamps: Ramp[];
+  public main: Main;
+  public lib: Library;
+  public ramps: Ramp[];
+  public libRamps: Ramp[];
   public ramp: Ramp;
 
   mainSub;

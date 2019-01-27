@@ -32,11 +32,11 @@ export class ParabolaChartComponent implements OnInit, OnChanges {
   @Input() private objectType: string;
   @Input() private editor: string;
 
-  private main: Main;
-  private lib: Library;
+  public main: Main;
+  public lib: Library;
 
-  mainSub;
-  libSub;
+  private mainSub;
+  private libSub;
 
   private margin = { top: 10, right: 20, bottom: 50, left: 70 };
   private width: number;
