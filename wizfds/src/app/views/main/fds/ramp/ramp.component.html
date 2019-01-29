@@ -46,10 +46,9 @@
         </div>
       </div>
 
-      <div class="form-row">
-        <ramp-chart *ngIf="ramp && ramp.steps.length > 0" [rampId]="ramp.id" [value]="1" [objectType]="objectType"
-          [xLabel]="'Time'" [yLabel]="'Fraction'" [units]="['s','']" [containerWidth]="'60rem'" [editor]="true"></ramp-chart>
-      </div>
+      <ramp-chart *ngIf="ramp && ramp.steps.length > 0" [rampId]="ramp.id" [value]="1" [objectType]="objectType"
+        [xLabel]="'Time'" [yLabel]="'Fraction'" [units]="['s','']"></ramp-chart>
+
     </div>
   </div>
 

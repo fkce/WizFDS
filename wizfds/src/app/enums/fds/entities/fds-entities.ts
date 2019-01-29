@@ -10040,7 +10040,7 @@ export const FdsEntities =
             type: 'Real',
             units: 'kg/kg',
             default: [
-              0.13
+              0.11
             ],
             help: '',
             pattern: '',

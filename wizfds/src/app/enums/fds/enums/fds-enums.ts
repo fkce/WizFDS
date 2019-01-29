@@ -62,15 +62,15 @@ export const FdsEnums =
                 { label: 'Prop', value: 'PROP' }
             ],
             devcStatistics: [
-                { label: 'Area integral', value: 'area integral' },
-                { label: 'Mass integral', value: 'mass integral' },
-                { label: 'Mass mean', value: 'mass mean' },
-                { label: 'Min', value: 'min' },
-                { label: 'Max', value: 'max' },
-                { label: 'Mean', value: 'mean' },
-                { label: 'Volume mean', value: 'volume mean' },
-                { label: 'Volume integral', value: 'volume integral' },
-                { label: 'Surface integral', value: 'surface integral' }
+                { label: 'Area integral', value: 'AREA INTEGRAL' },
+                { label: 'Mass integral', value: 'MASS INTEGRAL' },
+                { label: 'Mass mean', value: 'MASS MEAN' },
+                { label: 'Min', value: 'MIN' },
+                { label: 'Max', value: 'MAX' },
+                { label: 'Mean', value: 'MEAN' },
+                { label: 'Volume mean', value: 'VOLUME MEAN' },
+                { label: 'Volume integral', value: 'VOLUME INTEGRAL' },
+                { label: 'Surface integral', value: 'SURFACE INTEGRAL' }
             ],
             devcInitialState: [
                 { label: 'False', value: false },

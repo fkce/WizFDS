@@ -10,6 +10,12 @@
           <i (click)="ramp.addStep(); updateChart()" class="material-icons">add_box</i>
         </div>
       </div>
+      <div>
+        <label>Dots every:</label>
+        <div class="field-container">
+          <input [(ngModel)]="dotsNth" [ngModelOptions]="{ updateOn:'blur' }" (blur)="updateChart()" integerInput>
+        </div>
+      </div>
     </div>
     <div class="ramp-step">
       <div>

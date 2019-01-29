@@ -29,8 +29,6 @@ export class RampChartComponent implements OnInit, OnChanges {
   @Input() private units: string[];
   @Input() private value: any;
   @Input() private objectType: string;
-  @Input() private containerWidth: string;
-  @Input() private editor: string;
 
   public main: Main;
   public lib: Library;
@@ -41,6 +39,7 @@ export class RampChartComponent implements OnInit, OnChanges {
   mainSub;
   libSub;
 
+  public dotsNth: number;
   private margin = { top: 10, right: 20, bottom: 50, left: 70 };
   private width: number;
   private height: number;
@@ -59,6 +58,8 @@ export class RampChartComponent implements OnInit, OnChanges {
 
     this.ramps = this.main.currentFdsScenario.fdsObject.ramps.ramps;
     this.libRamps = this.lib.ramps;
+
+    this.dotsNth = 1;
 
     if (!this.svg) {
       this.createChart();
@@ -144,6 +145,7 @@ export class RampChartComponent implements OnInit, OnChanges {
     // Init chart
     const element = this.chartContainer.nativeElement;
 
+    // Width & height is canvas element minus margins
     this.width = element.offsetWidth - this.margin.left - this.margin.right;
     this.height = element.offsetHeight - this.margin.top - this.margin.bottom;
 
@@ -183,6 +185,10 @@ export class RampChartComponent implements OnInit, OnChanges {
     let points = [];
     forEach(steps, function (step) {
       points.push({ x: step[0], y: step[1] });
+    });
+
+    points = points.filter((point, index) => {
+      return index % toNumber(this.dotsNth) == 0;
     });
 
     // Init axis
