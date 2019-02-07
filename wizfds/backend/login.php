@@ -52,11 +52,27 @@ function registerForm() {
 
 function check() {
 	global $db;
+	$config = new Config();
+
 	if(!empty($_POST['email']) and !empty($_POST['password'])) {
+
+		// Select user data from db
 		$result = $db->pg_read("SELECT * from users where email = $1", array($_POST['email']));
 		if(!empty($result) and strlen($result[0]['password']) > 1) {
 			extract($result[0]);
-			if(password_verify($_POST['password'], $password)) {
+
+			// Regenerate intermediate hash
+			$appSecret = $config->getAppSecret($_POST['email']);
+            $stringToHash = $appSecret . $_POST['password'] . $salt;
+            $intermediateHashedString = hash('sha512', $stringToHash);
+            $len = strlen($intermediateHashedString);
+            $base256HashedString = '';
+            for ($i = 0; $i < $len; $i += 2) {
+                $base256HashedString .= chr(hexdec(substr($intermediateHashedString, $i, 2)));
+            }
+
+			// Verify passwords
+            if(password_verify($base256HashedString, $password)) {
 				session_regenerate_id(True);
 				$_SESSION['user_id']="$id";
 				$_SESSION['email']="$email";
@@ -106,17 +122,22 @@ function makeRegister() {
 				exit(); 
 			}
 
+			// Create user home folder
+			system("mkdir -p ". $config->usersPath . $_POST['email']);
+
 			// Salt and hash user password
 			// Generate user secret code
 			$userSecret = base64_encode(random_bytes(2048));
 
 			// Concat strings and prepare salt
-			$stringToHash = $config->appSecret . $_POST['password'] . $userSecret;
-			$intermediateHashedString = hash('sha512', $stringToHash);
-			$base256HashedString = '';
-			for ($i = 0; $i < $len; $i += 2) {
-				$base256HashedString .= chr(hexdec(substr($intermediateHashedString, $i, 2)));
-			}
+            $appSecret = $config->getAppSecret($_POST['email']);
+            $stringToHash = $appSecret . $_POST['password'] . $userSecret;
+            $intermediateHashedString = hash('sha512', $stringToHash);
+            $len = strlen($intermediateHashedString);
+            $base256HashedString = '';
+            for ($i = 0; $i < $len; $i += 2) {
+                $base256HashedString .= chr(hexdec(substr($intermediateHashedString, $i, 2)));
+            }
 
 			// Generate final hash
 			$pass = password_hash($base256HashedString, PASSWORD_BCRYPT);
@@ -130,9 +151,6 @@ function makeRegister() {
 			$result=$db->pg_create("INSERT INTO categories (user_id, label, active, visible, uuid) values($1, $2, $3, $4, $5);", array($user_id, 'archive', true, true, guidv4(random_bytes(16))));
 			$result=$db->pg_create("INSERT INTO categories (user_id, label, active, visible, uuid) values($1, $2, $3, $4, $5);", array($user_id, 'finished', true, true, guidv4(random_bytes(16))));
 
-			// Create user home folder
-			system("mkdir -p ~/wizfds_users/".$_POST['email']);
-			system("mkdir -p ". $config->usersPath . $_POST['email']);
 		}
 	}
 }
