@@ -27,7 +27,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 
 # Start session
 session_name('wizfds');
-session_start();
+if (session_status() == PHP_SESSION_NONE) {
+	session_start();
+}
 
 # Only for developing purpose
 #$_SESSION['user_id'] = 1;

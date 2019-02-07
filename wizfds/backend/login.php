@@ -1,10 +1,12 @@
 <?php
-session_name('wizfds');
+session_name("wizfds");
 
 require_once("config.php");
 require_once("db.php");
-$db=new Database();  
-function guidv4($data)/*{{{*/
+
+$db = new Database();  
+
+function guidv4($data) 
 {
 	assert(strlen($data) == 16);
 
@@ -12,12 +14,12 @@ function guidv4($data)/*{{{*/
 	$data[8] = chr(ord($data[8]) & 0x3f | 0x80); // set bits 6-7 to 10
 
 	return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
-}/*}}}*/
-function loginForm() {/*{{{*/
+} 
+
+function loginForm() {
 	
 	echo "
 	<form method='post' action=".$_SERVER['REQUEST_URI'].">
-
 	<div class='login'>
 		<div><label>Log into WizFDS</label></div>
 		<div><input type='email' name='email' placeholder='E-mail address'></div>
@@ -25,13 +27,11 @@ function loginForm() {/*{{{*/
 		<div><input type='submit' name='check' value='Login'></div>
 		<div><input type='submit' name='addUserShowForm' value='Register'></div>
 	</div>
-
 	</form>
 	";
-
 }
-/*}}}*/
-function registerForm() {/*{{{*/
+
+function registerForm() {
 	$config = new Config();
 	echo "
 	<form method='post' action=".$_SERVER['REQUEST_URI'].">
@@ -49,12 +49,12 @@ function registerForm() {/*{{{*/
 	</form>
 	";
 }
-/*}}}*/
-function check() {/*{{{*/
+
+function check() {
 	global $db;
 	if(!empty($_POST['email']) and !empty($_POST['password'])) {
-		$result=$db->pg_read("SELECT * from users where email=$1", array($_POST['email']));
-		if(!empty($result) and strlen($result[0]['password'])>1) {
+		$result = $db->pg_read("SELECT * from users where email = $1", array($_POST['email']));
+		if(!empty($result) and strlen($result[0]['password']) > 1) {
 			extract($result[0]);
 			if(password_verify($_POST['password'], $password)) {
 				session_regenerate_id(True);
@@ -69,8 +69,8 @@ function check() {/*{{{*/
 	}
 	echo "<div class='login-error'>Invalid e-mail or password. Try again.</div>";
 }
-/*}}}*/
-function makeRegister() {/*{{{*/
+
+function makeRegister() {
 	global $db;
 	$config = new Config();
 
@@ -90,20 +90,49 @@ function makeRegister() {/*{{{*/
 	$context  = stream_context_create($options);
 	$verify = file_get_contents($url, false, $context);
 	$captcha_success = json_decode($verify);
+
+	// Check if a boot register user
 	if ($captcha_success->success==false) {
 		echo "<p style='text-align: center;'>You are a bot! Go away!</p>";
 	} else if ($captcha_success->success==true) {
-		// If not a boot register user
+
+		// Check if send data are not empty
 		if(!empty($_POST['email']) and !empty($_POST['password'])) {
-			$result=$db->pg_read("SELECT * from users where email=$1", array($_POST['email']));
-			if(!empty($result)) { echo $_POST['email']." already exists.<br>"; exit(); }
-			$pass=password_hash($_POST['password'], PASSWORD_DEFAULT);
-			$result=$db->pg_create("INSERT INTO users (email, password, editor, websocket_host, websocket_port, username) values($1, $2, $3, $4, $5, $6) returning id;", array($_POST['email'], $pass, 'default', 'localhost', 2012, $_POST['userName']));
+
+			// Check if user e-mail already exists
+			$result = $db->pg_read("SELECT * from users where email=$1", array($_POST['email']));
+			if(!empty($result)) { 
+				echo $_POST['email']." already exists.<br>"; 
+				exit(); 
+			}
+
+			// Salt and hash user password
+			// Generate user secret code
+			$userSecret = base64_encode(random_bytes(2048));
+
+			// Concat strings and prepare salt
+			$stringToHash = $config->appSecret . $_POST['password'] . $userSecret;
+			$intermediateHashedString = hash('sha512', $stringToHash);
+			$base256HashedString = '';
+			for ($i = 0; $i < $len; $i += 2) {
+				$base256HashedString .= chr(hexdec(substr($intermediateHashedString, $i, 2)));
+			}
+
+			// Generate final hash
+			$pass = password_hash($base256HashedString, PASSWORD_BCRYPT);
+
+			// Add user to database and return id
+			$result=$db->pg_create("INSERT INTO users (email, password, salt, editor, websocket_host, websocket_port, username) values($1, $2, $3, $4, $5, $6, $7) returning id;", array($_POST['email'], $pass, $userSecret, 'default', 'localhost', 2012, $_POST['userName']));
 			$user_id = $result[0]['id'];
+
+			// Create default categories
 			$result=$db->pg_create("INSERT INTO categories (user_id, label, active, visible, uuid) values($1, $2, $3, $4, $5);", array($user_id, 'current', true, true, guidv4(random_bytes(16))));
 			$result=$db->pg_create("INSERT INTO categories (user_id, label, active, visible, uuid) values($1, $2, $3, $4, $5);", array($user_id, 'archive', true, true, guidv4(random_bytes(16))));
 			$result=$db->pg_create("INSERT INTO categories (user_id, label, active, visible, uuid) values($1, $2, $3, $4, $5);", array($user_id, 'finished', true, true, guidv4(random_bytes(16))));
+
+			// Create user home folder
 			system("mkdir -p ~/wizfds_users/".$_POST['email']);
+			system("mkdir -p ". $config->usersPath . $_POST['email']);
 		}
 	}
 }
