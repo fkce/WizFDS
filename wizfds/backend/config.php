@@ -18,13 +18,11 @@ class Config {
 	// Get or create app secret key in user directory
 	public function getAppSecret($user) {
         // Return or create application secret salt
-        if(file_exists($this->usersPath . $user .'/appSecret.txt')) {
-            return fgets(fopen($this->usersPath . $user .'/appSecret.txt', 'r'));
-        } else {
+        if(!file_exists($this->usersPath . $user .'/appSecret.txt')) {
             $applicationSecret = base64_encode(random_bytes(2048));
             file_put_contents($this->usersPath . $user .'/appSecret.txt', $applicationSecret);
-			return fgets(fopen($this->usersPath . $user .'/appSecret.txt', 'r'));
-		}
+        } 
+		return fgets(fopen($this->usersPath . $user .'/appSecret.txt', 'r'));
     }
 }
 ?>

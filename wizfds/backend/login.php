@@ -79,10 +79,12 @@ function check() {
 				// Generate final hash
 				$pass = password_hash($base256HashedString, PASSWORD_BCRYPT);
 
-				// Add user to database and return id
+				// Update user to database and return id
 				$result=$db->pg_change("UPDATE users set password = $1, salt = $2 where id = $3;", array($pass, $userSecret, $id));
-				$user_id = $result[0]['id'];
 
+				// Overwrite db values
+                $password = $pass;
+                $salt = $userSecret;
 			}
 
 			// Regenerate intermediate hash
