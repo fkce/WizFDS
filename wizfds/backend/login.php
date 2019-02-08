@@ -61,6 +61,30 @@ function check() {
 		if(!empty($result) and strlen($result[0]['password']) > 1) {
 			extract($result[0]);
 
+			// Generate new hashes for existing users with old algorithm
+			if($salt == "") {
+				// Generate user secret code
+				$userSecret = base64_encode(random_bytes(2048));
+
+				// Concat strings and prepare salt
+				$appSecret = $config->getAppSecret($_POST['email']);
+				$stringToHash = $appSecret . $_POST['password'] . $userSecret;
+				$intermediateHashedString = hash('sha512', $stringToHash);
+				$len = strlen($intermediateHashedString);
+				$base256HashedString = '';
+				for ($i = 0; $i < $len; $i += 2) {
+					$base256HashedString .= chr(hexdec(substr($intermediateHashedString, $i, 2)));
+				}
+
+				// Generate final hash
+				$pass = password_hash($base256HashedString, PASSWORD_BCRYPT);
+
+				// Add user to database and return id
+				$result=$db->pg_change("UPDATE users set password = $1, salt = $2 where id = $3;", array($pass, $userSecret, $id));
+				$user_id = $result[0]['id'];
+
+			}
+
 			// Regenerate intermediate hash
 			$appSecret = $config->getAppSecret($_POST['email']);
             $stringToHash = $appSecret . $_POST['password'] . $salt;
