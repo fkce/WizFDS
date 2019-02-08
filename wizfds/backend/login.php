@@ -180,9 +180,8 @@ function makeRegister() {
 		}
 	}
 }
-/*}}}*/
 
-# init /*{{{*/
+# init 
 if(!isset($_SESSION['email'])) { 
 	echo "
 	<html>
@@ -225,5 +224,3 @@ if(!isset($_SESSION['email'])) {
 	</html>
 	";
 } 
-
-/*}}}*/
