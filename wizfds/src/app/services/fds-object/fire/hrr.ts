@@ -6,6 +6,9 @@ export interface HrrObject {
     value: number,
     spread_rate: number,
     alpha: number,
+    alpha2: number,
+    maxHrr: number,
+    sprinklerActivationTime: number,
     time_function: string,
     tau_q: number,
     area: number
@@ -16,6 +19,9 @@ export class Hrr {
     private _value: number;
     private _spread_rate: number;
     private _alpha: number;
+    private _alpha2: number;
+    private _maxHrr: number;
+    private _sprinklerActivationTime: number;
     private _time_function: string;
     private _tau_q: number;
     private _area: number;
@@ -34,6 +40,9 @@ export class Hrr {
         this.tau_q = get(base, 'tau_q', surf.tau_q.default[0]) as number;
         this.area = get(base, 'area', 1) as number;
         this.alpha = get(base, 'alpha', 0) as number;
+        this.alpha2 = get(base, 'alpha2', 0) as number;
+        this.maxHrr = get(base, 'maxHrr', 0) as number;
+        this.sprinklerActivationTime = get(base, 'sprinklerActivationTime', 0) as number;
     }
 
     public calc(alpha?: boolean, spread_rate?: boolean, tau_q?: boolean) {
@@ -130,6 +139,22 @@ export class Hrr {
     }
 
     /**
+     * Getter alpha2
+     * @return {number}
+     */
+	public get alpha2(): number {
+		return this._alpha2;
+	}
+
+    /**
+     * Setter alpha2
+     * @param {number} value
+     */
+	public set alpha2(value: number) {
+		this._alpha2 = value;
+	}
+
+    /**
      * Getter time_function
      * @return {string}
      */
@@ -177,6 +202,38 @@ export class Hrr {
         this._area = round(value, 6);
     }
 
+    /**
+     * Getter maxHrr
+     * @return {number}
+     */
+	public get maxHrr(): number {
+		return this._maxHrr;
+	}
+
+    /**
+     * Setter maxHrr
+     * @param {number} value
+     */
+	public set maxHrr(value: number) {
+		this._maxHrr = value;
+	}
+
+    /**
+     * Getter sprinklerActivationTime
+     * @return {number}
+     */
+	public get sprinklerActivationTime(): number {
+		return this._sprinklerActivationTime;
+	}
+
+    /**
+     * Setter sprinklerActivationTime
+     * @param {number} value
+     */
+	public set sprinklerActivationTime(value: number) {
+		this._sprinklerActivationTime = value;
+	}
+
     /** Export to json */
     public toJSON(): object {
         let hrrpua = this.hrr_type == 'hrrpua' ? this.value : undefined;
@@ -188,6 +245,9 @@ export class Hrr {
             value: this.value,
             spread_rate: this.spread_rate,
             alpha: this.alpha,
+            alpha2: this.alpha2,
+            sprinklerActivationTime: this.sprinklerActivationTime,
+            maxHrr: this.maxHrr,
             tau_q: this.tau_q,
             hrrpua: hrrpua,
             mlrpua: mlrpua

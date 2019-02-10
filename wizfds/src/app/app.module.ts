@@ -10,6 +10,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatDialogModule } from '@angular/material/dialog';
 
 // Ng-select
 import { NgSelectModule } from '@ng-select/ng-select';
@@ -90,6 +91,7 @@ import { IdInputDirective } from './directives/inputs/id-input.directive';
 import { InjectionComponent } from './views/main/fds/specie/injection/injection.component';
 import { RgbInputDirective } from './directives/inputs/rgb-input.directive';
 import { ParabolaChartComponent } from './views/main/fds/shared/parabola-chart/parabola-chart.component';
+import { CustomRampDialogComponent } from './views/main/fds/fire/fires/custom-ramp-dialog/custom-ramp-dialog.component';
 
 
 @NgModule({
@@ -132,6 +134,7 @@ import { ParabolaChartComponent } from './views/main/fds/shared/parabola-chart/p
     IdInputDirective,
     InjectionComponent,
     RgbInputDirective,
+    CustomRampDialogComponent,
   ],
   imports: [
     BrowserModule,
@@ -149,7 +152,8 @@ import { ParabolaChartComponent } from './views/main/fds/shared/parabola-chart/p
     BrowserAnimationsModule,
     MatTooltipModule,
     MatProgressBarModule,
-    MatCheckboxModule
+    MatCheckboxModule,
+    MatDialogModule
   ],
   providers: [
     MainService,
@@ -172,6 +176,9 @@ import { ParabolaChartComponent } from './views/main/fds/shared/parabola-chart/p
       provide: PERFECT_SCROLLBAR_CONFIG,
       useValue: DEFAULT_PERFECT_SCROLLBAR_CONFIG
     }
+  ],
+  entryComponents: [
+    CustomRampDialogComponent
   ],
   bootstrap: [AppComponent]
 })

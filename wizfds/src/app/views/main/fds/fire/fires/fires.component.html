@@ -80,6 +80,9 @@
         </div>
       </div>
       <div class="form-row">
+
+
+        <!-- Constant fire -->
         <div *ngIf="fire.surf.fire_type=='constant_hrr'">
           <label>HRR/MLR:</label>
           <div class="field-container">
@@ -96,6 +99,9 @@
             <ng-katex *ngIf="fire.surf.hrr.hrr_type=='mlrpua'" equation="kg/s\cdot m2"></ng-katex>
           </div>
         </div>
+
+
+        <!-- Time dependent hrrpua -->
         <div *ngIf="fire.surf.fire_type=='time_dependent_hrrpua'">
           <label>HRR/MLR:</label>
           <div class="field-container">
@@ -127,6 +133,12 @@
             <i (click)="addRamp('fire')" class="material-icons">add_box</i>
           </div>
         </div>
+        <div *ngIf="fire.surf.fire_type=='time_dependent_hrrpua' && fire.surf.hrr.time_function=='ramp'">
+          <label>Custom RAMP:</label>
+          <div class="field-container">
+            <button (click)="openCustomRampDialog()">Generate</button>
+          </div>
+        </div>
         <div *ngIf="fire.surf.fire_type=='time_dependent_hrrpua' && fire.surf.hrr.time_function=='tauq'">
           <label>TAU_Q:</label>
           <div class="field-container">
@@ -134,6 +146,8 @@
               decimalInput />
           </div>
         </div>
+
+        <!-- Radially spreading -->
         <div *ngIf="fire.surf.fire_type=='radially_spreading'">
           <label>HRR/MLR:</label>
           <div class="field-container">
@@ -167,6 +181,9 @@
             <ng-katex equation="W/s^2"></ng-katex>
           </div>
         </div>
+
+
+        <!-- Other labels -->
         <div *ngIf="(fire.surf.fire_type=='radially_spreading' || fire.surf.fire_type=='constant_hrr' || (fire.surf.fire_type=='time_dependent_hrrpua' && !fire.surf.ramp)) && fire.surf.hrr.hrr_type=='hrrpua'">
           <!--<div *ngIf="(fire.surf.fire_type=='radially_spreading' || fire.surf.fire_type=='constant_hrr' || (fire.surf.fire_type=='time_dependent_hrrpua' && !fire.surf.ramp.steps)) && fire.surf.hrr.hrr_type=='hrrpua'">-->
           <label>Max HRR:</label>
@@ -184,17 +201,17 @@
         </div>
       </div>
 
-      <ramp-chart *ngIf="fire.surf.ramp && fire.surf.ramp.id && fire.surf.fire_type=='time_dependent_hrrpua' && fire.surf.hrr.time_function=='ramp'"
+      <!-- Charts -->
+      <ramp-chart #rampChart *ngIf="fire.surf.ramp && fire.surf.ramp.id && fire.surf.fire_type=='time_dependent_hrrpua' && fire.surf.hrr.time_function=='ramp'"
         [rampId]="fire.surf.ramp.id" [value]="fire.surf.hrr.value * fire.surf.hrr.area" [objectType]="objectType"
         [xLabel]="'Time'" [yLabel]="'HRR'" [units]="['s','kW']"></ramp-chart>
 
-      <parabola-chart *ngIf="fire.surf.fire_type=='radially_spreading' && fire.surf.hrr.alpha > 0" [maxTime]="fire.totalTime()" [maxHrr]="fire.totalHrr()"
-        [alpha]="fire.surf.hrr.alpha" [objectType]="objectType" [xLabel]="'Time'" [yLabel]="'HRR'" [units]="['s','kW']"></parabola-chart>
-
-      <!-- dodac inne wykresy -->
+      <parabola-chart *ngIf="fire.surf.fire_type=='radially_spreading' && fire.surf.hrr.alpha > 0" [maxTime]="fire.totalTime()"
+        [maxHrr]="fire.totalHrr()" [alpha]="fire.surf.hrr.alpha" [objectType]="objectType" [xLabel]="'Time'" [yLabel]="'HRR'"
+        [units]="['s','kW']"></parabola-chart>
 
       <div class="form-title">
-        <label class="header" *ngIf="fire.surf.fire_type=='time_dependent_hrrpua' || fire.surf.fire_type=='constant_hrr'">Vent
+        <label class="header" *ngIf="fire.surf.fire_type=='time_dependent_hrrpua' || fire.surf.fire_type=='constant_hrr' || fire.surf.fire_type=='custom'">Vent
           XB</label>
         <label class="header" *ngIf="fire.surf.fire_type=='radially_spreading'">Vent XB &amp; XYZ</label>
       </div>
@@ -316,5 +333,38 @@
       </div>
     </div>
   </div>
+
+  <div class="help-wrapper">
+    <div class="help-drawer" [ngClass]="ui.fires.fire.help=='closed' ? 'closed' : 'opened'">
+      <div class="help-label-wrapper">
+        <div class="help-label" (click)="toggleHelp()">
+          <label>HELP</label>
+        </div>
+      </div>
+      <div class="help-area">
+
+        <div class="help-list">
+          <div class="element">
+            <h3>Growth rates</h3>
+            <div class="content">
+              Slow: 0.00293<br>
+              Medium: 0.01172<br>
+              Fast: 0.04689<br>
+              Ultra-fast: 0.1876
+            </div>
+          </div>
+
+          <div class="element">
+            <h3>Detact-t2</h3>
+            <div class="content">
+              <a href="http://www.molinelli.org/DetAct.aspx" target="_blank">www.molinelli.org</a>
+            </div>
+          </div>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+
 
 </div>

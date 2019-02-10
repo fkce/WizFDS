@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, OnDestroy } from '@angular/core';
+import { Component, OnInit, ViewChild, OnDestroy, ElementRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
 import { Fire } from '@services/fds-object/fire/fire';
@@ -17,8 +17,12 @@ import { FdsEnums } from '@enums/fds/enums/fds-enums';
 import { NotifierService } from '../../../../../../../node_modules/angular-notifier';
 
 import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
-import { set, cloneDeep, find, findIndex, filter } from 'lodash';
+import { set, cloneDeep, find, findIndex, filter, isObject, toNumber, round } from 'lodash';
 import { WebsocketMessageObject } from '@services/websocket/websocket-message';
+
+import { MatDialog, MatDialogRef, MatDialogConfig } from '@angular/material';
+import { CustomRampDialogComponent } from './custom-ramp-dialog/custom-ramp-dialog.component';
+import { RampChartComponent } from '../../shared/ramp-chart/ramp-chart.component';
 
 @Component({
   selector: 'app-fires',
@@ -56,13 +60,21 @@ export class FiresComponent implements OnInit, OnDestroy {
   @ViewChild('fireScrollbar') fireScrollbar: PerfectScrollbarComponent;
   @ViewChild('libFireScrollbar') libFireScrollbar: PerfectScrollbarComponent;
 
+  // Ramp child
+  @ViewChild('rampChart') rampChart: RampChartComponent;
+
+  // Dialogs
+  customRampDialogRef: MatDialogRef<CustomRampDialogComponent>;
+  customRampStep: number = 20;
+
   constructor(
     private mainService: MainService,
     private websocketService: WebsocketService,
     private uiStateService: UiStateService,
     private libraryService: LibraryService,
     private route: ActivatedRoute,
-    private readonly notifierService: NotifierService
+    private readonly notifierService: NotifierService,
+    private customRampDialog: MatDialog
   ) { }
 
   ngOnInit() {
@@ -76,8 +88,8 @@ export class FiresComponent implements OnInit, OnDestroy {
     this.fds = this.main.currentFdsScenario.fdsObject;
     this.fires = this.main.currentFdsScenario.fdsObject.fires.fires;
     this.libFires = this.lib.fires;
-    this.ramps = filter(this.main.currentFdsScenario.fdsObject.ramps.ramps, function(o) { return o.type == 'fire' });
-    this.libRamps = filter(this.lib.ramps, function(o) { return o.type == 'fire' });
+    this.ramps = filter(this.main.currentFdsScenario.fdsObject.ramps.ramps, function (o) { return o.type == 'fire' });
+    this.libRamps = filter(this.lib.ramps, function (o) { return o.type == 'fire' });
 
     // Subscribe websocket requests status for websocket CAD sync
     this.wsSub = this.websocketService.requestStatus.subscribe(
@@ -193,6 +205,11 @@ export class FiresComponent implements OnInit, OnDestroy {
     this.ui.fires['fire'].lib == 'closed' ? this.ui.fires['fire'].lib = 'opened' : this.ui.fires['fire'].lib = 'closed';
   }
 
+  /** Toggle help */
+  public toggleHelp() {
+    this.ui.fires['fire'].help == 'closed' ? this.ui.fires['fire'].help = 'opened' : this.ui.fires['fire'].help = 'closed';
+  }
+
   /** Import from library */
   public importLibraryItem(id: string) {
     let idGeneratorService = new IdGeneratorService;
@@ -208,7 +225,7 @@ export class FiresComponent implements OnInit, OnDestroy {
         ramp = cloneDeep(libRamp);
         ramp.uuid = idGeneratorService.genUUID();
         this.main.currentFdsScenario.fdsObject.ramps.ramps.push(ramp);
-        this.ramps = filter(this.main.currentFdsScenario.fdsObject.ramps.ramps, function(o) { return o.type == 'fire' });
+        this.ramps = filter(this.main.currentFdsScenario.fdsObject.ramps.ramps, function (o) { return o.type == 'fire' });
       }
     }
     let fire = cloneDeep(libFire);
@@ -254,7 +271,7 @@ export class FiresComponent implements OnInit, OnDestroy {
     if (this.objectType == 'current') {
       let element = { id: 'RAMP' + this.mainService.getListId(this.main.currentFdsScenario.fdsObject.ramps.ramps), type: type };
       this.main.currentFdsScenario.fdsObject.ramps.ramps.push(new Ramp(JSON.stringify(element)));
-      this.ramps = filter(this.main.currentFdsScenario.fdsObject.ramps.ramps, function(o) { return o.type == 'fire' });
+      this.ramps = filter(this.main.currentFdsScenario.fdsObject.ramps.ramps, function (o) { return o.type == 'fire' });
       this.fire.surf.ramp = find(this.ramps, (ramp) => {
         return ramp.id == element.id;
       });
@@ -262,11 +279,134 @@ export class FiresComponent implements OnInit, OnDestroy {
     else if (this.objectType == 'library') {
       let element = { id: 'RAMP' + this.mainService.getListId(this.lib.ramps), type: type };
       this.lib.ramps.push(new Ramp(JSON.stringify(element)));
-      this.libRamps = filter(this.lib.ramps, function(o) { return o.type == 'fire' });
+      this.libRamps = filter(this.lib.ramps, function (o) { return o.type == 'fire' });
       this.fire.surf.ramp = find(this.libRamps, (ramp) => {
         return ramp.id == element.id;
       });
     }
+  }
+
+  /** Open custion RAMP dialog */
+  public openCustomRampDialog() {
+    const dialogConfig = new MatDialogConfig();
+
+    dialogConfig.autoFocus = true;
+    dialogConfig.minWidth = 400;
+    dialogConfig.data = {
+      alpha: this.fire.surf.hrr.alpha,
+      alpha2: this.fire.surf.hrr.alpha2,
+      maxHrr: this.fire.surf.hrr.maxHrr,
+      sprinklerActivationTime: this.fire.surf.hrr.sprinklerActivationTime,
+      step: this.customRampStep
+    }
+
+    this.customRampDialogRef = this.customRampDialog.open(CustomRampDialogComponent, dialogConfig);
+
+    this.customRampDialogRef
+      .afterClosed()
+      .subscribe(data => {
+        if (isObject(data) && data != "") {
+          this.fire.surf.hrr.alpha = data.alpha;
+          this.fire.surf.hrr.alpha2 = data.alpha2;
+          this.fire.surf.hrr.maxHrr = data.maxHrr;
+          this.fire.surf.hrr.sprinklerActivationTime = data.sprinklerActivationTime;
+          this.customRampStep = data.step;
+
+          // Improper data handling
+          if(data.alpha <= 0 || !data.alpha || data.alpha == "") {
+            this.notifierService.notify('error', 'Alpha1 must be grater than zero');
+          }
+          else if(data.maxHrr <= 0 || !data.maxHrr || data.maxHrr == "") {
+            this.notifierService.notify('error', 'Max HRR must be grater than zero');
+          }
+          else if(data.sprinklerActivationTime <= 0 || !data.sprinklerActivationTime || data.sprinklerActivationTime == "") {
+            this.notifierService.notify('error', 'Sprinkler activation time must be grater than zero');
+          }
+          else if(data.step <= 0 || !data.step || data.step == "") {
+            this.notifierService.notify('error', 'Time step must be grater than zero');
+          }
+          else {
+            this.generateCustomRamp();
+          }
+        }
+      });
+  }
+
+  //** Generate steps for custom RAMP */
+  public generateCustomRamp() {
+    // Check if ramp exist or add new one
+    let newChart = false;
+    if (this.fire.surf.ramp == undefined) {
+      this.addRamp('fire');
+      newChart = true;
+    }
+
+    // Delete all steps
+    this.fire.surf.ramp.steps = [];
+
+    // Create temp fields
+    let f: number = 0;
+    let t: number = 0;
+    let alpha1: number = toNumber(this.fire.surf.hrr.alpha);
+    let alpha2: number = toNumber(this.fire.surf.hrr.alpha2);
+    let tSp: number = toNumber(this.fire.surf.hrr.sprinklerActivationTime);
+    let totalHrr: number = this.fire.totalHrr();
+    let maxHrr: number = this.fire.surf.hrr.maxHrr;
+    let tEnd: number = this.main.currentFdsScenario.fdsObject.general.time.t_end;
+    let step: number = toNumber(this.customRampStep);
+    let tempHrr: number = 0;
+
+    // Steps for first alpha
+    for (t = 0; t < tSp;) {
+
+      // Check if maxHrr is reached
+      tempHrr = alpha1 * Math.pow(t, 2);
+      if (tempHrr < maxHrr) {
+        f = (alpha1 * Math.pow(t, 2)) / totalHrr;
+        this.fire.surf.ramp.steps.push({ t: t, f: f });
+      }
+      else {
+        t = round(Math.pow(maxHrr / alpha1, 0.5), 2);
+        f = maxHrr / totalHrr;
+        this.fire.surf.ramp.steps.push({ t: t, f: f });
+        break;
+      }
+      t += step;
+    }
+
+    // Step for sprinkler activation
+    tempHrr = alpha1 * Math.pow(t, 2) + 1; // Add plus 1 because of rounding
+    if (tempHrr < maxHrr) {
+      t = tSp;
+      f = (alpha1 * Math.pow(t, 2)) / totalHrr;
+      this.fire.surf.ramp.steps.push({ t: t, f: f });
+    }
+
+    // Septs for second alpha until maxHrr is reached
+    tempHrr = Math.pow(((Math.pow((alpha1 * Math.pow(tSp, 2) / alpha2), 0.5) - tSp) + t), 2) * alpha2;
+    t += step;
+    while (tempHrr < maxHrr) {
+
+      tempHrr = Math.pow(((Math.pow((alpha1 * Math.pow(tSp, 2) / alpha2), 0.5) - tSp) + t), 2) * alpha2;
+      if (tempHrr < maxHrr) {
+        f = tempHrr / totalHrr;
+      }
+      else {
+        t = round(Math.pow(maxHrr / alpha2, 0.5) - (Math.pow((alpha1 * Math.pow(tSp, 2) / alpha2), 0.5) - tSp), 2);
+        f = maxHrr / totalHrr;
+      }
+      this.fire.surf.ramp.steps.push({ t: t, f: f });
+      t += step;
+    }
+
+    // Add last step from simulation t_end
+    if (t < tEnd) {
+      this.fire.surf.ramp.steps.push({ t: tEnd, f: f });
+    }
+
+    // Refresh ramp chart
+    if (!newChart)
+      this.rampChart.updateChart();
   }
 
 }

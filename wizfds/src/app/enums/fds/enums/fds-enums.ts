@@ -122,7 +122,7 @@ export const FdsEnums =
             fireType: [
                 { label: 'Constant HRR', value: 'constant_hrr' },
                 { label: 'Time dependent HRRPUA', value: 'time_dependent_hrrpua' },
-                { label: 'Radially spreading fire', value: 'radially_spreading' }
+                { label: 'Radially spreading fire', value: 'radially_spreading' },
             ],
             hrrType: [
                 { label: 'HRRPUA', value: 'hrrpua' },

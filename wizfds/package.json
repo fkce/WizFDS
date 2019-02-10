@@ -25,6 +25,8 @@
     "@angular/platform-browser-dynamic": "7.1.4",
     "@angular/platform-server": "7.1.4",
     "@angular/router": "7.1.4",
+    "@material/animation": "^0.41.0",
+    "@material/dialog": "^0.44.0",
     "@ng-select/ng-select": "^2.13.3",
     "@types/paper": "^0.9.14",
     "angular-notifier": "^3.0.0",
@@ -36,7 +38,7 @@
     "handlebars": "^4.0.12",
     "hoek": "^5.0.4",
     "http-proxy-agent": "^2.1.0",
-    "lodash": "^4.17.11",
+    "lodash": "~>4.17.11",
     "material-design-icons": "^3.0.1",
     "ng-katex": "^0.3.37",
     "ngx-perfect-scrollbar": "^5.3.1",
@@ -50,7 +52,7 @@
     "zone.js": "^0.8.26"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^0.11.4",
+    "@angular-devkit/build-angular": "^0.13.1",
     "@angular/cli": "7.1.4",
     "@angular/compiler-cli": "7.1.4",
     "@angular/language-service": "7.1.4",
@@ -75,6 +77,6 @@
     "ts-node": "~3.2.0",
     "tslint": "~5.7.0",
     "typescript": "3.1.6",
-    "webpack": "^4.28.3"
+    "webpack": "^4.29.3"
   }
 }

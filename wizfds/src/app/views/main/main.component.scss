@@ -170,6 +170,88 @@
     }
 }
 
+@mixin help {
+    .help-wrapper {
+        position: relative;
+        
+        .help-drawer {
+            width: 20rem;
+            height: 100%;
+            display: flex;
+            flex-direction: row;
+            position: absolute;
+            margin-left: -3rem;
+            align-items: flex-start;
+        }
+
+        .help-drawer.opened {
+            //transition: margin-left $open-time ease-in-out;
+            transition: margin-left 1.0s ease-in-out;
+            margin-left: -20rem;
+        }
+
+        .help-drawer.closed {
+            //transition: margin-left $close-time-lib ease-in-out;
+            transition: margin-left 1.0s ease-in-out;
+            margin-left: -3rem;
+        }
+
+        .help-label-wrapper {
+            width: 3rem;
+
+            .help-label {
+                width: 6rem;
+                padding: 0.5rem;
+                transform: rotate(270deg) translateY(-6rem) translateX(-9rem);
+                transform-origin: top right;
+                background-color: $help;
+                color: $grey1;
+                text-align: center;
+                z-index: 10;
+                position: relative;
+                border-top-left-radius: 0.3rem;
+                border-top-right-radius: 0.3rem;
+                cursor: pointer;
+
+                label {
+                    cursor: pointer;
+                }
+            }
+        }
+
+        .help-area {
+            z-index: 12;
+            flex-grow: 1;
+            height: 100%;
+            background-color: $grey2;
+            .help-list {
+                background-color: $grey2;
+                border-right: 1px solid $border-dark;
+                border-left: 1px solid $border-dark;
+                height: 100%;
+                user-select: none;
+                width: 17rem;
+                .element {
+                    h3 {
+                        font-size: 1rem;
+                        height: 1rem;
+                        padding: 0.7rem 1rem 0.5rem 1rem;
+                        box-shadow: 0 -1px 0 $shadow-dark inset;
+                        border-bottom: 1px solid $border-light;
+                    }
+                    .content {
+                        font-size: 0.9rem;
+                        font-style: italic;
+                        padding: 0.5rem 1rem 0.5rem 1rem;
+                        line-height: 1.2;
+                    }
+
+                }
+            }
+        }
+    }
+}
+
 .amper-container {
     display: grid;
     grid-template-columns: 100%;
@@ -179,18 +261,19 @@
     @include list;
     @include form-box;
     @include lib;
-
+    @include help;
 }
 
 .single-amper-container {
     display: grid;
-    grid-template-columns: 10rem auto 0rem;
+    grid-template-columns: 10rem auto 0rem 0rem;
     height: 100%;
     min-height: 30rem;
 
     @include list;
     @include form-box;
     @include lib;
+    @include help;
 }
 
 .double-amper-container {
@@ -201,11 +284,12 @@
 
     .single-amper-container {
         display: grid;
-        grid-template-columns: 10rem auto 0rem;
+        grid-template-columns: 10rem auto 0rem 0rem;
         height: 100%;
 
         @include list;
         @include form-box;
         @include lib;
+        @include help;
     }
 }

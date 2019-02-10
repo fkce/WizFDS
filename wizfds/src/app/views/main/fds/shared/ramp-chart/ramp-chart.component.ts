@@ -29,6 +29,7 @@ export class RampChartComponent implements OnInit, OnChanges {
   @Input() private units: string[];
   @Input() private value: any;
   @Input() private objectType: string;
+  @Input() private update: Function;
 
   public main: Main;
   public lib: Library;

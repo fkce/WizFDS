@@ -62,7 +62,7 @@ export class AppComponent {
         this.setCurrentFdsScenario(2, 49);
       }, 1000);
       setTimeout(() => {
-        this.router.navigate(['/']);
+        this.router.navigate(['fds/fire/fire']);
       }, 2000);
     }
   }

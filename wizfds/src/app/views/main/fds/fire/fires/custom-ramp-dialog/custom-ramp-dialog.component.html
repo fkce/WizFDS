@@ -1,0 +1,50 @@
+<h2 mat-dialog-title>Generate custom RAMP</h2>
+<mat-dialog-content>
+
+  <div class="form-row">
+    <div>
+      <label>Alpha 1:</label>
+      <div class="field-container">
+        <input type="text" [(ngModel)]="alpha" decimalInput />
+        <ng-katex equation="W/s^2"></ng-katex>
+      </div>
+    </div>
+    <div>
+      <label>Alpha 2:</label>
+      <div class="field-container">
+        <input type="text" [(ngModel)]="alpha2" decimalInput />
+        <ng-katex equation="W/s^2"></ng-katex>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div>
+      <label>Sprinkler activation:</label>
+      <div class="field-container">
+        <input type="text" [(ngModel)]="sprinklerActivationTime" decimalInput />
+        <ng-katex equation="s"></ng-katex>
+      </div>
+    </div>
+    <div>
+      <label>Max HRR:</label>
+      <div class="field-container">
+        <input type="text" [(ngModel)]="maxHrr" decimalInput />
+        <ng-katex equation="kW"></ng-katex>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div>
+      <label>Step every:</label>
+      <div class="field-container">
+        <input type="text" [(ngModel)]="step" decimalInput />
+        <ng-katex equation="s"></ng-katex>
+      </div>
+    </div>
+  </div>
+</mat-dialog-content>
+<mat-dialog-actions class="buttons">
+  <button (click)="submit()">Generate</button><button mat-dialog-close>Cancel</button>
+</mat-dialog-actions>
