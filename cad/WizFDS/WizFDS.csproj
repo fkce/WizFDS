@@ -52,6 +52,9 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>false</SignAssembly>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="accoremgd">
       <HintPath>..\..\..\..\..\..\Program Files\Autodesk\AutoCAD 2018\accoremgd.dll</HintPath>
@@ -106,6 +109,9 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>Library\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
+    </Reference>
+    <Reference Include="NVelocity">
+      <HintPath>..\reference\NVelocity.dll</HintPath>
     </Reference>
     <Reference Include="PresentationCore">
       <Private>False</Private>
@@ -185,6 +191,19 @@
     <Compile Include="Cfast\Cfast.cs" />
     <Compile Include="Export\ExportCfast.cs" />
     <Compile Include="Export\ImportUtils.cs" />
+    <Compile Include="GeometryConverter\Bases\BasePoint.cs" />
+    <Compile Include="GeometryConverter\Bases\Direction.cs" />
+    <Compile Include="GeometryConverter\Bases\Element.cs" />
+    <Compile Include="GeometryConverter\Bases\ElementBase.cs" />
+    <Compile Include="GeometryConverter\Helpers\CastHelper.cs" />
+    <Compile Include="GeometryConverter\Helpers\ElementHelper.cs" />
+    <Compile Include="GeometryConverter\Helpers\EnumHelper.cs" />
+    <Compile Include="GeometryConverter\Helpers\MathOperations.cs" />
+    <Compile Include="GeometryConverter\Optimization\LevelOptimizer.cs" />
+    <Compile Include="GeometryConverter\SolidToElementConverter.cs" />
+    <Compile Include="GeometryConverter\Templates\ITemplateManager.cs" />
+    <Compile Include="GeometryConverter\Templates\TemplateManager.cs" />
+    <Compile Include="GeometryConverter\Templates\TemplateProvider.cs" />
     <Compile Include="Modelling\Fire\Fire.cs" />
     <Compile Include="Modelling\Geometry\ObstCeiling.cs" />
     <Compile Include="Modelling\Geometry\ObstPoly.cs" />
