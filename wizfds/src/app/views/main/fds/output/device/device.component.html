@@ -40,8 +40,8 @@
         <div>
           <label>Device type:</label>
           <div class="field-container">
-            <ng-select class="custom" [items]="DEVC.devcType" bindLabel="label" bindValue="value" placeholder="Select type" [(ngModel)]="devc.type"
-              [clearable]="false"></ng-select>
+            <ng-select [items]="DEVC.devcType" bindLabel="label" bindValue="value" placeholder="Select type" [(ngModel)]="devc.type"
+              [searchable]="false" [clearable]="false"></ng-select>
           </div>
         </div>
       </div>
@@ -57,28 +57,28 @@
           <label>Select qunatity:</label>
           <div class="field-container">
             <ng-select class="custom" [items]="QUANTITIES" bindLabel="id" placeholder="Select quantity" [(ngModel)]="devc.quantity" 
-            [clearable]="false"></ng-select>
+            [searchable]="true" [clearable]="false"></ng-select>
           </div>
         </div>
         <div>
           <label>Initial state:</label>
           <div class="field-container">
             <ng-select class="short" [items]="DEVC.devcInitialState" bindLabel="label" bindValue="value" placeholder="Initial state"
-              [(ngModel)]="devc.initial_state" [clearable]="false"></ng-select>
+              [(ngModel)]="devc.initial_state" [searchable]="false" [clearable]="false"></ng-select>
           </div>
         </div>
         <div>
           <label>Latch:</label>
           <div class="field-container">
             <ng-select class="short" [items]="DEVC.devcLatch" bindLabel="label" bindValue="value" placeholder="Initial state" [(ngModel)]="devc.latch"
-              [clearable]="false"></ng-select>
+              [searchable]="false" [clearable]="false"></ng-select>
           </div>
         </div>
         <div>
           <label>Trip direction:</label>
           <div class="field-container">
             <ng-select class="short" [items]="DEVC.devcTripDirection" bindLabel="label" bindValue="value" placeholder="Trip direction"
-              [(ngModel)]="devc.trip_direction" [clearable]="false"></ng-select>
+              [(ngModel)]="devc.trip_direction" [searchable]="false" [clearable]="false"></ng-select>
           </div>
         </div>
       </div>
@@ -87,8 +87,8 @@
         <div>
           <label>Geometry type:</label>
           <div class="field-container">
-            <ng-select class="custom" [items]="DEVC.devcGeomType" bindLabel="label" bindValue="value" placeholder="Select geometry type"
-              [(ngModel)]="devc.geometrical_type" [clearable]="false"></ng-select>
+            <ng-select [items]="DEVC.devcGeomType" bindLabel="label" bindValue="value" placeholder="Select geometry type"
+              [(ngModel)]="devc.geometrical_type" [searchable]="false" [clearable]="false"></ng-select>
           </div>
         </div>
       </div>
@@ -160,14 +160,30 @@
             <ng-katex equation="m"></ng-katex>
           </div>
         </div>
+
+      </div>
+
+      <div class="form-row" *ngIf="devc.geometrical_type == 'linear'">
+        <div>
+          <label>Points:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="devc.points" decimalInput>
+          </div>
+        </div>
+        <div>
+          <label>Time history:</label>
+          <div class="field-container">
+            <mat-checkbox [(ngModel)]="devc.time_history"></mat-checkbox>
+          </div>
+        </div>
       </div>
 
       <div class="form-row">
         <div>
           <label>Statistics:</label>
           <div class="field-container">
-            <ng-select class="custom" [items]="DEVC.devcStatistics" bindLabel="label" bindValue="value" placeholder="Select statistics" 
-              [(ngModel)]="devc.statistics.statistics" [clearable]="true"></ng-select>
+            <ng-select [items]="DEVC.devcStatistics" bindLabel="label" bindValue="value" placeholder="Select statistics" 
+              [(ngModel)]="devc.statistics.statistics" [searchable]="false" [clearable]="true"></ng-select>
           </div>
         </div>
       </div>
@@ -179,7 +195,7 @@
         <div>
           <label>Add {{ devc.quantity.id }} species:</label>
           <div class="field-container">
-            <ng-select class="custom" [items]="SPECIES" bindLabel="id" placeholder="Select species" multiple="true" hideSelected="true"
+            <ng-select [items]="SPECIES" bindLabel="id" placeholder="Select species" multiple="true" hideSelected="true"
               [(ngModel)]="devc.quantity.specs" [closeOnSelect]="false" [clearSearchOnAdd]="true"></ng-select>
           </div>
         </div>
@@ -192,7 +208,7 @@
         <div>
           <label>Add {{ devc.quantity.id }} parts:</label>
           <div class="field-container">
-            <ng-select class="custom" [items]="SPECIES" bindLabel="id" placeholder="Select species" multiple="true" hideSelected="true"
+            <ng-select [items]="SPECIES" bindLabel="id" placeholder="Select species" multiple="true" hideSelected="true"
               [(ngModel)]="devc.quantity.parts" [closeOnSelect]="false" [clearSearchOnAdd]="true"></ng-select>
           </div>
         </div>

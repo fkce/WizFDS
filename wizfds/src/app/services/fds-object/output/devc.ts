@@ -32,7 +32,9 @@ export interface DevcInterface {
     latch: boolean,
     trip_direction: number,
     smoothing_factor: number,
-    statistics: Statistics
+    statistics: Statistics,
+    time_history: boolean,
+    points: number
 }
 
 export class Devc {
@@ -54,6 +56,8 @@ export class Devc {
     private _trip_direction: number;
     private _smoothing_factor: number;
     private _statistics: Statistics;
+    private _time_history: boolean;
+    private _points: number;
 
     constructor(jsonString: string, props?: Prop[], specs?: Spec[], parts?: Part[]) {
 
@@ -104,6 +108,8 @@ export class Devc {
             integral_upper: toNumber(get(base, 'statistics.integral_upper', 0)),
             statistics: get(base, 'statistics.statistics', undefined)
         }
+        this.time_history = (get(base, 'time_history', devc.time_history.default[0] == true)) as boolean;
+        this.points = toNumber(get(base, 'points', devc.points.default[0]));
     }
 
     /**
@@ -394,6 +400,38 @@ export class Devc {
         this._statistics = value;
     }
 
+    /**
+     * Getter time_history
+     * @return {boolean}
+     */
+	public get time_history(): boolean {
+		return this._time_history;
+	}
+
+    /**
+     * Setter time_history
+     * @param {boolean} value
+     */
+	public set time_history(value: boolean) {
+		this._time_history = value;
+	}
+
+    /**
+     * Getter points
+     * @return {number}
+     */
+	public get points(): number {
+		return this._points;
+	}
+
+    /**
+     * Setter points
+     * @param {number} value
+     */
+	public set points(value: number) {
+		this._points = value;
+	}
+
     /**  
      * Export to json
      */
@@ -417,7 +455,9 @@ export class Devc {
             part_id: get(self, 'part_id.id', undefined),
             xb: this.xb.toJSON(),
             xyz: this.xyz.toJSON(),
-            statistics: this.statistics
+            statistics: this.statistics,
+            time_history: this.time_history,
+            points: this.points
         }
         return devc;
     }

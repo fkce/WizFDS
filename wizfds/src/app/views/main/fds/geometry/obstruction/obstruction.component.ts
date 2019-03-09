@@ -13,7 +13,7 @@ import { FdsEnums } from '@enums/fds/enums/fds-enums';
 import { WebsocketMessageObject } from '@services/websocket/websocket-message';
 
 import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
-import { set, find, cloneDeep, findIndex } from 'lodash';
+import { set, find, cloneDeep, findIndex, concat } from 'lodash';
 
 @Component({
   selector: 'app-obstruction',
@@ -28,6 +28,7 @@ export class ObstructionComponent implements OnInit, OnDestroy {
   geometry: any;
   ui: UiState;
   output: any;
+  surfaces: any[];
 
   // Component objects
   obsts: Obst[];
@@ -68,6 +69,9 @@ export class ObstructionComponent implements OnInit, OnDestroy {
     this.output = this.main.currentFdsScenario.fdsObject.output;
     this.obsts = this.main.currentFdsScenario.fdsObject.geometry.obsts;
     this.holes = this.main.currentFdsScenario.fdsObject.geometry.holes;
+
+    // Create fire and geometry surfaces
+    this.surfaces = concat(this.geometry.surfs, this.fds.fires.fires);
 
     // Subscribe websocket requests status for websocket CAD sync
     this.wsSub = this.websocketService.requestStatus.subscribe(

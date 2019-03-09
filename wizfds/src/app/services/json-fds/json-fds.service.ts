@@ -4,7 +4,7 @@ import { MainService } from '@services/main/main.service';
 import { NotifierService } from 'angular-notifier';
 import { FdsEntities } from '@enums/fds/entities/fds-entities';
 import { IFds } from '@services/fds-object/fds-object';
-import { forEach, forOwn, unset, toUpper, has, includes, isArray, join, cloneDeep, concat, replace, each } from 'lodash';
+import { forEach, forOwn, unset, toUpper, has, includes, isArray, join, cloneDeep, concat, replace, each, toInteger } from 'lodash';
 import { sprintf } from 'sprintf-js';
 import { Fire } from '@services/fds-object/fire/fire';
 import { Surf } from '@services/fds-object/geometry/surf';
@@ -24,7 +24,7 @@ export class JsonFdsService {
   main: Main;
   fdsEntities: object = FdsEntities;
   fdsVisible: string[] = [
-    'title', 'chid',
+    'title', 'chid', 'nframes',
     't_begin', 't_end', 'dt_restart',
     'c', 'o', 'h', 'n', 'radiation_fraction', 'soot_yield', 'co_yield', 'heat_of_combustion',
     'hrrpua', 'color',
@@ -83,11 +83,14 @@ export class JsonFdsService {
         return;
       }
 
+      // If value is empty
+      if (value === '' && value != '0') {
+        unset(json, key);
+        return;
+      }
+
       // Change color
       if (key == 'color') {
-        console.log(json);
-        console.log(key);
-        console.log(value);
         if (value['value'] && value['value'] != '') {
           value = value['value'];
         }
@@ -97,10 +100,13 @@ export class JsonFdsService {
         }
       }
 
+      let type = this.fdsEntities[amper][key]['type'];
+      let defValue = this.fdsEntities[amper][key]['default'];
+
       // If default values - unset
-      if (this.fdsEntities[amper][key]['type'] == 'Logical') {
+      if (type == 'Logical') {
         //if(isDevMode()) console.log(key + ': Logical = ' + value);
-        if (this.fdsEntities[amper][key]['default'][0] == value) {
+        if (defValue[0] == value) {
           if (includes(this.fdsVisible, key)) {
             result.push(sprintf('%s=%s', toUpper(key), value == true ? '.TRUE.' : '.FALSE.'));
             return
@@ -113,9 +119,10 @@ export class JsonFdsService {
           return;
         }
       }
-      else if (this.fdsEntities[amper][key]['type'] == 'Character') {
+
+      else if (type == 'Character') {
         //if(isDevMode()) console.log(key + ': Character = ' + value);
-        if (toUpper(this.fdsEntities[amper][key]['default'][0]) == toUpper(value)) {
+        if (toUpper(defValue[0]) == toUpper(value)) {
           if (includes(this.fdsVisible, key)) {
             result.push(sprintf("%s='%s'", toUpper(key), value));
             return
@@ -135,9 +142,10 @@ export class JsonFdsService {
           }
         }
       }
-      else if (this.fdsEntities[amper][key]['type'] == 'Real') {
+
+      else if (type == 'Integer') {
         //if(isDevMode()) console.log(key + ': Real = ' + value);
-        if (this.fdsEntities[amper][key]['default'][0] == value) {
+        if (defValue[0] === value) {
           if (includes(this.fdsVisible, key)) {
             result.push(sprintf('%s=%s', toUpper(key), value));
             return
@@ -152,44 +160,77 @@ export class JsonFdsService {
           return;
         }
       }
-      else if (this.fdsEntities[amper][key]['type'] == 'RealSextuplet') {
+
+      else if (type == 'Real') {
+        //if(isDevMode()) console.log(key + ': Real = ' + value);
+        if (defValue[0] == value) {
+          if (includes(this.fdsVisible, key)) {
+            result.push(sprintf('%s=%s', toUpper(key), value));
+            return
+          }
+          unset(json, key);
+          return;
+        }
+        else {
+          let val;
+          value == null ? unset(json, key) : val = toUpper(value);
+          result.push(sprintf('%s=%s', toUpper(key), val));
+          return;
+        }
+      }
+
+      else if (type == 'RealSextuplet') {
         //if(isDevMode()) console.log(key + ': RealSextuplet = ' + value);
         if (key == 'xb') {
           result.push(sprintf('%s=%s,%s, %s,%s, %s,%s', toUpper(key), value['x1'], value['x2'], value['y1'], value['y2'], value['z1'], value['z2']));
           return;
         }
       }
-      else if (this.fdsEntities[amper][key]['type'] == 'RealTriplet') {
+
+      else if (type == 'RealTriplet') {
         //if(isDevMode()) console.log(key + ': RealTriplet = ' + value);
         if (key == 'xyz' && value['x'] != undefined) {
           result.push(sprintf('%s=%s,%s,%s', toUpper(key), value['x'], value['y'], value['z']));
+        }
+        else if (defValue[0] == value[0] && defValue[1] == value[1] && defValue[2] == value[2]) {
+          if (includes(this.fdsVisible, key)) {
+            result.push(sprintf('%s=%s,%s,%s', toUpper(key), value[0], value[1], value[2]));
+            return
+          }
+          unset(json, key);
+          return;
         }
         else {
           result.push(sprintf('%s=%s,%s,%s', toUpper(key), value[0], value[1], value[2]));
         }
         return;
       }
-      else if (this.fdsEntities[amper][key]['type'] == 'IntegerTriplet') {
+
+      else if (type == 'IntegerTriplet') {
         //if(isDevMode()) console.log(key + ': IntegerTriplet = ' + value);
         result.push(sprintf('%s=%s,%s,%s', toUpper(key), value[0], value[1], value[2]));
         return;
       }
-      else if (this.fdsEntities[amper][key]['type'] == 'CharacterDoublet') {
+
+      else if (type == 'CharacterDoublet') {
         //if(isDevMode()) console.log(key + ': CharacterDoublet = ' + value);
         result.push(sprintf("%s='%s','%s'", toUpper(key), value[0], value[1]));
         return;
       }
-      else if (this.fdsEntities[amper][key]['type'] == 'CharacterTriplet') {
+
+      else if (type == 'CharacterTriplet') {
         //if(isDevMode()) console.log(key + ': CharacterTriplet = ' + value);
         result.push(sprintf("%s='%s','%s','%s'", toUpper(key), value[0], value[1], value[2]));
         return;
       }
-      else if (this.fdsEntities[amper][key]['type'] == 'CharacterSextuplet') {
+
+      else if (type == 'CharacterSextuplet') {
         //if(isDevMode()) console.log(key + ': CharacterSextuplet = ' + value);
         result.push(sprintf("%s='%s','%s','%s','%s','%s','%s'", toUpper(key), value[0], value[1], value[2], value[3], value[4], value[5]));
         return;
       }
-      else if (this.fdsEntities[amper][key]['type'] == 'CharacterArray') {
+
+      else if (type == 'CharacterArray') {
         //if(isDevMode()) console.log(key + ': CharacterDoublet = ' + value);
         let elements = '';
         each(value, (val) => {
@@ -199,12 +240,13 @@ export class JsonFdsService {
         result.push(sprintf("%s='%s'", toUpper(key), elements));
         return;
       }
-      else if (this.fdsEntities[amper][key]['type'] == 'Char.Quint') {
+
+      else if (type == 'Char.Quint') {
         //if(isDevMode()) console.log(key + ': Char.Quint = ' + value);
-        // HERE lenght
         result.push(sprintf("%s(1:%s)='%s'", toUpper(key), value['length'], join(value, "','")));
         return;
       }
+
       else {
         //if(isDevMode()) console.log(key + ': ' + this.fdsEntities[amper][key]['type'] + ' = ' + value);
         if (isArray(value)) {
@@ -564,7 +606,6 @@ export class JsonFdsService {
 
     let specString: string[] = [];
 
-
     forEach(specs, (o) => {
       let spec = cloneDeep(o.toJSON());
       let lumpedSpecString: string[] = [];
@@ -667,6 +708,7 @@ export class JsonFdsService {
 
         let parsedSlcf = this.parseAmper(slcf, 'slcf');
         if (parsedSlcf) slcfString.push(sprintf("&SLCF %s /", parsedSlcf));
+        unset(slcf, 'vector');
       });
     });
 
@@ -732,7 +774,7 @@ export class JsonFdsService {
       if (o.geometrical_type == 'point') {
         unset(devc, 'xb');
       }
-      else if (o.geometrical_type == 'plane' || o.geometrical_type == 'volume') {
+      else if (o.geometrical_type == 'plane' || o.geometrical_type == 'volume' || o.geometrical_type == 'linear') {
         unset(devc, 'xyz');
       }
 
@@ -766,73 +808,111 @@ export class JsonFdsService {
     fdsInput = concat(fdsInput, this.simpleAmper(Array(fdsObject.general.misc), 'misc'));
     fdsInput.push('');
 
-    fdsInput = concat(fdsInput, Array('# ---- Mesh ----'));
-    fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.geometry.meshes, 'mesh'));
-    fdsInput.push('');
+    if (fdsObject.geometry.meshes.length > 0) {
+      fdsInput = concat(fdsInput, Array('# ---- Mesh ----'));
+      fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.geometry.meshes, 'mesh'));
+      fdsInput.push('');
+    }
 
-    fdsInput = concat(fdsInput, Array('# ---- Open ----'));
-    fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.geometry.opens, 'vent'));
-    fdsInput.push('');
+    if (fdsObject.geometry.opens.length > 0) {
+      fdsInput = concat(fdsInput, Array('# ---- Open ----'));
+      fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.geometry.opens, 'vent'));
+      fdsInput.push('');
+    }
 
-    fdsInput = concat(fdsInput, Array('# ---- Fire ----'));
-    fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.fires.fuels, 'reac'));
-    fdsInput = concat(fdsInput, this.simpleAmper(Array(fdsObject.fires.combustion), 'radi'));
-    fdsInput.push('');
-    fdsInput = concat(fdsInput, Array('## ---- Fires ----'));
-    fdsInput = concat(fdsInput, this.fireAmper(fdsObject.fires.fires));
+    if (fdsObject.fires.fuels.length > 0 || fdsObject.fires.fires.length > 0) {
+      fdsInput = concat(fdsInput, Array('# ---- Fire ----'));
+    }
+    if (fdsObject.fires.fuels.length > 0) {
+      fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.fires.fuels, 'reac'));
+      fdsInput = concat(fdsInput, this.simpleAmper(Array(fdsObject.fires.combustion), 'radi'));
+      fdsInput.push('');
+    }
+    if (fdsObject.fires.fires.length > 0) {
+      fdsInput = concat(fdsInput, Array('## ---- Fires ----'));
+      fdsInput = concat(fdsInput, this.fireAmper(fdsObject.fires.fires));
+    }
 
-    fdsInput = concat(fdsInput, Array('# ---- Ventilation ----'));
-    fdsInput = concat(fdsInput, Array('## ---- Basic ----'));
-    fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.ventilation.vents, 'vent'));
-    fdsInput = concat(fdsInput, this.surfVentAmper(fdsObject.ventilation.surfs));
-    fdsInput.push('');
-    fdsInput = concat(fdsInput, Array('## ---- Jetfans ----'));
-    fdsInput = concat(fdsInput, this.jetfanAmper(fdsObject.ventilation.jetfans));
-    fdsInput.push('');
+    if (fdsObject.ventilation.jetfans.length > 0 || fdsObject.ventilation.surfs.length > 0 || fdsObject.ventilation.vents.length > 0) {
+      fdsInput = concat(fdsInput, Array('# ---- Ventilation ----'));
+    }
+    if (fdsObject.ventilation.surfs.length > 0 || fdsObject.ventilation.vents.length > 0) {
+      fdsInput = concat(fdsInput, Array('## ---- Basic ----'));
+      fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.ventilation.vents, 'vent'));
+      fdsInput = concat(fdsInput, this.surfVentAmper(fdsObject.ventilation.surfs));
+      fdsInput.push('');
+    }
+    if (fdsObject.ventilation.jetfans.length > 0) {
+      fdsInput = concat(fdsInput, Array('## ---- Jetfans ----'));
+      fdsInput = concat(fdsInput, this.jetfanAmper(fdsObject.ventilation.jetfans));
+      fdsInput.push('');
+    }
 
-    fdsInput = concat(fdsInput, Array('# ---- Specie ----'));
-    fdsInput = concat(fdsInput, Array('## ---- Specs ----'));
-    fdsInput = concat(fdsInput, this.specAmper(fdsObject.specie.specs));
-    fdsInput.push('');
-    fdsInput = concat(fdsInput, Array('## ---- Surfs ----'));
-    fdsInput = concat(fdsInput, this.specSurfAmper(fdsObject.specie.surfs));
-    fdsInput.push('');
-    fdsInput = concat(fdsInput, Array('## ---- Vents ----'));
-    fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.specie.vents, 'vent'));
-    fdsInput.push('');
+    if (fdsObject.specie.specs.length > 0 || fdsObject.specie.surfs.length > 0 || fdsObject.specie.vents.length > 0) {
+      fdsInput = concat(fdsInput, Array('# ---- Specie ----'));
+    }
+    if (fdsObject.specie.specs.length > 0) {
+      fdsInput = concat(fdsInput, Array('## ---- Specs ----'));
+      fdsInput = concat(fdsInput, this.specAmper(fdsObject.specie.specs));
+      fdsInput.push('');
+    }
+    if (fdsObject.specie.surfs.length > 0) {
+      fdsInput = concat(fdsInput, Array('## ---- Surfs ----'));
+      fdsInput = concat(fdsInput, this.specSurfAmper(fdsObject.specie.surfs));
+      fdsInput.push('');
+    }
+    if (fdsObject.specie.vents.length > 0) {
+      fdsInput = concat(fdsInput, Array('## ---- Vents ----'));
+      fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.specie.vents, 'vent'));
+      fdsInput.push('');
+    }
 
     fdsInput = concat(fdsInput, Array('# ---- Output ----'));
     fdsInput = concat(fdsInput, Array('## ---- General ----'));
     fdsInput = concat(fdsInput, this.simpleAmper(Array(fdsObject.output.general), 'dump'));
     fdsInput.push('');
-    fdsInput = concat(fdsInput, Array('## ---- Boundary ----'));
-    fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.output.bndfs, 'bndf'));
-    //fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.output.parts, 'part'));
-    fdsInput.push('');
+    if (fdsObject.output.bndfs.length > 0) {
+      fdsInput = concat(fdsInput, Array('## ---- Boundary ----'));
+      fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.output.bndfs, 'bndf'));
+      fdsInput.push('');
+    }
 
-    fdsInput = concat(fdsInput, Array('## ---- Slice ----'));
-    fdsInput = concat(fdsInput, this.slcfAmper(fdsObject.output.slcfs));
-    fdsInput.push('');
-    fdsInput = concat(fdsInput, Array('## ---- Isosurface ----'));
-    fdsInput = concat(fdsInput, this.isofAmper(fdsObject.output.isofs));
-    fdsInput.push('');
-    fdsInput = concat(fdsInput, Array('## ---- Device ----'));
-    fdsInput = concat(fdsInput, this.devcAmper(fdsObject.output.devcs));
-    fdsInput.push('');
+    if (fdsObject.output.slcfs.length > 0) {
+      fdsInput = concat(fdsInput, Array('## ---- Slice ----'));
+      fdsInput = concat(fdsInput, this.slcfAmper(fdsObject.output.slcfs));
+      fdsInput.push('');
+    }
+    if (fdsObject.output.isofs.length > 0) {
+      fdsInput = concat(fdsInput, Array('## ---- Isosurface ----'));
+      fdsInput = concat(fdsInput, this.isofAmper(fdsObject.output.isofs));
+      fdsInput.push('');
+    }
+    if (fdsObject.output.devcs.length > 0) {
+      fdsInput = concat(fdsInput, Array('## ---- Device ----'));
+      fdsInput = concat(fdsInput, this.devcAmper(fdsObject.output.devcs));
+      fdsInput.push('');
+    }
 
     fdsInput = concat(fdsInput, Array('# ---- Geometry ----'));
     fdsInput = concat(fdsInput, Array('## ---- Material ----'));
     fdsInput = concat(fdsInput, this.matlAmper(fdsObject.geometry.matls));
     fdsInput.push('');
-    fdsInput = concat(fdsInput, Array('## ---- Surface ----'));
-    fdsInput = concat(fdsInput, this.surfAmper(fdsObject.geometry.surfs));
-    fdsInput.push('');
-    fdsInput = concat(fdsInput, Array('## ---- Obstruction ----'));
-    fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.geometry.obsts, 'obst'));
-    fdsInput.push('');
-    fdsInput = concat(fdsInput, Array('## ---- Hole ----'));
-    fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.geometry.holes, 'hole'));
-    fdsInput.push('');
+    if (fdsObject.geometry.surfs.length > 0) {
+      fdsInput = concat(fdsInput, Array('## ---- Surface ----'));
+      fdsInput = concat(fdsInput, this.surfAmper(fdsObject.geometry.surfs));
+      fdsInput.push('');
+    }
+    if (fdsObject.geometry.obsts.length > 0) {
+      fdsInput = concat(fdsInput, Array('## ---- Obstruction ----'));
+      fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.geometry.obsts, 'obst'));
+      fdsInput.push('');
+    }
+    if (fdsObject.geometry.holes.length > 0) {
+      fdsInput = concat(fdsInput, Array('## ---- Hole ----'));
+      fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.geometry.holes, 'hole'));
+      fdsInput.push('');
+    }
+
     fdsInput = concat(fdsInput, Array('&TAIL /'));
 
     return fdsInput;

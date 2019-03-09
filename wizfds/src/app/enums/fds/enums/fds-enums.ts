@@ -54,6 +54,7 @@ export const FdsEnums =
             ],
             devcGeomType: [
                 { label: 'Point', value: 'point' },
+                { label: 'Linear', value: 'linear' },
                 { label: 'Plane', value: 'plane' },
                 { label: 'Volume', value: 'volume' }
             ],

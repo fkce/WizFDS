@@ -1307,6 +1307,26 @@ export const FdsEntities =
               }
             ]
           },
+          time_history: {
+            type: 'Logical',
+            default: [
+              false
+            ],
+            help: '',
+            pattern: '',
+            valid_ranges: [
+              {
+                minExclusive: '__',
+                maxExclusive: '__'
+              }
+            ],
+            reasonable_ranges: [
+              {
+                minExclusive: '__',
+                maxExclusive: '__'
+              }
+            ]
+          },
           trip_direction: {
             type: 'Integer',
             default: [
@@ -4590,6 +4610,9 @@ export const FdsEntities =
           },
           mpi_process: {
             type: 'Integer',
+            default: [
+              ''
+            ],
             help: '',
             pattern: '',
             valid_ranges: [
@@ -4607,6 +4630,9 @@ export const FdsEntities =
           },
           n_threads: {
             type: 'Integer',
+            default: [
+              ''
+            ],
             help: '',
             pattern: '',
             valid_ranges: [

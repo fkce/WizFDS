@@ -11,7 +11,8 @@ export interface MiscObject {
     dns: boolean,
     overwrite: boolean,
     noise: boolean,
-    noise_velocity: number
+    noise_velocity: number,
+    shared_file_system: boolean
 }
 
 export class Misc {
@@ -24,6 +25,7 @@ export class Misc {
     private _overwrite: boolean;
     private _noise: boolean;
     private _noise_velocity: number;
+    private _shared_file_system: boolean;
 
     constructor(jsonString: string) {
 
@@ -33,15 +35,17 @@ export class Misc {
         let idGeneratorService = new IdGeneratorService;
         let misc = FdsEntities.misc;
 
-        this.tmpa = get(base, 'misc.tmpa', misc.tmpa.default[0]);
-        this.p_inf = get(base, 'misc.p_inf', misc.p_inf.default[0]);
-        this.humidity = get(base, 'misc.humidity', misc.humidity.default[0]);
-        this.gvec = get(base, 'misc.gvec', misc.gvec.default);
-        this.restart = get(base, 'misc.restart', misc.restart.default[0]);
-        this.dns = get(base, 'misc.dns', misc.dns.default[0]);
-        this.overwrite = get(base, 'misc.overwrite', misc.overwrite.default[0]);
-        this.noise = get(base, 'misc.noise', misc.noise.default[0]);
-        this.noise_velocity = get(base, 'misc.noise_velocity', misc.noise_velocity.default[0]);
+        this.tmpa = get(base, 'tmpa', misc.tmpa.default[0]);
+        this.p_inf = get(base, 'p_inf', misc.p_inf.default[0]);
+        this.humidity = get(base, 'humidity', misc.humidity.default[0]);
+        this.gvec = get(base, 'gvec', misc.gvec.default);
+        this.restart = get(base, 'restart', misc.restart.default[0]);
+        this.dns = get(base, 'dns', misc.dns.default[0]);
+        this.overwrite = get(base, 'overwrite', misc.overwrite.default[0]);
+        this.noise = get(base, 'noise', misc.noise.default[0]);
+        this.noise_velocity = get(base, 'noise_velocity', misc.noise_velocity.default[0]);
+
+        this.shared_file_system = (get(base, 'shared_file_system', misc.shared_file_system.default[0] == true)) as boolean;
     }
 
     /**
@@ -188,6 +192,22 @@ export class Misc {
         this._noise_velocity = value;
     }
 
+    /**
+     * Getter shared_file_system
+     * @return {boolean}
+     */
+	public get shared_file_system(): boolean {
+		return this._shared_file_system;
+	}
+
+    /**
+     * Setter shared_file_system
+     * @param {boolean} value
+     */
+	public set shared_file_system(value: boolean) {
+		this._shared_file_system = value;
+	}
+
     /** Export to json */
     public toJSON(): object {
         let misc: object = {
@@ -199,7 +219,8 @@ export class Misc {
             dns: this.dns,
             overwrite: this.overwrite,
             noise: this.noise,
-            noise_velocity: this.noise_velocity
+            noise_velocity: this.noise_velocity,
+            shared_file_system: this.shared_file_system
         }
         return misc;
     }

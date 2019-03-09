@@ -31,11 +31,11 @@ export class Dump {
 
         let dump = FdsEntities.dump;
 
-        this.nframes = toNumber(get(base, 'output.general.nframes', dump.nframes.default[0]));
-        this.dt_restart = toNumber(get(base, 'output.general.dt_restart', dump.dt_restart.default[0]));
-        this.mass_file = (get(base, 'output.general.mass_file', dump.mass_file.default[0]) == true);
-        this.smoke3d = (get(base, 'output.general.smoke3d', dump.smoke3d.default[0]) == true);
-        this.status_files = (get(base, 'output.general.status_files', dump.status_files.default[0]) == true);
+        this.nframes = toNumber(get(base, 'nframes', dump.nframes.default[0]));
+        this.dt_restart = toNumber(get(base, 'dt_restart', dump.dt_restart.default[0]));
+        this.mass_file = (get(base, 'mass_file', dump.mass_file.default[0]) == true);
+        this.smoke3d = (get(base, 'smoke3d', dump.smoke3d.default[0]) == true);
+        this.status_files = (get(base, 'status_files', dump.status_files.default[0]) == true);
         this.plot3d_quantities = get(base, 'plot3d_quantities', []) as string[];
 
         this.specs = base.specs != undefined && base.specs.length > 0 ? map(base.specs, function (o) { return new Spec(JSON.stringify(o)) }) : [];

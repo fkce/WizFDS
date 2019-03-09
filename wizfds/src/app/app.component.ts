@@ -1,5 +1,7 @@
-import { Router } from '@angular/router';
+import { Router, NavigationEnd } from '@angular/router';
 import { Component, OnInit, isDevMode, enableProdMode } from '@angular/core';
+import 'rxjs/add/operator/filter';
+import {googleAnalytics} from '../assets/analytics';
 
 import { MainService } from '@services/main/main.service';
 import { Main } from '@services/main/main';
@@ -21,6 +23,7 @@ export class AppComponent {
   main: Main;
   lib: Library;
   version = environment.version;
+  lastUrl: string = '/';
 
   constructor(
     private mainService: MainService,
@@ -31,12 +34,23 @@ export class AppComponent {
     private categoryService: CategoryService,
     private router: Router,
     public httpManager: HttpManagerService
-  ) { }
+  ) {
+    this.router.events.subscribe(event => {
+      this.router.events.filter(event => event instanceof NavigationEnd).subscribe(event => {
+        const url = event['url'];
+        if (url !== null && url !== undefined && url !== '' && url.indexOf('null') < 0 && this.lastUrl != url) {
+          googleAnalytics(url);
+          this.lastUrl = url;
+        }
+      });
+    });
+
+  }
 
   ngOnInit() {
     console.clear();
 
-    if(isDevMode()) {
+    if (isDevMode()) {
       console.log('Development mode');
     }
     else {
@@ -59,10 +73,10 @@ export class AppComponent {
     // For developing purpose
     if (isDevMode()) {
       setTimeout(() => {
-        this.setCurrentFdsScenario(2, 49);
+        this.setCurrentFdsScenario(30, 53);
       }, 1000);
       setTimeout(() => {
-        this.router.navigate(['fds/fire/fire']);
+        //this.router.navigate(['fds/output/device']);
       }, 2000);
     }
   }
@@ -74,12 +88,5 @@ export class AppComponent {
   setCurrentFdsScenario(projectId: number, fdsScenarioId: number) {
     this.fdsScenarioService.setCurrentFdsScenario(projectId, fdsScenarioId).subscribe();
   }
-  /**
-   * ngOnInit:
-   * 1. Utworz main object
-   * 2. Pobierz dane uzytkownika
-   * 3. Pobierz projekty i scenariusze (naglowki)
-   */
-
 
 }

@@ -25,11 +25,11 @@ export class Time {
         let idGeneratorService = new IdGeneratorService;
         let time = FdsEntities.time;
 
-        this.t_begin = get(base, 'time.t_begin', time.t_begin.default[0]);
-        this.t_end = get(base, 'time.t_end', time.t_end.default[0]);
-        this.dt = get(base, 'time.dt', undefined);
-        this.lock_time_step = get(base, 'time.lock_time_step', time.lock_time_step.default[0]);
-        this.restrict_time_step = get(base, 'time.restrict_time_step', time.restrict_time_step.default[0])
+        this.t_begin = get(base, 't_begin', time.t_begin.default[0]);
+        this.t_end = get(base, 't_end', time.t_end.default[0]);
+        this.dt = get(base, 'dt', undefined);
+        this.lock_time_step = get(base, 'lock_time_step', time.lock_time_step.default[0]);
+        this.restrict_time_step = get(base, 'restrict_time_step', time.restrict_time_step.default[0])
     }
 
     /**

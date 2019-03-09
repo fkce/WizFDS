@@ -13,7 +13,9 @@ export interface IMesh {
     ksize: number,
     ijk: number[],
     xb: Xb,
-    cells: number
+    cells: number,
+    mpi_process: string,
+    n_threads: string
 }
 
 export class Mesh {
@@ -27,6 +29,8 @@ export class Mesh {
     private _ijk: number[];
     private _xb: Xb;
     private _cells: number;
+    private _mpi_process: string;
+    private _n_threads: string;
 
     constructor(jsonString: string) {
 
@@ -49,6 +53,9 @@ export class Mesh {
         this.isize = toNumber(get(base, 'isize', 0.1));
         this.jsize = toNumber(get(base, 'jsize', 0.1));
         this.ksize = toNumber(get(base, 'ksize', 0.1));
+
+        this.mpi_process = get(base, 'mpi_process', '');
+        this.n_threads = get(base, 'n_threads', '');
 
         this.cells = this.calcCells();
 
@@ -333,6 +340,38 @@ export class Mesh {
         return this.ijk[0] * this.ijk[1] * this.ijk[2];
     }
 
+    /**
+     * Getter mpi_process
+     * @return {string}
+     */
+	public get mpi_process(): string {
+		return this._mpi_process;
+	}
+
+    /**
+     * Setter mpi_process
+     * @param {string} value
+     */
+	public set mpi_process(value: string) {
+		this._mpi_process = value;
+	}
+
+
+    /**
+     * Getter n_threads
+     * @return {string}
+     */
+	public get n_threads(): string {
+		return this._n_threads;
+	}
+
+    /**
+     * Setter n_threads
+     * @param {string} value
+     */
+	public set n_threads(value: string) {
+		this._n_threads = value;
+	}
     /** Export to json */
     public toJSON(): object {
         let mesh: object = {
@@ -344,7 +383,9 @@ export class Mesh {
             isize: this.isize,
             jsize: this.jsize,
             ksize: this.ksize,
-            xb: this.xb.toJSON()
+            xb: this.xb.toJSON(),
+            mpi_process: this.mpi_process,
+            n_threads: this.n_threads
         }
         return mesh;
     }

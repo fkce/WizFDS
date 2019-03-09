@@ -14,7 +14,8 @@
     </perfect-scrollbar>
     <div class="list-bottom" *ngIf="isofs.length > ui.listRange">
       <i class="material-icons" *ngIf="ui.output.isof.begin > 0" (click)="uiStateService.decreaseRange('isofs.isof')">chevron_left</i>
-      <div>{{ui.output.isof.begin}} - {{ui.output.isof.begin + ui.listRange > isofs.length ? isofs.length : ui.output.isof.begin
+      <div>{{ui.output.isof.begin}} - {{ui.output.isof.begin + ui.listRange > isofs.length ? isofs.length :
+        ui.output.isof.begin
         + ui.listRange}}</div>
       <i class="material-icons" *ngIf="ui.output.isof.begin + ui.listRange < isofs.length" (click)="uiStateService.increaseRange('isofs.isof')">chevron_right</i>
     </div>
@@ -34,13 +35,14 @@
         <div>
           <label>Id:</label>
           <div class="field-container">
-            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="isof.id" idInput stringInput/>
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="isof.id" idInput stringInput />
           </div>
         </div>
         <div>
           <label>Select qunatities:</label>
           <div class="field-container">
-            <ng-select class="custom" [items]="QUANTITIES" bindLabel="id" placeholder="Select quantity" [(ngModel)]="isof.quantity" [clearable]="false"></ng-select>
+            <ng-select class="custom" [items]="QUANTITIES" bindLabel="id" placeholder="Select quantity" [(ngModel)]="isof.quantity"
+              [searchable]="true" [clearable]="false"></ng-select>
           </div>
         </div>
       </div>
@@ -57,7 +59,7 @@
         <div *ngFor="let value of isof.values; index as valueIndex">
           <label>Value {{ valueIndex + 1 }}:</label>
           <div class="field-container">
-            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="isof.values[valueIndex]" decimalInput/>
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="isof.values[valueIndex]" decimalInput />
             <i (click)="isof.deleteValue(valueIndex)" class="material-icons red">delete_forever</i>
           </div>
         </div>
@@ -70,8 +72,8 @@
         <div>
           <label>Add {{ isof.quantity.id }} species:</label>
           <div class="field-container">
-            <ng-select class="custom" [items]="SPECIES" bindLabel="id" placeholder="Select species" multiple="true" hideSelected="true"
-              [(ngModel)]="isof.quantity.specs" [closeOnSelect]="false" [clearSearchOnAdd]="true"></ng-select>
+            <ng-select [items]="SPECIES" bindLabel="id" placeholder="Select species" multiple="true"
+              hideSelected="true" [(ngModel)]="isof.quantity.specs" [closeOnSelect]="false" [clearSearchOnAdd]="true"></ng-select>
           </div>
         </div>
       </div>
@@ -83,8 +85,8 @@
         <div>
           <label>Add {{ isof.quantity.id }} parts:</label>
           <div class="field-container">
-            <ng-select class="custom" [items]="SPECIES" bindLabel="id" placeholder="Select species" multiple="true" hideSelected="true"
-              [(ngModel)]="isof.quantity.parts" [closeOnSelect]="false" [clearSearchOnAdd]="true"></ng-select>
+            <ng-select [items]="SPECIES" bindLabel="id" placeholder="Select species" multiple="true"
+              hideSelected="true" [(ngModel)]="isof.quantity.parts" [closeOnSelect]="false" [clearSearchOnAdd]="true"></ng-select>
           </div>
         </div>
       </div>
@@ -108,15 +110,18 @@
             <div class="list-items">
               <div class="list-item" *ngFor="let isofItem of lib.isofs | slice: ui.output.libIsof.begin:(ui.output.libIsof.begin + ui.listRange)">
                 <a (click)="activate(isofItem.id, true)" [ngClass]="{active: isofItem===isof}">{{isofItem.id}}</a>
-                <i class="material-icons" matTooltip="Merge current item with library" [matTooltipDisabled]="!main.tooltips" (click)="mergeLibraryItem(isofItem.id)">merge_type</i>
-                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.tooltips" (click)="importLibraryItem(isofItem.id)">content_copy</i>
+                <i class="material-icons" matTooltip="Merge current item with library" [matTooltipDisabled]="!main.tooltips"
+                  (click)="mergeLibraryItem(isofItem.id)">merge_type</i>
+                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.tooltips"
+                  (click)="importLibraryItem(isofItem.id)">content_copy</i>
                 <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.tooltips" (click)="delete(isofItem.id, true)">delete_forever</i>
               </div>
             </div>
           </perfect-scrollbar>
           <div class="list-bottom" *ngIf="libIsofs.length> ui.listRange">
             <i class="material-icons" *ngIf="ui.output.libIsof.begin > 0" (click)="uiStateService.decreaseRange('isofs.libIsof')">chevron_left</i>
-            <div>{{ui.output.libIsof.begin}} - {{ui.output.libIsof.begin + ui.listRange > libIsofs.length ? libIsofs.length :
+            <div>{{ui.output.libIsof.begin}} - {{ui.output.libIsof.begin + ui.listRange > libIsofs.length ?
+              libIsofs.length :
               ui.output.libIsof.begin + ui.listRange}}</div>
             <i class="material-icons" *ngIf="ui.output.libIsof.begin + ui.listRange < libIsofs.length" (click)="uiStateService.increaseRange('isofs.libIsof')">chevron_right</i>
           </div>

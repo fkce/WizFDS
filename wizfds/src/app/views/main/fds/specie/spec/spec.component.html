@@ -41,7 +41,7 @@
         <div>
           <label>Predefined specie:</label>
           <div class="field-container">
-            <ng-select class="custom" [items]="SPECIES" bindLabel="id" bindValue="id" placeholder="Select species"
+            <ng-select [items]="SPECIES" bindLabel="id" bindValue="id" placeholder="Select species"
               [(ngModel)]="spec.spec" [searchable]="false" [clearable]="false"></ng-select>
           </div>
         </div>
@@ -86,8 +86,8 @@
         <div>
           <label>Type:</label>
           <div class="field-container">
-            <ng-select class="custom" [items]="ENUMS_SPEC.lumpedType" bindLabel="label" bindValue="value"
-              placeholder="Select type" [(ngModel)]="spec.lumpedType" [clearable]="false"></ng-select>
+            <ng-select [items]="ENUMS_SPEC.lumpedType" bindLabel="label" bindValue="value"
+              placeholder="Select type" [(ngModel)]="spec.lumpedType" [searchable]="false" [clearable]="false"></ng-select>
           </div>
         </div>
       </div>
@@ -96,8 +96,8 @@
         <div>
           <label>Specie {{ specIndex }}:</label>
           <div class="field-container">
-            <ng-select class="custom" [items]="lumpedSpecs" bindLabel="id" placeholder="Select specie"
-              [(ngModel)]="spec.lumpedSpecs[specIndex].spec" [clearable]="true"></ng-select>
+            <ng-select [items]="lumpedSpecs" bindLabel="id" placeholder="Select specie"
+              [(ngModel)]="spec.lumpedSpecs[specIndex].spec" [searchable]="false" [searchable]="false" [clearable]="true"></ng-select>
           </div>
         </div>
 

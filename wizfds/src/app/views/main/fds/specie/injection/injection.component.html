@@ -180,7 +180,7 @@
           <div *ngIf="surf.specieFlowType == 'massFraction'">
             <label>Flow type:</label>
             <div class="field-container">
-              <ng-select class="custom" [items]="ENUMS_SPEC.specieMassFractionFlowType" bindLabel="label" bindValue="value"
+              <ng-select [items]="ENUMS_SPEC.specieMassFractionFlowType" bindLabel="label" bindValue="value"
                 placeholder="Select flow type" [(ngModel)]="surf.specieMassFractionFlowType" [clearable]="false"></ng-select>
             </div>
           </div>
@@ -230,7 +230,7 @@
             <div>
               <label>Specie {{ massFluxIndex }}:</label>
               <div class="field-container">
-                <ng-select class="custom" [items]="(objectType == 'current') ? specs : libSpecs" bindLabel="id" placeholder="Select specie" [(ngModel)]="surf.massFlux[massFluxIndex].spec"
+                <ng-select [items]="(objectType == 'current') ? specs : libSpecs" bindLabel="id" placeholder="Select specie" [(ngModel)]="surf.massFlux[massFluxIndex].spec"
                   [clearable]="true"></ng-select>
               </div>
             </div>
@@ -262,7 +262,7 @@
             <div>
               <label>Specie {{ massFluxIndex }}:</label>
               <div class="field-container">
-                <ng-select class="custom" [items]="(objectType == 'current') ? specs : libSpecs" bindLabel="id" placeholder="Select specie" [(ngModel)]="surf.massFraction[massFractionIndex].spec"
+                <ng-select [items]="(objectType == 'current') ? specs : libSpecs" bindLabel="id" placeholder="Select specie" [(ngModel)]="surf.massFraction[massFractionIndex].spec"
                   [clearable]="true"></ng-select>
               </div>
             </div>

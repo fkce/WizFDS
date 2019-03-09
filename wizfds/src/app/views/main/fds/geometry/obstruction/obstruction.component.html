@@ -109,55 +109,55 @@
         <div class="form-row">
           <div *ngIf="obst.surf.type == 'surf_id'">
             <label>Surface (SURF_ID): </label>
-            <ng-select [items]="geometry.surfs" bindLabel="id" placeholder="No surface" [(ngModel)]="obst.surf.surf_id" [searchable]="false"
+            <ng-select [items]="surfaces" bindLabel="id" placeholder="No surface" [(ngModel)]="obst.surf.surf_id" [searchable]="false"
               [clearable]="true" (ngModelChange)="updateObstSurface('surfId')"></ng-select>
           </div>
           <div *ngIf="obst.surf.type=='surf_ids'">
             <div>
               <label>Surface (SURF_IDX): </label>
-              <ng-select [items]="geometry.surfs" bindLabel="id" placeholder="No surface" [(ngModel)]="obst.surf.surf_idx" [searchable]="false"
+              <ng-select [items]="surfaces" bindLabel="id" placeholder="No surface" [(ngModel)]="obst.surf.surf_idx" [searchable]="false"
                 [clearable]="true" (ngModelChange)="updateObstSurface('surfIdx')"></ng-select>
             </div>
             <div>
               <label>Surface (SURF_IDY): </label>
-              <ng-select [items]="geometry.surfs" bindLabel="id" placeholder="No surface" [(ngModel)]="obst.surf.surf_idy" [searchable]="false"
+              <ng-select [items]="surfaces" bindLabel="id" placeholder="No surface" [(ngModel)]="obst.surf.surf_idy" [searchable]="false"
                 [clearable]="true"></ng-select>
             </div>
             <div>
               <label>Surface (SURF_IDZ): </label>
-              <ng-select [items]="geometry.surfs" bindLabel="id" placeholder="No surface" [(ngModel)]="obst.surf.surf_idz" [searchable]="false"
+              <ng-select [items]="surfaces" bindLabel="id" placeholder="No surface" [(ngModel)]="obst.surf.surf_idz" [searchable]="false"
                 [clearable]="true"></ng-select>
             </div>
           </div>
           <div *ngIf="obst.surf.type=='surf_id6'">
             <div>
               <label>Surface (SURF_ID1): </label>
-              <ng-select [items]="geometry.surfs" bindLabel="id" placeholder="No surface" [(ngModel)]="obst.surf.surf_id1" [searchable]="false"
+              <ng-select [items]="surfaces" bindLabel="id" placeholder="No surface" [(ngModel)]="obst.surf.surf_id1" [searchable]="false"
                 [clearable]="true" (ngModelChange)="updateObstSurface('surfId1')"></ng-select>
             </div>
             <div>
               <label>Surface (SURF_ID2): </label>
-              <ng-select [items]="geometry.surfs" bindLabel="id" placeholder="No surface" [(ngModel)]="obst.surf.surf_id2" [searchable]="false"
+              <ng-select [items]="surfaces" bindLabel="id" placeholder="No surface" [(ngModel)]="obst.surf.surf_id2" [searchable]="false"
                 [clearable]="true"></ng-select>
             </div>
             <div>
               <label>Surface (SURF_ID3): </label>
-              <ng-select [items]="geometry.surfs" bindLabel="id" placeholder="No surface" [(ngModel)]="obst.surf.surf_id3" [searchable]="false"
+              <ng-select [items]="surfaces" bindLabel="id" placeholder="No surface" [(ngModel)]="obst.surf.surf_id3" [searchable]="false"
                 [clearable]="true"></ng-select>
             </div>
             <div>
               <label>Surface (SURF_ID4): </label>
-              <ng-select [items]="geometry.surfs" bindLabel="id" placeholder="No surface" [(ngModel)]="obst.surf.surf_id4" [searchable]="false"
+              <ng-select [items]="surfaces" bindLabel="id" placeholder="No surface" [(ngModel)]="obst.surf.surf_id4" [searchable]="false"
                 [clearable]="true"></ng-select>
             </div>
             <div>
               <label>Surface (SURF_ID5): </label>
-              <ng-select [items]="geometry.surfs" bindLabel="id" placeholder="No surface" [(ngModel)]="obst.surf.surf_id5" [searchable]="false"
+              <ng-select [items]="surfaces" bindLabel="id" placeholder="No surface" [(ngModel)]="obst.surf.surf_id5" [searchable]="false"
                 [clearable]="true"></ng-select>
             </div>
             <div>
               <label>Surface (SURF_ID6): </label>
-              <ng-select [items]="geometry.surfs" bindLabel="id" placeholder="No surface" [(ngModel)]="obst.surf.surf_id6" [searchable]="false"
+              <ng-select [items]="surfaces" bindLabel="id" placeholder="No surface" [(ngModel)]="obst.surf.surf_id6" [searchable]="false"
                 [clearable]="true"></ng-select>
             </div>
           </div>

@@ -150,7 +150,7 @@ export class Fds {
 
     // Create output elements
 
-    this.output.general = get(base, 'general') === undefined ? new Dump("{}") : new Dump(JSON.stringify(base.general));
+    this.output.general = get(base, 'output.general') === undefined ? new Dump("{}") : new Dump(JSON.stringify(base.output.general));
 
     this.output.bndfs = get(base, 'output.bndfs') === undefined ? [] : map(base.output.bndfs, (bndf) => {
       return new Bndf(JSON.stringify(bndf), this.specie.specs, this.particle.parts);
