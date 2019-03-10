@@ -108,6 +108,8 @@ function main() {
 
 			$r->addRoute('GET'    , '/api/library'                  , 'getLibrary');
 			$r->addRoute('PUT'    , '/api/library'                  , 'updateLibrary');
+
+			$r->addRoute('GET'   	, '/{nothing:.+}'     					  , 'getIndex');
 		});
 
 	} else {
