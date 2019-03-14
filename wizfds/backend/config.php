@@ -11,6 +11,8 @@ class Config {
 	public $recaptchaSecret = '';
 	// Directory can not be public
 	public $usersPath = '~/wizfds_users/';
+	public $demoUserId = '';
+	public $demoUserEmail = '';
 
 	function __construct() {
     }
