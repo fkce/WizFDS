@@ -4,6 +4,7 @@ require_once('./config.php');
 class Database {
 
 	private $config;
+	private $user_id = $_SESSION['user_id'];
 
 	function __construct() {
 		$this->config = new Config();
@@ -21,20 +22,28 @@ class Database {
 	public function pg_change($qq,$arr=[]) { 
 		
 		$connect=pg_connect("host=". $this->config->host ." port=". $this->config->port ." dbname=". $this->config->db ." user=". $this->config->dbUser ." password=". $this->config->dbPass);
-		($result=pg_query_params($connect, $qq, $arr)) || $this->reportBug(array("$qq", $arr, pg_last_error($connect))); 
-		$rows=pg_affected_rows($result);
+		if($this->user_id != 5) {
+			($result=pg_query_params($connect, $qq, $arr)) || $this->reportBug(array("$qq", $arr, pg_last_error($connect))); 
+			$rows=pg_affected_rows($result);
+			pg_close();
+			return($rows);
+		}
 		pg_close();
-		return($rows);
+		return;
 	}
 
 	public function pg_create($qq,$arr=[]) { 
 		
 		$connect=pg_connect("host=". $this->config->host ." port=". $this->config->port ." dbname=". $this->config->db ." user=". $this->config->dbUser ." password=". $this->config->dbPass);
-		($result=pg_query_params($connect, $qq, $arr)) || $this->reportBug(array("$qq", $arr, pg_last_error($connect))); 
-		$rows=pg_affected_rows($result);
-		$k=pg_fetch_all($result);
+		if($this->user_id != 5) {
+			($result=pg_query_params($connect, $qq, $arr)) || $this->reportBug(array("$qq", $arr, pg_last_error($connect))); 
+			$rows=pg_affected_rows($result);
+			$k=pg_fetch_all($result);
+			pg_close();
+			return($k);
+		}
 		pg_close();
-		return($k);
+		return;
 	}
 
 	public function reportBug($arr) {
