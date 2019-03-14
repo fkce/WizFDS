@@ -4,10 +4,11 @@ require_once('./config.php');
 class Database {
 
 	private $config;
-	private $user_id = $_SESSION['user_id'];
+	private $user_id;
 
 	function __construct() {
 		$this->config = new Config();
+		$this->user_id = $_SESSION['user_id'];
 	}
 
 	public function pg_read($qq,$arr=[]) { 

@@ -177,12 +177,29 @@ function makeRegister() {
 			$result=$db->pg_create("INSERT INTO categories (user_id, label, active, visible, uuid) values($1, $2, $3, $4, $5);", array($user_id, 'archive', true, true, guidv4(random_bytes(16))));
 			$result=$db->pg_create("INSERT INTO categories (user_id, label, active, visible, uuid) values($1, $2, $3, $4, $5);", array($user_id, 'finished', true, true, guidv4(random_bytes(16))));
 
+			$headers = "From: wizfds@wizfds.com\r\nReply-To: wizfds@wizfds.com";
+			mail("mateusz.fliszkiewicz@fkce.pl", "New WizFDS user registered", "$_POST[email] has registered in WizFDS!", $headers);
+
 		}
+	}
+}
+
+# signin demo user
+function demoUser() {
+	$config = new Config();
+	if($_GET['demo'] == 'true') {
+		session_regenerate_id(True);
+		$_SESSION['user_id'] = $config->demoUserId;
+		$_SESSION['email'] = $config->demoUserEmail;
+
+		header("Location: https://". $_SERVER['SERVER_NAME']);
+		return;
 	}
 }
 
 # init 
 if(!isset($_SESSION['email'])) { 
+	demoUser();
 	echo "
 	<html>
 	<head>
