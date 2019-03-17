@@ -104,7 +104,7 @@ namespace WizFDS.Websocket
 
     public class acWebSocketCtrl : IExtensionApplication
     {
-        private static string version = "0.2.1"; 
+        private static string version = Assembly.GetExecutingAssembly().GetName().Version.ToString(); 
         public static SyncControl syncCtrl;
         Editor ed = acApp.DocumentManager.MdiActiveDocument.Editor;
         Document acDoc = acApp.DocumentManager.MdiActiveDocument;

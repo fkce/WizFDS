@@ -21,6 +21,7 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
+using Autodesk.AutoCAD.BoundaryRepresentation;
 #endif
 
 using System;
@@ -30,12 +31,103 @@ using System.Windows.Forms;
 using System.Text.RegularExpressions;
 using System.Globalization;
 
-
 namespace WizFDS.Utils
 {
     public class Temp
     {
         Editor ed = acApp.DocumentManager.MdiActiveDocument.Editor;
+
+        [CommandMethod("fEXPORTMESH")]
+        public void fgetpoints()
+        {
+            try
+            {
+                Document acDoc = acApp.DocumentManager.MdiActiveDocument;
+                Database acCurDb = acDoc.Database;
+                Editor ed = acDoc.Editor;
+
+                Utils.Init();
+
+                PromptSelectionOptions peo = new PromptSelectionOptions();
+                //PromptEntityOptions peo = new PromptEntityOptions("\nSelect mesh:");
+                peo.AllowDuplicates = false;
+                PromptSelectionResult per = ed.GetSelection(peo);
+                if (per.Status != PromptStatus.OK || per.Status == PromptStatus.Cancel || per.Status == PromptStatus.Error || per.Status == PromptStatus.None)
+                {
+                    Utils.End();
+                    return;
+                }
+
+                // Enter file name
+                string mydocpath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                var psfo = new PromptSaveFileOptions("Export complex geometry");
+                psfo.Filter = "txt (*.txt)|*.txt";
+                var pr = ed.GetFileNameForSave(psfo);
+
+                if (pr.Status != PromptStatus.OK)
+                    return;
+
+                using (Transaction acTrans = acCurDb.TransactionManager.StartTransaction())
+                {
+                    using (StreamWriter outputFile = new StreamWriter(pr.StringResult))
+                    {
+
+                        SelectionSet acSSet = per.Value;
+
+                        // Step through the objects in the selection set
+                        foreach (SelectedObject acSSObj in acSSet)
+                        {
+                            Entity entity = acTrans.GetObject(acSSObj.ObjectId, OpenMode.ForRead) as Entity;
+                            if (entity.GetType() == typeof(SubDMesh))
+                            {
+                                SubDMesh mesh = acTrans.GetObject(acSSObj.ObjectId, OpenMode.ForRead) as SubDMesh;
+                                if (mesh != null)
+                                {
+                                    // Generate array that contains info about egges, i.e. [0] => number of edges, [1] => edge[0], [2] => edge[1], ...
+                                    int[] faceArr = mesh.FaceArray.ToArray();
+                                    int[] edgeArr = mesh.EdgeArray.ToArray();
+                                    Point3dCollection vertices = mesh.Vertices;
+                                    int edges = 0;
+
+                                    // Append text to selected file named.
+                                    outputFile.WriteLine("&GEOM ID='COMPLEX_GEOM_1',");
+                                    outputFile.WriteLine("SURF_ID = '" + Layers.GetSurfaceName(mesh.Layer.ToString()) + "',");
+                                    outputFile.Write("VERTS =\t");
+                                    foreach (Point3d vertice in vertices)
+                                    {
+                                        if (vertice == vertices[0])
+                                            outputFile.Write(String.Format("{0}, {1}, {2},\n", vertice.X, vertice.Y, vertice.Z));
+                                        else
+                                            outputFile.Write(String.Format("\t\t{0}, {1}, {2},\n", vertice.X, vertice.Y, vertice.Z));
+                                    }
+
+                                    outputFile.Write(String.Format("FACES =\t"));
+                                    for (int x = 0; x < faceArr.Length; x = x + edges + 1) // Zacznij od 0; mniejsze od dlugosci; srob skok co 3 (liczba krawedzi) + 1
+                                    {
+                                        if (x == 0)
+                                            outputFile.Write(String.Format("{0}, {1}, {2}, 1,\n", faceArr[x + 1] + 1, faceArr[x + 2] + 1, faceArr[x + 3] + 1));
+                                        else
+                                            outputFile.Write(String.Format("\t\t{0}, {1}, {2}, 1,\n", faceArr[x + 1] + 1, faceArr[x + 2] + 1, faceArr[x + 3] + 1));
+
+                                        edges = faceArr[x]; // face array na x posiada info ile jest krawedzi - dla nas zawsze 3
+                                    }
+                                    outputFile.WriteLine("/\n\n");
+                                }
+                            }
+                        }
+                    }
+                    acTrans.Commit();
+                }
+                Utils.End();
+                return;
+            }
+            catch (System.Exception e)
+            {
+                ed.WriteMessage("Program error: " + e.ToString());
+                Utils.End();
+                return;
+            }
+        }
 
 
         [CommandMethod("fCONVERTLAYERS")]
@@ -67,7 +159,7 @@ namespace WizFDS.Utils
                         if (acLyrTblRec.Name.Contains("FDS_hole"))
                         {
                             acLyrTblRec.Name = "!FDS_HOLE(" + levelInt.ToString() + ")";
-                        } 
+                        }
                         else
                         {
                             acLyrTblRec.Name = "!FDS_OBST[" + layName + "](" + levelInt.ToString() + ")";
@@ -166,6 +258,7 @@ namespace WizFDS.Utils
 
             Utils.Init();
             //Utils.Utils.UtilsInitCfast();
+            Utils.CreateBox(0, 1, 0, 2, 0, 3, "!FDS_OBST[inert](0)");
             Utils.CreateBox(0, 4, 0, 0.2, 0, 3, "!FDS_OBST[inert](0)");
             Utils.CreateBox(-0.2, 0, 0, 4, 0, 3, "!FDS_OBST[inert](0)");
             Utils.CreateBox(-1, 5, -2, 8, 0, 3.6, "!FDS_MESH");
@@ -183,7 +276,7 @@ namespace WizFDS.Utils
             OpenFileDialog theDialog = new OpenFileDialog();
             theDialog.Title = "Open FDS file";
             theDialog.Filter = "FDS files (*.fds)|*.fds|All files (*.*)|*.*";
-            theDialog.RestoreDirectory = true; 
+            theDialog.RestoreDirectory = true;
 
             if (theDialog.ShowDialog() == DialogResult.OK)
             {
@@ -193,7 +286,7 @@ namespace WizFDS.Utils
                 double x1, x2, y1, y2, z1, z2;
                 string surf = "";
 
-                foreach(string line in filelines)
+                foreach (string line in filelines)
                 {
                     if (line.Contains("&OBST"))
                     {
@@ -231,11 +324,11 @@ namespace WizFDS.Utils
 
                             Layers.CreateLayer(surf);
 
-                            if(x1 != x2 && y1 != y2 && z1 != z2)
+                            if (x1 != x2 && y1 != y2 && z1 != z2)
                             {
                                 Utils.CreateBox(x1, x2, y1, y2, z1, z2, surf);
                             }
-                     
+
                         }
                     }
                     //ed.WriteMessage(filelines[i]);

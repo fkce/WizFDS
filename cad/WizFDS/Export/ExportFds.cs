@@ -30,7 +30,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Newtonsoft.Json;
 using WizFDS.Websocket;
-
+using WizFDS.Utils;
 
 namespace WizFDS.Export
 {
@@ -82,6 +82,19 @@ namespace WizFDS.Export
                 public SurfObst surf { get; set; }
                 public float elevation { get; set; }
             }
+            public class Geom
+            {
+                public class SurfGeom
+                {
+                    public string type { get; set; }
+                    public string surf_id { get; set; }
+                    public int[] color { get; set; }
+                }
+                public double idAC { get; set; }
+                public List<double[]> verts { get; set; }
+                public List<double[]> faces { get; set; }
+                public SurfGeom surf { get; set; }
+            }
             public class Hole
             {
                 public double idAC { get; set; }
@@ -105,6 +118,7 @@ namespace WizFDS.Export
             public List<Hole> holes { get; set; }
             public List<Surf> surfs { get; set; }
             public List<Obst> obsts { get; set; }
+            public List<Geom> geoms { get; set; }
 
             public Geometry()
             {
@@ -113,6 +127,7 @@ namespace WizFDS.Export
                 this.holes = new List<Hole>();
                 this.surfs = new List<Surf>();
                 this.obsts = new List<Obst>();
+                this.geoms = new List<Geom>();
             }
 
             private float GetElevation(string layerName)
@@ -125,32 +140,6 @@ namespace WizFDS.Export
                 catch
                 {
                     return 0;
-                }
-            }
-            private string GetLayerId(string layerName)
-            {
-                string id = "";
-                if (layerName.Contains("[") && layerName.Contains("]"))
-                {
-                    if (layerName.IndexOf("]") - layerName.IndexOf("[") - 1 > 0)
-                        id = layerName.Substring(layerName.IndexOf("[") + 1, layerName.IndexOf("]") - layerName.IndexOf("[") - 1);
-                }
-                return id;
-            }
-            private int[] GetLayerColor(string layerName)
-            {
-                // Get the current document and database
-                Document acDoc = acApp.DocumentManager.MdiActiveDocument;
-                Database acCurDb = acDoc.Database;
-
-                // Start a transaction
-                using (Transaction acTrans = acCurDb.TransactionManager.StartTransaction())
-                {
-                    // Open the Layer table for read
-                    LayerTable acLyrTbl;
-                    acLyrTbl = acTrans.GetObject(acCurDb.LayerTableId, OpenMode.ForRead) as LayerTable;
-                    LayerTableRecord acLyrTblRec = acTrans.GetObject(acLyrTbl[layerName], OpenMode.ForRead) as LayerTableRecord;
-                    return new int[] { (int)acLyrTblRec.Color.ColorValue.R, (int)acLyrTblRec.Color.ColorValue.G, (int)acLyrTblRec.Color.ColorValue.B };
                 }
             }
 
@@ -178,7 +167,7 @@ namespace WizFDS.Export
             {
                 Surf surf = new Surf
                 {
-                    id = this.GetLayerId(acLyrTblRec.Name),
+                    id = Layers.GetSurfaceName(acLyrTblRec.Name),
                     idAC = Convert.ToInt64(acLyrTblRec.ObjectId.Handle.ToString(), 16),
                     color = new int[] { (int)acLyrTblRec.Color.ColorValue.R, (int)acLyrTblRec.Color.ColorValue.G, (int)acLyrTblRec.Color.ColorValue.B }
                 };
@@ -188,9 +177,9 @@ namespace WizFDS.Export
             {
                 Surf surf = new Surf
                 {
-                    id = this.GetLayerId(layer),
+                    id = Layers.GetSurfaceName(layer),
                     idAC = Convert.ToInt64(acHandle.ToString(), 16),
-                    color = GetLayerColor(layer)
+                    color = Layers.GetLayerColor(layer)
                 };
                 this.surfs.Add(surf);
             }
@@ -198,7 +187,7 @@ namespace WizFDS.Export
             {
                 foreach (var surf in geometry.surfs)
                 {
-                    if (surf.id.Contains(this.GetLayerId(layer)))
+                    if (surf.id.Contains(Layers.GetSurfaceName(layer)))
                         return true;
                 }
                 return false;
@@ -220,8 +209,8 @@ namespace WizFDS.Export
                     surf = new Obst.SurfObst
                     {
                         type = "surf_id",
-                        surf_id = this.GetLayerId(acEnt.Layer),
-                        color = new int[] { (int)acEnt.Color.ColorValue.R, (int)acEnt.Color.ColorValue.G, (int)acEnt.Color.ColorValue.B }
+                        surf_id = Layers.GetSurfaceName(acEnt.Layer),
+                        color = Layers.GetLayerColor(acEnt.Layer)
                     },
                     elevation = this.GetElevation(acEnt.Layer)
                 };
@@ -262,6 +251,39 @@ namespace WizFDS.Export
                     }
                 };
                 this.opens.Add(open);
+            }
+            public void AddGeom(SubDMesh acEnt)
+            {
+                Geom geom = new Geom
+                {
+                    idAC = Convert.ToInt64(acEnt.Handle.ToString(), 16),
+                    surf = new Geom.SurfGeom
+                    {
+                        type = "surf_id",
+                        surf_id = Layers.GetSurfaceName(acEnt.Layer),
+                        color = new int[] { (int)acEnt.Color.ColorValue.R, (int)acEnt.Color.ColorValue.G, (int)acEnt.Color.ColorValue.B }
+                    },
+                };
+
+                // Add faces and vertices
+                int[] faceArr = acEnt.FaceArray.ToArray();
+                Point3dCollection vertices = acEnt.Vertices;
+                int edges = 0;
+
+                // Generate vertices
+                foreach (Point3d vertice in vertices)
+                {
+                    geom.verts.Add(new double[] { vertice.X, vertice.Y, vertice.Z });
+                }
+
+                // Generate faces
+                for (int x = 0; x < faceArr.Length; x = x + edges + 1)
+                {
+                    geom.faces.Add(new double[] { faceArr[x + 1] + 1, faceArr[x + 2] + 1, faceArr[x + 3] + 1 });
+                    edges = faceArr[x];
+                }
+
+                this.geoms.Add(geom);
             }
         }
         private class Ventilation
@@ -372,7 +394,8 @@ namespace WizFDS.Export
                         volume_flow = Math.Round(volFlow / 3600, 2),
                         volume_flow_per_hour = volFlow
                     };
-                } else
+                }
+                else
                 {
                     return null;
                 }
@@ -616,7 +639,8 @@ namespace WizFDS.Export
                         volume_flow = Math.Round(volFlow / 3600, 2),
                         volume_flow_per_hour = volFlow
                     };
-                } else
+                }
+                else
                 {
                     return null;
                 }
@@ -747,11 +771,11 @@ namespace WizFDS.Export
             public void AddDevc(Entity acEnt)
             {
                 string type = "";
-                if(acEnt is ExtrudedSurface)
+                if (acEnt is ExtrudedSurface)
                 {
                     type = "plane";
                 }
-                else if(acEnt is Solid3d)
+                else if (acEnt is Solid3d)
                 {
                     Solid3d sol = acEnt as Solid3d;
                     Acad3DSolid solid = (Acad3DSolid)sol.AcadObject;
@@ -766,7 +790,11 @@ namespace WizFDS.Export
                         type = "point";
                     }
                 }
-                
+                else if(acEnt is Line || acEnt is Polyline)
+                {
+                    type = "linear";
+                }
+
                 Devc devc = new Devc()
                 {
                     id = this.GetLayerId(acEnt.Layer),
@@ -813,40 +841,11 @@ namespace WizFDS.Export
                 this.fires = new List<Fire>();
             }
 
-            private string GetLayerId(string layerName)
-            {
-                try
-                {
-                    string id = layerName.Substring(layerName.IndexOf("[") + 1, layerName.IndexOf("]") - layerName.IndexOf("[") - 1);
-                    return id;
-                }
-                catch
-                {
-                    return "";
-                }
-            }
-            private int[] GetLayerColor(string layerName)
-            {
-                // Get the current document and database
-                Document acDoc = acApp.DocumentManager.MdiActiveDocument;
-                Database acCurDb = acDoc.Database;
-
-                // Start a transaction
-                using (Transaction acTrans = acCurDb.TransactionManager.StartTransaction())
-                {
-                    // Open the Layer table for read
-                    LayerTable acLyrTbl;
-                    acLyrTbl = acTrans.GetObject(acCurDb.LayerTableId, OpenMode.ForRead) as LayerTable;
-                    LayerTableRecord acLyrTblRec = acTrans.GetObject(acLyrTbl[layerName], OpenMode.ForRead) as LayerTableRecord;
-                    return new int[] { (int)acLyrTblRec.Color.ColorValue.R, (int)acLyrTblRec.Color.ColorValue.G, (int)acLyrTblRec.Color.ColorValue.B };
-                }
-            }
-
             public void AddFire(Entity acEnt)
             {
                 Fire fire = new Fire
                 {
-                    surf_id = this.GetLayerId(acEnt.Layer),
+                    surf_id = Layers.GetSurfaceName(acEnt.Layer),
                     idAC = Convert.ToInt64(acEnt.Handle.ToString(), 16),
                     vent = new Fire.Vent
                     {
@@ -866,9 +865,38 @@ namespace WizFDS.Export
                             z = Math.Round(Math.Round(acEnt.GeometricExtents.MinPoint.Z, 4) + ((Math.Round(acEnt.GeometricExtents.MaxPoint.Z, 4) - Math.Round(acEnt.GeometricExtents.MinPoint.Z, 4)) / 2), 4)
                         }
                     },
-                    color = this.GetLayerColor(acEnt.Layer)
+                    color = Layers.GetLayerColor(acEnt.Layer)
                 };
                 this.fires.Add(fire);
+            }
+        }
+        private class ComplexGeometries
+        {
+            public class ComplexGeometry
+            {
+                public double idAC { get; set; }
+                public List<Array> vertices { get; set; }
+                public List<Array> faces { get; set; }
+                public string surf_id { get; set; }
+                public int[] color { get; set; }
+            }
+            public List<ComplexGeometry> complex { get; set; }
+
+            public ComplexGeometries()
+            {
+                this.complex = new List<ComplexGeometry>();
+            }
+
+            public void AddComplex(Entity acEnt)
+            {
+                ComplexGeometry geom = new ComplexGeometry
+                {
+                    surf_id = Layers.GetSurfaceName(acEnt.Layer),
+                    idAC = Convert.ToInt64(acEnt.Handle.ToString(), 16),
+                    color = Layers.GetLayerColor(acEnt.Layer)
+                    
+                };
+                this.complex.Add(geom);
             }
         }
 
@@ -928,6 +956,22 @@ namespace WizFDS.Export
                                     if (acEnt.Layer.Contains("!FDS_OBST"))
                                     {
                                         geometry.AddObst(acEnt);
+
+                                        if (geometry.surfs.Count > 0)
+                                        {
+                                            if (!geometry.HasSurf(geometry, acEnt.Layer))
+                                                geometry.AddSurf(acEnt.Layer, acEnt.Handle);
+                                        }
+                                        else
+                                        {
+                                            geometry.AddSurf(acEnt.Layer, acEnt.Handle);
+                                        }
+                                    }
+                                    else if (acEnt.Layer.Contains("!FDS_GEOM"))
+                                    {
+                                        //if (acEnt.GetType() != typeof(SubDMesh)) continue;
+
+                                        geometry.AddGeom((SubDMesh) acEnt);
 
                                         if (geometry.surfs.Count > 0)
                                         {

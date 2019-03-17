@@ -256,4 +256,19 @@
   <data name="SuperSocket.Common" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Library\SuperSocket.Common.dll;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
+  <data name="door" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\door.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="geom" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\geom.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="geomLarge" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\geomLarge.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="geomMan" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\geomMan.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="geomManLarge" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\geomManLarge.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
 </root>

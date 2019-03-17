@@ -95,6 +95,13 @@ namespace WizFDS.Properties {
             }
         }
 
+        internal static System.Drawing.Bitmap door {
+            get {
+                object obj = ResourceManager.GetObject("door", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+
         internal static System.Drawing.Bitmap doorLarge {
             get {
                 object obj = ResourceManager.GetObject("doorLarge", resourceCulture);
@@ -198,6 +205,33 @@ namespace WizFDS.Properties {
             }
         }
 
+        internal static System.Drawing.Bitmap geom {
+            get {
+                object obj = ResourceManager.GetObject("geom", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+
+        internal static System.Drawing.Bitmap geomLarge {
+            get {
+                object obj = ResourceManager.GetObject("geomLarge", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+
+        internal static System.Drawing.Bitmap geomMan {
+            get {
+                object obj = ResourceManager.GetObject("geomMan", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+
+        internal static System.Drawing.Bitmap geomManLarge {
+            get {
+                object obj = ResourceManager.GetObject("geomManLarge", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
 
         #endregion
 

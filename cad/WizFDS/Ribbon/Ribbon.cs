@@ -160,7 +160,7 @@ namespace WizFDS.Ribbon
                 cDoorBtn.Name = "Door";
                 cDoorBtn.ShowText = true;
                 cDoorBtn.ShowImage = true;
-                cDoorBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
+                cDoorBtn.Image = Images.getBitmap(Properties.Resources.door);
                 cDoorBtn.LargeImage = Images.getBitmap(Properties.Resources.doorLarge);
                 cDoorBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
                 cDoorBtn.Size = RibbonItemSize.Large;
@@ -402,6 +402,33 @@ namespace WizFDS.Ribbon
                 fdsGeometryPanelSource.Items.Add(fObstBtn);
                 fdsGeometryPanelSource.Items.Add(fHoleBtn);
                 fdsGeometryPanelSource.Items.Add(fGeometryRow);
+
+                RibbonButton fGeomBtn = new RibbonButton();
+                fGeomBtn.Name = "Geom";
+                fGeomBtn.Text = "Complex\nauto";
+                fGeomBtn.ShowText = true;
+                fGeomBtn.ShowImage = true;
+                fGeomBtn.Image = Images.getBitmap(Properties.Resources.geom);
+                fGeomBtn.LargeImage = Images.getBitmap(Properties.Resources.geomLarge);
+                fGeomBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
+                fGeomBtn.Size = RibbonItemSize.Large;
+                fGeomBtn.CommandHandler = new RibbonCommandHandler();
+
+                RibbonButton fGeomManBtn = new RibbonButton();
+                fGeomManBtn.Name = "GeomMan";
+                fGeomManBtn.Text = "Complex\nmanual";
+                fGeomManBtn.ShowText = true;
+                fGeomManBtn.ShowImage = true;
+                fGeomManBtn.Image = Images.getBitmap(Properties.Resources.geomMan);
+                fGeomManBtn.LargeImage = Images.getBitmap(Properties.Resources.geomManLarge);
+                fGeomManBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
+                fGeomManBtn.Size = RibbonItemSize.Large;
+                fGeomManBtn.CommandHandler = new RibbonCommandHandler();
+
+                fdsGeometryPanelSource.Items.Add(new RibbonSeparator());
+                fdsGeometryPanelSource.Items.Add(fGeomBtn);
+                fdsGeometryPanelSource.Items.Add(fGeomManBtn);
+
                 #endregion
 
                 #region FDS Ventilation Panel
@@ -801,6 +828,12 @@ namespace WizFDS.Ribbon
                             break;
                         case "CWall":
                             acDoc.SendStringToExecute("fCWall\n", true, false, true);
+                            break;
+                        case "Geom":
+                            acDoc.SendStringToExecute("fSolMesh\n", true, false, true);
+                            break;
+                        case "GeomMan":
+                            acDoc.SendStringToExecute("_MeshOptions\n", true, false, true);
                             break;
                         case "Vent":
                             acDoc.SendStringToExecute("fVent\n", true, false, true);

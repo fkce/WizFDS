@@ -71,7 +71,9 @@ namespace WizFDS.Utils
             snapUnit = (Point2d)acApp.GetSystemVariable("snapunit");
 #endif
 
-            acApp.SetSystemVariable("snapmode", 1);
+            if(snapUnit.X <= 1)
+                acApp.SetSystemVariable("snapmode", 1);
+
             acApp.SetSystemVariable("osmode", 0);
 
             ResetUCS();
@@ -95,7 +97,9 @@ namespace WizFDS.Utils
             snapUnit = (Point2d)acApp.GetSystemVariable("snapunit");
 #endif
 
-            acApp.SetSystemVariable("snapmode", 1);
+            if(snapUnit.X <= 1)
+                acApp.SetSystemVariable("snapmode", 1);
+
             acApp.SetSystemVariable("osmode", 0);
 
             ResetUCS();
@@ -119,7 +123,9 @@ namespace WizFDS.Utils
             snapUnit = (Point2d)acApp.GetSystemVariable("snapunit");
 #endif
 
-            acApp.SetSystemVariable("snapmode", 1);
+            if(snapUnit.X <= 1)
+                acApp.SetSystemVariable("snapmode", 1);
+
             //acApp.SetSystemVariable("osmode", 0);
 
             ResetUCS();

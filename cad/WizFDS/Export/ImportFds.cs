@@ -1596,8 +1596,8 @@ namespace WizFDS.Export
 
                     // Check if color is sent from Web
                     ObjectId acObjId = (data.color != null && data.color.rgb.Count > 0) ?
-                        Utils.Layers.CreateLayer("!FDS_JFAN[" + data.id.ToString() + "]", Color.FromRgb((byte)data.color.rgb[0], (byte)data.color.rgb[1], (byte)data.color.rgb[2]), true) :
-                        Utils.Layers.CreateLayer("!FDS_JFAN[" + data.id.ToString() + "]", true);
+                        Utils.Layers.CreateLayer("!FDS_JETF[" + data.id.ToString() + "]", Color.FromRgb((byte)data.color.rgb[0], (byte)data.color.rgb[1], (byte)data.color.rgb[2]), true) :
+                        Utils.Layers.CreateLayer("!FDS_JETF[" + data.id.ToString() + "]", true);
 
                     dynamic surf = new System.Dynamic.ExpandoObject();
                     // Start a transaction

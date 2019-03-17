@@ -35,6 +35,33 @@ namespace WizFDS.Utils
 
         public static int currentFloor = 0;
 
+        public static string GetSurfaceName(string layerName)
+        {
+            string layer = "";
+            if (layerName.Contains("[") && layerName.Contains("]"))
+            {
+                if (layerName.IndexOf("]") - layerName.IndexOf("[") - 1 > 0)
+                    layer = layerName.Substring(layerName.IndexOf("[") + 1, layerName.IndexOf("]") - layerName.IndexOf("[") - 1);
+            }
+            return layer;
+        }
+        public static int[] GetLayerColor(string layerName)
+        {
+            // Get the current document and database
+            Document acDoc = acApp.DocumentManager.MdiActiveDocument;
+            Database acCurDb = acDoc.Database;
+
+            // Start a transaction
+            using (Transaction acTrans = acCurDb.TransactionManager.StartTransaction())
+            {
+                // Open the Layer table for read
+                LayerTable acLyrTbl;
+                acLyrTbl = acTrans.GetObject(acCurDb.LayerTableId, OpenMode.ForRead) as LayerTable;
+                LayerTableRecord acLyrTblRec = acTrans.GetObject(acLyrTbl[layerName], OpenMode.ForRead) as LayerTableRecord;
+                return new int[] { (int)acLyrTblRec.Color.ColorValue.R, (int)acLyrTblRec.Color.ColorValue.G, (int)acLyrTblRec.Color.ColorValue.B };
+            }
+        }
+
         public static void SetLayer(string layer)
         {
             acApp.SetSystemVariable("CLAYER", layer);

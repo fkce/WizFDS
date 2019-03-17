@@ -18,7 +18,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;ARX_APP, AAMKS, WIZFDS,DEBUG</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;ARX_APP,AAMKS, WIZFDS,DEBUG</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
@@ -110,9 +110,6 @@
       <HintPath>Library\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="NVelocity">
-      <HintPath>..\reference\NVelocity.dll</HintPath>
-    </Reference>
     <Reference Include="PresentationCore">
       <Private>False</Private>
     </Reference>
@@ -191,20 +188,8 @@
     <Compile Include="Cfast\Cfast.cs" />
     <Compile Include="Export\ExportCfast.cs" />
     <Compile Include="Export\ImportUtils.cs" />
-    <Compile Include="GeometryConverter\Bases\BasePoint.cs" />
-    <Compile Include="GeometryConverter\Bases\Direction.cs" />
-    <Compile Include="GeometryConverter\Bases\Element.cs" />
-    <Compile Include="GeometryConverter\Bases\ElementBase.cs" />
-    <Compile Include="GeometryConverter\Helpers\CastHelper.cs" />
-    <Compile Include="GeometryConverter\Helpers\ElementHelper.cs" />
-    <Compile Include="GeometryConverter\Helpers\EnumHelper.cs" />
-    <Compile Include="GeometryConverter\Helpers\MathOperations.cs" />
-    <Compile Include="GeometryConverter\Optimization\LevelOptimizer.cs" />
-    <Compile Include="GeometryConverter\SolidToElementConverter.cs" />
-    <Compile Include="GeometryConverter\Templates\ITemplateManager.cs" />
-    <Compile Include="GeometryConverter\Templates\TemplateManager.cs" />
-    <Compile Include="GeometryConverter\Templates\TemplateProvider.cs" />
     <Compile Include="Modelling\Fire\Fire.cs" />
+    <Compile Include="Modelling\Geometry\Complex.cs" />
     <Compile Include="Modelling\Geometry\ObstCeiling.cs" />
     <Compile Include="Modelling\Geometry\ObstPoly.cs" />
     <Compile Include="Modelling\Geometry\Open.cs" />
@@ -335,7 +320,21 @@
       <EmbedInteropTypes>True</EmbedInteropTypes>
     </COMReference>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <None Include="Resources\geom.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\geomLarge.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\door.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\geomMan.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\geomManLarge.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <!-- <PostBuildEvent>COPY /Y C:\Users\mateu\Desktop\wizfds\autocad\wizFDS\bin\x64\Debug\wizFDS.dll C:\Users\mateu\Desktop\wizfds\autocad\release\wizFDS.dll
