@@ -62,15 +62,19 @@ export class UiState {
 			surf: { scrollPosition: 0, begin: 0, elementIndex: 0, lib: 'closed', help: 'closed' },
 			libSurf: { scrollPosition: 0, begin: 0, elementIndex: 0 },
 			obst: { scrollPosition: 0, begin: 0, elementIndex: 0, help: 'closed' },
-			hole: { scrollPosition: 0, begin: 0, elementIndex: 0 }
+			hole: { scrollPosition: 0, begin: 0, elementIndex: 0 },
+			geom: { scrollPosition: 0, begin: 0, elementIndex: 0 }
 		};
+
+		// Added for old scenarios - add geom
+		if (this.geometry.geom == undefined) { this.geometry.geom = { scrollPosition: 0, begin: 0, elementIndex: 0 }; }
 
 		this.ventilation = base.ventilation != undefined ? base.ventilation : {
 			surf: { scrollPosition: 0, begin: 0, elementIndex: 0, lib: 'closed', help: 'closed' },
 			libSurf: { scrollPosition: 0, begin: 0, elementIndex: 0 },
 			vent: { scrollPosition: 0, begin: 0, elementIndex: 0, help: 'closed' },
 			jetfan: { scrollPosition: 0, begin: 0, elementIndex: 0, lib: 'closed', help: 'closed' },
-			libJetfan: { scrollPosition: 0, begin: 0, elementIndex: 0, }
+			libJetfan: { scrollPosition: 0, begin: 0, elementIndex: 0 }
 		};
 
 		this.fires = base.fires != undefined ? base.fires : {

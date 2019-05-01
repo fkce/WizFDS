@@ -21,6 +21,7 @@ import { Slcf } from '../fds-object/output/slcf';
 import { VentSpec } from '@services/fds-object/specie/vent';
 import { SurfSpec } from '@services/fds-object/specie/surf-spec';
 import { Spec } from '@services/fds-object/specie/spec';
+import { Geom } from '@services/fds-object/geometry/geom';
 
 @Injectable()
 export class CadService {
@@ -443,6 +444,63 @@ export class CadService {
 
     // Rewrite ids
     updatedElements = this.rewriteIds(updatedElements, 'OBST');
+
+    return updatedElements;
+  }
+
+  /**
+   * Transform CAD GEOM elements
+   * @param acElements CAD elements
+   * @param currentElements Current fds elements
+   */
+  transformGeoms(acElements: object[], currentElements: Obst[]) {
+    let updatedElements = [];
+
+    // Sort AC and current elements
+    let sortedAcElements = this.sortAcElements(acElements);
+    let sortedCurrentElements = this.sortCurrentElements(currentElements);
+
+    // For each sorted AC elemenj
+    each(sortedAcElements, (acElement) => {
+
+      // Check if element already exists
+      let res = this.binaryIndexOf(acElement, sortedCurrentElements, 'idAC');
+
+      // If element not exists
+      if (res == -1) {
+        acElement.id = '';
+        updatedElements.push(new Geom(JSON.stringify(acElement), this.main.currentFdsScenario.fdsObject.geometry.surfs));
+      }
+      else {
+        let originalElement: Obst = sortedCurrentElements[res];
+
+        let surfType = originalElement.surf.type;
+        let surfId;
+
+        switch (surfType) {
+          case 'surf_id':
+            surfId = 'surf_id'; break;
+          case 'surf_ids':
+            surfId = 'surf_idx'; break;
+          case 'surf_id6':
+            surfId = 'surf_id1'; break;
+        }
+
+        // Rewrite properties and leave unchanged others
+        originalElement.surf.surf_id['id'] = acElement.surf.surf_id;
+        originalElement.elevation = acElement.elevation;
+
+        // Create new element based on new data
+        let newElement = new Geom(JSON.stringify(originalElement.toJSON()), this.main.currentFdsScenario.fdsObject.geometry.surfs);
+        // Add element
+        updatedElements.push(newElement);
+        // Delete from current elements
+        sortedCurrentElements.splice(res, 1);
+      }
+    });
+
+    // Rewrite ids
+    updatedElements = this.rewriteIds(updatedElements, 'GEOM');
 
     return updatedElements;
   }

@@ -120,9 +120,9 @@ export class WebsocketService {
   /** Method sends message to CAD software */
   public sendMessage(message: WebsocketMessageObject) {
     if (isDevMode()) {
-      console.log("\nMessage sent to CAD:")
+      console.log("Message sent to CAD:")
       console.log(message);
-      console.log("====================\n")
+      console.log("-----------------------------------------\n")
     }
 
     if (this.isConnected) {
@@ -138,9 +138,9 @@ export class WebsocketService {
   /** Method register answer/confirmation from CAD software */
   private answerMessage(message: WebsocketMessageObject) {
     if (isDevMode()) {
-      console.log("\nAnswer from CAD:");
+      console.log("Answer from CAD:");
       console.log(message);
-      console.log("====================\n")
+      console.log("-----------------------------------------\n")
     }
 
     // Register & replace answer object in requestCallbacs
@@ -191,8 +191,7 @@ export class WebsocketService {
     if (isDevMode()) {
       console.log("Request from CAD:");
       console.log(message);
-      console.log("====================\n")
-
+      console.log("-----------------------------------------\n")
     }
 
     // Send answer to CAD software;
@@ -204,6 +203,13 @@ export class WebsocketService {
       data: {},
     }
 
+    if (this.main.currentFdsScenario == undefined) {
+      answer.status = "error";
+
+      this.sendMessage(answer);
+      return;
+    }
+
     // Assign acFile and acPath
     this.main.currentFdsScenario.acFile = message.data['acFile'];
     this.main.currentFdsScenario.acPath = message.data['acPath'];
@@ -212,28 +218,20 @@ export class WebsocketService {
       switch (message.method) {
         case 'fExport': {
           if (isDevMode()) console.log('fExport');
-          if (this.main.currentFdsScenario != undefined) {
-            this.fds = this.main.currentFdsScenario.fdsObject;
-            this.fExport(message.data);
-            this.notifierService.notify('success', 'Geometry imported');
-          }
-          else {
-            answer.status = "error";
-          }
+
+          this.fds = this.main.currentFdsScenario.fdsObject;
+          this.fExport(message.data);
+          this.notifierService.notify('success', 'Geometry imported');
+
           break;
         }
 
         case 'selectObjectAc': {
           if (isDevMode()) console.log('fSelect');
-          if (this.main.currentFdsScenario != undefined) {
-            this.fds = this.main.currentFdsScenario.fdsObject;
-            console.log(this.fds);
-            this.fSelect(message.data);
-            this.notifierService
-          }
-          else {
-            answer.status = "error";
-          }
+
+          this.fds = this.main.currentFdsScenario.fdsObject;
+          this.fSelect(message.data);
+          this.notifierService
 
           break;
         }
@@ -342,6 +340,16 @@ export class WebsocketService {
       this.fds.geometry.holes.push(hole);
     });
 
+    /** Obsts */
+    // Transform CAD elements
+    let newGeoms = this.cadService.transformGeoms(data.geometry.geoms, this.fds.geometry.geoms);
+    // Clone and delete current elements
+    remove(this.fds.geometry.geoms);
+    // Set new obsts to current scenario
+    each(newGeoms, (geom) => {
+      this.fds.geometry.geoms.push(geom);
+    });
+
     /** Vent Surfs */
     // Transform CAD elements
     let newVentSurfs = this.cadService.transformVentSurfs(data.ventilation.surfs, this.fds.ventilation.surfs);
@@ -440,6 +448,9 @@ export class WebsocketService {
         case 'hole':
           this.router.navigate(['fds/geometry/obstruction', { idAC: idAC, type: 'hole' }]);
           break;
+        case 'geom':
+          this.router.navigate(['fds/geometry/complex', { idAC: idAC }]);
+          break;
         case 'vent':
           this.router.navigate(['fds/ventilation/basic', { idAC: idAC }]);
           break;
@@ -463,34 +474,6 @@ export class WebsocketService {
       // lista range
 
     }
-
-
-
-    //    var beginIndex = calculateBeginIndex(element.index, listRange);
-    //    var currentIndex = element.index - beginIndex;
-    //    var listType = list || undefined;
-    //    $timeout(function () {
-    //      if (listType) {
-    //        $rootScope.$broadcast('geometry_select', { begin: beginIndex, current: currentIndex, list: listType });
-    //      } else {
-    //        $rootScope.$broadcast('geometry_select', { begin: beginIndex, current: currentIndex });
-    //      }
-    //    }, 0)
-    //  } else {
-    //    var answer = JSON.stringify({
-    //      method: data.method,
-    //      id: idGenerator(),
-    //      requestID: data.id,
-    //      data: {},
-    //      status: "error"
-    //    })
-    //    //console.log(answer);
-    //    //console.log(stream);
-    //    stream.send(answer);
-
-
-    //  }
-    //}
   }
 
   private findElementByIdAC(idAC): object {
@@ -530,6 +513,14 @@ export class WebsocketService {
 
     if (result >= 0) {
       element.type = 'hole';
+      element.index = result;
+      return element;
+    }
+
+    result = findIndex(this.fds.geometry.geoms, function (elem) { return elem.idAC == idAC; });
+
+    if (result >= 0) {
+      element.type = 'geom';
       element.index = result;
       return element;
     }

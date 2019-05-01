@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, OnDestroy, isDevMode } from '@angular/core';
+import { Component, OnInit, ViewChild, OnDestroy, isDevMode, HostListener } from '@angular/core';
 
 import * as CodeMirror from 'codemirror';
 import 'codemirror/keymap/vim';
@@ -31,6 +31,10 @@ export class InputFileComponent implements OnInit, OnDestroy {
 
   @ViewChild('host') host;
 
+  public onKey(event: any) {
+    console.log(event);
+  }
+
   private config = {};
   private editorOptions = {
     lineNumbers: true,
@@ -42,6 +46,9 @@ export class InputFileComponent implements OnInit, OnDestroy {
         if (!cm.getOption("fullScreen")) cm.setOption('fullScreen', true);
         else if (cm.getOption("fullScreen")) cm.setOption('fullScreen', false);
       },
+      "Esc": (cm) => {
+        return false;
+      }
       //'F10': (cm) => { this.ampersNumbers(cm) },
       //  'F9': function (cm) { tabularize(cm) },
       //  'Ctrl-Q': function (cm) { cm.foldCode(cm.getCursor(), { scanUp: true }); },
@@ -73,7 +80,7 @@ export class InputFileComponent implements OnInit, OnDestroy {
   libSub;
 
   constructor(
-    private mainService: MainService, 
+    private mainService: MainService,
     private jsonFdsService: JsonFdsService,
     private libraryService: LibraryService,
     private fdsScenarioService: FdsScenarioService
@@ -99,6 +106,7 @@ export class InputFileComponent implements OnInit, OnDestroy {
     this.mainSub.unsubscribe();
     this.libSub.unsubscribe();
   }
+
   /**
    * Initialize codemirror
    */
@@ -109,9 +117,9 @@ export class InputFileComponent implements OnInit, OnDestroy {
     //let input = JSON.stringify(this.lib.toJSON(), null, '\t');
     this.cm.setValue(input);
 
-    this.cm.on('change', (editor: CodeMirror.Editor) => {
-      //console.log(editor);
-    });
+    //this.cm.on('keydown', (editor: CodeMirror.Editor) => {
+    //  console.log(editor);
+    //});
   }
 
   /**
@@ -145,14 +153,14 @@ export class InputFileComponent implements OnInit, OnDestroy {
    * Save user defined section in db
    */
   public saveFile() {
-    if(isDevMode()){
+    if (isDevMode()) {
       console.log('Save input file');
     }
     let input = this.cm.getValue();
-    input = input.replace(/[\n\r\t]/g,' ');
+    input = input.replace(/[\n\r\t]/g, ' ');
 
     var myRegexp = /\/\*\*\sUser-defined\sinput(.*)\*\*\//g;
-    if(myRegexp.test(input)){
+    if (myRegexp.test(input)) {
       // Reset regexp position
       myRegexp.lastIndex = 0;
 

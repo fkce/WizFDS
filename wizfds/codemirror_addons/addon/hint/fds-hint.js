@@ -1,15 +1,15 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
 // Distributed under an MIT license: http://codemirror.net/LICENSE
 
-(function(mod) {
-  if (typeof exports == "object" && typeof module == "object") // CommonJS
-    mod(require("../../lib/codemirror"));
-  else if (typeof define == "function" && define.amd) // AMD
-    define(["../../lib/codemirror"], mod);
-  else // Plain browser env
-    mod(CodeMirror);
-})(function(CodeMirror) {
-  "use strict";
+(function (mod) {
+	if (typeof exports == "object" && typeof module == "object") // CommonJS
+		mod(require("../../lib/codemirror"));
+	else if (typeof define == "function" && define.amd) // AMD
+		define(["../../lib/codemirror"], mod);
+	else // Plain browser env
+		mod(CodeMirror);
+})(function (CodeMirror) {
+	"use strict";
 
 
 	function getToken(e, cur) {
@@ -28,9 +28,9 @@
 		}
 		return arr.indexOf(item) != -1;
 	}
-//{{{
-	var ampers = ('&BNDF &CLIP &CSVF &CTRL &DEVC &DUMP &HEAD &HOLE &HVAC &INIT &ISOF &MATL &MESH &MISC &MULT &OBST &PART &PRES ' +
-				  '&PROF &PROP &RADI &RAMP &REAC &SLCF &SPEC &SURF &TABL &TIME &TAIL &TRNX &VENT &ZONE').split(' ');
+
+	var ampers = ('&BNDF &CLIP &CSVF &CTRL &DEVC &DUMP &GEOM &HEAD &HOLE &HVAC &INIT &ISOF &MATL &MESH &MISC &MULT &OBST &PART &PRES ' +
+		'&PROF &PROP &RADI &RAMP &REAC &SLCF &SPEC &SURF &TABL &TIME &TAIL &TRNX &VENT &ZONE').split(' ');
 	var attributes = {};
 	attributes['bndf'] = ('FYI CELL_CENTERED PART_ID PROP_ID QUANTITY SPEC_ID STATISTICS').split(' ');
 	attributes['clip'] = ('FYI MAXIMUM_DENSITY MAXIMUM_TEMPERATURE MINIMUM_DENSITY MINIMUM_TEMPERATURE').split(' ');
@@ -38,6 +38,7 @@
 	attributes['ctrl'] = ('FYI CONSTANT DELAY DIFFERENTIAL_GAIN EVACUATION FUNCTION_TYPE ID INITIAL_STATE INPUT_ID INTEGRAL_GAIN LATCH N ON_BOUND PROPORTIONAL_GAIN RAMP_ID SETPOINT TARGET_VALUE TRIP_DIRECTION').split(' ');
 	attributes['devc'] = ('FYI BYPASS_FLOWRATE CONVERSION_FACTOR COORD_FACTOR CTRL_ID DELAY DEPTH DEVC_ID DRY DUCT_ID EVACUATION FLOWRATE HIDE_COORDINATES ID INITIAL_STATE INIT_ID IOR LATCH MATL_ID NODE_ID NO_UPDATE_DEVC_ID NO_UPDATE_CTRL_ID ORIENTATION ORIENTATION_NUMBER OUTPUT PART_ID PIPE_INDEX POINTS PROP_ID QUANTITY QUANTITY2 QUANTITY_RANGE RELATIVE ROTATION SETPOINT STATISTICS STATISTICS_START SMOOTHING_FACTOR SPEC_ID SURF_ID TIME_AVERAGED TRIP_DIRECTION UNITS VELO_INDEX XB XYZ X_ID Y_ID Z_ID').split(' ');
 	attributes['dump'] = ('FYI CLIP_RESTART_FILES COLUMN_DUMP_LIMIT CTRL_COLUMN_LIMIT DEVC_COLUMN_LIMIT DT_BNDF DT_CTRL DT_DEVC DT_DEVC_LINE DT_FLUSH DT_HRR DT_ISOF DT_MASS DT_PART DT_PL3D DT_PROF DT_RESTART DT_SL3D DT_SLCF EB_PART_FILE FLUSH_FILE_BUFFERS MASS_FILE MAXIMUM_PARTICLES NFRAMES PLOT3D_PART_ID PLOT3D_QUANTITY PLOT3D_SPEC_ID PLOT3D_VELO_INDEX RENDER_FILE SIG_FIGS SIG_FIGS_EXP SMOKE3D SMOKE3D_QUANTITY SMOKE3D_SPEC_ID STATUS_FILES SUPPRESS_DIAGNOSTICS UVW_TIMER VELOCITY_ERROR_FILE WRITE_XYZ').split(' ');
+	attributes['geom'] = ('FACES ID IJK MATL_ID MOVE_ID N_LAT N_LEVELS N_LONG SPHERE_ORIGIN SPHERE_RADIUS SPHERE_TYPE SURF_ID TEXTURE_MAPPING TEXTURE_ORIGIN TEXTURE_SCALE VERTS VOLUS XB ZVALS').split(' ');
 	attributes['head'] = ('FYI CHID TITLE').split(' ');
 	attributes['hole'] = ('FYI COLOR CTRL_ID DEVC_ID EVACUATION MESH_ID MULT_ID RGB TRANSPARENCY XB').split(' ');
 	attributes['hvac'] = ('FYI AIRCOIL_ID AMBIENT AREA CLEAN_LOSS COOLANT_MASS_FLOW COOLANT_SPECIFIC_HEAT COOLANT_TEMPERATURE CTRL_ID DAMPER DEVC_ID DIAMETER DUCT_ID EFFICIENCY FAN_ID FILTER_ID FIXED_Q ID LEAK_ENTHALPY LENGTH LOADING LOADING_MULTIPLIER LOSS MASS_FLOW MAX_FLOW MAX_PRESSURE NODE_ID PERIMETER RAMP_ID REVERSE ROUGHNESS SPEC_ID TAU_AC TAU_FAN TAU_VF TYPE_ID VENT_ID VENT2_ID VOLUME_FLOW XYZ').split(' ');
@@ -63,23 +64,21 @@
 	attributes['trnx'] = ('FYI CC IDERIV MESH_NUMBER PC').split(' ');
 	attributes['vent'] = ('FYI COLOR CTRL_ID DEVC_ID DYNAMIC_PRESSURE EVACUATION ID IOR L_EDDY L_EDDY_IJ MB MESH_ID MULT_ID N_EDDY OUTLINE PBX PRESSURE_RAMP REYNOLDS_STRESS RGB SPREAD_RATE SURF_ID TEXTURE_ORIGIN TMP_EXTERIOR TMP_EXTERIOR_RAMP TRANSPARENCY UVW VEL_RMS XB XYZ').split(' ');
 	attributes['zone'] = ('FYI ID LEAK_AREA PERIODIC XB').split(' ');
-//}}}
 
 	var oldEnd = 0; // zmienna potrzebna do sprawdzania czy po atrybutach jest spacja
 
-	CodeMirror.registerHelper('hint', 'fds', function(editor, options) {
+	CodeMirror.registerHelper('hint', 'fds', function (editor, options) {
 
 		var cur = editor.getCursor(), token = getToken(editor, cur);
 
 		var end;
-		var found = [], word; 
+		var found = [], word;
 		// String autocomplete
-		if(token.type == 'string' && token.state.amper == '&SURF'){
-
+		if (token.type == 'string' && token.state.amper == '&SURF') {
 
 			try {
 				var word = token.string.match(/[\w\s]+/).toString();
-			} catch(err) {
+			} catch (err) {
 				word = '';
 
 			}
@@ -89,25 +88,25 @@
 			var beginQuot = /'/;
 			var beforeQuot = /[\s=]'/;
 			var end = cur.ch, start = end;
-			
-			while (start && !beginQuot.test(curLine.slice(start - 1, end)) && !beforeQuot.test(curLine.slice(start - 2, end))) --start; 
+
+			while (start && !beginQuot.test(curLine.slice(start - 1, end)) && !beforeQuot.test(curLine.slice(start - 2, end)))--start;
 			var curWord = start != end && curLine.slice(start, end);
 
 			//var prevToken = getToken(editor, start - 1);
 			//console.log('prev:');
 			//console.log(prevToken);
-			
+
 			for (var i = 0, e = surfList.length; i < e; ++i) {
 				var str = surfList[i];
 				if (str.lastIndexOf(word.toUpperCase(), 0) == 0 && !arrayContains(found, str)) found.push(str);
 			}
-			
-			return {list: found, from: CodeMirror.Pos(cur.line, start), to: CodeMirror.Pos(cur.line, end)};
+
+			return { list: found, from: CodeMirror.Pos(cur.line, start), to: CodeMirror.Pos(cur.line, end) };
 
 		}
 
 		// String autocomplete//{{{
-		if(token.type == 'string'){
+		if (token.type == 'string') {
 			var WORD = /'[\w\s]+'/, RANGE = 500;
 			var word = WORD;
 			var beginQuot = /'\w/;
@@ -115,9 +114,9 @@
 			var range = RANGE;
 			var cur = editor.getCursor(), curLine = editor.getLine(cur.line);
 			var end = cur.ch, start = end;
-			
-			while (start && !beginQuot.test(curLine.slice(start - 1, end)) && !beforeQuot.test(curLine.slice(start - 1, end))) --start; 
-			if(beginQuot.test(curLine.slice(start - 1, end))) --start;
+
+			while (start && !beginQuot.test(curLine.slice(start - 1, end)) && !beforeQuot.test(curLine.slice(start - 1, end)))--start;
+			if (beginQuot.test(curLine.slice(start - 1, end)))--start;
 			var curWord = start != end && curLine.slice(start, end);
 
 			var list = options && options.list || [], seen = {};
@@ -131,38 +130,38 @@
 						if ((!curWord || m[0].lastIndexOf(curWord, 0) == 0) && !Object.prototype.hasOwnProperty.call(seen, m[0])) {
 							seen[m[0]] = true;
 							list.push(m[0]);
-					  	}
+						}
 					}
-			  	}
+				}
 			}
 			list.sort(function (a, b) {
 				return a.toLowerCase().localeCompare(b.toLowerCase());
 			});
-			return {list: list, from: CodeMirror.Pos(cur.line, start), to: CodeMirror.Pos(cur.line, end)};
+			return { list: list, from: CodeMirror.Pos(cur.line, start), to: CodeMirror.Pos(cur.line, end) };
 		}//}}}
 		// Ampers & attributes autocomplete//{{{
 		//console.log('___________________________________________________________________');
 		//console.log('ctrl+space: ' + options.ac);
-		var match = null, end; 
+		var match = null, end;
 		var found = [], start = token.string;
 		//console.log('start: \'' + start + '\'');
 		try {
-			var amperAttributesList = attributes[(token.state.amper).substr(1, 4).toLowerCase()];	
+			var amperAttributesList = attributes[(token.state.amper).substr(1, 4).toLowerCase()];
 			try {
 				//TODO rozwiazac jeszcze problem gdy wcisniety jest
 				//tabulator - do przemyslenia 
-				if(options.ac == false || options.ac == undefined){
+				if (options.ac == false || options.ac == undefined) {
 					match = start.match(/^[\w*\s*]+/);
 					//console.log('match: \'' + match.toString() + '\'');
 					word = start.match(/\w+/).toString();
 					end = word.length;
 					//console.log(end);
-					if(end == oldEnd) { 
+					if (end == oldEnd) {
 						//console.log(end);
-						if(end < oldEnd) oldEnd = end;
-						return null; 
+						if (end < oldEnd) oldEnd = end;
+						return null;
 					}
-					if(end == 1){ oldEnd = 0; }
+					if (end == 1) { oldEnd = 0; }
 					oldEnd = end;
 				}
 			} catch (err) {
@@ -171,32 +170,38 @@
 			}
 			for (var i = 0, e = amperAttributesList.length; i < e; ++i) {
 				var str = amperAttributesList[i];
-				if(options.ac == true) found.push(str);
-				if(match != null){
+				if (options.ac == true) found.push(str);
+				if (match != null) {
 					if (str.lastIndexOf(word.toUpperCase(), 0) == 0 && !arrayContains(found, str)) found.push(str);
 				}
 			}
 			//console.log('found: ' + found);
-			if(options.ac == true){
+			if (options.ac == true) {
 				options.ac = false;
-				return {list: found,
-						from: CodeMirror.Pos(cur.line, cur.ch),
-						to: CodeMirror.Pos(cur.line, cur.ch)};
+				return {
+					list: found,
+					from: CodeMirror.Pos(cur.line, cur.ch),
+					to: CodeMirror.Pos(cur.line, cur.ch)
+				};
 			} else {
-				return {list: found,
-						from: CodeMirror.Pos(cur.line, token.start),
-						to: CodeMirror.Pos(cur.line, token.start + end)};
+				return {
+					list: found,
+					from: CodeMirror.Pos(cur.line, token.start),
+					to: CodeMirror.Pos(cur.line, token.start + end)
+				};
 			}
-		} catch(err){
+		} catch (err) {
 			//console.log(err);
 			//console.log('ampers: true');
 			for (var i = 0, e = ampers.length; i < e; ++i) {
 				var str = ampers[i];
 				if (str.lastIndexOf(start.toUpperCase(), 0) == 0 && !arrayContains(found, str)) found.push(str);
 			}
-			return {list: found,
-					from: CodeMirror.Pos(cur.line, token.start),
-					to: CodeMirror.Pos(cur.line, token.end)};
+			return {
+				list: found,
+				from: CodeMirror.Pos(cur.line, token.start),
+				to: CodeMirror.Pos(cur.line, token.end)
+			};
 		}//}}}
 	});
 });

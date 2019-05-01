@@ -1,4 +1,5 @@
-<textarea #host></textarea>
+<textarea #host (change)="onKey($event)"></textarea>
+
 <div class="buttons">
     <button>Run simulation</button>
     <button class="ml++" (click)="downloadFile()">Download</button>

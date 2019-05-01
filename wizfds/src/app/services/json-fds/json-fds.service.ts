@@ -17,6 +17,7 @@ import { Devc } from '@services/fds-object/output/devc';
 import { SurfSpec } from '@services/fds-object/specie/surf-spec';
 import { Spec } from '@services/fds-object/specie/spec';
 import { Color } from '@services/fds-object/primitives';
+import { Geom } from '@services/fds-object/geometry/geom';
 
 @Injectable()
 export class JsonFdsService {
@@ -599,6 +600,52 @@ export class JsonFdsService {
   }
 
   /**
+   * Parse geoms 
+   * @param geoms 
+   */
+  public geomAmper(geoms: Geom[]): string[] {
+
+    let geomString: string[] = [];
+
+    forEach(geoms, (o) => {
+      let geom = cloneDeep(o.toJSON());
+
+      console.log(geom);
+      let verts: string = "\n\tVERTS=";
+      let faces: string = "\tFACES=";
+
+      // Create verts & faces with linebreaks
+      if (geom['verts'] && geom['faces']) {
+        forEach(geom['verts'], (vert, index: number) => {
+          if (index == 0) {
+            verts = verts + sprintf("%s, %s, %s,\n", vert[0], vert[1], vert[2]);
+          }
+          else {
+            verts = verts + sprintf("\t\t%s, %s, %s,\n", vert[0], vert[1], vert[2]);
+          }
+        });
+
+        forEach(geom['faces'], (face, index: number) => {
+          if (index == 0) {
+            faces = faces + sprintf("%s, %s, %s, %s,\n", face[0], face[1], face[2], 1);
+          }
+          else {
+            faces = faces + sprintf("\t\t%s, %s, %s, %s,\n", face[0], face[1], face[2], 1);
+          }
+        });
+      }
+
+      unset(geom, 'verts');
+      unset(geom, 'faces');
+
+      let parsedGeom = this.parseAmper(geom, 'geom');
+      if (parsedGeom) geomString.push(sprintf("&GEOM %s, %s%s/", parsedGeom, verts, faces));
+    });
+
+    if (geomString.length > 0) return geomString;
+    else return Array();
+  }
+  /**
    * Parse spec 
    * @param specs 
    */
@@ -910,6 +957,11 @@ export class JsonFdsService {
     if (fdsObject.geometry.holes.length > 0) {
       fdsInput = concat(fdsInput, Array('## ---- Hole ----'));
       fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.geometry.holes, 'hole'));
+      fdsInput.push('');
+    }
+    if (fdsObject.geometry.geoms.length > 0) {
+      fdsInput = concat(fdsInput, Array('## ---- Complex geometry ----'));
+      fdsInput = concat(fdsInput, this.geomAmper(fdsObject.geometry.geoms));
       fdsInput.push('');
     }
 

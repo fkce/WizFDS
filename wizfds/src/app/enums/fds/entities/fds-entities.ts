@@ -2247,6 +2247,159 @@ export const FdsEntities =
             ]
           }
         },
+        geom: {
+          faces: {
+            type: 'Array',
+            default: [],
+            help: '',
+            pattern: '',
+            valid_ranges: [ { minExclusive: '__', maxExclusive: '__' } ],
+            reasonable_ranges: [ { minExclusive: '__', maxExclusive: '__' } ]
+          },
+          id: {
+            type: 'Character',
+            default: [],
+            help: '',
+            pattern: '',
+            valid_ranges: [ { minExclusive: '__', maxExclusive: '__' } ],
+            reasonable_ranges: [ { minExclusive: '__', maxExclusive: '__' } ]
+          },
+          ijk: {
+            type: 'IntegerTriplet',
+            default: [ 10,10,10 ],
+            help: '',
+            pattern: '',
+            valid_ranges: [ { minExclusive: '__', maxExclusive: '__' } ],
+            reasonable_ranges: [ { minExclusive: '__', maxExclusive: '__' } ]
+          },
+          matl_id: {
+            type: 'Character',
+            default: [],
+            help: '',
+            pattern: '',
+            valid_ranges: [ { minExclusive: '__', maxExclusive: '__' } ],
+            reasonable_ranges: [ { minExclusive: '__', maxExclusive: '__' } ]
+          },
+          move_id: {
+            type: 'Character',
+            default: [],
+            help: '',
+            pattern: '',
+            valid_ranges: [ { minExclusive: '__', maxExclusive: '__' } ],
+            reasonable_ranges: [ { minExclusive: '__', maxExclusive: '__' } ]
+          },
+          n_lat: {
+            type: 'Integer',
+            default: [ 0 ],
+            help: '',
+            pattern: '',
+            valid_ranges: [ { minExclusive: '__', maxExclusive: '__' } ],
+            reasonable_ranges: [ { minExclusive: '__', maxExclusive: '__' } ]
+          },
+          n_levels: {
+            type: 'Integer',
+            default: [ 0 ],
+            help: '',
+            pattern: '',
+            valid_ranges: [ { minExclusive: '__', maxExclusive: '__' } ],
+            reasonable_ranges: [ { minExclusive: '__', maxExclusive: '__' } ]
+          },
+          n_long: {
+            type: 'Integer',
+            default: [ 0 ],
+            help: '',
+            pattern: '',
+            valid_ranges: [ { minExclusive: '__', maxExclusive: '__' } ],
+            reasonable_ranges: [ { minExclusive: '__', maxExclusive: '__' } ]
+          },
+          sphere_origin: {
+            type: 'RealTriplet',
+            units: 'm',
+            default: [ 0,0,0 ],
+            help: '',
+            pattern: '',
+            valid_ranges: [ { minExclusive: '__', maxExclusive: '__' } ],
+            reasonable_ranges: [ { minExclusive: '__', maxExclusive: '__' } ]
+          },
+          sphere_radius: {
+            type: 'Real',
+            default: [1],
+            help: '',
+            pattern: '',
+            valid_ranges: [ { minExclusive: '__', maxExclusive: '__' } ],
+            reasonable_ranges: [ { minExclusive: '__', maxExclusive: '__' } ]
+          },
+          sphere_type: {
+            type: 'Integer',
+            default: [ 0 ],
+            help: '',
+            pattern: '',
+            valid_ranges: [ { minExclusive: '__', maxExclusive: '__' } ],
+            reasonable_ranges: [ { minExclusive: '__', maxExclusive: '__' } ]
+          },
+          surf_id: {
+            type: 'Character',
+            default: [],
+            help: '',
+            pattern: '',
+          },
+          texture_mapping: {
+            type: 'Character',
+            default: [],
+            help: '',
+            pattern: '',
+          },
+          texture_origin: {
+            type: 'RealTriplet',
+            units: 'm',
+            default: [ 0,0,0 ],
+            help: '',
+            pattern: '',
+            valid_ranges: [ { minExclusive: '__', maxExclusive: '__' } ],
+            reasonable_ranges: [ { minExclusive: '__', maxExclusive: '__' } ]
+          },
+          texture_scale: {
+            type: 'Real',
+            default: [1],
+            help: '',
+            pattern: '',
+            valid_ranges: [ { minExclusive: '__', maxExclusive: '__' } ],
+            reasonable_ranges: [ { minExclusive: '__', maxExclusive: '__' } ]
+          },
+          verts: {
+            type: 'Array',
+            default: [],
+            help: '',
+            pattern: '',
+            valid_ranges: [ { minExclusive: '__', maxExclusive: '__' } ],
+            reasonable_ranges: [ { minExclusive: '__', maxExclusive: '__' } ]
+          },
+          volus: {
+            type: 'Array',
+            default: [],
+            help: '',
+            pattern: '',
+            valid_ranges: [ { minExclusive: '__', maxExclusive: '__' } ],
+            reasonable_ranges: [ { minExclusive: '__', maxExclusive: '__' } ]
+          },
+          xb: {
+            type: 'RealSextuplet',
+            default: [ 0,1,0,1,0,1 ],
+            units: 'm',
+            help: '',
+            pattern: '',
+            valid_ranges: [ { minExclusive: '__', maxExclusive: '__' } ],
+            reasonable_ranges: [ { minExclusive: '__', maxExclusive: '__' } ]
+          },
+          zvals: {
+            type: 'Real',
+            default: [1],
+            help: '',
+            pattern: '',
+            valid_ranges: [ { minExclusive: '__', maxExclusive: '__' } ],
+            reasonable_ranges: [ { minExclusive: '__', maxExclusive: '__' } ]
+          }
+        },
         head: {
           chid: {
             type: 'Character',

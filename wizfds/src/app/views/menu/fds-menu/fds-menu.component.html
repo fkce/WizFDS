@@ -22,6 +22,9 @@
     <div class="n2" routerLink="fds/geometry/obstruction" (click)="activate('obstruction')">
       <a [ngClass]="{'active': uiState.active == 'obstruction'}">Obstruction</a>
     </div>
+    <div class="n2" routerLink="fds/geometry/complex" (click)="activate('complex')">
+      <a [ngClass]="{'active': uiState.active == 'complex'}">Complex</a>
+    </div>
   </div>
 
   <div class="n1" (click)="toggleMenu('ventilation')">

@@ -1,4 +1,20 @@
 @import '../../app.component.scss';
+.demo {
+    position: fixed;
+    top: 0;
+	left: 0;
+	right: 0;
+	height: 0;
+    text-align: center;
+    p {
+        display: inline;
+        font-size: 0.78rem;
+        color: $red;
+        a {
+            color: $blue;
+        }
+    }
+}
 
 .header-container {
     display: grid;

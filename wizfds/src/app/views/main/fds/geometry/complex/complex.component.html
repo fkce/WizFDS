@@ -1,0 +1,52 @@
+<div class="single-amper-container">
+
+  <div class="list">
+    <div class="list-title" (click)="add()">
+      <i class="material-icons">add_box</i> Add GEOM
+    </div>
+    <perfect-scrollbar #geomScrollbar (psScrollY)="scrollbarUpdate('geom')">
+      <div class="list-items">
+        <div class="list-item"
+          *ngFor="let geomItem of geometry.geoms | slice: ui.geometry.geom.begin:(ui.geometry.geom.begin + ui.listRange)">
+          <a (click)="activate(geomItem.id)" [ngClass]="{active: geomItem === geom}">{{geomItem.id}}</a>
+          <i class="material-icons red" (click)="delete(geomItem.id)">delete_forever</i>
+        </div>
+      </div>
+    </perfect-scrollbar>
+    <div class="list-bottom" *ngIf="geometry.geoms.length > ui.listRange">
+      <i class="material-icons" *ngIf="ui.geometry.geom.begin > 0"
+        (click)="uiStateService.decreaseRange('geometry.geom')">chevron_left</i>
+      <div>{{ui.geometry.geom.begin}} - {{ui.geometry.geom.begin + ui.listRange > geometry.geoms.length ? geometry.geoms.length
+        : ui.geometry.geom.begin + ui.listRange}}</div>
+      <i class="material-icons" *ngIf="ui.geometry.geom.begin + ui.listRange < geometry.geoms.length"
+        (click)="uiStateService.increaseRange('geometry.geom')">chevron_right</i>
+    </div>
+  </div>
+
+  <div class="form-box">
+    <div *ngIf="!geom">
+      <label>Select or add new complex geometry</label>
+    </div>
+    <div *ngIf="geom">
+      <div class="form-title">
+        <label>{{geom.id}} definition</label>
+      </div>
+      <div class="form-row">
+        <div>
+          <label>Id:</label>
+          <div class="field-container">
+            <input type=text [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="geom.id" idInput stringInput>
+          </div>
+        </div>
+        <div>
+          <label>Surface:</label>
+          <div class="field-container">
+            <ng-select [items]="surfaces" bindLabel="id" placeholder="No SURF" [(ngModel)]="geom.surf" [searchable]="false"
+              [clearable]="true"></ng-select>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

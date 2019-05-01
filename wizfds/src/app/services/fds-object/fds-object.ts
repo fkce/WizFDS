@@ -27,10 +27,11 @@ import { quantities } from '../../enums/fds/enums/fds-enums-quantities';
 import { Dump } from './output/dump';
 import { SurfSpec } from './specie/surf-spec';
 import { VentSpec } from './specie/vent';
+import { Geom } from './geometry/geom';
 
 export interface IFds {
   general: General,
-  geometry: { obsts: Obst[], holes: Hole[], opens: Open[], matls: Matl[], meshes: Mesh[], surfs: Surf[] },
+  geometry: { obsts: Obst[], holes: Hole[], opens: Open[], matls: Matl[], meshes: Mesh[], surfs: Surf[], geoms: Geom[] },
   ventilation: { surfs: SurfVent[], vents: Vent[], jetfans: JetFan[] },
   ramps: { ramps: Ramp[] },
   particle: { parts: Part[] },
@@ -42,7 +43,7 @@ export interface IFds {
 export class Fds {
 
   general: General;
-  geometry = { obsts: [], holes: [], opens: [], matls: [], meshes: [], surfs: [] };
+  geometry = { obsts: [], holes: [], opens: [], matls: [], meshes: [], surfs: [], geoms: [] };
   ventilation = { surfs: [], vents: [], jetfans: [] };
   ramps = { ramps: [] };
   particle = { parts: [] };
@@ -127,6 +128,9 @@ export class Fds {
     this.geometry.obsts = get(base, 'geometry.obsts') === undefined ? [] : map(base.geometry.obsts, (obst) => {
       return new Obst(JSON.stringify(obst), this.geometry.surfs, this.output.devcs);
     });
+    this.geometry.geoms = get(base, 'geometry.geoms') === undefined ? [] : map(base.geometry.geoms, (geom) => {
+      return new Geom(JSON.stringify(geom), this.geometry.surfs);
+    });
 
     // Create ventilation elements
     this.ventilation.surfs = get(base, 'ventilation.surfs') === undefined ? [] : map(base.ventilation.surfs, (surf) => {
@@ -144,7 +148,7 @@ export class Fds {
       return new Fire(JSON.stringify(fire), this.ramps.ramps);
     });
     this.fires.combustion = get(base, 'fires.combustion') === undefined ? new Combustion(JSON.stringify({})) : new Combustion(JSON.stringify(base.fires.combustion));
-    this.fires.fuels = get(base, 'fires.fuels') === undefined ? [] : map(base.fires.fuels, (fuel) => {
+    this.fires.fuels = get(base, 'fires.fuels') === undefined ? [new Fuel(JSON.stringify({}))] : map(base.fires.fuels, (fuel) => {
       return new Fuel(JSON.stringify(fuel), this.specie.specs);
     });
 
@@ -187,6 +191,7 @@ export class Fds {
         surfs: map(this.geometry.surfs, (surf: Surf) => { return surf.toJSON(); }),
         obsts: map(this.geometry.obsts, (obst: Obst) => { return obst.toJSON(); }),
         holes: map(this.geometry.holes, (hole: Hole) => { return hole.toJSON(); }),
+        geoms: map(this.geometry.geoms, (geom: Geom) => { return geom.toJSON(); }),
       },
       ventilation: {
         surfs: map(this.ventilation.surfs, (surf: SurfVent) => { return surf.toJSON(); }),

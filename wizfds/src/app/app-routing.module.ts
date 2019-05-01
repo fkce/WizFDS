@@ -24,6 +24,7 @@ import { SpecComponent } from './views/main/fds/specie/spec/spec.component';
 import { UserSettingsComponent } from './views/main/user-settings/user-settings.component';
 import { LibraryEditorComponent } from './views/main/library-editor/library-editor.component';
 import { InjectionComponent } from './views/main/fds/specie/injection/injection.component';
+import { ComplexComponent } from './views/main/fds/geometry/complex/complex.component';
 
 const routes: Routes = [
   {
@@ -58,6 +59,10 @@ const routes: Routes = [
   {
     path: 'fds/geometry/obstruction',
     component: ObstructionComponent
+  },
+  {
+    path: 'fds/geometry/complex',
+    component: ComplexComponent
   },
   {
     path: 'fds/ventilation/basic',

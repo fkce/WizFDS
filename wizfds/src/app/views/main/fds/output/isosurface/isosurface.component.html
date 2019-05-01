@@ -13,11 +13,11 @@
       </div>
     </perfect-scrollbar>
     <div class="list-bottom" *ngIf="isofs.length > ui.listRange">
-      <i class="material-icons" *ngIf="ui.output.isof.begin > 0" (click)="uiStateService.decreaseRange('isofs.isof')">chevron_left</i>
+      <i class="material-icons" *ngIf="ui.output.isof.begin > 0" (click)="uiStateService.decreaseRange('output.isof')">chevron_left</i>
       <div>{{ui.output.isof.begin}} - {{ui.output.isof.begin + ui.listRange > isofs.length ? isofs.length :
         ui.output.isof.begin
         + ui.listRange}}</div>
-      <i class="material-icons" *ngIf="ui.output.isof.begin + ui.listRange < isofs.length" (click)="uiStateService.increaseRange('isofs.isof')">chevron_right</i>
+      <i class="material-icons" *ngIf="ui.output.isof.begin + ui.listRange < isofs.length" (click)="uiStateService.increaseRange('output.isof')">chevron_right</i>
     </div>
   </div>
 

@@ -13,10 +13,10 @@
       </div>
     </perfect-scrollbar>
     <div class="list-bottom" *ngIf="devcs.length > ui.listRange">
-      <i class="material-icons" *ngIf="ui.output.devc.begin > 0" (click)="uiStateService.decreaseRange('devcs.devc')">chevron_left</i>
+      <i class="material-icons" *ngIf="ui.output.devc.begin > 0" (click)="uiStateService.decreaseRange('output.devc')">chevron_left</i>
       <div>{{ui.output.devc.begin}} - {{ui.output.devc.begin + ui.listRange > devcs.length ? devcs.length : ui.output.devc.begin
         + ui.listRange}}</div>
-      <i class="material-icons" *ngIf="ui.output.devc.begin + ui.listRange < devcs.length" (click)="uiStateService.increaseRange('devcs.devc')">chevron_right</i>
+      <i class="material-icons" *ngIf="ui.output.devc.begin + ui.listRange < devcs.length" (click)="uiStateService.increaseRange('output.devc')">chevron_right</i>
     </div>
   </div>
 

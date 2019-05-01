@@ -92,6 +92,7 @@ import { InjectionComponent } from './views/main/fds/specie/injection/injection.
 import { RgbInputDirective } from './directives/inputs/rgb-input.directive';
 import { ParabolaChartComponent } from './views/main/fds/shared/parabola-chart/parabola-chart.component';
 import { CustomRampDialogComponent } from './views/main/fds/fire/fires/custom-ramp-dialog/custom-ramp-dialog.component';
+import { ComplexComponent } from './views/main/fds/geometry/complex/complex.component';
 
 
 @NgModule({
@@ -135,6 +136,7 @@ import { CustomRampDialogComponent } from './views/main/fds/fire/fires/custom-ra
     InjectionComponent,
     RgbInputDirective,
     CustomRampDialogComponent,
+    ComplexComponent,
   ],
   imports: [
     BrowserModule,
