@@ -1,8 +1,17 @@
-﻿using System;
+﻿#if BRX_APP
+using acApp = Bricscad.ApplicationServices.Application;
+using Bricscad.ApplicationServices;
+using Teigha.DatabaseServices;
+using Bricscad.EditorInput;
+using Teigha.Geometry;
+using Teigha.Runtime;
+#elif ARX_APP
 using acApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using Autodesk.AutoCAD.EditorInput;
+#endif
+
+using System;
 using WizFDS.Export;
-//using Autodesk.AutoCAD.DatabaseServices;
 
 namespace WizFDS.Websocket
 {

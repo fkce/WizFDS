@@ -1,9 +1,19 @@
-﻿using System;
+﻿#if BRX_APP
+using acApp = Bricscad.ApplicationServices.Application;
+using Bricscad.ApplicationServices;
+using Teigha.DatabaseServices;
+using Bricscad.EditorInput;
+using Teigha.Geometry;
+using Teigha.Runtime;
+#elif ARX_APP
+using acApp = Autodesk.AutoCAD.ApplicationServices.Application;
+using Autodesk.AutoCAD.EditorInput;
+#endif
+
+using System;
 using SuperSocket.SocketBase;
 using SuperWebSocket;
 using System.Windows.Forms;
-using acApp = Autodesk.AutoCAD.ApplicationServices.Application;
-using Autodesk.AutoCAD.EditorInput;
 using SuperSocket.SocketBase.Config;
 using WizFDS.Ribbon;
 

@@ -59,6 +59,9 @@ namespace WizFDS.Modelling.Geometry
                         // Step through the objects in the selection set
                         SelectedObject acSSObj = acSSet[0];
 
+                        string layer = "";
+                        Extents3d ext;
+
                         // Check to make sure a valid SelectedObject object was returned
                         if (acSSObj != null)
                         {
@@ -69,8 +72,10 @@ namespace WizFDS.Modelling.Geometry
                                 acEnt = acTrans.GetObject(acSSObj.ObjectId, OpenMode.ForRead) as Entity;
                                 acEnt.Unhighlight();
                                 acEnt.Highlight();
+                                layer = acEnt.Layer;
+                                ext = acEnt.GeometricExtents;
                             }
-                            if (acEnt.Layer.Contains("!FDS_MESH"))
+                            if (layer.Contains("!FDS_MESH"))
                             {
                                 PromptKeywordOptions axisOptions = new PromptKeywordOptions("\nChoose opening axis");
                                 axisOptions.Keywords.Add("X-axis");
@@ -94,20 +99,16 @@ namespace WizFDS.Modelling.Geometry
                                         if (direction.Status != PromptStatus.OK || direction.Status == PromptStatus.Cancel) { Utils.Utils.End(); return; };
                                         if (direction.Status == PromptStatus.OK)
                                         {
-                                            Extents3d ext = acEnt.GeometricExtents;
                                             if (direction.StringResult == "mIn")
                                             {
-                                                acEnt.Unhighlight();
                                                 Utils.Utils.CreateExtrudedSurface(ext.MinPoint, new Point3d(ext.MinPoint.X, ext.MaxPoint.Y, ext.MaxPoint.Z), "!FDS_MESH[open]", 1, 1);
                                             }
                                             else if (direction.StringResult == "mAx")
                                             {
-                                                acEnt.Unhighlight();
                                                 Utils.Utils.CreateExtrudedSurface(new Point3d(ext.MaxPoint.X, ext.MinPoint.Y, ext.MinPoint.Z), ext.MaxPoint, "!FDS_MESH[open]", 1, 1);
                                             }
                                             else if (direction.StringResult == "Both")
                                             {
-                                                acEnt.Unhighlight();
                                                 Utils.Utils.CreateExtrudedSurface(ext.MinPoint, new Point3d(ext.MinPoint.X, ext.MaxPoint.Y, ext.MaxPoint.Z), "!FDS_MESH[open]", 1, 1);
                                                 Utils.Utils.CreateExtrudedSurface(new Point3d(ext.MaxPoint.X, ext.MinPoint.Y, ext.MinPoint.Z), ext.MaxPoint, "!FDS_MESH[open]", 1, 1);
                                             }
@@ -124,20 +125,16 @@ namespace WizFDS.Modelling.Geometry
                                         if (direction.Status != PromptStatus.OK || direction.Status == PromptStatus.Cancel) { Utils.Utils.End(); return; };
                                         if (direction.Status == PromptStatus.OK)
                                         {
-                                            Extents3d ext = acEnt.GeometricExtents;
                                             if (direction.StringResult == "mIn")
                                             {
-                                                acEnt.Unhighlight();
                                                 Utils.Utils.CreateExtrudedSurface(ext.MinPoint, new Point3d(ext.MaxPoint.X, ext.MinPoint.Y, ext.MaxPoint.Z), "!FDS_MESH[open]", 1, 1);
                                             }
                                             else if (direction.StringResult == "mAx")
                                             {
-                                                acEnt.Unhighlight();
                                                 Utils.Utils.CreateExtrudedSurface(new Point3d(ext.MinPoint.X, ext.MaxPoint.Y, ext.MinPoint.Z), ext.MaxPoint, "!FDS_MESH[open]", 1, 1);
                                             }
                                             else if (direction.StringResult == "Both")
                                             {
-                                                acEnt.Unhighlight();
                                                 Utils.Utils.CreateExtrudedSurface(ext.MinPoint, new Point3d(ext.MaxPoint.X, ext.MinPoint.Y, ext.MaxPoint.Z), "!FDS_MESH[open]", 1, 1);
                                                 Utils.Utils.CreateExtrudedSurface(new Point3d(ext.MinPoint.X, ext.MaxPoint.Y, ext.MinPoint.Z), ext.MaxPoint, "!FDS_MESH[open]", 1, 1);
                                             }
@@ -155,20 +152,16 @@ namespace WizFDS.Modelling.Geometry
                                         if (direction.Status != PromptStatus.OK || direction.Status == PromptStatus.Cancel) { Utils.Utils.End(); return; };
                                         if (direction.Status == PromptStatus.OK)
                                         {
-                                            Extents3d ext = acEnt.GeometricExtents;
                                             if (direction.StringResult == "mIn")
                                             {
-                                                acEnt.Unhighlight();
                                                 Utils.Utils.CreateExtrudedSurface(ext.MinPoint, new Point3d(ext.MaxPoint.X, ext.MaxPoint.Y, ext.MinPoint.Z), "!FDS_MESH[open]", 1, 1);
                                             }
                                             else if (direction.StringResult == "mAx")
                                             {
-                                                acEnt.Unhighlight();
                                                 Utils.Utils.CreateExtrudedSurface(new Point3d(ext.MinPoint.X, ext.MinPoint.Y, ext.MaxPoint.Z), ext.MaxPoint, "!FDS_MESH[open]", 1, 1);
                                             }
                                             else if (direction.StringResult == "Both")
                                             {
-                                                acEnt.Unhighlight();
                                                 Utils.Utils.CreateExtrudedSurface(ext.MinPoint, new Point3d(ext.MaxPoint.X, ext.MaxPoint.Y, ext.MinPoint.Z), "!FDS_MESH[open]", 1, 1);
                                                 Utils.Utils.CreateExtrudedSurface(new Point3d(ext.MinPoint.X, ext.MinPoint.Y, ext.MaxPoint.Z), ext.MaxPoint, "!FDS_MESH[open]", 1, 1);
                                             }
@@ -176,9 +169,6 @@ namespace WizFDS.Modelling.Geometry
                                     }
                                     else if (axis.StringResult == "All")
                                     {
-                                        Extents3d ext = acEnt.GeometricExtents;
-                                        acEnt.Unhighlight();
-
                                         Utils.Utils.CreateExtrudedSurface(ext.MinPoint, new Point3d(ext.MinPoint.X, ext.MaxPoint.Y, ext.MaxPoint.Z), "!FDS_MESH[open]", 1, 1);
                                         Utils.Utils.CreateExtrudedSurface(new Point3d(ext.MaxPoint.X, ext.MinPoint.Y, ext.MinPoint.Z), ext.MaxPoint, "!FDS_MESH[open]", 1, 1);
 
@@ -187,7 +177,12 @@ namespace WizFDS.Modelling.Geometry
 
                                         Utils.Utils.CreateExtrudedSurface(ext.MinPoint, new Point3d(ext.MaxPoint.X, ext.MaxPoint.Y, ext.MinPoint.Z), "!FDS_MESH[open]", 1, 1);
                                         Utils.Utils.CreateExtrudedSurface(new Point3d(ext.MinPoint.X, ext.MinPoint.Y, ext.MaxPoint.Z), ext.MaxPoint, "!FDS_MESH[open]", 1, 1);
+                                    }
 
+                                    using (Transaction acTrans = acCurDb.TransactionManager.StartTransaction())
+                                    {
+                                        acEnt = acTrans.GetObject(acSSObj.ObjectId, OpenMode.ForRead) as Entity;
+                                        acEnt.Unhighlight();
                                     }
                                 }
                             }

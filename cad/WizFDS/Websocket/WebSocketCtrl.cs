@@ -1,13 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Windows.Forms;
-
-using Autodesk.AutoCAD.Runtime;
-using Autodesk.AutoCAD.ApplicationServices;
+﻿#if BRX_APP
+using acApp = Bricscad.ApplicationServices.Application;
+using Bricscad.ApplicationServices;
+using Teigha.DatabaseServices;
+using Bricscad.EditorInput;
+using Teigha.Geometry;
+using Teigha.Runtime;
+using Bricscad.Windows;
+#elif ARX_APP
 using acApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using Autodesk.AutoCAD.EditorInput;
+using Autodesk.AutoCAD.Runtime;
 using Autodesk.Windows;
+using Autodesk.AutoCAD.ApplicationServices;
+#endif
 
+using System;
+using System.Collections.Generic;
+using System.Windows.Forms;
 using System.Reflection;
 
 namespace WizFDS.Websocket
@@ -113,7 +122,6 @@ namespace WizFDS.Websocket
         {
             try
             {
-#if WIZFDS
                 // Dll loading from resources
                 string resourceName = "";
                 string resource = "";
@@ -125,7 +133,6 @@ namespace WizFDS.Websocket
                     ed.WriteMessage(resourceName + "\n");
                     ed.WriteMessage(resource + "\n");
 #endif
-
                     using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resource))
                     {
                         Byte[] assemblyData = new Byte[stream.Length];
@@ -133,7 +140,8 @@ namespace WizFDS.Websocket
                         return Assembly.Load(assemblyData);
                     }
                 };
-#endif
+
+                var ico = Properties.Resources.defaultIco;
 
                 syncCtrl = new SyncControl();
 
@@ -142,20 +150,27 @@ namespace WizFDS.Websocket
                 syncCtrl.server = new acWebSocketServer(syncCtrl);
                 syncCtrl.router = new acWebSocketRouter();
 
+#if ARX_APP
                 acDoc.SendStringToExecute("TASKBAR\n0\n", true, false, true);
+#endif
 
                 //Ustawienie pojedynczego okna - ewentualnie przetrzymywać orginalną zmienną
                 ed.WriteMessage("\n\nInitializing WizFDS ver. "+ version);
                 ed.WriteMessage("\nWizFDS sync turned on. Waiting for connection from web application ...");
 
                 // Ribbon
-                if (Autodesk.Windows.ComponentManager.Ribbon == null)
+                if (ComponentManager.Ribbon == null)
                 {
                     //load the custom Ribbon on startup, but at this point
                     //the Ribbon control is not available, so register for
                     //an event and wait
-                    Autodesk.Windows.ComponentManager.ItemInitialized +=
+#if ARX_APP
+                    ComponentManager.ItemInitialized +=
                         new EventHandler<RibbonItemEventArgs>(ComponentManager_ItemInitialized);
+#elif BRX_APP
+                    //ComponentManager.ItemInitialized +=
+                    //    new EventHandler<RibbonItemEventArgs>(ComponentManager_ItemInitialized);
+#endif
                 }
                 else
                 {
@@ -183,8 +198,13 @@ namespace WizFDS.Websocket
                 {
                     Ribbon.Ribbon rb = new Ribbon.Ribbon();
                     //and remove the event handler
+#if ARX_APP
                     Autodesk.Windows.ComponentManager.ItemInitialized -=
                         new EventHandler<RibbonItemEventArgs>(ComponentManager_ItemInitialized);
+#elif BRX_APP
+                    //Autodesk.Windows.ComponentManager.ItemInitialized -=
+                    //    new EventHandler<RibbonItemEventArgs>(ComponentManager_ItemInitialized);
+#endif
                 }
             }
             catch (System.Exception e)
@@ -192,21 +212,6 @@ namespace WizFDS.Websocket
                 ed.WriteMessage("\nWizFDS exception:" + e.ToString());
             }
         }
-
-        /*
-        delegate void Del();
-        Del serverDelegate = new Del(CallServerSendMessage);
-
-        static void CallServerSendMessage()
-        {
-            server.sendMessage(syncCtrl.syncValue);
-        }
-
-        public void sendSync(acWebSocketMessage message)
-        {
-            server.sendMessage(new acWebSocketMessage("method", , server.generateID(), null));
-        }
-         */
 
     }
 }

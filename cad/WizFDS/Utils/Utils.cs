@@ -55,11 +55,6 @@ namespace WizFDS.Utils
 
         public static void Init()
         {
-            if (layersCreated == false)
-            {
-                //Point2d snap = new Point2d(0.2, 0.2);
-                //acApp.SetSystemVariable("snapunit", (Object)snap);
-            }
             Layers.CreateBasicLayers();
             oldSnapMode = acApp.GetSystemVariable("snapmode");
             oldOsMode = acApp.GetSystemVariable("osmode");
@@ -71,11 +66,20 @@ namespace WizFDS.Utils
             snapUnit = (Point2d)acApp.GetSystemVariable("snapunit");
 #endif
 
-            if(snapUnit.X <= 1)
+            if(snapUnit.X <= 2)
                 acApp.SetSystemVariable("snapmode", 1);
+            else
+            {
+#if BRX_APP
+                Point3d snap = new Point3d(0.2, 0.2, 0.2);
+#elif ARX_APP
+                Point2d snap = new Point2d(0.2, 0.2);
+#endif
+                acApp.SetSystemVariable("snapunit", snap);
+                acApp.SetSystemVariable("snapmode", 1);
+            }
 
             acApp.SetSystemVariable("osmode", 0);
-
             ResetUCS();
         }
         public static void Init(bool ortho)
@@ -97,8 +101,18 @@ namespace WizFDS.Utils
             snapUnit = (Point2d)acApp.GetSystemVariable("snapunit");
 #endif
 
-            if(snapUnit.X <= 1)
+            if(snapUnit.X <= 2)
                 acApp.SetSystemVariable("snapmode", 1);
+            else
+            {
+#if BRX_APP
+                Point3d snap = new Point3d(0.2, 0.2, 0.2);
+#elif ARX_APP
+                Point2d snap = new Point2d(0.2, 0.2);
+#endif
+                acApp.SetSystemVariable("snapunit", snap);
+                acApp.SetSystemVariable("snapmode", 1);
+            }
 
             acApp.SetSystemVariable("osmode", 0);
 
@@ -125,6 +139,16 @@ namespace WizFDS.Utils
 
             if(snapUnit.X <= 1)
                 acApp.SetSystemVariable("snapmode", 1);
+            else
+            {
+#if BRX_APP
+                Point3d snap = new Point3d(0.2, 0.2, 0.2);
+#elif ARX_APP
+                Point2d snap = new Point2d(0.2, 0.2);
+#endif
+                acApp.SetSystemVariable("snapunit", snap);
+                acApp.SetSystemVariable("snapmode", 1);
+            }
 
             //acApp.SetSystemVariable("osmode", 0);
 
@@ -210,6 +234,7 @@ namespace WizFDS.Utils
                 {
                     acSol3DBox.RecordHistory = true;
                     acSol3DBox.CreateBox(Math.Abs(p2.X - p1.X), Math.Abs(p2.Y - p1.Y), Math.Abs((p1.Z + H) - p1.Z));
+                    acSol3DBox.Layer = Layers.CurrentLayer();
 
                     // Position the center of the 3D solid 
                     Point3d center = new Point3d(p1.X + ((p2.X - p1.X) / 2), p1.Y + ((p2.Y - p1.Y) / 2), p1.Z + (H / 2));
@@ -246,6 +271,7 @@ namespace WizFDS.Utils
                 {
                     acSol3DBox.RecordHistory = true;
                     acSol3DBox.CreateBox(Math.Abs(p2.X - p1.X), Math.Abs(p2.Y - p1.Y), Math.Abs(p2.Z - p1.Z));
+                    acSol3DBox.Layer = Layers.CurrentLayer();
 
                     // Position the center of the 3D solid 
                     Point3d center = new Point3d(p1.X + ((p2.X - p1.X) / 2), p1.Y + ((p2.Y - p1.Y) / 2), p1.Z + ((p2.Z - p1.Z) / 2));
@@ -282,6 +308,7 @@ namespace WizFDS.Utils
                 {
                     acSol3DBox.RecordHistory = true;
                     acSol3DBox.CreateBox(Math.Abs(p2.X - p1.X), Math.Abs(p2.Y - p1.Y), Math.Abs(p2.Z - p1.Z));
+                    acSol3DBox.Layer = Layers.CurrentLayer();
 
                     // Position the center of the 3D solid 
                     Point3d center = new Point3d(p1.X + ((p2.X - p1.X) / 2), p1.Y + ((p2.Y - p1.Y) / 2), p1.Z + ((p2.Z - p1.Z) / 2));
@@ -318,6 +345,7 @@ namespace WizFDS.Utils
                 Solid3d acSol3DBox = new Solid3d();
                 acSol3DBox.RecordHistory = true;
                 acSol3DBox.CreateBox(Math.Abs(p2.X - p1.X), Math.Abs(p2.Y - p1.Y), Math.Abs(p2.Z - p1.Z));
+                acSol3DBox.Layer = Layers.CurrentLayer();
 
                 // Position the center of the 3D solid 
                 Point3d center = new Point3d(p1.X + ((p2.X - p1.X) / 2), p1.Y + ((p2.Y - p1.Y) / 2), p1.Z + ((p2.Z - p1.Z) / 2));
@@ -328,9 +356,9 @@ namespace WizFDS.Utils
                 acBlkTblRec.AppendEntity(acSol3DBox);
                 acTrans.AddNewlyCreatedDBObject(acSol3DBox, true);
                 acSol3DBox.Draw();
+                ObjectId id = acSol3DBox.ObjectId;
                 // Save the new objects to the database
                 acTrans.Commit();
-                ObjectId id = acSol3DBox.ObjectId;
                 return id;
             }
         }
@@ -355,6 +383,7 @@ namespace WizFDS.Utils
                 Solid3d acSol3DBox = new Solid3d();
                 acSol3DBox.RecordHistory = true;
                 acSol3DBox.CreateBox(Math.Abs(p2.X - p1.X), Math.Abs(p2.Y - p1.Y), Math.Abs(p2.Z - p1.Z));
+                acSol3DBox.Layer = Layers.CurrentLayer();
 
                 // Position the center of the 3D solid 
                 Point3d center = new Point3d(p1.X + ((p2.X - p1.X) / 2), p1.Y + ((p2.Y - p1.Y) / 2), p1.Z + ((p2.Z - p1.Z) / 2));
@@ -365,8 +394,8 @@ namespace WizFDS.Utils
                 acTrans.AddNewlyCreatedDBObject(acSol3DBox, true);
                 acSol3DBox.Draw();
                 // Save the new objects to the database
-                acTrans.Commit();
                 ObjectId id = acSol3DBox.ObjectId;
+                acTrans.Commit();
                 return id;
             }
         }
@@ -392,6 +421,7 @@ namespace WizFDS.Utils
                 {
                     acSol3DBox.RecordHistory = true;
                     acSol3DBox.CreateBox(Math.Abs(p2.X - p1.X), Math.Abs(p2.Y - p1.Y), Math.Abs(H));
+                    acSol3DBox.Layer = Layers.CurrentLayer();
 
                     // Position the center of the 3D solid 
                     Point3d center = new Point3d(p1.X + ((p2.X - p1.X) / 2), p1.Y + ((p2.Y - p1.Y) / 2), zMin + (H / 2));
@@ -427,6 +457,7 @@ namespace WizFDS.Utils
                 Solid3d acSol3DBox = new Solid3d();
                 acSol3DBox.RecordHistory = true;
                 acSol3DBox.CreateBox(Math.Abs(p2.X - p1.X), Math.Abs(p2.Y - p1.Y), Math.Abs(H));
+                acSol3DBox.Layer = Layers.CurrentLayer();
 
                 // Position the center of the 3D solid 
                 Point3d center = new Point3d(p1.X + ((p2.X - p1.X) / 2), p1.Y + ((p2.Y - p1.Y) / 2), zMin + (H / 2));
@@ -438,8 +469,8 @@ namespace WizFDS.Utils
                 acSol3DBox.Draw();
 
                 // Save the new objects to the database
-                acTrans.Commit();
                 ObjectId id = acSol3DBox.ObjectId;
+                acTrans.Commit();
                 return id;
             }
         }
@@ -468,6 +499,7 @@ namespace WizFDS.Utils
                 {
                     acSol3DBox.RecordHistory = true;
                     acSol3DBox.CreateBox(Math.Abs(p2.X - p1.X), Math.Abs(p2.Y - p1.Y), Math.Abs(p2.Z - p1.Z));
+                    acSol3DBox.Layer = Layers.CurrentLayer();
 
                     // Position the center of the 3D solid 
                     Point3d center = new Point3d(p1.X + ((p2.X - p1.X) / 2), p1.Y + ((p2.Y - p1.Y) / 2), p1.Z + ((p2.Z - p1.Z) / 2));
@@ -506,6 +538,7 @@ namespace WizFDS.Utils
                 Solid3d acSol3DBox = new Solid3d();
                 acSol3DBox.RecordHistory = true;
                 acSol3DBox.CreateBox(Math.Abs(p2.X - p1.X), Math.Abs(p2.Y - p1.Y), Math.Abs(p2.Z - p1.Z));
+                acSol3DBox.Layer = Layers.CurrentLayer();
 
                 // Position the center of the 3D solid 
                 Point3d center = new Point3d(p1.X + ((p2.X - p1.X) / 2), p1.Y + ((p2.Y - p1.Y) / 2), p1.Z + ((p2.Z - p1.Z) / 2));
@@ -516,8 +549,8 @@ namespace WizFDS.Utils
                 acTrans.AddNewlyCreatedDBObject(acSol3DBox, true);
                 acSol3DBox.Draw();
                 // Save the new objects to the database
-                acTrans.Commit();
                 ObjectId id = acSol3DBox.ObjectId;
+                acTrans.Commit();
                 return id;
             }
         }
@@ -546,6 +579,7 @@ namespace WizFDS.Utils
                 {
                     acSol3DBox.RecordHistory = true;
                     acSol3DBox.CreateBox(Math.Abs(p2.X - p1.X), Math.Abs(p2.Y - p1.Y), Math.Abs(p2.Z - p1.Z));
+                    acSol3DBox.Layer = Layers.CurrentLayer();
 
                     // Position the center of the 3D solid 
                     Point3d center = new Point3d(p1.X + ((p2.X - p1.X) / 2), p1.Y + ((p2.Y - p1.Y) / 2), p1.Z + ((p2.Z - p1.Z) / 2));
@@ -677,8 +711,8 @@ namespace WizFDS.Utils
                 poly.Layer = layer;
 
                 // Commit transaction
-                acTrans.Commit();
                 id = poly.ObjectId;
+                acTrans.Commit();
             }
             return id;
         }
@@ -770,11 +804,11 @@ namespace WizFDS.Utils
                 acBlkTblRec.AppendEntity(acLine);
                 acTrans.AddNewlyCreatedDBObject(acLine, true);
 
+                ObjectId id = acLine.ObjectId;
 
                 // Save the new object to the database
                 acTrans.Commit();
 
-                ObjectId id = acLine.ObjectId;
                 return id;
             }
         }
@@ -852,6 +886,7 @@ namespace WizFDS.Utils
                 surface = acDb.Surface.CreateFrom(face);
                 surface.UIsoLineDensity = 0;
                 surface.VIsoLineDensity = 0;
+                surface.Layer = Layers.CurrentLayer();
 
                 acBlkTblRec.AppendEntity(surface);
                 acTrans.AddNewlyCreatedDBObject(surface, true);
@@ -977,9 +1012,9 @@ namespace WizFDS.Utils
 
                 acBlkTblRec.AppendEntity(surface);
                 acTrans.AddNewlyCreatedDBObject(surface, true);
+                ObjectId id = surface.ObjectId;
                 acTrans.Commit();
 
-                ObjectId id = surface.ObjectId;
                 return id;
             }
         }
@@ -1092,8 +1127,8 @@ namespace WizFDS.Utils
                 acBlkTblRec.AppendEntity(extrSurf);
                 acTrans.AddNewlyCreatedDBObject(extrSurf, true);
                 poly.Erase();
-                acTrans.Commit();
                 ObjectId id = extrSurf.ObjectId;
+                acTrans.Commit();
                 return id;
             }
         }
@@ -1200,6 +1235,7 @@ namespace WizFDS.Utils
                 using (Solid3d acSol3D = new Solid3d())
                 {
                     acSol3D.CreateSphere(radius);
+                    acSol3D.Layer = Layers.CurrentLayer();
 
                     // Position the center of the 3D solid at p1 
                     acSol3D.TransformBy(Matrix3d.Displacement(p1 - Point3d.Origin));
@@ -1233,6 +1269,7 @@ namespace WizFDS.Utils
                 using (Solid3d acSol3D = new Solid3d())
                 {
                     acSol3D.CreateSphere(radius);
+                    acSol3D.Layer = Layers.CurrentLayer();
 
                     // Position the center of the 3D solid at p1 
                     acSol3D.TransformBy(Matrix3d.Displacement(p1 - Point3d.Origin));
@@ -1557,7 +1594,6 @@ namespace Bricscad.EditorInput
 {
     public static class EditorExtensions
     {
-
         public static PromptUcsCornerResult GetUcsCorner(this Editor ed, string message, Point3d basePoint)
         {
             var ucs = ed.CurrentUserCoordinateSystem;

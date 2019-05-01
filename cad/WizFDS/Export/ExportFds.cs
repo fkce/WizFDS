@@ -1,19 +1,11 @@
 ﻿#if BRX_APP
 using acApp = Bricscad.ApplicationServices.Application;
 using Bricscad.ApplicationServices;
-using Teigha.BoundaryRepresentation;
-using Teigha.Colors;
 using Teigha.DatabaseServices;
 using Bricscad.EditorInput;
 using Teigha.Geometry;
-using Teigha.GraphicsInterface;
-using Teigha.GraphicsSystem;
-using Bricscad.PlottingServices;
-using Bricscad.Runtime;
 using Teigha.Runtime;
-using Bricscad.Windows;
 using BricscadDb;
-using BricscadApp;
 #elif ARX_APP
 using acApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using Autodesk.AutoCAD.ApplicationServices;
@@ -26,8 +18,6 @@ using Autodesk.AutoCAD.Interop.Common;
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
 using Newtonsoft.Json;
 using WizFDS.Websocket;
 using WizFDS.Utils;
@@ -145,7 +135,7 @@ namespace WizFDS.Export
 
             public void AddMesh(Entity acEnt)
             {
-                Mesh mesh = new Mesh()
+                Mesh mesh = new Mesh
                 {
                     idAC = Convert.ToInt64(acEnt.Handle.ToString(), 16),
                     xb = new Xb
@@ -162,6 +152,30 @@ namespace WizFDS.Export
                     ksize = ((Point2d)acApp.GetSystemVariable("snapunit")).X
                 };
                 this.meshes.Add(mesh);
+            }
+            public void AddObst(Entity acEnt)
+            {
+                Obst obst = new Obst
+                {
+                    idAC = Convert.ToInt64(acEnt.Handle.ToString(), 16),
+                    xb = new Xb
+                    {
+                        x1 = Math.Round(acEnt.GeometricExtents.MinPoint.X, 4),
+                        x2 = Math.Round(acEnt.GeometricExtents.MaxPoint.X, 4),
+                        y1 = Math.Round(acEnt.GeometricExtents.MinPoint.Y, 4),
+                        y2 = Math.Round(acEnt.GeometricExtents.MaxPoint.Y, 4),
+                        z1 = Math.Round(acEnt.GeometricExtents.MinPoint.Z, 4),
+                        z2 = Math.Round(acEnt.GeometricExtents.MaxPoint.Z, 4),
+                    },
+                    surf = new Obst.SurfObst
+                    {
+                        type = "surf_id",
+                        surf_id = Layers.GetSurfaceName(acEnt.Layer),
+                        color = Layers.GetLayerColor(acEnt.Layer)
+                    },
+                    elevation = this.GetElevation(acEnt.Layer)
+                };
+                this.obsts.Add(obst);
             }
             public void AddSurf(LayerTableRecord acLyrTblRec)
             {
@@ -191,30 +205,6 @@ namespace WizFDS.Export
                         return true;
                 }
                 return false;
-            }
-            public void AddObst(Entity acEnt)
-            {
-                Obst obst = new Obst
-                {
-                    idAC = Convert.ToInt64(acEnt.Handle.ToString(), 16),
-                    xb = new Xb
-                    {
-                        x1 = Math.Round(acEnt.GeometricExtents.MinPoint.X, 4),
-                        x2 = Math.Round(acEnt.GeometricExtents.MaxPoint.X, 4),
-                        y1 = Math.Round(acEnt.GeometricExtents.MinPoint.Y, 4),
-                        y2 = Math.Round(acEnt.GeometricExtents.MaxPoint.Y, 4),
-                        z1 = Math.Round(acEnt.GeometricExtents.MinPoint.Z, 4),
-                        z2 = Math.Round(acEnt.GeometricExtents.MaxPoint.Z, 4),
-                    },
-                    surf = new Obst.SurfObst
-                    {
-                        type = "surf_id",
-                        surf_id = Layers.GetSurfaceName(acEnt.Layer),
-                        color = Layers.GetLayerColor(acEnt.Layer)
-                    },
-                    elevation = this.GetElevation(acEnt.Layer)
-                };
-                this.obsts.Add(obst);
             }
             public void AddHole(Entity acEnt)
             {
@@ -263,6 +253,8 @@ namespace WizFDS.Export
                         surf_id = Layers.GetSurfaceName(acEnt.Layer),
                         color = new int[] { (int)acEnt.Color.ColorValue.R, (int)acEnt.Color.ColorValue.G, (int)acEnt.Color.ColorValue.B }
                     },
+                    verts = new List<double[]>(),
+                    faces = new List<double[]>()
                 };
 
                 // Add faces and vertices
@@ -472,6 +464,7 @@ namespace WizFDS.Export
                     try
                     {
                         // Create a TypedValue array to define the filter criteria
+                        // Select arrows in jetfans
                         TypedValue[] filterlist = new TypedValue[] {
                             new TypedValue(Convert.ToInt32(DxfCode.Operator), "<and"),
                             new TypedValue(Convert.ToInt32(DxfCode.LayerName), "!FDS_JETF*"),
@@ -511,14 +504,14 @@ namespace WizFDS.Export
                                     if (polyEnt.GeometricExtents.MinPoint.X > acEnt.GeometricExtents.MinPoint.X && polyEnt.GeometricExtents.MinPoint.Y > acEnt.GeometricExtents.MinPoint.Y && polyEnt.GeometricExtents.MaxPoint.X < acEnt.GeometricExtents.MaxPoint.X && polyEnt.GeometricExtents.MaxPoint.Y < acEnt.GeometricExtents.MaxPoint.Y)
                                     {
                                         // Check direction
-                                        if (polyEnt.GetPoint3dAt(0).X == polyEnt.GetPoint3dAt(1).X)
+                                        if (Math.Round(polyEnt.GetPoint3dAt(0).X, 6) == Math.Round(polyEnt.GetPoint3dAt(1).X, 6))
                                         {
                                             if (polyEnt.GetPoint3dAt(0).Y < polyEnt.GetPoint3dAt(1).Y)
                                                 dir = "+y";
                                             else
                                                 dir = "-y";
                                         }
-                                        else if (polyEnt.GetPoint3dAt(0).Y == polyEnt.GetPoint3dAt(1).Y)
+                                        else if (Math.Round(polyEnt.GetPoint3dAt(0).Y, 6) == Math.Round(polyEnt.GetPoint3dAt(1).Y, 6))
                                         {
                                             if (polyEnt.GetPoint3dAt(0).X < polyEnt.GetPoint3dAt(1).X)
                                                 dir = "+x";
@@ -790,7 +783,11 @@ namespace WizFDS.Export
                         type = "point";
                     }
                 }
+#if ARX_APP
                 else if(acEnt is Line || acEnt is Polyline)
+#elif BRX_APP
+                else if(acEnt is Line || acEnt is Teigha.DatabaseServices.Polyline)
+#endif
                 {
                     type = "linear";
                 }
@@ -955,32 +952,34 @@ namespace WizFDS.Export
 
                                     if (acEnt.Layer.Contains("!FDS_OBST"))
                                     {
-                                        geometry.AddObst(acEnt);
-
-                                        if (geometry.surfs.Count > 0)
+                                        // Check if complex geometry
+                                        if (acEnt.GetType() == typeof(SubDMesh))
                                         {
-                                            if (!geometry.HasSurf(geometry, acEnt.Layer))
+                                            geometry.AddGeom((SubDMesh) acEnt);
+
+                                            if (geometry.surfs.Count > 0)
+                                            {
+                                                if (!geometry.HasSurf(geometry, acEnt.Layer))
+                                                    geometry.AddSurf(acEnt.Layer, acEnt.Handle);
+                                            }
+                                            else
+                                            {
                                                 geometry.AddSurf(acEnt.Layer, acEnt.Handle);
+                                            }
                                         }
                                         else
                                         {
-                                            geometry.AddSurf(acEnt.Layer, acEnt.Handle);
-                                        }
-                                    }
-                                    else if (acEnt.Layer.Contains("!FDS_GEOM"))
-                                    {
-                                        //if (acEnt.GetType() != typeof(SubDMesh)) continue;
+                                            geometry.AddObst(acEnt);
 
-                                        geometry.AddGeom((SubDMesh) acEnt);
-
-                                        if (geometry.surfs.Count > 0)
-                                        {
-                                            if (!geometry.HasSurf(geometry, acEnt.Layer))
+                                            if (geometry.surfs.Count > 0)
+                                            {
+                                                if (!geometry.HasSurf(geometry, acEnt.Layer))
+                                                    geometry.AddSurf(acEnt.Layer, acEnt.Handle);
+                                            }
+                                            else
+                                            {
                                                 geometry.AddSurf(acEnt.Layer, acEnt.Handle);
-                                        }
-                                        else
-                                        {
-                                            geometry.AddSurf(acEnt.Layer, acEnt.Handle);
+                                            }
                                         }
                                     }
                                     else if (acEnt.Layer.Contains("!FDS_HOLE"))
@@ -1129,7 +1128,6 @@ namespace WizFDS.Export
 #if DEBUG
                 ed.WriteMessage("\nMessageId: " + message.getId());
 #endif
-
                 acWebSocketMessage answer = acWebSocketCtrl.syncCtrl.sendMessageAndWaitSync(message);
             }
             catch (System.Exception e)
@@ -1149,10 +1147,11 @@ namespace WizFDS.Export
 
                 if (data.ToString() != "{}")
                 {
-                    ed.WriteMessage("\nSelecting FDS objects ...");
+                    ed.WriteMessage("\nSelecting FDS object ...");
                     acWebSocketMessage message = new acWebSocketMessage("success", "selectObjectAc", data, null);
+#if DEBUG
                     ed.WriteMessage("\nMessageId: " + message.getId());
-
+#endif
                     acWebSocketMessage answer = acWebSocketCtrl.syncCtrl.sendMessageAndWaitSync(message);
                 }
                 else

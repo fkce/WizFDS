@@ -12,8 +12,6 @@ using Bricscad.PlottingServices;
 using Bricscad.Runtime;
 using Teigha.Runtime;
 using Bricscad.Windows;
-using BricscadDb;
-using BricscadApp;
 #elif ARX_APP
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.EditorInput;

@@ -23,7 +23,6 @@ using Autodesk.AutoCAD.Runtime;
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using System.IO;
 using Newtonsoft.Json;
 using WizFDS.Websocket;
 using System.Linq;

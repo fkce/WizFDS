@@ -1,10 +1,16 @@
-﻿using System;
+﻿#if BRX_APP
+using Teigha.DatabaseServices;
+using Teigha.Runtime;
+#elif ARX_APP
+using Autodesk.AutoCAD.DatabaseServices;
+using Autodesk.AutoCAD.Runtime;
+#endif
+
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Resources;
 using Microsoft.Win32;
-using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.Runtime;
 
 namespace WizFDS.Utils
 {
@@ -28,9 +34,9 @@ namespace WizFDS.Utils
             List<string> groups = new List<string>();
 
             // Iterate through the modules in the assembly
-            Module[] mods = assem.GetModules(true);
+            System.Reflection.Module[] mods = assem.GetModules(true);
 
-            foreach (Module mod in mods)
+            foreach (System.Reflection.Module mod in mods)
             {
                 // Within each module, iterate through the types
                 Type[] types = mod.GetTypes();
