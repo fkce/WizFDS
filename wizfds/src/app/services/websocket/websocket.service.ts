@@ -257,22 +257,26 @@ export class WebsocketService {
     return;
   }
 
-  /** Select CAD element */
+  /** 
+   * Select CAD element after clicking in web aplication
+   */
   public selectCad(idAC: number) {
 
-    // Prepare message
-    let message: WebsocketMessageObject = {
-      method: 'selectObjectWeb',
-      data: {
-        idAC: idAC
-      },
-      id: this.idGenerator(),
-      requestID: '',
-      status: "waiting"
-    }
+    if (this.isConnected) {
+      // Prepare message
+      let message: WebsocketMessageObject = {
+        method: 'selectObjectWeb',
+        data: {
+          idAC: idAC
+        },
+        id: this.idGenerator(),
+        requestID: '',
+        status: "waiting"
+      }
 
-    // Send message to CAD
-    this.sendMessage(message);
+      // Send message to CAD
+      this.sendMessage(message);
+    }
   }
 
   /** Importing CAD geometry */

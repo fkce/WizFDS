@@ -68,7 +68,7 @@ export class InjectionComponent implements OnInit, OnDestroy {
 
   constructor(
     private mainService: MainService,
-    private websocketService: WebsocketService,
+    public websocketService: WebsocketService,
     private uiStateService: UiStateService,
     private libraryService: LibraryService,
     private route: ActivatedRoute,

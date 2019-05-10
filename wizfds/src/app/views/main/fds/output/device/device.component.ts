@@ -62,7 +62,7 @@ export class DeviceComponent implements OnInit, OnDestroy {
     private libraryService: LibraryService,
     private route: ActivatedRoute,
     private readonly notifierService: NotifierService,
-    private websocketService: WebsocketService
+    public websocketService: WebsocketService
   ) { }
 
   ngOnInit() {
@@ -237,11 +237,6 @@ export class DeviceComponent implements OnInit, OnDestroy {
       // Send message to CAD
       this.websocketService.sendMessage(message);
     }
-  }
-
-  /** Select CAD element */
-  public selectCad(type: string = '') {
-    this.websocketService.selectCad(this.devc.idAC);
   }
 
   // COMPONENT METHODS

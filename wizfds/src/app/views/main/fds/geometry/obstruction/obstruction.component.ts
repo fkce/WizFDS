@@ -51,8 +51,8 @@ export class ObstructionComponent implements OnInit, OnDestroy {
   ENUMS_OBST = FdsEnums.OBST;
 
   constructor(
-    private mainService: MainService, 
-    private websocketService: WebsocketService, 
+    private mainService: MainService,
+    public websocketService: WebsocketService,
     private route: ActivatedRoute,
     private uiStateService: UiStateService
   ) { }
@@ -327,18 +327,6 @@ export class ObstructionComponent implements OnInit, OnDestroy {
     }
     else if (type == 'surfId1') {
       console.log(this.obst.surf.surf_id1);
-    }
-  }
-
-  /** Select CAD element */
-  public selectCad(type: string = '') {
-    if (this.websocketService.isConnected) {
-      if (type == 'obst') {
-        this.websocketService.selectCad(this.obst.idAC);
-      }
-      else if (type == 'hole') {
-        this.websocketService.selectCad(this.hole.idAC);
-      }
     }
   }
 

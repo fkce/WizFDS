@@ -285,11 +285,6 @@ export class SurfaceComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Select CAD element */
-  public selectCad(type: string = '') {
-    this.websocketService.selectCad(this.surf.idAC);
-  }
-
   // COMPONENT METHODS
 
   public addLayer() {

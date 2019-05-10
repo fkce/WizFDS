@@ -7,7 +7,7 @@
     <perfect-scrollbar #devcScrollbar (psScrollY)="scrollbarUpdate('devc')">
       <div class="list-items">
         <div class="list-item" *ngFor="let devcItem of devcs | slice: ui.output.devc.begin:(ui.output.devc.begin + ui.listRange)">
-          <a (click)="activate(devcItem.id)" [ngClass]="{active: devcItem === devc}">{{devcItem.id}}</a>
+          <a (click)="activate(devcItem.id); websocketService.selectCad(devcItem.idAC)" [ngClass]="{active: devcItem === devc}">{{devcItem.id}}</a>
           <i class="material-icons red" (click)="delete(devcItem.id)">delete_forever</i>
         </div>
       </div>

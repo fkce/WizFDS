@@ -45,7 +45,7 @@ export class ComplexComponent implements OnInit, OnDestroy {
 
   constructor(
     private mainService: MainService,
-    private websocketService: WebsocketService,
+    public websocketService: WebsocketService,
     private route: ActivatedRoute,
     private uiStateService: UiStateService
   ) { }
@@ -140,13 +140,6 @@ export class ComplexComponent implements OnInit, OnDestroy {
   /** Update scroll position */
   public scrollbarUpdate(element: string) {
     set(this.ui.geometry, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.geometry().y);
-  }
-
-  /** Select CAD element */
-  public selectCad() {
-    if (this.websocketService.isConnected) {
-      this.websocketService.selectCad(this.geom.idAC);
-    }
   }
 
   // COMPONENT METHODS

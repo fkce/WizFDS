@@ -59,7 +59,7 @@ export class JetfanComponent implements OnInit, OnDestroy {
 
   constructor(
     private mainService: MainService,
-    private websocketService: WebsocketService,
+    public websocketService: WebsocketService,
     private uiStateService: UiStateService,
     private libraryService: LibraryService,
     private route: ActivatedRoute,
@@ -285,11 +285,6 @@ export class JetfanComponent implements OnInit, OnDestroy {
       // Send message to CAD
       this.websocketService.sendMessage(message);
     }
-  }
-
-  /** Select CAD element */
-  public selectCad(type: string = '') {
-    this.websocketService.selectCad(this.jetfan.idAC);
   }
 
   // COMPONENT METHODS

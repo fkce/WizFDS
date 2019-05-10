@@ -7,7 +7,7 @@
       <perfect-scrollbar #ventScrollbar (psScrollY)="scrollbarUpdate('vent')">
         <div class="list-items">
           <div class="list-item" *ngFor="let ventItem of ventilation.vents | slice:ui.ventilation.vent.begin:(ui.ventilation.vent.begin + ui.listRange)">
-            <a [ngClass]="{active: ventItem===vent}" (click)="activate(ventItem.id, 'vent')"> {{ventItem.id}} </a>
+            <a [ngClass]="{active: ventItem===vent}" (click)="activate(ventItem.id, 'vent'); websocketService.selectCad(ventItem.idAC)"> {{ventItem.id}} </a>
             <i class="material-icons red" (click)="delete(ventItem.id, 'vent')">delete_forever</i>
           </div>
         </div>

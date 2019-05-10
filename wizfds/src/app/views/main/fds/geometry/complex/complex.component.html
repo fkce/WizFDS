@@ -8,7 +8,7 @@
       <div class="list-items">
         <div class="list-item"
           *ngFor="let geomItem of geometry.geoms | slice: ui.geometry.geom.begin:(ui.geometry.geom.begin + ui.listRange)">
-          <a (click)="activate(geomItem.id)" [ngClass]="{active: geomItem === geom}">{{geomItem.id}}</a>
+          <a (click)="activate(geomItem.id); websocketService.selectCad(geomtItem.idAC)" [ngClass]="{active: geomItem === geom}">{{geomItem.id}}</a>
           <i class="material-icons red" (click)="delete(geomItem.id)">delete_forever</i>
         </div>
       </div>

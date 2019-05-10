@@ -1,7 +1,7 @@
 import { Router, NavigationEnd } from '@angular/router';
 import { Component, OnInit, isDevMode, enableProdMode } from '@angular/core';
 import 'rxjs/add/operator/filter';
-import {googleAnalytics} from '../assets/analytics';
+import { googleAnalytics } from '../assets/analytics';
 
 import { MainService } from '@services/main/main.service';
 import { Main } from '@services/main/main';
@@ -13,6 +13,8 @@ import { CategoryService } from '@services/category/category.service';
 import { HttpManagerService } from '@services/http-manager/http-manager.service';
 import { FdsScenarioService } from '@services/fds-scenario/fds-scenario.service';
 import { environment } from '@env/environment';
+import { NotifierService } from 'angular-notifier';
+import { includes } from 'lodash';
 
 @Component({
   selector: 'app-root',
@@ -25,6 +27,8 @@ export class AppComponent {
   version = environment.version;
   lastUrl: string = '/';
 
+  wsSub;
+
   constructor(
     private mainService: MainService,
     private websocket: WebsocketService,
@@ -33,7 +37,9 @@ export class AppComponent {
     private fdsScenarioService: FdsScenarioService,
     private categoryService: CategoryService,
     private router: Router,
-    public httpManager: HttpManagerService
+    public httpManager: HttpManagerService,
+    private websocketService: WebsocketService,
+    private readonly notifierService: NotifierService
   ) {
     this.router.events.subscribe(event => {
       this.router.events.filter(event => event instanceof NavigationEnd).subscribe(event => {
@@ -79,6 +85,32 @@ export class AppComponent {
         //this.router.navigate(['fds/output/device']);
       }, 2000);
     }
+
+    // Subscribe websocket requests status for websocket CAD sync
+    this.wsSub = this.websocketService.requestStatus.subscribe(
+      (message) => {
+        if (message.status == 'error') {
+          this.notifierService.notify('error', 'CAD: Cannot sync ...');
+        }
+        else if (message.status == 'success') {
+          if (includes(message.method, 'create')) {
+            this.notifierService.notify('success', 'CAD: Object created');
+          }
+          else if (includes(message.method, 'update')) {
+            this.notifierService.notify('success', 'CAD: Object updated');
+          }
+          else if (includes(message.method, 'delete')) {
+            this.notifierService.notify('success', 'CAD: Object deleted');
+          }
+          else if (message.method == 'selectObjectWeb') {
+            this.notifierService.notify('success', 'CAD: Element selected');
+          }
+        }
+      },
+      (error) => {
+        this.notifierService.notify('error', 'CAD: Cannot sync ...');
+      }
+    );
   }
 
   ngAfterViewInit() {
@@ -87,6 +119,10 @@ export class AppComponent {
 
   setCurrentFdsScenario(projectId: number, fdsScenarioId: number) {
     this.fdsScenarioService.setCurrentFdsScenario(projectId, fdsScenarioId).subscribe();
+  }
+
+  ngOnDestroy() {
+    this.wsSub.unsubscribe();
   }
 
 }

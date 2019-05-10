@@ -7,7 +7,7 @@
     <perfect-scrollbar #fireScrollbar (psScrollY)="scrollbarUpdate('fire')">
       <div class="list-items">
         <div class="list-item" *ngFor="let fireItem of fires | slice: ui.fires.fire.begin:(ui.fires.fire.begin + ui.listRange)">
-          <a (click)="activate(fireItem.id)" [ngClass]="{active: fireItem === fire}">{{fireItem.id}}</a>
+          <a (click)="activate(fireItem.id); websocketService.selectCad(fireItem.idAC)" [ngClass]="{active: fireItem === fire}">{{fireItem.id}}</a>
           <i class="material-icons red" (click)="delete(fireItem.id)">delete_forever</i>
         </div>
       </div>

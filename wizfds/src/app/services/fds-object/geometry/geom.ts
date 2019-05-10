@@ -49,8 +49,6 @@ export class Geom {
         this.verts = base.verts || undefined;
 		this.faces = base.faces || undefined;
 
-		console.log(base);
-
 		if(base.surf_id) {
 			this.surf = surfs ? find(surfs, function (surf) { return surf.id == base.surf_id; }) : undefined;
 		}

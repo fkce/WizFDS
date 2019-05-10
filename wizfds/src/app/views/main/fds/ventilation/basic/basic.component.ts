@@ -283,11 +283,6 @@ export class BasicComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Select CAD element */
-  public selectCad(type: string = '') {
-    this.websocketService.selectCad(this.vent.idAC);
-  }
-
   // COMPONENT METHODS
   /** Add ramp and activate */
   public addRamp(type: string, property?: string) {

@@ -51,7 +51,7 @@ export class MeshComponent implements OnInit, OnDestroy {
 
   constructor(
     private mainService: MainService,
-    private websocketService: WebsocketService,
+    public websocketService: WebsocketService,
     private uiStateService: UiStateService,
     private route: ActivatedRoute,
     private readonly notifierService: NotifierService
@@ -68,36 +68,6 @@ export class MeshComponent implements OnInit, OnDestroy {
     this.geometry = this.main.currentFdsScenario.fdsObject.geometry;
     this.meshes = this.main.currentFdsScenario.fdsObject.geometry.meshes;
     this.opens = this.main.currentFdsScenario.fdsObject.geometry.opens;
-
-    // Subscribe websocket requests status for websocket CAD sync
-    this.wsSub = this.websocketService.requestStatus.subscribe(
-      (message) => {
-        if (message.status == 'error') {
-          this.mesh = cloneDeep(this.meshOld);
-          this.notifierService.notify('error', 'CAD: Cannot sync ...');
-        }
-        else if (message.status == 'success') {
-          this.meshOld = cloneDeep(this.mesh);
-          if (message.method == 'createMeshWeb') {
-            this.mesh.idAC = message.data['idAC'];
-            this.notifierService.notify('success', 'CAD: Mesh created');
-          }
-          else if (message.method == 'updateMeshWeb') {
-            this.notifierService.notify('success', 'CAD: Mesh updated');
-          }
-          else if (message.method == 'deleteMeshWeb') {
-            this.notifierService.notify('success', 'CAD: Mesh deleted');
-          }
-          else if (message.method == 'selectObjectWeb') {
-            this.notifierService.notify('success', 'CAD: Element selected');
-          }
-        }
-      },
-      (error) => {
-        this.mesh = cloneDeep(this.meshOld);
-        this.notifierService.notify('error', 'CAD: Cannot sync ...');
-      }
-    );
 
     // Activate element from route or ui object
     this.rouSub = this.route.params.subscribe((params) => {
@@ -156,7 +126,7 @@ export class MeshComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.wsSub.unsubscribe();
+    //this.wsSub.unsubscribe();
     this.mainSub.unsubscribe();
     this.uiSub.unsubscribe();
     this.rouSub.unsubscribe();
@@ -337,18 +307,6 @@ export class MeshComponent implements OnInit, OnDestroy {
 
         // Send message to CAD
         this.websocketService.sendMessage(message);
-      }
-    }
-  }
-
-  /** Select CAD element */
-  public selectCad(type: string = '') {
-    if (this.websocketService.isConnected) {
-      if (type == 'mesh') {
-        this.websocketService.selectCad(this.mesh.idAC);
-      }
-      else if (type == 'open') {
-        this.websocketService.selectCad(this.open.idAC);
       }
     }
   }

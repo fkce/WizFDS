@@ -434,7 +434,7 @@ export class CadService {
         originalElement.elevation = acElement.elevation;
 
         // Create new element based on new data
-        let newElement = new Obst(JSON.stringify(originalElement.toJSON()), this.main.currentFdsScenario.fdsObject.geometry.surfs);
+        let newElement = new Obst(JSON.stringify(originalElement.toJSON()), this.main.currentFdsScenario.fdsObject.geometry.surfs, this.main.currentFdsScenario.fdsObject.output.devcs);
         // Add element
         updatedElements.push(newElement);
         // Delete from current elements

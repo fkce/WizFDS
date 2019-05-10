@@ -7,7 +7,7 @@
     <perfect-scrollbar #slcfScrollbar (psScrollY)="scrollbarUpdate('slcf')">
       <div class="list-items">
         <div class="list-item" *ngFor="let slcfItem of slcfs | slice: ui.output.slcf.begin:(ui.output.slcf.begin + ui.listRange)">
-          <a (click)="activate(slcfItem.id)" [ngClass]="{active: slcfItem === slcf}">{{slcfItem.id}}</a>
+          <a (click)="activate(slcfItem.id); websocketService.selectCad(slcfItem.idAC)" [ngClass]="{active: slcfItem === slcf}">{{slcfItem.id}}</a>
           <i class="material-icons red" (click)="delete(slcfItem.id)">delete_forever</i>
         </div>
       </div>
