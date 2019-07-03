@@ -160,7 +160,6 @@ namespace WizFDS.Utils
         [CommandMethod("xx")]
         public void xx()
         {
-
             Utils.Init();
             //Utils.Utils.UtilsInitCfast();
             Utils.CreateBox(0, 1, 0, 2, 0, 3, "!FDS_OBST[inert](0)");

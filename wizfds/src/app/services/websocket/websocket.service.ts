@@ -54,6 +54,9 @@ export class WebsocketService {
   public initializeWebSocket() {
     this.isConnected = false;
 
+    //this.WS_URL = "ws://localhost:2012";
+    this.WS_URL = "ws://"+ this.main.websocket.host +":"+ this.main.websocket.port;
+
     this.wsObservable = Observable.create((observer) => {
       this.ws = new WebSocket(this.WS_URL);
       this.ws.onopen = (e) => {

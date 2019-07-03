@@ -71,7 +71,9 @@ export class AppComponent {
     this.libraryService.loadLibrary();
     this.libraryService.getLibrary().subscribe(library => this.lib = library);
 
-    this.websocket.initializeWebSocket();
+    setTimeout(() => {
+      this.websocket.initializeWebSocket();
+    }, 1000);
 
     // Navigate after page is reloaded
     this.router.navigate(['']);

@@ -304,11 +304,14 @@ export class JsonFdsService {
         let parsedVent = this.parseAmper(vent, 'vent');
         if (parsedVent) fireString.push(sprintf("&VENT SURF_ID='%s', %s /", fire.id, parsedVent));
 
-        let hrr = fire.surf.hrr.toJSON();
+        let hrr = cloneDeep(fire.surf.hrr.toJSON());
         unset(hrr, 'spread_rate');
         unset(hrr, 'tau_q');
+        fire.surf.ramp = undefined;
+
         let parsedHrr = this.parseAmper(hrr, 'surf');
         let parsedSurf = this.parseAmper(fire.surf.toJSON(), 'surf');
+
         if (parsedHrr && parsedSurf) fireString.push(sprintf('&SURF %s, %s /', parsedSurf, parsedHrr));
       }
       // HRR with RAMP || TAU_Q
@@ -326,7 +329,7 @@ export class JsonFdsService {
           unset(hrr, 'tau_q');
         }
         else if (fire.surf.hrr.time_function == 'tauq') {
-          unset(hrr, 'ramp_q');
+          fire.surf.ramp = undefined;
         }
         let parsedHrr = this.parseAmper(hrr, 'surf');
         let parsedSurf = this.parseAmper(fire.surf.toJSON(), 'surf');
@@ -349,9 +352,10 @@ export class JsonFdsService {
         if (parsedVent) fireString.push(sprintf("&VENT SURF_ID='%s', %s /", fire.id, parsedVent));
 
         let hrr = cloneDeep(fire.surf.hrr.toJSON());
-        unset(hrr, 'ramp_q');
         unset(hrr, 'tau_q');
         unset(hrr, 'spread_rate');
+        fire.surf.ramp = undefined;
+
         let parsedHrr = this.parseAmper(hrr, 'surf');
         let parsedSurf = this.parseAmper(fire.surf.toJSON(), 'surf');
         if (parsedHrr && parsedSurf) fireString.push(sprintf('&SURF %s, %s /', parsedSurf, parsedHrr));
