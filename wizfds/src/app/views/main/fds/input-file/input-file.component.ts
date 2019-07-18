@@ -29,7 +29,7 @@ import { saveAs } from 'file-saver';
 })
 export class InputFileComponent implements OnInit, OnDestroy {
 
-  @ViewChild('host') host;
+  @ViewChild('host', {static: false}) host;
 
   public onKey(event: any) {
     console.log(event);

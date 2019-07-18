@@ -26,7 +26,7 @@ import 'codemirror/addon/fold/fds-fold';
 })
 export class LibraryEditorComponent implements OnInit, OnDestroy {
 
-  @ViewChild('host') host;
+  @ViewChild('host', {static: false}) host;
 
   file: any;
   private config = {};

@@ -38,7 +38,7 @@ export class ComplexComponent implements OnInit, OnDestroy {
   rouSub;
 
   // Scrolbars containers
-  @ViewChild('geomScrollbar') geomScrollbar: PerfectScrollbarComponent;
+  @ViewChild('geomScrollbar', {static: false}) geomScrollbar: PerfectScrollbarComponent;
 
   // Enums
   //ENUMS_GEOM = FdsEnums.GEOM;

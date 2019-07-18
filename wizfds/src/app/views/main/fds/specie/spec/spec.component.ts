@@ -45,8 +45,8 @@ export class SpecComponent implements OnInit, OnDestroy {
   libSub;
 
   // Scrolbars containers
-  @ViewChild('specScrollbar') specScrollbar: PerfectScrollbarComponent;
-  @ViewChild('libSpecScrollbar') libSpecScrollbar: PerfectScrollbarComponent;
+  @ViewChild('specScrollbar', {static: false}) specScrollbar: PerfectScrollbarComponent;
+  @ViewChild('libSpecScrollbar', {static: false}) libSpecScrollbar: PerfectScrollbarComponent;
 
   constructor(
     private mainService: MainService,

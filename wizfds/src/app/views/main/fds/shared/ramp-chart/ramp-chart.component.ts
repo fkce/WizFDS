@@ -22,7 +22,7 @@ import { Library } from '@services/library/library';
 })
 export class RampChartComponent implements OnInit, OnChanges {
 
-  @ViewChild('rampChart') private chartContainer: ElementRef;
+  @ViewChild('rampChart', {static: false}) private chartContainer: ElementRef;
   @Input() private rampId: string;
   @Input() private xLabel: string;
   @Input() private yLabel: string;

@@ -49,8 +49,8 @@ export class SliceComponent implements OnInit, OnDestroy {
   rouSub;
 
   // Scrolbars containers
-  @ViewChild('slcfScrollbar') slcfScrollbar: PerfectScrollbarComponent;
-  @ViewChild('libSlcfScrollbar') libSlcfScrollbar: PerfectScrollbarComponent;
+  @ViewChild('slcfScrollbar', {static: false}) slcfScrollbar: PerfectScrollbarComponent;
+  @ViewChild('libSlcfScrollbar', {static: false}) libSlcfScrollbar: PerfectScrollbarComponent;
 
   // Enums
   QUANTITIES = map(filter(quantities, function (o) { return includes(o.type, 's') }), function (o) { return new Quantity(JSON.stringify(o)) });

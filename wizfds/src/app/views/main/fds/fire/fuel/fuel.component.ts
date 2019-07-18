@@ -46,8 +46,8 @@ export class FuelComponent implements OnInit, OnDestroy {
   libSub;
 
   // Scrolbars containers
-  @ViewChild('fuelScrollbar') fuelScrollbar: PerfectScrollbarComponent;
-  @ViewChild('libFuelScrollbar') libFuelScrollbar: PerfectScrollbarComponent;
+  @ViewChild('fuelScrollbar', {static: false}) fuelScrollbar: PerfectScrollbarComponent;
+  @ViewChild('libFuelScrollbar', {static: false}) libFuelScrollbar: PerfectScrollbarComponent;
 
   constructor(
     private mainService: MainService,

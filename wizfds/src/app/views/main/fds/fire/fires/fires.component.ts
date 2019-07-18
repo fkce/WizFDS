@@ -20,7 +20,7 @@ import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
 import { set, cloneDeep, find, findIndex, filter, isObject, toNumber, round } from 'lodash';
 import { WebsocketMessageObject } from '@services/websocket/websocket-message';
 
-import { MatDialog, MatDialogRef, MatDialogConfig } from '@angular/material';
+import { MatDialog, MatDialogRef, MatDialogConfig } from '@angular/material/dialog';
 import { CustomRampDialogComponent } from './custom-ramp-dialog/custom-ramp-dialog.component';
 import { RampChartComponent } from '../../shared/ramp-chart/ramp-chart.component';
 
@@ -57,11 +57,11 @@ export class FiresComponent implements OnInit, OnDestroy {
   rouSub;
 
   // Scrolbars containers
-  @ViewChild('fireScrollbar') fireScrollbar: PerfectScrollbarComponent;
-  @ViewChild('libFireScrollbar') libFireScrollbar: PerfectScrollbarComponent;
+  @ViewChild('fireScrollbar', {static: false}) fireScrollbar: PerfectScrollbarComponent;
+  @ViewChild('libFireScrollbar', {static: false}) libFireScrollbar: PerfectScrollbarComponent;
 
   // Ramp child
-  @ViewChild('rampChart') rampChart: RampChartComponent;
+  @ViewChild('rampChart', {static: false}) rampChart: RampChartComponent;
 
   // Dialogs
   customRampDialogRef: MatDialogRef<CustomRampDialogComponent>;
@@ -300,24 +300,24 @@ export class FiresComponent implements OnInit, OnDestroy {
     this.customRampDialogRef
       .afterClosed()
       .subscribe(data => {
-        if (isObject(data) && data != "") {
-          this.fire.surf.hrr.alpha = data.alpha;
-          this.fire.surf.hrr.alpha2 = data.alpha2;
-          this.fire.surf.hrr.maxHrr = data.maxHrr;
-          this.fire.surf.hrr.sprinklerActivationTime = data.sprinklerActivationTime;
-          this.customRampStep = data.step;
+        if (isObject(data) && data != undefined) {
+          this.fire.surf.hrr.alpha = data['alpha'];
+          this.fire.surf.hrr.alpha2 = data['alpha2'];
+          this.fire.surf.hrr.maxHrr = data['maxHrr'];
+          this.fire.surf.hrr.sprinklerActivationTime = data['sprinklerActivationTime'];
+          this.customRampStep = data['step'];
 
           // Improper data handling
-          if(data.alpha <= 0 || !data.alpha || data.alpha == "") {
+          if(data['alpha'] <= 0 || !data['alpha'] || data['alpha'] == "") {
             this.notifierService.notify('error', 'Alpha1 must be grater than zero');
           }
-          else if(data.maxHrr <= 0 || !data.maxHrr || data.maxHrr == "") {
+          else if(data['maxHrr'] <= 0 || !data['maxHr'] || data['maxHrr'] == "") {
             this.notifierService.notify('error', 'Max HRR must be grater than zero');
           }
-          else if(data.sprinklerActivationTime <= 0 || !data.sprinklerActivationTime || data.sprinklerActivationTime == "") {
+          else if(data['sprinklerActivationTime'] <= 0 || !data['sprinklerActivationTime'] || data['sprinklerActivationTime'] == "") {
             this.notifierService.notify('error', 'Sprinkler activation time must be grater than zero');
           }
-          else if(data.step <= 0 || !data.step || data.step == "") {
+          else if(data['step'] <= 0 || !data['step'] || data['step'] == "") {
             this.notifierService.notify('error', 'Time step must be grater than zero');
           }
           else {

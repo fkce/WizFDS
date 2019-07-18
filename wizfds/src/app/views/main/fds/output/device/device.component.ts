@@ -48,8 +48,8 @@ export class DeviceComponent implements OnInit, OnDestroy {
   rouSub;
 
   // Scrolbars containers
-  @ViewChild('devcScrollbar') devcScrollbar: PerfectScrollbarComponent;
-  @ViewChild('libDevcScrollbar') libDevcScrollbar: PerfectScrollbarComponent;
+  @ViewChild('devcScrollbar', {static: false}) devcScrollbar: PerfectScrollbarComponent;
+  @ViewChild('libDevcScrollbar', {static: false}) libDevcScrollbar: PerfectScrollbarComponent;
 
   // Enums
   QUANTITIES = map(filter(quantities, function (o) { return includes(o.type, 'd') }), function (o) { return new Quantity(JSON.stringify(o)) });

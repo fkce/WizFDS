@@ -57,9 +57,9 @@ export class InjectionComponent implements OnInit, OnDestroy {
   rouSub;
 
   // Scrolbars containers
-  @ViewChild('ventScrollbar') ventScrollbar: PerfectScrollbarComponent;
-  @ViewChild('surfScrollbar') surfScrollbar: PerfectScrollbarComponent;
-  @ViewChild('libSurfScrollbar') libSurfScrollbar: PerfectScrollbarComponent;
+  @ViewChild('ventScrollbar', {static: false}) ventScrollbar: PerfectScrollbarComponent;
+  @ViewChild('surfScrollbar', {static: false}) surfScrollbar: PerfectScrollbarComponent;
+  @ViewChild('libSurfScrollbar', {static: false}) libSurfScrollbar: PerfectScrollbarComponent;
 
   // Enums
   ENUMS_SURF = FdsEnums.SURF;

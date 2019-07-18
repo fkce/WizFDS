@@ -2,6 +2,8 @@
   "compileOnSave": false,
   "compilerOptions": {
     "baseUrl": "./",
+    "downlevelIteration": true,
+    "module": "esnext",
     "paths": {
       "@services/*": ["./src/app/services/*"],
       "@directives/*": ["./src/app/directives/*"],
@@ -16,7 +18,7 @@
     "moduleResolution": "node",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "target": "es5",
+    "target": "es2015",
     "typeRoots": [
       "node_modules/@types"
     ],

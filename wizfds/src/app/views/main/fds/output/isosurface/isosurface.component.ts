@@ -42,8 +42,8 @@ export class IsosurfaceComponent implements OnInit, OnDestroy {
   libSub;
 
   // Scrolbars containers
-  @ViewChild('isofScrollbar') isofScrollbar: PerfectScrollbarComponent;
-  @ViewChild('isofLibScrollbar') isofLibScrollbar: PerfectScrollbarComponent;
+  @ViewChild('isofScrollbar', {static: false}) isofScrollbar: PerfectScrollbarComponent;
+  @ViewChild('isofLibScrollbar', {static: false}) isofLibScrollbar: PerfectScrollbarComponent;
 
   // Enums
   QUANTITIES = map(filter(quantities, function (o) { return includes(o.type, 'i') }), function (o) { return new Quantity(JSON.stringify(o)) });

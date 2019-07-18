@@ -9,7 +9,7 @@ import { find, each } from 'lodash';
 })
 export class UniqueSelectComponent implements OnInit, OnChanges {
 
-  //@ViewChild('rampChart') private chartContainer: ElementRef;
+  //@ViewChild('rampChart', {static: false}) private chartContainer: ElementRef;
   @Input() private allElements: object[];
   @Input() private usedElements: object[];
   @Input() public currentElement: object;

@@ -43,8 +43,8 @@ export class MeshComponent implements OnInit, OnDestroy {
   rouSub;
 
   // Scrolbars containers
-  @ViewChild('meshScrollbar') meshScrollbar: PerfectScrollbarComponent;
-  @ViewChild('openScrollbar') openScrollbar: PerfectScrollbarComponent;
+  @ViewChild('meshScrollbar', {static: false}) meshScrollbar: PerfectScrollbarComponent;
+  @ViewChild('openScrollbar', {static: false}) openScrollbar: PerfectScrollbarComponent;
 
   // Enums
   COLORS = colors;

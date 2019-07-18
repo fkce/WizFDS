@@ -22,7 +22,7 @@ import { Library } from '@services/library/library';
 })
 export class ParabolaChartComponent implements OnInit, OnChanges {
 
-  @ViewChild('parabolaChart') private chartContainer: ElementRef;
+  @ViewChild('parabolaChart', {static: false}) private chartContainer: ElementRef;
   @Input() private maxHrr: number;
   @Input() private maxTime: number;
   @Input() private xLabel: string;

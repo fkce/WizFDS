@@ -871,15 +871,17 @@ export class JsonFdsService {
       fdsInput.push('');
     }
 
-    if (fdsObject.fires.fuels.length > 0 || fdsObject.fires.fires.length > 0) {
+    if ((fdsObject.fires.combustion.turnOnReaction || this.simpleAmper(Array(fdsObject.fires.combustion), 'radi').length > 0) && (fdsObject.fires.fuels.length > 0 || fdsObject.fires.fires.length > 0 || this.simpleAmper(Array(fdsObject.fires.combustion), 'radi').length > 0)) {
       fdsInput = concat(fdsInput, Array('# ---- Fire ----'));
     }
-    if (fdsObject.fires.fuels.length > 0) {
-      fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.fires.fuels, 'reac'));
+    if (fdsObject.fires.fuels.length > 0 || this.simpleAmper(Array(fdsObject.fires.combustion), 'radi').length > 0) {
+      if (fdsObject.fires.combustion.turnOnReaction) {
+        fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.fires.fuels, 'reac'));
+      }
       fdsInput = concat(fdsInput, this.simpleAmper(Array(fdsObject.fires.combustion), 'radi'));
       fdsInput.push('');
     }
-    if (fdsObject.fires.fires.length > 0) {
+    if (fdsObject.fires.combustion.turnOnReaction && (fdsObject.fires.fires.length > 0)) {
       fdsInput = concat(fdsInput, Array('## ---- Fires ----'));
       fdsInput = concat(fdsInput, this.fireAmper(fdsObject.fires.fires));
     }

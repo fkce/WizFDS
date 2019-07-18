@@ -44,8 +44,8 @@ export class ObstructionComponent implements OnInit, OnDestroy {
   rouSub;
 
   // Scrolbars containers
-  @ViewChild('obstScrollbar') obstScrollbar: PerfectScrollbarComponent;
-  @ViewChild('holeScrollbar') holeScrollbar: PerfectScrollbarComponent;
+  @ViewChild('obstScrollbar', {static: false}) obstScrollbar: PerfectScrollbarComponent;
+  @ViewChild('holeScrollbar', {static: false}) holeScrollbar: PerfectScrollbarComponent;
 
   // Enums
   ENUMS_OBST = FdsEnums.OBST;

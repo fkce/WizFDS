@@ -43,8 +43,8 @@ export class RampComponent implements OnInit, OnDestroy {
   libSub;
 
   // Scrolbars containers
-  @ViewChild('rampScrollbar') rampScrollbar: PerfectScrollbarComponent;
-  @ViewChild('libRampScrollbar') libRampScrollbar: PerfectScrollbarComponent;
+  @ViewChild('rampScrollbar', {static: false}) rampScrollbar: PerfectScrollbarComponent;
+  @ViewChild('libRampScrollbar', {static: false}) libRampScrollbar: PerfectScrollbarComponent;
 
   constructor(
     private mainService: MainService,
