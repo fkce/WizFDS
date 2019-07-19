@@ -1,22 +1,24 @@
 <div class="single-amper-container">
 
-  <div class="list">
-    <div class="list-title" (click)="add()">
-      <i class="material-icons">add_box</i> Add MATL
-    </div>
-    <perfect-scrollbar #matlScrollbar (psScrollY)="scrollbarUpdate('matl')">
-      <div class="list-items">
-        <div class="list-item" *ngFor="let matlItem of geometry.matls | slice: ui.geometry.matl.begin:(ui.geometry.matl.begin + ui.listRange)">
-          <a (click)="activate(matlItem.id)" [ngClass]="{active: matlItem === matl}">{{matlItem.id}}</a>
-          <i class="material-icons red" (click)="delete(matlItem.id)">delete_forever</i>
-        </div>
+  <div class="list-wrapper">
+    <div class="list-drawer">
+      <div class="list-title" (click)="add()">
+        <i class="material-icons">add_box</i> Add MATL
       </div>
-    </perfect-scrollbar>
-    <div class="list-bottom" *ngIf="geometry.matls.length > ui.listRange">
-      <i class="material-icons" *ngIf="ui.geometry.matl.begin > 0" (click)="uiStateService.decreaseRange('geometry.matl')">chevron_left</i>
-      <div>{{ui.geometry.matl.begin}} - {{ui.geometry.matl.begin + ui.listRange > geometry.matls.length ? geometry.matls.length
-        : ui.geometry.matl.begin + ui.listRange}}</div>
-      <i class="material-icons" *ngIf="ui.geometry.matl.begin + ui.listRange < geometry.matls.length" (click)="uiStateService.increaseRange('geometry.matl')">chevron_right</i>
+      <perfect-scrollbar #matlScrollbar (psScrollY)="scrollbarUpdate('matl')">
+        <div class="list-items">
+          <div class="list-item" *ngFor="let matlItem of geometry.matls | slice: ui.geometry.matl.begin:(ui.geometry.matl.begin + ui.listRange)">
+            <a (click)="activate(matlItem.id)" [ngClass]="{active: matlItem === matl}">{{matlItem.id}}</a>
+            <i class="material-icons red" (click)="delete(matlItem.id)">delete_forever</i>
+          </div>
+        </div>
+      </perfect-scrollbar>
+      <div class="list-bottom" *ngIf="geometry.matls.length > ui.listRange">
+        <i class="material-icons" *ngIf="ui.geometry.matl.begin > 0" (click)="uiStateService.decreaseRange('geometry.matl')">chevron_left</i>
+        <div>{{ui.geometry.matl.begin}} - {{ui.geometry.matl.begin + ui.listRange > geometry.matls.length ? geometry.matls.length
+          : ui.geometry.matl.begin + ui.listRange}}</div>
+        <i class="material-icons" *ngIf="ui.geometry.matl.begin + ui.listRange < geometry.matls.length" (click)="uiStateService.increaseRange('geometry.matl')">chevron_right</i>
+      </div>
     </div>
   </div>
 

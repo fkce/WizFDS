@@ -1,25 +1,30 @@
 <div class="double-amper-container">
   <div class="single-amper-container">
-    <div class="list">
-      <div class="list-title" (click)="add('vent')">
-        <i class="material-icons">add_box</i> Add VENT
-      </div>
-      <perfect-scrollbar #ventScrollbar (psScrollY)="scrollbarUpdate('vent')">
-        <div class="list-items">
-          <div class="list-item" *ngFor="let ventItem of specie.vents | slice:ui.specie.vent.begin:(ui.specie.vent.begin + ui.listRange)">
-            <a [ngClass]="{active: ventItem===vent}" (click)="activate(ventItem.id, 'vent'); websocketService.selectCad(ventItem.idAC)"> {{ventItem.id}} </a>
-            <i class="material-icons red" (click)="delete(ventItem.id, 'vent')">delete_forever</i>
-          </div>
+
+    <div class="list-wrapper">
+      <div class="list-drawer">
+        <div class="list-title" (click)="add('vent')">
+          <i class="material-icons">add_box</i> Add VENT
         </div>
-      </perfect-scrollbar>
-      <div class="list-bottom" *ngIf="specie.vents.length > ui.listRange">
-        <i class="material-icons" *ngIf="ui.specie.vent.begin > 0" (click)="uiStateService.decreaseRange('specie.vent')">chevron_left</i>
-        <div>{{ui.specie.vent.begin}} - {{ui.specie.vent.begin + ui.listRange > specie.vents.length ?
-          specie.vents.length
-          : ui.specie.vent.begin + ui.listRange}}</div>
-        <i class="material-icons" *ngIf="ui.specie.vent.begin + ui.listRange < specie.vents.length" (click)="uiStateService.increaseRange('specie.vent')">chevron_right</i>
+        <perfect-scrollbar #ventScrollbar (psScrollY)="scrollbarUpdate('vent')">
+          <div class="list-items">
+            <div class="list-item" *ngFor="let ventItem of specie.vents | slice:ui.specie.vent.begin:(ui.specie.vent.begin + ui.listRange)">
+              <a [ngClass]="{active: ventItem===vent}" (click)="activate(ventItem.id, 'vent'); websocketService.selectCad(ventItem.idAC)"> {{ventItem.id}} </a>
+              <i class="material-icons red" (click)="delete(ventItem.id, 'vent')">delete_forever</i>
+            </div>
+          </div>
+        </perfect-scrollbar>
+        <div class="list-bottom" *ngIf="specie.vents.length > ui.listRange">
+          <i class="material-icons" *ngIf="ui.specie.vent.begin > 0" (click)="uiStateService.decreaseRange('specie.vent')">chevron_left</i>
+          <div>{{ui.specie.vent.begin}} - {{ui.specie.vent.begin + ui.listRange > specie.vents.length ?
+            specie.vents.length
+            : ui.specie.vent.begin + ui.listRange}}</div>
+          <i class="material-icons" *ngIf="ui.specie.vent.begin + ui.listRange < specie.vents.length" (click)="uiStateService.increaseRange('specie.vent')">chevron_right</i>
+        </div>
       </div>
     </div>
+
+
     <div class="form-box">
       <div class="form-row" *ngIf="!vent">
         <label>Select or add new vent</label>
@@ -105,23 +110,26 @@
 
 
   <div class="single-amper-container">
-    <div class="list">
-      <div class="list-title" (click)="add('surf')">
-        <i class="material-icons">add_box</i> Add SURF
-      </div>
-      <perfect-scrollbar #surfScrollbar (psScrollY)="scrollbarUpdate('surf')">
-        <div class="list-items">
-          <div class="list-item" *ngFor="let surfItem of surfs | slice:ui.specie.surf.begin:(ui.specie.surf.begin + ui.listRange)">
-            <a [ngClass]="{active: surfItem===surf}" (click)="activate(surfItem.id, 'surf')"> {{surfItem.id}} </a>
-            <i class="material-icons red" (click)="delete(surfItem.id, 'surf')">delete_forever</i>
-          </div>
+
+    <div class="list-wrapper">
+      <div class="list-drawer">
+        <div class="list-title" (click)="add('surf')">
+          <i class="material-icons">add_box</i> Add SURF
         </div>
-      </perfect-scrollbar>
-      <div class="list-bottom" *ngIf="surfs.length > ui.listRange">
-        <i class="material-icons" *ngIf="ui.specie.surf.begin > 0" (click)="uiStateService.decreaseRange('specie.surf')">chevron_left</i>
-        <div>{{ui.specie.surf.begin}} - {{ui.specie.surf.begin + ui.listRange > surfs.length ? surfs.length
-          : ui.specie.surf.begin + ui.listRange}}</div>
-        <i class="material-icons" *ngIf="ui.specie.surf.begin + ui.listRange < surfs.length" (click)="uiStateService.increaseRange('specie.surf')">chevron_right</i>
+        <perfect-scrollbar #surfScrollbar (psScrollY)="scrollbarUpdate('surf')">
+          <div class="list-items">
+            <div class="list-item" *ngFor="let surfItem of surfs | slice:ui.specie.surf.begin:(ui.specie.surf.begin + ui.listRange)">
+              <a [ngClass]="{active: surfItem===surf}" (click)="activate(surfItem.id, 'surf')"> {{surfItem.id}} </a>
+              <i class="material-icons red" (click)="delete(surfItem.id, 'surf')">delete_forever</i>
+            </div>
+          </div>
+        </perfect-scrollbar>
+        <div class="list-bottom" *ngIf="surfs.length > ui.listRange">
+          <i class="material-icons" *ngIf="ui.specie.surf.begin > 0" (click)="uiStateService.decreaseRange('specie.surf')">chevron_left</i>
+          <div>{{ui.specie.surf.begin}} - {{ui.specie.surf.begin + ui.listRange > surfs.length ? surfs.length
+            : ui.specie.surf.begin + ui.listRange}}</div>
+          <i class="material-icons" *ngIf="ui.specie.surf.begin + ui.listRange < surfs.length" (click)="uiStateService.increaseRange('specie.surf')">chevron_right</i>
+        </div>
       </div>
     </div>
 

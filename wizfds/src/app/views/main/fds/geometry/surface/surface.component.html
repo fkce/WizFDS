@@ -1,23 +1,25 @@
 <div class="single-amper-container">
 
-  <div class="list">
-    <div class="list-title" (click)="add()">
-      <i class="material-icons">add_box</i> Add SURF
-    </div>
-    <perfect-scrollbar #surfScrollbar (psScrollY)="scrollbarUpdate('surf')">
-      <div class="list-items">
-        <div class="list-item" *ngFor="let surfItem of surfs | slice: ui.geometry.surf.begin:(ui.geometry.surf.begin + ui.listRange)">
-          <a (click)="activate(surfItem.id)" [ngClass]="{active: surfItem===surf}"> {{surfItem.id}} </a>
-          <i class="material-icons red" *ngIf="surf.editable==true" (click)="delete(surfItem.id)">delete_forever</i>
-        </div>
+  <div class="list-wrapper">
+    <div class="list-drawer">
+      <div class="list-title" (click)="add()">
+        <i class="material-icons">add_box</i> Add SURF
       </div>
-    </perfect-scrollbar>
-    <div class="list-bottom" *ngIf="geometry.surfs.length > ui.listRange">
-      <i class="material-icons" *ngIf="ui.geometry.surf.begin > 0" (click)="uiStateService.decreaseRange('geometry.surf')">chevron_left</i>
-      <div>{{ui.geometry.surf.begin}} - {{ui.geometry.surf.begin + ui.listRange > geometry.surfs.length ?
-        geometry.surfs.length
-        : ui.geometry.surf.begin + ui.listRange}}</div>
-      <i class="material-icons" *ngIf="ui.geometry.surf.begin + ui.listRange < geometry.surfs.length" (click)="uiStateService.increaseRange('geometry.surf')">chevron_right</i>
+      <perfect-scrollbar #surfScrollbar (psScrollY)="scrollbarUpdate('surf')">
+        <div class="list-items">
+          <div class="list-item" *ngFor="let surfItem of surfs | slice: ui.geometry.surf.begin:(ui.geometry.surf.begin + ui.listRange)">
+            <a (click)="activate(surfItem.id)" [ngClass]="{active: surfItem===surf}"> {{surfItem.id}} </a>
+            <i class="material-icons red" *ngIf="surf.editable==true" (click)="delete(surfItem.id)">delete_forever</i>
+          </div>
+        </div>
+      </perfect-scrollbar>
+      <div class="list-bottom" *ngIf="geometry.surfs.length > ui.listRange">
+        <i class="material-icons" *ngIf="ui.geometry.surf.begin > 0" (click)="uiStateService.decreaseRange('geometry.surf')">chevron_left</i>
+        <div>{{ui.geometry.surf.begin}} - {{ui.geometry.surf.begin + ui.listRange > geometry.surfs.length ?
+          geometry.surfs.length
+          : ui.geometry.surf.begin + ui.listRange}}</div>
+        <i class="material-icons" *ngIf="ui.geometry.surf.begin + ui.listRange < geometry.surfs.length" (click)="uiStateService.increaseRange('geometry.surf')">chevron_right</i>
+      </div>
     </div>
   </div>
 

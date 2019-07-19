@@ -1,22 +1,24 @@
 <div class="single-amper-container">
 
-  <div class="list">
-    <div class="list-title" (click)="add()">
-      <i class="material-icons">add_box</i> Add FUEL
-    </div>
-    <perfect-scrollbar #fuelScrollbar (psScrollY)="scrollbarUpdate('fuel')">
-      <div class="list-items">
-        <div class="list-item" *ngFor="let fuelItem of fuels | slice: ui.fires.fuel.begin:(ui.fires.fuel.begin + ui.listRange)">
-          <a (click)="activate(fuelItem.id)" [ngClass]="{active: fuelItem === fuel}">{{fuelItem.id}}</a>
-          <i class="material-icons red" (click)="delete(fuelItem.id)">delete_forever</i>
-        </div>
+  <div class="list-wrapper">
+    <div class="list-drawer">
+      <div class="list-title" (click)="add()">
+        <i class="material-icons">add_box</i> Add FUEL
       </div>
-    </perfect-scrollbar>
-    <div class="list-bottom" *ngIf="fuels.length > ui.listRange">
-      <i class="material-icons" *ngIf="ui.fires.fuel.begin > 0" (click)="uiStateService.decreaseRange('fuels.fuel')">chevron_left</i>
-      <div>{{ui.fires.fuel.begin}} - {{ui.fires.fuel.begin + ui.listRange > fuels.length ? fuels.length : ui.fires.fuel.begin
-        + ui.listRange}}</div>
-      <i class="material-icons" *ngIf="ui.fires.fuel.begin + ui.listRange < fuels.length" (click)="uiStateService.increaseRange('fuels.fuel')">chevron_right</i>
+      <perfect-scrollbar #fuelScrollbar (psScrollY)="scrollbarUpdate('fuel')">
+        <div class="list-items">
+          <div class="list-item" *ngFor="let fuelItem of fuels | slice: ui.fires.fuel.begin:(ui.fires.fuel.begin + ui.listRange)">
+            <a (click)="activate(fuelItem.id)" [ngClass]="{active: fuelItem === fuel}">{{fuelItem.id}}</a>
+            <i class="material-icons red" (click)="delete(fuelItem.id)">delete_forever</i>
+          </div>
+        </div>
+      </perfect-scrollbar>
+      <div class="list-bottom" *ngIf="fuels.length > ui.listRange">
+        <i class="material-icons" *ngIf="ui.fires.fuel.begin > 0" (click)="uiStateService.decreaseRange('fuels.fuel')">chevron_left</i>
+        <div>{{ui.fires.fuel.begin}} - {{ui.fires.fuel.begin + ui.listRange > fuels.length ? fuels.length : ui.fires.fuel.begin
+          + ui.listRange}}</div>
+        <i class="material-icons" *ngIf="ui.fires.fuel.begin + ui.listRange < fuels.length" (click)="uiStateService.increaseRange('fuels.fuel')">chevron_right</i>
+      </div>
     </div>
   </div>
 

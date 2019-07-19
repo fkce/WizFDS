@@ -1,7 +1,7 @@
 import { Main } from '@services/main/main';
 import { MainService } from '@services/main/main.service';
 import { Ramp } from '@services/fds-object/ramp/ramp';
-import { Component, OnInit, OnChanges, ViewChild, ElementRef, Input, ViewEncapsulation } from '@angular/core';
+import { Component, OnInit, OnChanges, ViewChild, ElementRef, Input, ViewEncapsulation, AfterViewInit } from '@angular/core';
 
 import * as d3Selection from 'd3-selection';
 import * as d3Scale from 'd3-scale';
@@ -20,7 +20,7 @@ import { Library } from '@services/library/library';
   styleUrls: ['./parabola-chart.component.scss'],
   encapsulation: ViewEncapsulation.None
 })
-export class ParabolaChartComponent implements OnInit, OnChanges {
+export class ParabolaChartComponent implements OnInit, OnChanges, AfterViewInit {
 
   @ViewChild('parabolaChart', {static: false}) private chartContainer: ElementRef;
   @Input() private maxHrr: number;
@@ -38,7 +38,7 @@ export class ParabolaChartComponent implements OnInit, OnChanges {
   private mainSub;
   private libSub;
 
-  private margin = { top: 10, right: 20, bottom: 50, left: 70 };
+  private margin = { top: 10, right: 30, bottom: 50, left: 70 };
   private width: number;
   private height: number;
   private x: any;
@@ -54,7 +54,9 @@ export class ParabolaChartComponent implements OnInit, OnChanges {
   ngOnInit() {
     this.mainSub = this.mainService.getMain().subscribe(main => this.main = main);
     this.libSub = this.libraryService.getLibrary().subscribe(lib => this.lib = lib);
+  }
 
+  ngAfterViewInit() {
     if (!this.svg) {
       this.createChart();
       this.updateChart();
@@ -153,9 +155,9 @@ export class ParabolaChartComponent implements OnInit, OnChanges {
     ];
 
     // Axis domains - values on axis
-    let maxXData = d3Array.max(dataCurve, function (d) { return d.x; }) > this.main.currentFdsScenario.fdsObject.general.time.t_end ?
+    let maxXData = d3Array.max(dataCurve, function (d) { return d.x; }) > toNumber(this.main.currentFdsScenario.fdsObject.general.time.t_end) ?
       d3Array.max(dataCurve, function (d) { return d.x; }) :
-      this.main.currentFdsScenario.fdsObject.general.time.t_end;
+      toNumber(this.main.currentFdsScenario.fdsObject.general.time.t_end);
 
     let maxYData = d3Array.max(dataCurve, function (d) { return d.y; });
 

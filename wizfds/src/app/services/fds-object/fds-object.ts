@@ -1,5 +1,3 @@
-import { FdsEntities } from '../../enums/fds/entities/fds-entities';
-import { FdsEnums } from '../../enums/fds/enums/fds-enums';
 import { General } from './general/general';
 import { Obst } from './geometry/obst';
 import { Hole } from './geometry/hole';
@@ -23,7 +21,6 @@ import { Isof } from './output/isof';
 import { Ctrl } from './output/ctrl';
 import { get, map, toNumber, find, filter, includes, forEach } from 'lodash';
 import { Fuel } from './fire/fuel';
-import { quantities } from '../../enums/fds/enums/fds-enums-quantities';
 import { Dump } from './output/dump';
 import { SurfSpec } from './specie/surf-spec';
 import { VentSpec } from './specie/vent';
@@ -222,6 +219,5 @@ export class Fds {
 
     return fds;
   }
-
 
 }

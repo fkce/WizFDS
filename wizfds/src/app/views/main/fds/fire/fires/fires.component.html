@@ -1,26 +1,27 @@
 <div class="single-amper-container">
 
-  <div class="list">
-    <div class="list-title" (click)="add()">
-      <i class="material-icons">add_box</i> Add FIRE
-    </div>
-    <perfect-scrollbar #fireScrollbar (psScrollY)="scrollbarUpdate('fire')">
-      <div class="list-items">
-        <div class="list-item" *ngFor="let fireItem of fires | slice: ui.fires.fire.begin:(ui.fires.fire.begin + ui.listRange)">
-          <a (click)="activate(fireItem.id); websocketService.selectCad(fireItem.idAC)" [ngClass]="{active: fireItem === fire}">{{fireItem.id}}</a>
-          <i class="material-icons red" (click)="delete(fireItem.id)">delete_forever</i>
-        </div>
+  <div class="list-wrapper">
+    <div class="list-drawer">
+      <div class="list-title" (click)="add()">
+        <i class="material-icons">add_box</i> Add FIRE
       </div>
-    </perfect-scrollbar>
-    <div class="list-bottom" *ngIf="fires.length > ui.listRange">
-      <i class="material-icons" *ngIf="ui.fires.fire.begin > 0" (click)="uiStateService.decreaseRange('fires.fire')">chevron_left</i>
-      <div>{{ui.fires.fire.begin}} - {{ui.fires.fire.begin + ui.listRange > fires.length ? fires.length :
-        ui.fires.fire.begin
-        + ui.listRange}}</div>
-      <i class="material-icons" *ngIf="ui.fires.fire.begin + ui.listRange < fires.length" (click)="uiStateService.increaseRange('fires.fire')">chevron_right</i>
+      <perfect-scrollbar #fireScrollbar (psScrollY)="scrollbarUpdate('fire')">
+        <div class="list-items">
+          <div class="list-item" *ngFor="let fireItem of fires | slice: ui.fires.fire.begin:(ui.fires.fire.begin + ui.listRange)">
+            <a (click)="activate(fireItem.id); websocketService.selectCad(fireItem.idAC)" [ngClass]="{active: fireItem === fire}">{{fireItem.id}}</a>
+            <i class="material-icons red" (click)="delete(fireItem.id)">delete_forever</i>
+          </div>
+        </div>
+      </perfect-scrollbar>
+      <div class="list-bottom" *ngIf="fires.length > ui.listRange">
+        <i class="material-icons" *ngIf="ui.fires.fire.begin > 0" (click)="uiStateService.decreaseRange('fires.fire')">chevron_left</i>
+        <div>{{ui.fires.fire.begin}} - {{ui.fires.fire.begin + ui.listRange > fires.length ? fires.length :
+          ui.fires.fire.begin
+          + ui.listRange}}</div>
+        <i class="material-icons" *ngIf="ui.fires.fire.begin + ui.listRange < fires.length" (click)="uiStateService.increaseRange('fires.fire')">chevron_right</i>
+      </div>
     </div>
   </div>
-
 
 
   <div class="form-box" [ngClass]="objectType == 'current' ? 'current' : 'library'">

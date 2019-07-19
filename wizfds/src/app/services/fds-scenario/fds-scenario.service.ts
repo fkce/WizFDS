@@ -3,7 +3,7 @@ import { MainService } from '../main/main.service';
 import { Main } from '../main/main';
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
-import { find, findIndex, filter, some, startsWith, forEach, split, toNumber, last } from 'lodash';
+import { find, findIndex, filter, forEach, split, toNumber, last } from 'lodash';
 import { FdsScenario } from './fds-scenario';
 import { Fds } from '../fds-object/fds-object';
 import { NotifierService } from 'angular-notifier';
@@ -70,7 +70,7 @@ export class FdsScenarioService {
    * @param fdsScenarioId 
    * @param syncType Default value: 'all'
    */
-  updateFdsScenario(projectId: number, fdsScenarioId: number, syncType: string = 'all') {
+  updateFdsScenario(projectId: number, fdsScenarioId: number, syncType: string = 'all', quiet: boolean = false) {
 
     let projectIndex = findIndex(this.main.projects, function (o) {
       return o.id == projectId;
@@ -109,7 +109,9 @@ export class FdsScenarioService {
 
       this.httpManager.put(this.main.hostAddres + '/api/fdsScenario/' + fdsScenario.id, JSON.stringify({ type: 'all', data: fdsScenario.toJSON() })).then((result: Result) => {
         this.main.projects[projectIndex].fdsScenarios[fdsScenarioIndex] = fdsScenario;
-        this.notifierService.notify(result.meta.status, result.meta.details[0]);
+        if(!quiet) {
+          this.notifierService.notify(result.meta.status, result.meta.details[0]);
+        }
       });
     }
   }
@@ -123,8 +125,6 @@ export class FdsScenarioService {
     // Request
     this.httpManager.get(this.main.hostAddres + '/api/fdsScenario/' + fdsScenarioId).then((getScenarioResult: Result) => {
       let getScenarioData = getScenarioResult.data;
-      console.log('get scenario data:');
-      console.log(getScenarioData);
       this.httpManager.post(this.main.hostAddres + '/api/fdsScenario/' + projectId, JSON.stringify({})).then((result: Result) => {
         let data = result.data;
 

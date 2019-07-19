@@ -1,75 +1,48 @@
 .ramp-container {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: flex-start;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-start;
 
-    .ramp-chart {
-        position: relative;
-        width: 60%;
-        height: 400px;
+  .ramp-chart {
+    position: relative;
+    width: 60%;
+    height: 400px;
 
-        .svg {
-            width: 100%;
-        }
-
-        .axis path,
-        .axis line {
-            stroke: #aaa;
-            shape-rendering: crispEdges;
-        }
-
-        .axis text {
-            fill: #aaa;
-            font-size: 0.65rem;
-        }
-
-        text.label {
-            font-size: 1rem;
-            font-family: "Play";
-            fill: #eee;
-        }
-
-        g {
-            text {
-                fill: #aaa;
-                font-size: 0.65rem;
-            }
-        }
-
-        i.save-image {
-            position: absolute;
-            top: 0.5rem;
-            left: 0rem;
-        }
+    .svg {
+      width: 100%;
     }
 
-    .ramp-steps{
-        .ramp-step {
-            display: flex;
-            flex-direction: row;
-            align-items: left;
-
-            div {
-                display: flex;
-                flex-direction: column;
-                align-items: left;
-                padding: 0.1rem;
-                label {
-                    font-size: 0.9rem;
-                }
-                div.field-container {
-                    display: flex;
-                    flex-direction: row;
-                    min-width: 4rem;
-                    input {
-                        margin-right: 0.5rem;
-                    }
-
-                }
-            }
-        }
+    i.save-image {
+      position: absolute;
+      top: 0.5rem;
+      left: 0rem;
     }
+  }
 
+  .ramp-steps {
+    .ramp-step {
+      display: flex;
+      flex-direction: row;
+      align-items: left;
+
+      div {
+        display: flex;
+        flex-direction: column;
+        align-items: left;
+        padding: 0.1rem;
+        label {
+          font-size: 0.9rem;
+        }
+        div.field-container {
+          display: flex;
+          flex-direction: row;
+          min-width: 4rem;
+          input {
+            margin-right: 0.5rem;
+          }
+        }
+      }
+    }
+  }
 }
-

@@ -1,7 +1,7 @@
 import { Main } from '@services/main/main';
 import { MainService } from '@services/main/main.service';
 import { Ramp } from '@services/fds-object/ramp/ramp';
-import { Component, OnInit, OnChanges, ViewChild, ElementRef, Input, ViewEncapsulation } from '@angular/core';
+import { Component, OnChanges, ViewChild, ElementRef, Input, AfterViewInit, OnInit, ChangeDetectorRef } from '@angular/core';
 
 import * as d3Selection from 'd3-selection';
 import * as d3Scale from 'd3-scale';
@@ -17,12 +17,12 @@ import { Library } from '@services/library/library';
 @Component({
   selector: 'ramp-chart',
   templateUrl: './ramp-chart.component.html',
-  styleUrls: ['./ramp-chart.component.scss'],
-  encapsulation: ViewEncapsulation.None
+  styleUrls: ['./ramp-chart.component.scss']
+  //encapsulation: ViewEncapsulation.None
 })
-export class RampChartComponent implements OnInit, OnChanges {
+export class RampChartComponent implements OnInit, OnChanges, AfterViewInit {
 
-  @ViewChild('rampChart', {static: false}) private chartContainer: ElementRef;
+  @ViewChild('rampChart', { static: false }) private chartContainer?: ElementRef<HTMLElement>;
   @Input() private rampId: string;
   @Input() private xLabel: string;
   @Input() private yLabel: string;
@@ -41,7 +41,7 @@ export class RampChartComponent implements OnInit, OnChanges {
   libSub;
 
   public dotsNth: number;
-  private margin = { top: 10, right: 20, bottom: 50, left: 70 };
+  private margin = { top: 10, right: 30, bottom: 50, left: 70 };
   private width: number;
   private height: number;
   private x: any;
@@ -51,7 +51,11 @@ export class RampChartComponent implements OnInit, OnChanges {
   private svg: any;
   private line: d3Shape.Line<[number, number]>;
 
-  constructor(private mainService: MainService, private libraryService: LibraryService) { }
+  constructor(
+    private mainService: MainService, 
+    private libraryService: LibraryService,
+    private changeDetectorRef: ChangeDetectorRef
+  ) { }
 
   ngOnInit() {
     this.mainSub = this.mainService.getMain().subscribe(main => this.main = main);
@@ -61,12 +65,14 @@ export class RampChartComponent implements OnInit, OnChanges {
     this.libRamps = this.lib.ramps;
 
     this.dotsNth = 1;
+  }
 
+  ngAfterViewInit() {
     if (!this.svg) {
       this.createChart();
       this.updateChart();
     }
-
+    this.changeDetectorRef.detectChanges();
   }
 
   ngOnChanges() {
@@ -174,13 +180,13 @@ export class RampChartComponent implements OnInit, OnChanges {
   /** Update chart */
   public updateChart() {
 
+    // Prepare data
+    let steps = this.prepareData();
+
     // Remove previous plot and axis
     this.svg.selectAll('.line').remove();
     this.svg.selectAll('.axis').remove();
     this.svg.selectAll('g').remove();
-
-    // Prepare data
-    let steps = this.prepareData();
 
     // Prepare points
     let points = [];
@@ -217,7 +223,7 @@ export class RampChartComponent implements OnInit, OnChanges {
       .attr("text-anchor", "middle")
       .attr("x", (this.width + this.margin.left + this.margin.right) / 2)
       .attr("y", this.height + this.margin.top + this.margin.bottom - 5)
-      .text(this.xLabel +' ['+ this.units[0] +']');
+      .text(this.xLabel + ' [' + this.units[0] + ']');
 
     // Drawy y axis label
     this.svg.append("text")
@@ -227,7 +233,7 @@ export class RampChartComponent implements OnInit, OnChanges {
       .attr("transform", "rotate(-90)")
       .attr("x", (this.height + this.margin.top + this.margin.bottom) / -2)
       .attr("y", 15)
-      .text(this.yLabel+' ['+ this.units[1] +']');
+      .text(this.yLabel + ' [' + this.units[1] + ']');
 
     // Draw line
     this.svg.append("path")
@@ -255,9 +261,13 @@ export class RampChartComponent implements OnInit, OnChanges {
     // Draw dots label
     gdots.append("text")
       .text((d) => { return round(d.y, 2); })
+      .attr("class", "dot-label")
       .attr('transform', `translate(${this.margin.left - 10}, ${this.margin.top - 10})`)
       .attr("x", (d) => { return this.x(d.x); })
-      .attr("y", (d) => { return this.y(d.y); });
+      .attr("y", (d) => { return this.y(d.y); })
+      .attr("fill", "rgb(250,250,250)")
+      .style("font-size", "0.7rem");
+      
   }
 
   /**
@@ -267,7 +277,7 @@ export class RampChartComponent implements OnInit, OnChanges {
     // Create svg string
     var svgString = this.getSVGString(this.svg.node());
     // Export string and save image
-    this.svgString2Image(svgString, 2 * this.width, 2 * this.height, 'png'); 
+    this.svgString2Image(svgString, 2 * this.width, 2 * this.height, 'png');
   }
 
   /**
@@ -281,11 +291,11 @@ export class RampChartComponent implements OnInit, OnChanges {
     var serializer = new XMLSerializer();
     var svgString = serializer.serializeToString(svgNode);
     // Add custom style
-    svgString = svgString.replace('xlink">', 'xlink"><style xmlns="http://www.w3.org/1999/xhtml" type="text/css">'+ cssStyleText +'</style>');
+    svgString = svgString.replace('xlink">', 'xlink"><style xmlns="http://www.w3.org/1999/xhtml" type="text/css">' + cssStyleText + '</style>');
     // Fix root xlink without namespace
-    svgString = svgString.replace(/(\w+)?:?xlink=/g, 'xmlns:xlink='); 
+    svgString = svgString.replace(/(\w+)?:?xlink=/g, 'xmlns:xlink=');
     // Safari NS namespace fix
-    svgString = svgString.replace(/NS\d+:href/g, 'xlink:href'); 
+    svgString = svgString.replace(/NS\d+:href/g, 'xlink:href');
 
     return svgString;
   }
@@ -302,7 +312,7 @@ export class RampChartComponent implements OnInit, OnChanges {
     var format = format ? format : 'png';
 
     // Convert SVG string to data URL
-    var imgsrc = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString))); 
+    var imgsrc = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
 
     var canvas = document.createElement("canvas");
     var context = canvas.getContext("2d");
@@ -316,7 +326,7 @@ export class RampChartComponent implements OnInit, OnChanges {
       context.drawImage(image, 0, 0, width, height);
 
       canvas.toBlob((blob) => {
-        saveAs(blob, this.xLabel +'-'+ this.yLabel +'-ramp.png'); 
+        saveAs(blob, this.xLabel + '-' + this.yLabel + '-ramp.png');
       });
     };
 

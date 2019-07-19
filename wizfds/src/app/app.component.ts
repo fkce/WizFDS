@@ -1,7 +1,8 @@
 import { Router, NavigationEnd } from '@angular/router';
-import { Component, OnInit, isDevMode, enableProdMode } from '@angular/core';
+import { Component, isDevMode } from '@angular/core';
 import 'rxjs/add/operator/filter';
 import { googleAnalytics } from '../assets/analytics';
+import { includes, isEqual, cloneDeep } from 'lodash';
 
 import { MainService } from '@services/main/main.service';
 import { Main } from '@services/main/main';
@@ -14,7 +15,6 @@ import { HttpManagerService } from '@services/http-manager/http-manager.service'
 import { FdsScenarioService } from '@services/fds-scenario/fds-scenario.service';
 import { environment } from '@env/environment';
 import { NotifierService } from 'angular-notifier';
-import { includes } from 'lodash';
 
 @Component({
   selector: 'app-root',
@@ -26,6 +26,10 @@ export class AppComponent {
   lib: Library;
   version = environment.version;
   lastUrl: string = '/';
+
+  private fdsObjectDiffer: object = null;
+  private idle: any;
+  private idleScenarioId: number = 0;
 
   wsSub;
 
@@ -84,7 +88,7 @@ export class AppComponent {
         this.setCurrentFdsScenario(30, 53);
       }, 1000);
       setTimeout(() => {
-        //this.router.navigate(['fds/output/device']);
+        //this.router.navigate(['/fds/fire/fire']);
       }, 2000);
     }
 
@@ -113,9 +117,32 @@ export class AppComponent {
         this.notifierService.notify('error', 'CAD: Cannot sync ...');
       }
     );
+
   }
 
   ngAfterViewInit() {
+
+  }
+
+  ngDoCheck(): void {
+
+    // Autosave changes in FdsObject every 30 seconds when change is detected
+    // First check if FdsObject was changed
+    if (this.main.currentFdsScenario != undefined && !isEqual(this.fdsObjectDiffer, this.main.currentFdsScenario.fdsObject)) {
+      clearTimeout(this.idle);
+      // Check if scenario or project was not changed in the meanwhile
+      if (this.fdsObjectDiffer != null && this.idleScenarioId == this.main.currentFdsScenario.id) {
+        this.idleScenarioId = this.main.currentFdsScenario.id;
+        this.idle = setTimeout(() => {
+          this.fdsScenarioService.updateFdsScenario(this.main.currentProject.id, this.main.currentFdsScenario.id, 'all', true);
+        }, 20000);
+        this.fdsObjectDiffer = cloneDeep(this.main.currentFdsScenario.fdsObject);
+      }
+      else {
+        this.idleScenarioId = this.main.currentFdsScenario.id;
+        this.fdsObjectDiffer = cloneDeep(this.main.currentFdsScenario.fdsObject);
+      }
+    }
 
   }
 

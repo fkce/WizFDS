@@ -1,25 +1,27 @@
 <div class="single-amper-container">
 
-  <div class="list">
-    <div class="list-title" (click)="add()">
-      <i class="material-icons">add_box</i> Add GEOM
-    </div>
-    <perfect-scrollbar #geomScrollbar (psScrollY)="scrollbarUpdate('geom')">
-      <div class="list-items">
-        <div class="list-item"
-          *ngFor="let geomItem of geometry.geoms | slice: ui.geometry.geom.begin:(ui.geometry.geom.begin + ui.listRange)">
-          <a (click)="activate(geomItem.id); websocketService.selectCad(geomtItem.idAC)" [ngClass]="{active: geomItem === geom}">{{geomItem.id}}</a>
-          <i class="material-icons red" (click)="delete(geomItem.id)">delete_forever</i>
-        </div>
+  <div class="list-wrapper">
+    <div class="list-drawer">
+      <div class="list-title" (click)="add()">
+        <i class="material-icons">add_box</i> Add GEOM
       </div>
-    </perfect-scrollbar>
-    <div class="list-bottom" *ngIf="geometry.geoms.length > ui.listRange">
-      <i class="material-icons" *ngIf="ui.geometry.geom.begin > 0"
-        (click)="uiStateService.decreaseRange('geometry.geom')">chevron_left</i>
-      <div>{{ui.geometry.geom.begin}} - {{ui.geometry.geom.begin + ui.listRange > geometry.geoms.length ? geometry.geoms.length
-        : ui.geometry.geom.begin + ui.listRange}}</div>
-      <i class="material-icons" *ngIf="ui.geometry.geom.begin + ui.listRange < geometry.geoms.length"
-        (click)="uiStateService.increaseRange('geometry.geom')">chevron_right</i>
+      <perfect-scrollbar #geomScrollbar (psScrollY)="scrollbarUpdate('geom')">
+        <div class="list-items">
+          <div class="list-item"
+            *ngFor="let geomItem of geometry.geoms | slice: ui.geometry.geom.begin:(ui.geometry.geom.begin + ui.listRange)">
+            <a (click)="activate(geomItem.id); websocketService.selectCad(geomtItem.idAC)" [ngClass]="{active: geomItem === geom}">{{geomItem.id}}</a>
+            <i class="material-icons red" (click)="delete(geomItem.id)">delete_forever</i>
+          </div>
+        </div>
+      </perfect-scrollbar>
+      <div class="list-bottom" *ngIf="geometry.geoms.length > ui.listRange">
+        <i class="material-icons" *ngIf="ui.geometry.geom.begin > 0"
+          (click)="uiStateService.decreaseRange('geometry.geom')">chevron_left</i>
+        <div>{{ui.geometry.geom.begin}} - {{ui.geometry.geom.begin + ui.listRange > geometry.geoms.length ? geometry.geoms.length
+          : ui.geometry.geom.begin + ui.listRange}}</div>
+        <i class="material-icons" *ngIf="ui.geometry.geom.begin + ui.listRange < geometry.geoms.length"
+          (click)="uiStateService.increaseRange('geometry.geom')">chevron_right</i>
+      </div>
     </div>
   </div>
 

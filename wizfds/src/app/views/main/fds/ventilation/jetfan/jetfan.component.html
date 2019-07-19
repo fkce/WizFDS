@@ -1,23 +1,25 @@
 <div class="single-amper-container">
 
-  <div class="list">
-    <div class="list-title" (click)="add()">
-      <i class="material-icons">add_box</i> Add JETFAN
-    </div>
-    <perfect-scrollbar #jetfanScrollbar (psScrollY)="scrollbarUpdate('jetfan')">
-      <div class="list-items">
-        <div class="list-item" *ngFor="let jetfanItem of ventilation.jetfans | slice: ui.ventilation.jetfan.begin:(ui.ventilation.jetfan.begin + ui.listRange)">
-          <a (click)="activate(jetfanItem.id); websocketService.selectCad(jetfanItem.idAC)" [ngClass]="{active: jetfanItem === jetfan}">{{jetfanItem.id}}</a>
-          <i class="material-icons red" (click)="delete(jetfanItem.id)">delete_forever</i>
-        </div>
+  <div class="list-wrapper">
+    <div class="list-drawer">
+      <div class="list-title" (click)="add()">
+        <i class="material-icons">add_box</i> Add JETFAN
       </div>
-    </perfect-scrollbar>
-    <div class="list-bottom" *ngIf="ventilation.jetfans.length > ui.listRange">
-      <i class="material-icons" *ngIf="ui.ventilation.jetfan.begin > 0" (click)="uiStateService.decreaseRange('ventilation.jetfan')">chevron_left</i>
-      <div>{{ui.ventilation.jetfan.begin}} - {{ui.ventilation.jetfan.begin + ui.listRange > ventilation.jetfans.length
-        ? ventilation.jetfans.length
-        : ui.ventilation.jetfans.begin + ui.listRange}}</div>
-      <i class="material-icons" *ngIf="ui.ventilation.jetfan.begin + ui.listRange < ventilation.jetfans.length" (click)="uiStateService.increaseRange('ventilation.jetfan')">chevron_right</i>
+      <perfect-scrollbar #jetfanScrollbar (psScrollY)="scrollbarUpdate('jetfan')">
+        <div class="list-items">
+          <div class="list-item" *ngFor="let jetfanItem of ventilation.jetfans | slice: ui.ventilation.jetfan.begin:(ui.ventilation.jetfan.begin + ui.listRange)">
+            <a (click)="activate(jetfanItem.id); websocketService.selectCad(jetfanItem.idAC)" [ngClass]="{active: jetfanItem === jetfan}">{{jetfanItem.id}}</a>
+            <i class="material-icons red" (click)="delete(jetfanItem.id)">delete_forever</i>
+          </div>
+        </div>
+      </perfect-scrollbar>
+      <div class="list-bottom" *ngIf="ventilation.jetfans.length > ui.listRange">
+        <i class="material-icons" *ngIf="ui.ventilation.jetfan.begin > 0" (click)="uiStateService.decreaseRange('ventilation.jetfan')">chevron_left</i>
+        <div>{{ui.ventilation.jetfan.begin}} - {{ui.ventilation.jetfan.begin + ui.listRange > ventilation.jetfans.length
+          ? ventilation.jetfans.length
+          : ui.ventilation.jetfans.begin + ui.listRange}}</div>
+        <i class="material-icons" *ngIf="ui.ventilation.jetfan.begin + ui.listRange < ventilation.jetfans.length" (click)="uiStateService.increaseRange('ventilation.jetfan')">chevron_right</i>
+      </div>
     </div>
   </div>
 

@@ -2,7 +2,7 @@
   <div class="ramp-chart" #rampChart>
     <i class="save-image material-icons" (click)="saveChart()" matTooltip="Get image file" [matTooltipDisabled]="!main.tooltips">image</i>
   </div>
-  <div class="ramp-steps">
+  <div *ngIf="ramp" class="ramp-steps">
     <div class="ramp-step">
       <div>
         <label>Add step:</label>

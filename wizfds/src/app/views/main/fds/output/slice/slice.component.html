@@ -1,22 +1,24 @@
 <div class="single-amper-container">
 
-  <div class="list">
-    <div class="list-title" (click)="add()">
-      <i class="material-icons">add_box</i> Add SLCF
-    </div>
-    <perfect-scrollbar #slcfScrollbar (psScrollY)="scrollbarUpdate('slcf')">
-      <div class="list-items">
-        <div class="list-item" *ngFor="let slcfItem of slcfs | slice: ui.output.slcf.begin:(ui.output.slcf.begin + ui.listRange)">
-          <a (click)="activate(slcfItem.id); websocketService.selectCad(slcfItem.idAC)" [ngClass]="{active: slcfItem === slcf}">{{slcfItem.id}}</a>
-          <i class="material-icons red" (click)="delete(slcfItem.id)">delete_forever</i>
-        </div>
+  <div class="list-wrapper">
+    <div class="list-drawer">
+      <div class="list-title" (click)="add()">
+        <i class="material-icons">add_box</i> Add SLCF
       </div>
-    </perfect-scrollbar>
-    <div class="list-bottom" *ngIf="slcfs.length > ui.listRange">
-      <i class="material-icons" *ngIf="ui.output.slcf.begin > 0" (click)="uiStateService.decreaseRange('output.slcf')">chevron_left</i>
-      <div>{{ui.output.slcf.begin}} - {{ui.output.slcf.begin + ui.listRange > slcfs.length ? slcfs.length : ui.output.slcf.begin
-        + ui.listRange}}</div>
-      <i class="material-icons" *ngIf="ui.output.slcf.begin + ui.listRange < slcfs.length" (click)="uiStateService.increaseRange('output.slcf')">chevron_right</i>
+      <perfect-scrollbar #slcfScrollbar (psScrollY)="scrollbarUpdate('slcf')">
+        <div class="list-items">
+          <div class="list-item" *ngFor="let slcfItem of slcfs | slice: ui.output.slcf.begin:(ui.output.slcf.begin + ui.listRange)">
+            <a (click)="activate(slcfItem.id); websocketService.selectCad(slcfItem.idAC)" [ngClass]="{active: slcfItem === slcf}">{{slcfItem.id}}</a>
+            <i class="material-icons red" (click)="delete(slcfItem.id)">delete_forever</i>
+          </div>
+        </div>
+      </perfect-scrollbar>
+      <div class="list-bottom" *ngIf="slcfs.length > ui.listRange">
+        <i class="material-icons" *ngIf="ui.output.slcf.begin > 0" (click)="uiStateService.decreaseRange('output.slcf')">chevron_left</i>
+        <div>{{ui.output.slcf.begin}} - {{ui.output.slcf.begin + ui.listRange > slcfs.length ? slcfs.length : ui.output.slcf.begin
+          + ui.listRange}}</div>
+        <i class="material-icons" *ngIf="ui.output.slcf.begin + ui.listRange < slcfs.length" (click)="uiStateService.increaseRange('output.slcf')">chevron_right</i>
+      </div>
     </div>
   </div>
 

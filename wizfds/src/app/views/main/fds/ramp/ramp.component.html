@@ -1,23 +1,25 @@
 <div class="single-amper-container">
 
-  <div class="list">
-    <div class="list-title" (click)="add()">
-      <i class="material-icons">add_box</i> Add RAMP
-    </div>
-    <perfect-scrollbar #rampScrollbar (psScrollY)="scrollbarUpdate('ramp')">
-      <div class="list-items">
-        <div class="list-item" *ngFor="let rampItem of ramps | slice: ui.ramps.ramp.begin:(ui.ramps.ramp.begin + ui.listRange)">
-          <a (click)="activate(rampItem.id)" [ngClass]="{active: rampItem === ramp}">{{rampItem.id}}</a>
-          <i class="material-icons red" (click)="delete(rampItem.id)">delete_forever</i>
-        </div>
+  <div class="list-wrapper">
+    <div class="list-drawer">
+      <div class="list-title" (click)="add()">
+        <i class="material-icons">add_box</i> Add RAMP
       </div>
-    </perfect-scrollbar>
-    <div class="list-bottom" *ngIf="ramps.length > ui.listRange">
-      <i class="material-icons" *ngIf="ui.ramps.ramp.begin > 0" (click)="uiStateService.decreaseRange('ramps.ramp')">chevron_left</i>
-      <div>{{ui.ramps.ramp.begin}} - {{ui.ramps.ramp.begin + ui.listRange > ramps.ramps.length ? ramps.ramps.length :
-        ui.ramps.ramp.begin
-        + ui.listRange}}</div>
-      <i class="material-icons" *ngIf="ui.ramps.ramp.begin + ui.listRange < ramps.length" (click)="uiStateService.increaseRange('ramps.ramp')">chevron_right</i>
+      <perfect-scrollbar #rampScrollbar (psScrollY)="scrollbarUpdate('ramp')">
+        <div class="list-items">
+          <div class="list-item" *ngFor="let rampItem of ramps | slice: ui.ramps.ramp.begin:(ui.ramps.ramp.begin + ui.listRange)">
+            <a (click)="activate(rampItem.id)" [ngClass]="{active: rampItem === ramp}">{{rampItem.id}}</a>
+            <i class="material-icons red" (click)="delete(rampItem.id)">delete_forever</i>
+          </div>
+        </div>
+      </perfect-scrollbar>
+      <div class="list-bottom" *ngIf="ramps.length > ui.listRange">
+        <i class="material-icons" *ngIf="ui.ramps.ramp.begin > 0" (click)="uiStateService.decreaseRange('ramps.ramp')">chevron_left</i>
+        <div>{{ui.ramps.ramp.begin}} - {{ui.ramps.ramp.begin + ui.listRange > ramps.ramps.length ? ramps.ramps.length :
+          ui.ramps.ramp.begin
+          + ui.listRange}}</div>
+        <i class="material-icons" *ngIf="ui.ramps.ramp.begin + ui.listRange < ramps.length" (click)="uiStateService.increaseRange('ramps.ramp')">chevron_right</i>
+      </div>
     </div>
   </div>
 

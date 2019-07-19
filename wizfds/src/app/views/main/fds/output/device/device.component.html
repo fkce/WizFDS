@@ -1,22 +1,24 @@
 <div class="single-amper-container">
 
-  <div class="list">
-    <div class="list-title" (click)="add()">
-      <i class="material-icons">add_box</i> Add DEVC
-    </div>
-    <perfect-scrollbar #devcScrollbar (psScrollY)="scrollbarUpdate('devc')">
-      <div class="list-items">
-        <div class="list-item" *ngFor="let devcItem of devcs | slice: ui.output.devc.begin:(ui.output.devc.begin + ui.listRange)">
-          <a (click)="activate(devcItem.id); websocketService.selectCad(devcItem.idAC)" [ngClass]="{active: devcItem === devc}">{{devcItem.id}}</a>
-          <i class="material-icons red" (click)="delete(devcItem.id)">delete_forever</i>
-        </div>
+  <div class="list-wrapper">
+    <div class="list-drawer">
+      <div class="list-title" (click)="add()">
+        <i class="material-icons">add_box</i> Add DEVC
       </div>
-    </perfect-scrollbar>
-    <div class="list-bottom" *ngIf="devcs.length > ui.listRange">
-      <i class="material-icons" *ngIf="ui.output.devc.begin > 0" (click)="uiStateService.decreaseRange('output.devc')">chevron_left</i>
-      <div>{{ui.output.devc.begin}} - {{ui.output.devc.begin + ui.listRange > devcs.length ? devcs.length : ui.output.devc.begin
-        + ui.listRange}}</div>
-      <i class="material-icons" *ngIf="ui.output.devc.begin + ui.listRange < devcs.length" (click)="uiStateService.increaseRange('output.devc')">chevron_right</i>
+      <perfect-scrollbar #devcScrollbar (psScrollY)="scrollbarUpdate('devc')">
+        <div class="list-items">
+          <div class="list-item" *ngFor="let devcItem of devcs | slice: ui.output.devc.begin:(ui.output.devc.begin + ui.listRange)">
+            <a (click)="activate(devcItem.id); websocketService.selectCad(devcItem.idAC)" [ngClass]="{active: devcItem === devc}">{{devcItem.id}}</a>
+            <i class="material-icons red" (click)="delete(devcItem.id)">delete_forever</i>
+          </div>
+        </div>
+      </perfect-scrollbar>
+      <div class="list-bottom" *ngIf="devcs.length > ui.listRange">
+        <i class="material-icons" *ngIf="ui.output.devc.begin > 0" (click)="uiStateService.decreaseRange('output.devc')">chevron_left</i>
+        <div>{{ui.output.devc.begin}} - {{ui.output.devc.begin + ui.listRange > devcs.length ? devcs.length : ui.output.devc.begin
+          + ui.listRange}}</div>
+        <i class="material-icons" *ngIf="ui.output.devc.begin + ui.listRange < devcs.length" (click)="uiStateService.increaseRange('output.devc')">chevron_right</i>
+      </div>
     </div>
   </div>
 

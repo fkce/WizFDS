@@ -1,23 +1,25 @@
 <div class="single-amper-container">
 
-  <div class="list">
-    <div class="list-title" (click)="add()">
-      <i class="material-icons">add_box</i> Add ISOF
-    </div>
-    <perfect-scrollbar #isofScrollbar (psScrollY)="scrollbarUpdate('isof')">
-      <div class="list-items">
-        <div class="list-item" *ngFor="let isofItem of isofs | slice: ui.output.isof.begin:(ui.output.isof.begin + ui.listRange)">
-          <a (click)="activate(isofItem.id)" [ngClass]="{active: isofItem === isof}">{{isofItem.id}}</a>
-          <i class="material-icons red" (click)="delete(isofItem.id)">delete_forever</i>
-        </div>
+  <div class="list-wrapper">
+    <div class="list-drawer">
+      <div class="list-title" (click)="add()">
+        <i class="material-icons">add_box</i> Add ISOF
       </div>
-    </perfect-scrollbar>
-    <div class="list-bottom" *ngIf="isofs.length > ui.listRange">
-      <i class="material-icons" *ngIf="ui.output.isof.begin > 0" (click)="uiStateService.decreaseRange('output.isof')">chevron_left</i>
-      <div>{{ui.output.isof.begin}} - {{ui.output.isof.begin + ui.listRange > isofs.length ? isofs.length :
-        ui.output.isof.begin
-        + ui.listRange}}</div>
-      <i class="material-icons" *ngIf="ui.output.isof.begin + ui.listRange < isofs.length" (click)="uiStateService.increaseRange('output.isof')">chevron_right</i>
+      <perfect-scrollbar #isofScrollbar (psScrollY)="scrollbarUpdate('isof')">
+        <div class="list-items">
+          <div class="list-item" *ngFor="let isofItem of isofs | slice: ui.output.isof.begin:(ui.output.isof.begin + ui.listRange)">
+            <a (click)="activate(isofItem.id)" [ngClass]="{active: isofItem === isof}">{{isofItem.id}}</a>
+            <i class="material-icons red" (click)="delete(isofItem.id)">delete_forever</i>
+          </div>
+        </div>
+      </perfect-scrollbar>
+      <div class="list-bottom" *ngIf="isofs.length > ui.listRange">
+        <i class="material-icons" *ngIf="ui.output.isof.begin > 0" (click)="uiStateService.decreaseRange('output.isof')">chevron_left</i>
+        <div>{{ui.output.isof.begin}} - {{ui.output.isof.begin + ui.listRange > isofs.length ? isofs.length :
+          ui.output.isof.begin
+          + ui.listRange}}</div>
+        <i class="material-icons" *ngIf="ui.output.isof.begin + ui.listRange < isofs.length" (click)="uiStateService.increaseRange('output.isof')">chevron_right</i>
+      </div>
     </div>
   </div>
 
