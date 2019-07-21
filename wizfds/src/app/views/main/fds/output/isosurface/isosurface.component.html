@@ -9,7 +9,7 @@
         <div class="list-items">
           <div class="list-item" *ngFor="let isofItem of isofs | slice: ui.output.isof.begin:(ui.output.isof.begin + ui.listRange)">
             <a (click)="activate(isofItem.id)" [ngClass]="{active: isofItem === isof}">{{isofItem.id}}</a>
-            <i class="material-icons red" (click)="delete(isofItem.id)">delete_forever</i>
+            <i class="material-icons red-hover" (click)="delete(isofItem.id)">delete_forever</i>
           </div>
         </div>
       </perfect-scrollbar>
@@ -62,7 +62,7 @@
           <label>Value {{ valueIndex + 1 }}:</label>
           <div class="field-container">
             <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="isof.values[valueIndex]" decimalInput />
-            <i (click)="isof.deleteValue(valueIndex)" class="material-icons red">delete_forever</i>
+            <i (click)="isof.deleteValue(valueIndex)" class="material-icons red-hover">delete_forever</i>
           </div>
         </div>
       </div>
@@ -112,11 +112,11 @@
             <div class="list-items">
               <div class="list-item" *ngFor="let isofItem of lib.isofs | slice: ui.output.libIsof.begin:(ui.output.libIsof.begin + ui.listRange)">
                 <a (click)="activate(isofItem.id, true)" [ngClass]="{active: isofItem===isof}">{{isofItem.id}}</a>
-                <i class="material-icons" matTooltip="Merge current item with library" [matTooltipDisabled]="!main.tooltips"
+                <i class="material-icons" matTooltip="Merge current item with library" [matTooltipDisabled]="!main.settings.tooltips"
                   (click)="mergeLibraryItem(isofItem.id)">merge_type</i>
-                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.tooltips"
+                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.settings.tooltips"
                   (click)="importLibraryItem(isofItem.id)">content_copy</i>
-                <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.tooltips" (click)="delete(isofItem.id, true)">delete_forever</i>
+                <i class="material-icons red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(isofItem.id, true)">delete_forever</i>
               </div>
             </div>
           </perfect-scrollbar>

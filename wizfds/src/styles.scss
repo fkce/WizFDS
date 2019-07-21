@@ -1,65 +1,62 @@
 // Reset sytles
-html, body, div, span, applet, object, iframe,
-h1, h2, h3, h4, h5, h6, p, blockquote, pre,
-a, abbr, acronym, address, big, cite, code,
-del, dfn, em, img, ins, kbd, q, s, samp,
-small, strike, strong, sub, sup, tt, var,
-b, u, i, center,
-dl, dt, dd, ol, ul, li,
-fieldset, form, label, legend,
-table, caption, tbody, tfoot, thead, tr, th, td,
-article, aside, canvas, details, embed, 
-figure, figcaption, footer, header, hgroup, 
-menu, nav, output, ruby, section, summary,
-time, mark, audio, video {
-	margin: 0;
-	padding: 0;
-	border: 0;
-	font-size: 100%;
-	font: inherit;
-	vertical-align: baseline;
-	text-decoration: none;
+html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, 
+p, blockquote, pre, a, abbr, acronym, address, big, cite, code, del, 
+dfn, em, img, ins, kbd, q, s, samp, small, strike, strong, sub, sup, tt, 
+var, b, u, i, center, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, 
+table, caption, tbody, tfoot, thead, tr, th, td, article, aside, canvas, 
+details, embed, figure, figcaption, footer, header, hgroup, menu, nav, 
+output, ruby, section, summary, time, mark, audio, video {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 100%;
+  font: inherit;
+  vertical-align: baseline;
+  text-decoration: none;
 }
-html, body {
-	height: 100%;
-	margin: 0;
-	padding: 0;
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
 }
 /* HTML5 display-role reset for older browsers */
-article, aside, details, figcaption, figure, 
-footer, header, hgroup, menu, nav, section {
-	display: block;
+article, aside, details, figcaption, figure, footer, header, hgroup, menu, nav, section {
+  display: block;
 }
 body {
-	line-height: 1;
+  line-height: 1;
 }
-ol, ul {
-	list-style: none;
+ol,
+ul {
+  list-style: none;
 }
-blockquote, q {
-	quotes: none;
+blockquote,
+q {
+  quotes: none;
 }
-blockquote:before, blockquote:after,
-q:before, q:after {
-	content: '';
-	content: none;
+blockquote:before,
+blockquote:after,
+q:before,
+q:after {
+  content: "";
+  content: none;
 }
 table {
-	border-collapse: collapse;
-	border-spacing: 0;
+  border-collapse: collapse;
+  border-spacing: 0;
 }
 
 /* You can add global styles to this file, and also import other style files */
-$red: #FF516D;
-$green: #009688;
+$red: #ff516d;
 $white: #eee;
 $grey: #888;
-$blue: #29B6F6;
-$blue-dark: #1E88E5;
-$green: #9CCC65;
-$orange: #FF9800;
-$orange-light: #FFF3E0;
-$help: #B0BEC5;
+$blue: #29b6f6;
+$blue-dark: #1e88e5;
+$green: #9ccc65;
+$orange: #ff9800;
+$orange-light: #fff3e0;
+$help: #b0bec5;
 
 $grey-hover: #606060;
 
@@ -73,160 +70,229 @@ $grey6: #808080;
 $border-light: #565656;
 $border-dark: #303030;
 
-$shadow-light: #363636;	
+$shadow-light: #363636;
 $shadow-dark: #323232;
 
 $active: #aaa;
-$active1: #1E88E5;
+$active1: #1e88e5;
 $passive: #565555;
 $body: #383838;
 
 html {
-	font-size: 1rem;
-	font-family: "Play";
+  font-size: 1rem;
+  font-family: "Play";
 }
 
 body {
-	overflow-y: auto;
-	overflow-x: auto;
-	color: $white;
-	background-color: $body;
+  overflow-y: auto;
+  overflow-x: auto;
+  color: $white;
+  background-color: $body;
 }
 
 :focus {
-	outline:none;
+  outline: none;
 }
 ::-moz-focus-inner {
-	border:0;
+  border: 0;
 }
 
-a { cursor: pointer; }
-a:link, a:visited { color: $white; }
-a:hover { color: $blue; }
-a.active { color: $blue; }
-a.activeLib { color: $green; }
+a {
+  cursor: pointer;
+}
+a:link,
+a:visited {
+  color: $white;
+}
+a:hover {
+  color: $blue;
+}
+a.active {
+  color: $blue;
+}
+a.activeLib {
+  color: $green;
+}
 
-i { display: inline-block; vertical-align: middle; height: 24px; width: 24px; cursor: pointer; }
-i:hover { color: $blue; }
-i.red:hover { color: $red; }
+i {
+  display: inline-block;
+  vertical-align: middle;
+  height: 24px;
+  width: 24px;
+  cursor: pointer;
+}
+i:hover {
+  color: $blue;
+}
+i.red {
+  color: $red;
+}
+i.green {
+  color: $green;
+}
+i.red-hover:hover {
+  color: $red;
+}
 
-input { box-shadow: none; border-radius: none; border: none; background: none; font-size: 0.95rem; padding-bottom: 0; color: $orange; font-family: Consolas, Lucida Console, monospace; }
-input { border-bottom: 2px solid rgba(255,255,255,.7); padding: 0 0.5rem 0 0.2rem; }
-input:focus, select:focus, textarea:focus, button:focus { outline: none; }
-input:focus { border-bottom: 2px solid $orange; }
+input {
+  box-shadow: none;
+  border-radius: none;
+  border: none;
+  background: none;
+  font-size: 0.95rem;
+  padding-bottom: 0;
+  color: $orange;
+  font-family: Consolas, Lucida Console, monospace;
+}
+input {
+  border-bottom: 2px solid rgba(255, 255, 255, 0.7);
+  padding: 0 0.5rem 0 0.2rem;
+}
+input:focus,
+select:focus,
+textarea:focus,
+button:focus {
+  outline: none;
+}
+input:focus {
+  border-bottom: 2px solid $orange;
+}
 
 button {
-    position: relative;
-	background-color: transparent;
-	color: #ccc;
-	border-radius: 2px;
-	border: 2px solid #ccc;
-	font-size: 0.9rem;
-	font-family: 'Play';
-	height: 1.6rem;
-	min-height: 1.6rem;
-    padding: 2px 6px 2px 6px;
-	text-align: center;
-	transition-duration: 0.4s;
-    -webkit-transition-duration: 0.4s; 
-    text-decoration: none;
-    overflow: hidden;
-	cursor: pointer;
+  position: relative;
+  background-color: transparent;
+  color: #ccc;
+  border-radius: 2px;
+  border: 2px solid #ccc;
+  font-size: 0.9rem;
+  font-family: "Play";
+  height: 1.6rem;
+  min-height: 1.6rem;
+  padding: 2px 6px 2px 6px;
+  text-align: center;
+  transition-duration: 0.4s;
+  -webkit-transition-duration: 0.4s;
+  text-decoration: none;
+  overflow: hidden;
+  cursor: pointer;
 }
 
 button:after {
-    content: "";
-    background: $blue;
-    display: block;
-    position: absolute;
-    padding-top: 300%;
-    padding-left: 350%;
-    margin-left: -20px !important;
-    margin-top: -120%;
-    opacity: 0;
-    transition: all 0.8s
+  content: "";
+  background: $blue;
+  display: block;
+  position: absolute;
+  padding-top: 300%;
+  padding-left: 350%;
+  margin-left: -20px !important;
+  margin-top: -120%;
+  opacity: 0;
+  transition: all 0.8s;
 }
 
 button:active:after {
-    padding: 0;
-    margin: 0;
-    opacity: 1;
-	transition: 0s;
+  padding: 0;
+  margin: 0;
+  opacity: 1;
+  transition: 0s;
 }
 button:hover {
-	background: #b0bec5;
-	color: #000;
-	border: 2px solid #b0bec5;
+  background: #b0bec5;
+  color: #000;
+  border: 2px solid #b0bec5;
 }
-
 
 select {
-	appearance: none;
-	background-color: #fff;
-	border-radius: 4px;
-	border: 1px solid #ccc;
-	height: 1.6rem;
-	min-height: 1.6rem;
-	font-size: 0.9rem;
-	font-family: 'Play';
-	padding-left: 6px;
-	//background: url(http://cdn1.iconfinder.com/data/icons/cc_mono_icon_set/blacks/16x16/br_down.png) no-repeat right #ddd;
+  appearance: none;
+  background-color: #fff;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  height: 1.6rem;
+  min-height: 1.6rem;
+  font-size: 0.9rem;
+  font-family: "Play";
+  padding-left: 6px;
+  //background: url(http://cdn1.iconfinder.com/data/icons/cc_mono_icon_set/blacks/16x16/br_down.png) no-repeat right #ddd;
 }
 
-.mr\+ { margin-right: 1rem; }
-.mr\+\+ { margin-right: 2rem; }
-.mr\+\+\+ { margin-right: 3rem; }
-.ml\+ { margin-left: 1rem; }
-.ml\+\+ { margin-left: 2rem; }
-.ml\+\+\+ { margin-right: 3rem; }
+.mr\+ {
+  margin-right: 1rem;
+}
+.mr\+\+ {
+  margin-right: 2rem;
+}
+.mr\+\+\+ {
+  margin-right: 3rem;
+}
+.ml\+ {
+  margin-left: 1rem;
+}
+.ml\+\+ {
+  margin-left: 2rem;
+}
+.ml\+\+\+ {
+  margin-right: 3rem;
+}
 
-@import '~katex/dist/katex.css';
-ng-katex { font-size: .9rem; }
+// Katex import & modifications
+@import "~katex/dist/katex.css";
+ng-katex {
+  font-size: 0.9rem;
+}
 
-@import 'app/views/main/fds/input-file/css/codemirror.scss';
+// Codemirror editor import
+@import "app/views/main/fds/input-file/css/codemirror.scss";
 
 // ng-select import & modifications
-@import '~@ng-select/ng-select/themes/default.theme.css';
+@import "~@ng-select/ng-select/themes/default.theme.css";
 
 .ng-select {
-    height: 1.8rem;
-	min-height: 1.8rem;
-	width: auto;
+  height: 1.8rem;
+  min-height: 1.8rem;
+  width: auto;
 }
-.ng-select .ng-select-container  {            
-    height: 1.6rem;
-	min-height: 1.6rem;
-	font-size: 0.9rem;
+.ng-select .ng-select-container {
+  height: 1.6rem;
+  min-height: 1.6rem;
+  font-size: 0.9rem;
 }
-.ng-select .ng-dropdown-panel  {            
-	font-size: 0.9rem;
+.ng-select .ng-dropdown-panel {
+  font-size: 0.9rem;
 }
 .ng-select.ng-select-single .ng-select-container {
-    height: 1.6rem;
-	min-height: 1.6rem;
-	font-size: 0.9rem;
+  height: 1.6rem;
+  min-height: 1.6rem;
+  font-size: 0.9rem;
 }
 .custom.ng-select.ng-select-single .ng-select-container .ng-value-container {
-	min-width: 9rem;
+  min-width: 9rem;
 }
 .ng-dropdown-panel {
-	min-width: 100%;
-	width: auto !important;
+  min-width: 100%;
+  width: auto !important;
 }
 .ng-select .ng-clear {
-	padding-left: 0.5rem;
+  padding-left: 0.5rem;
 }
 
 // Angular notifier import & modifications
-@import '~angular-notifier/styles.scss';
+@import "~angular-notifier/styles.scss";
 .notifier__notification--material {
-	padding: {
-		top: 2px;
-		right: 22px;
-		bottom: 1px;
-		left: 22px;
-	}
+  padding: {
+    top: 2px;
+    right: 22px;
+    bottom: 1px;
+    left: 22px;
+  }
 }
 
 // Angular theme
 @import "~@angular/material/prebuilt-themes/pink-bluegrey.css";
+
+// Material Design Icons (https://materialdesignicons.com/)
+$mdi-font-path: "~@mdi/font/fonts";
+@import "~@mdi/font/scss/materialdesignicons.scss";
+.mdi {
+  margin-top: -1px;
+  font-size: 24px;
+}

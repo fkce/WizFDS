@@ -23,7 +23,7 @@ export class ProjectService {
 
   /** Get all project from database */
   public getProjects() {
-    this.httpManager.get(this.main.hostAddres + '/api/projects').then((result: Result) => {
+    this.httpManager.get(this.main.settings.hostAddress+ '/api/projects').then((result: Result) => {
       // Iterate through all projects
       forEach(result.data, (project) => {
         this.main.projects.push(new Project(JSON.stringify(project)));
@@ -42,13 +42,13 @@ export class ProjectService {
 
   /** Create new project */
   public createProject() {
-    return this.httpManager.post(this.main.hostAddres + '/api/project', JSON.stringify({}));
+    return this.httpManager.post(this.main.settings.hostAddress+ '/api/project', JSON.stringify({}));
   }
 
   /** Update project */
   public updateProject(projectId: number) {
     let project: Project = find(this.main.projects, function (o) { return o.id == projectId });
-    this.httpManager.put(this.main.hostAddres + '/api/project/' + project.id, project.toJSON()).then((result: Result) => {
+    this.httpManager.put(this.main.settings.hostAddress+ '/api/project/' + project.id, project.toJSON()).then((result: Result) => {
       this.notifierService.notify(result.meta.status, result.meta.details[0]);
     });
 
@@ -56,7 +56,7 @@ export class ProjectService {
 
   /** Delete project */
   public deleteProject(projectId: number) {
-    return this.httpManager.delete(this.main.hostAddres + '/api/project/' + projectId);
+    return this.httpManager.delete(this.main.settings.hostAddress+ '/api/project/' + projectId);
   }
 
 }

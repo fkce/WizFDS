@@ -30,6 +30,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
   uiSub;
   libSub;
 
+  // Component variables
+
   constructor(
     private mainService: MainService,
     private websocketService: WebsocketService,
@@ -105,7 +107,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   /** Log-out from app */
   public logOut() {
-    window.location.href = this.main.hostAddres + '/logout';
+    window.location.href = this.main.settings.hostAddress+ '/logout';
   }
 
   /**

@@ -307,11 +307,13 @@ export class FiresComponent implements OnInit, OnDestroy {
           this.fire.surf.hrr.sprinklerActivationTime = data['sprinklerActivationTime'];
           this.customRampStep = data['step'];
 
+          console.log(data);
+
           // Improper data handling
           if(data['alpha'] <= 0 || !data['alpha'] || data['alpha'] == "") {
             this.notifierService.notify('error', 'Alpha1 must be grater than zero');
           }
-          else if(data['maxHrr'] <= 0 || !data['maxHr'] || data['maxHrr'] == "") {
+          else if(data['maxHrr'] <= 0 || !data['maxHrr'] || data['maxHrr'] == "") {
             this.notifierService.notify('error', 'Max HRR must be grater than zero');
           }
           else if(data['sprinklerActivationTime'] <= 0 || !data['sprinklerActivationTime'] || data['sprinklerActivationTime'] == "") {

@@ -97,7 +97,7 @@ export class InputFileComponent implements OnInit, OnDestroy {
    * On component view init
    */
   ngAfterViewInit() {
-    this.editorOptions.keyMap = this.main.editor;
+    this.editorOptions.keyMap = this.main.settings.editor;
     this.config = this.editorOptions || {};
     this.codemirrorInit(this.config);
   }

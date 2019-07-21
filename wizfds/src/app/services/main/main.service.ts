@@ -1,10 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject ,  Observable ,  of } from 'rxjs';
 import { Main } from './main';
-import { Project } from '../project/project';
-import { FdsScenario } from '../fds-scenario/fds-scenario';
 import { HttpManagerService, Result } from '../http-manager/http-manager.service';
-import { FdsScenarioService } from '../fds-scenario/fds-scenario.service';
 import { each } from 'lodash';
 import { NotifierService } from 'angular-notifier';
 
@@ -13,6 +10,7 @@ export class MainService {
 
   // This is the main object including all current data
   main: Main = new Main(JSON.stringify({}));
+  mainSubject = new BehaviorSubject<Main>(this.main);
 
   constructor(
     private httpManager: HttpManagerService,
@@ -22,7 +20,8 @@ export class MainService {
   }
 
   public getMain(): Observable<Main> {
-    return of(this.main);
+    //return of(this.main);
+    return this.mainSubject.asObservable();
   }
 
   /**
@@ -30,23 +29,23 @@ export class MainService {
    * table users
    */
   public getSettings() {
-    this.httpManager.get(this.main.hostAddres + '/api/settings').then((result:Result) => {
+    this.httpManager.get(this.main.settings.hostAddress + '/api/settings').then((result:Result) => {
       let main = new Main(JSON.stringify(result.data));
-      this.main.hostAddres = main.hostAddres;
-      this.main.editor = main.editor;
-      this.main.timeout = main.timeout;
       this.main.userId = main.userId;
-      this.main.userName = main.userName;
-      this.main.email = main.email;
+      this.main.settings.userName = main.settings.userName;
+      this.main.settings.email = main.settings.email;
+      this.main.settings.hostAddress = main.settings.hostAddress;
+      this.main.settings.tooltips = main.settings.tooltips;
+      this.main.settings.editor = main.settings.editor;
+      this.main.idle.timeout = main.idle.timeout;
       this.main.websocket.host = main.websocket.host;
       this.main.websocket.port = main.websocket.port;
-      this.main.tooltips = main.tooltips;
       this.notifierService.notify(result.meta.status, result.meta.details[0]);
     });
   }
 
   public updateSettings() {
-    this.httpManager.put(this.main.hostAddres + '/api/settings/'+this.main.userId, this.main.toJSON()).then((result:Result) => {
+    this.httpManager.put(this.main.settings.hostAddress + '/api/settings/'+this.main.userId, this.main.toJSON()).then((result:Result) => {
 
       this.notifierService.notify(result.meta.status, result.meta.details[0]);
     });

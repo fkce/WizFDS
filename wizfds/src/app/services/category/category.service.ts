@@ -24,7 +24,7 @@ export class CategoryService {
 
   /** Get categories from DB */
   getCategories() {
-    this.httpManager.get(this.main.hostAddres + '/api/categories').then((result:Result) => {
+    this.httpManager.get(this.main.settings.hostAddress + '/api/categories').then((result:Result) => {
       // Iterate through all projects
       forEach(result.data, (category:CategoryInterface) => {
         (category.visible == 't') ? category.visible = true : category.visible = false;
@@ -39,7 +39,7 @@ export class CategoryService {
   /** Create new category in DB */
   createCategory() {
     let category = new Category(JSON.stringify({uuid: this.idGeneratorService.genUUID, label:"New category", active:true, visible:true}));
-    this.httpManager.post(this.main.hostAddres + '/api/category', category.toJSON()).then((result:Result) => {
+    this.httpManager.post(this.main.settings.hostAddress + '/api/category', category.toJSON()).then((result:Result) => {
       this.main.categories.push(category);
       this.notifierService.notify(result.meta.status, result.meta.details[0]);
     });
@@ -47,7 +47,7 @@ export class CategoryService {
 
   /** Update category in DB */
   updataCategory(uuid:string, category:Category) {
-    this.httpManager.put(this.main.hostAddres + '/api/category/'+uuid, category.toJSON()).then((result:Result) => {
+    this.httpManager.put(this.main.settings.hostAddress + '/api/category/'+uuid, category.toJSON()).then((result:Result) => {
 
       this.notifierService.notify(result.meta.status, result.meta.details[0]);
     });
@@ -55,7 +55,7 @@ export class CategoryService {
 
   /** Delete category */
   deleteCategory(uuid:string) {
-    this.httpManager.delete(this.main.hostAddres + '/api/category/'+uuid).then((result:Result) => {
+    this.httpManager.delete(this.main.settings.hostAddress + '/api/category/'+uuid).then((result:Result) => {
 
       this.notifierService.notify(result.meta.status, result.meta.details[0]);
     });

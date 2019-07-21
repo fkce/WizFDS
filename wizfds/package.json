@@ -1,6 +1,6 @@
 {
   "name": "wizfds",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "license": "GNU GPL v3.0",
   "scripts": {
     "ng": "ng",
@@ -26,6 +26,7 @@
     "@angular/router": "^8.1.2",
     "@material/animation": "^3.0.0",
     "@material/dialog": "^3.0.0",
+    "@mdi/font": "^3.8.95",
     "@ng-select/ng-select": "^3.0.3",
     "angular-notifier": "^4.1.1",
     "codemirror": "^5.48.0",

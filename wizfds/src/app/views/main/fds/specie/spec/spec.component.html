@@ -9,7 +9,7 @@
         <div class="list-items">
           <div class="list-item" *ngFor="let specItem of specs | slice: ui.specie.spec.begin:(ui.specie.spec.begin + ui.listRange)">
             <a (click)="activate(specItem.id)" [ngClass]="{active: specItem === spec}">{{specItem.id}}</a>
-            <i class="material-icons red" (click)="delete(specItem.id)">delete_forever</i>
+            <i class="material-icons red-hover" (click)="delete(specItem.id)">delete_forever</i>
           </div>
         </div>
       </perfect-scrollbar>
@@ -121,7 +121,7 @@
         <div>
           <label>Delete:</label>
           <div class="field-container">
-            <i class="material-icons red" (click)="deleteSpecie(specIndex)">delete_forever</i>
+            <i class="material-icons red-hover" (click)="deleteSpecie(specIndex)">delete_forever</i>
           </div>
         </div>
       </div>
@@ -147,9 +147,9 @@
               <div class="list-item" *ngFor="let specItem of lib.specs | slice: ui.specie.libSpec.begin:(ui.specie.libSpec.begin
                   + ui.listRange)">
                 <a (click)="activate(specItem.id, true)" [ngClass]="{activeLib: specItem===spec}">{{specItem.id}}</a>
-                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.tooltips"
+                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.settings.tooltips"
                   (click)="importLibraryItem(specItem.id)">content_copy</i>
-                <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.tooltips" (click)="delete(specItem.id, true)">delete_forever</i>
+                <i class="material-icons red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(specItem.id, true)">delete_forever</i>
               </div>
             </div>
           </perfect-scrollbar>

@@ -39,7 +39,7 @@ export class LibraryService {
 
   /** Get library from database */
   public loadLibrary() {
-    this.httpManager.get(this.main.hostAddres + '/api/library').then((result: Result) => {
+    this.httpManager.get(this.main.settings.hostAddress + '/api/library').then((result: Result) => {
       this.setLibrary(JSON.stringify(result.data));
       this.notifierService.notify(result.meta.status, result.meta.details[0]);
     });
@@ -47,7 +47,7 @@ export class LibraryService {
 
   /** Update library in database */
   updateLibrary() {
-    this.httpManager.put(this.main.hostAddres + '/api/library', JSON.stringify(this.library.toJSON())).then((result: Result) => {
+    this.httpManager.put(this.main.settings.hostAddress+ '/api/library', JSON.stringify(this.library.toJSON())).then((result: Result) => {
       this.notifierService.notify(result.meta.status, result.meta.details[0]);
     });
   }

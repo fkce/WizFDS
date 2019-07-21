@@ -9,7 +9,7 @@
         <div class="list-items">
           <div class="list-item" *ngFor="let devcItem of devcs | slice: ui.output.devc.begin:(ui.output.devc.begin + ui.listRange)">
             <a (click)="activate(devcItem.id); websocketService.selectCad(devcItem.idAC)" [ngClass]="{active: devcItem === devc}">{{devcItem.id}}</a>
-            <i class="material-icons red" (click)="delete(devcItem.id)">delete_forever</i>
+            <i class="material-icons red-hover" (click)="delete(devcItem.id)">delete_forever</i>
           </div>
         </div>
       </perfect-scrollbar>
@@ -235,10 +235,10 @@
             <div class="list-items">
               <div class="list-item" *ngFor="let devcItem of lib.devcs | slice: ui.output.libDevc.begin:(ui.output.libDevc.begin + ui.listRange)">
                 <a (click)="activate(devcItem.id, true)" [ngClass]="{activeLib: devcItem===devc}">{{devcItem.id}}</a>
-                <i class="material-icons" matTooltip="Merge current item with library" [matTooltipDisabled]="!main.tooltips" (click)="mergeLibraryItem(devcItem.id)">merge_type</i>
-                <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.tooltips" (click)="createCadLayer(devcItem.id)">layers</i>
-                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.tooltips" (click)="importLibraryItem(devcItem.id)">content_copy</i>
-                <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.tooltips" (click)="delete(devcItem.id, true)">delete_forever</i>
+                <i class="material-icons" matTooltip="Merge current item with library" [matTooltipDisabled]="!main.settings.tooltips" (click)="mergeLibraryItem(devcItem.id)">merge_type</i>
+                <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.settings.tooltips" (click)="createCadLayer(devcItem.id)">layers</i>
+                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.settings.tooltips" (click)="importLibraryItem(devcItem.id)">content_copy</i>
+                <i class="material-icons red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(devcItem.id, true)">delete_forever</i>
               </div>
             </div>
           </perfect-scrollbar>

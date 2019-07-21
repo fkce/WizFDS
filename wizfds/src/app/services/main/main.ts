@@ -9,57 +9,97 @@ export interface WebsocketInterface {
     host: string,
     port: number
 }
-export interface MainInterface {
-    userId: number,
-    userName: string,
+export interface ISettings {
+    userName: string;
+    email: string,
     editor: string,
-    projects?: Project[],
-    websocket: WebsocketInterface,
+    hostAddress: string,
+    tooltips: boolean
+}
+export interface IAutoSave {
+    fdsObjectDiffer: object,
+    fdsObjectSaveFont: string,
+    timeout: any,
+    timeoutScenarioId: number
+}
+export interface IIdle {
     timeout: number,
+}
+export interface IMain {
+    userId: number,
+    websocket: WebsocketInterface,
+    projects?: Project[],
     currentProject?: Project,
     currentFdsScenario?: FdsScenario,
     categories?: Category[],
-    hostAddres: string,
-    email: string,
-    tooltips: boolean
+    settings: ISettings,
+    autoSave: IAutoSave,
+    idle: IIdle
 }
+
 export class Main {
     private _userId: number;
-    private _userName: string;
-    private _editor: string;
-    private _projects: Project[];
     private _websocket: WebsocketInterface;
-    private _timeout: number;
+    private _projects: Project[];
     private _currentProject: Project;
     private _currentFdsScenario: FdsScenario;
     private _categories: Category[];
-    private _hostAddres: string;
-    private _email: string;
-    private _progress: boolean;
-    private _tooltips: boolean;
+    private _settings: ISettings;
+    private _autoSave: IAutoSave;
+    private _idle: IIdle;
 
     constructor(jsonString: string) {
 
-        let base: MainInterface;
-        base = <MainInterface>JSON.parse(jsonString);
+        let base: any = JSON.parse(jsonString);
 
         this.userId = base.userId || undefined;
-        this.userName = base.userName || undefined;
-        this.editor = base.editor || "normal";
-        this.projects = [];
+
         this.websocket = {
-            host: 'localhost',
-            port: 2012
+            host: (base.websocketHost != undefined && base.websocketHost != '') ? base.websocketHost : 'localhost',
+            port: (base.websocketPort != undefined && base.websocketPort != '') ? base.websocketPort : 2012
         }
-        this.websocket.host = (base['websocketHost'] != undefined && base['websocketHost'] != '') ? base['websocketHost'] : 'localhost';
-        this.websocket.port = (base['websocketPort'] != undefined && base['websocketPort'] != '') ? base['websocketPort'] : 2012;
-        this.timeout = base.timeout || 3600;
+
+        this.projects = [];
         this.currentProject = base.currentProject || undefined;
         this.currentFdsScenario = base.currentFdsScenario || undefined;
         this.categories = [];
-        this.hostAddres = base.hostAddres || environment.host;
-        this.email = base.email || '';
-        this.tooltips = (toString(base.tooltips) == 't' || base.tooltips == true) ? true : false;
+
+        this.settings = {
+            userName: base.userName || '',
+            editor: base.editor || 'normal',
+            hostAddress: base.hostAddress || environment.host,
+            email: base.email || '',
+            tooltips: (toString(base.tooltips) == 't' || base.tooltips == true) ? true : false
+        }
+
+        this.autoSave = {
+            fdsObjectDiffer: null,
+            fdsObjectSaveFont: 'mdi mdi-content-save',
+            timeout: null,
+            timeoutScenarioId: 0
+        }
+
+        this.idle = {
+            timeout: base.timeout || 3600,
+        }
+
+    }
+
+    /**
+     * Export to json
+     */
+    public toJSON(): string {
+        let main = {
+            userId: this.userId,
+            userName: this.settings.userName,
+            editor: this.settings.editor,
+            websocket: this.websocket,
+            timeout: this.idle.timeout,
+            hostAddres: this.settings.hostAddress,
+            email: this.settings.email,
+            tooltips: (this.settings.tooltips) ? 'true' : 'false'
+        }
+        return JSON.stringify(main);
     }
 
     /**
@@ -71,43 +111,11 @@ export class Main {
     }
 
     /**
-     * Setter userId
-     * @param {number} value
+     * Getter websocket
+     * @return {WebsocketInterface}
      */
-    public set userId(value: number) {
-        this._userId = value;
-    }
-
-    /**
-     * Getter userName
-     * @return {string}
-     */
-    public get userName(): string {
-        return this._userName;
-    }
-
-    /**
-     * Setter userName
-     * @param {string} value
-     */
-    public set userName(value: string) {
-        this._userName = value;
-    }
-
-    /**
-     * Getter editor
-     * @return {string}
-     */
-    public get editor(): string {
-        return this._editor;
-    }
-
-    /**
-     * Setter editor
-     * @param {string} value
-     */
-    public set editor(value: string) {
-        this._editor = value;
+    public get websocket(): WebsocketInterface {
+        return this._websocket;
     }
 
     /**
@@ -119,59 +127,11 @@ export class Main {
     }
 
     /**
-     * Setter projects
-     * @param {Project[]} value
-     */
-    public set projects(value: Project[]) {
-        this._projects = value;
-    }
-
-    /**
-     * Getter websocket
-     * @return {WebsocketInterface}
-     */
-    public get websocket(): WebsocketInterface {
-        return this._websocket;
-    }
-
-    /**
-     * Setter websocket
-     * @param {WebsocketInterface} value
-     */
-    public set websocket(value: WebsocketInterface) {
-        this._websocket = value;
-    }
-
-    /**
-     * Getter timeout
-     * @return {number}
-     */
-    public get timeout(): number {
-        return this._timeout;
-    }
-
-    /**
-     * Setter timeout
-     * @param {number} value
-     */
-    public set timeout(value: number) {
-        this._timeout = value;
-    }
-
-    /**
      * Getter currentProject
      * @return {Project}
      */
     public get currentProject(): Project {
         return this._currentProject;
-    }
-
-    /**
-     * Setter currentProject
-     * @param {Project} value
-     */
-    public set currentProject(value: Project) {
-        this._currentProject = value;
     }
 
     /**
@@ -183,19 +143,75 @@ export class Main {
     }
 
     /**
-     * Setter currentFdsScenario
-     * @param {FdsScenario} value
-     */
-    public set currentFdsScenario(value: FdsScenario) {
-        this._currentFdsScenario = value;
-    }
-
-    /**
      * Getter categories
      * @return {Category[]}
      */
     public get categories(): Category[] {
         return this._categories;
+    }
+
+    /**
+     * Getter settings
+     * @return {ISettings}
+     */
+    public get settings(): ISettings {
+        return this._settings;
+    }
+
+    /**
+     * Getter autoSave
+     * @return {IAutoSave}
+     */
+    public get autoSave(): IAutoSave {
+        return this._autoSave;
+    }
+
+    /**
+     * Getter idle
+     * @return {IIdle}
+     */
+    public get idle(): IIdle {
+        return this._idle;
+    }
+
+    /**
+     * Setter userId
+     * @param {number} value
+     */
+    public set userId(value: number) {
+        this._userId = value;
+    }
+
+    /**
+     * Setter websocket
+     * @param {WebsocketInterface} value
+     */
+    public set websocket(value: WebsocketInterface) {
+        this._websocket = value;
+    }
+
+    /**
+     * Setter projects
+     * @param {Project[]} value
+     */
+    public set projects(value: Project[]) {
+        this._projects = value;
+    }
+
+    /**
+     * Setter currentProject
+     * @param {Project} value
+     */
+    public set currentProject(value: Project) {
+        this._currentProject = value;
+    }
+
+    /**
+     * Setter currentFdsScenario
+     * @param {FdsScenario} value
+     */
+    public set currentFdsScenario(value: FdsScenario) {
+        this._currentFdsScenario = value;
     }
 
     /**
@@ -207,69 +223,27 @@ export class Main {
     }
 
     /**
-     * Getter hostAddres
-     * @return {string}
+     * Setter settings
+     * @param {ISettings} value
      */
-    public get hostAddres(): string {
-        return this._hostAddres;
+    public set settings(value: ISettings) {
+        this._settings = value;
     }
 
     /**
-     * Setter hostAddres
-     * @param {string} value
+     * Setter autoSave
+     * @param {IAutoSave} value
      */
-    public set hostAddres(value: string) {
-        this._hostAddres = value;
+    public set autoSave(value: IAutoSave) {
+        this._autoSave = value;
     }
 
     /**
-     * Getter email
-     * @return {string}
+     * Setter idle
+     * @param {IIdle} value
      */
-    public get email(): string {
-        return this._email;
-    }
-
-    /**
-     * Setter email
-     * @param {string} value
-     */
-    public set email(value: string) {
-        this._email = value;
-    }
-
-    /**
-     * Getter tooltips
-     * @return {boolean}
-     */
-    public get tooltips(): boolean {
-        return this._tooltips;
-    }
-
-    /**
-     * Setter tooltips
-     * @param {boolean} value
-     */
-    public set tooltips(value: boolean) {
-        this._tooltips = value;
-    }
-
-
-    /**
-     * Export to json
-     */
-    public toJSON(): string {
-        let main = {
-            userId: this.userId,
-            userName: this.userName,
-            editor: this.editor,
-            websocket: this.websocket,
-            timeout: this.timeout,
-            hostAddres: this.hostAddres,
-            email: this.email,
-            tooltips: (this.tooltips) ? 'true' : 'false'
-        }
-        return JSON.stringify(main);
+    public set idle(value: IIdle) {
+        this._idle = value;
     }
 
 }

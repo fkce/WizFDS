@@ -27,10 +27,7 @@ export class AppComponent {
   version = environment.version;
   lastUrl: string = '/';
 
-  private fdsObjectDiffer: object = null;
-  private idle: any;
-  private idleScenarioId: number = 0;
-
+  mainSub;
   wsSub;
 
   constructor(
@@ -67,7 +64,7 @@ export class AppComponent {
       console.log('Production mode');
     }
 
-    this.mainService.getMain().subscribe(main => this.main = main);
+    this.mainSub = this.mainService.getMain().subscribe(main => this.main = main);
 
     this.projectService.getProjects();
     this.categoryService.getCategories();
@@ -128,30 +125,35 @@ export class AppComponent {
 
     // Autosave changes in FdsObject every 30 seconds when change is detected
     // First check if FdsObject was changed
-    if (this.main.currentFdsScenario != undefined && !isEqual(this.fdsObjectDiffer, this.main.currentFdsScenario.fdsObject)) {
-      clearTimeout(this.idle);
+    if (this.main.currentFdsScenario != undefined && !isEqual(this.main.autoSave.fdsObjectDiffer, this.main.currentFdsScenario.fdsObject)) {
+      clearTimeout(this.main.autoSave.timeout);
       // Check if scenario or project was not changed in the meanwhile
-      if (this.fdsObjectDiffer != null && this.idleScenarioId == this.main.currentFdsScenario.id) {
-        this.idleScenarioId = this.main.currentFdsScenario.id;
-        this.idle = setTimeout(() => {
+      if (this.main.autoSave.fdsObjectDiffer != null && this.main.autoSave.timeoutScenarioId == this.main.currentFdsScenario.id) {
+        this.main.autoSave.fdsObjectSaveFont = 'mdi mdi-content-save-edit red';
+        
+        this.main.autoSave.timeout = setTimeout(() => {
           this.fdsScenarioService.updateFdsScenario(this.main.currentProject.id, this.main.currentFdsScenario.id, 'all', true);
+          //this.main.autoSave.fdsObjectSaveFont = 'mdi mdi-content-save green';
         }, 20000);
-        this.fdsObjectDiffer = cloneDeep(this.main.currentFdsScenario.fdsObject);
+        this.main.autoSave.fdsObjectDiffer = cloneDeep(this.main.currentFdsScenario.fdsObject);
       }
       else {
-        this.idleScenarioId = this.main.currentFdsScenario.id;
-        this.fdsObjectDiffer = cloneDeep(this.main.currentFdsScenario.fdsObject);
+        this.main.autoSave.timeoutScenarioId = this.main.currentFdsScenario.id;
+        this.main.autoSave.fdsObjectDiffer = cloneDeep(this.main.currentFdsScenario.fdsObject);
       }
     }
 
-  }
+    // Here implement idle 
 
-  setCurrentFdsScenario(projectId: number, fdsScenarioId: number) {
-    this.fdsScenarioService.setCurrentFdsScenario(projectId, fdsScenarioId).subscribe();
   }
 
   ngOnDestroy() {
     this.wsSub.unsubscribe();
+    this.mainSub.unsubscribe();
+  }
+
+  setCurrentFdsScenario(projectId: number, fdsScenarioId: number) {
+    this.fdsScenarioService.setCurrentFdsScenario(projectId, fdsScenarioId).subscribe();
   }
 
 }

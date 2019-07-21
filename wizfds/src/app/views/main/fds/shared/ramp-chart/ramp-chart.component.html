@@ -1,6 +1,6 @@
 <div class="ramp-container">
   <div class="ramp-chart" #rampChart>
-    <i class="save-image material-icons" (click)="saveChart()" matTooltip="Get image file" [matTooltipDisabled]="!main.tooltips">image</i>
+    <i class="save-image material-icons" (click)="saveChart()" matTooltip="Get image file" [matTooltipDisabled]="!main.settings.tooltips">image</i>
   </div>
   <div *ngIf="ramp" class="ramp-steps">
     <div class="ramp-step">
@@ -50,7 +50,7 @@
         </div>
       </div>
       <div class="form-diagram-column">
-        <i (click)="ramp.deleteStep(stepIndex); updateChart()" class="material-icons red">delete_forever</i>
+        <i (click)="ramp.deleteStep(stepIndex); updateChart()" class="material-icons red-hover">delete_forever</i>
       </div>
     </div>
   </div>

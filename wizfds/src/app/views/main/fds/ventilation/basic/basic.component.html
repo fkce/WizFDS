@@ -10,7 +10,7 @@
           <div class="list-items">
             <div class="list-item" *ngFor="let ventItem of ventilation.vents | slice:ui.ventilation.vent.begin:(ui.ventilation.vent.begin + ui.listRange)">
               <a [ngClass]="{active: ventItem===vent}" (click)="activate(ventItem.id, 'vent'); websocketService.selectCad(ventItem.idAC)"> {{ventItem.id}} </a>
-              <i class="material-icons red" (click)="delete(ventItem.id, 'vent')">delete_forever</i>
+              <i class="material-icons red-hover" (click)="delete(ventItem.id, 'vent')">delete_forever</i>
             </div>
           </div>
         </perfect-scrollbar>
@@ -112,7 +112,7 @@
           <div class="list-items">
             <div class="list-item" *ngFor="let surfItem of surfs | slice:ui.ventilation.surf.begin:(ui.ventilation.surf.begin + ui.listRange)">
               <a [ngClass]="{active: surfItem===surf}" (click)="activate(surfItem.id, 'surf')"> {{surfItem.id}} </a>
-              <i class="material-icons red" (click)="delete(surfItem.id, 'surf')">delete_forever</i>
+              <i class="material-icons red-hover" (click)="delete(surfItem.id, 'surf')">delete_forever</i>
             </div>
           </div>
         </perfect-scrollbar>
@@ -276,9 +276,9 @@
               <div class="list-items">
                 <div class="list-item" *ngFor="let surfItem of libSurfs | slice: ui.ventilation.libSurf.begin:(ui.ventilation.libSurf.begin + ui.listRange)">
                   <a (click)="activate(surfItem.id, 'surf', true)" [ngClass]="{activeLib: surfItem === surf}">{{surfItem.id}}</a>
-                  <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.tooltips" (click)="createCadLayer(surfItem.id)">layers</i>
-                  <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.tooltips" (click)="importLibraryItem(surfItem.id)">content_copy</i>
-                  <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.tooltips" (click)="delete(surfItem.id, 'surf', true)">delete_forever</i>
+                  <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.settings.tooltips" (click)="createCadLayer(surfItem.id)">layers</i>
+                  <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.settings.tooltips" (click)="importLibraryItem(surfItem.id)">content_copy</i>
+                  <i class="material-icons red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(surfItem.id, 'surf', true)">delete_forever</i>
                 </div>
               </div>
             </perfect-scrollbar>

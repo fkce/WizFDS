@@ -7,13 +7,13 @@
       <div>
         <label>User name:</label>
         <div class="field-container">
-          <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="main.userName" stringInput>
+          <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="main.settings.userName" stringInput>
         </div>
       </div>
       <div>
         <label>E-mail:</label>
         <div class="field-container">
-          <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="main.email" stringInput>
+          <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="main.settings.email" stringInput>
         </div>
       </div>
     </div>
@@ -35,13 +35,13 @@
       <div>
         <label>Default editor:</label>
         <div class="field-container">
-          <ng-select [items]="['vim','default']" [(ngModel)]="main.editor" [searchable]="false" [clearable]="false"></ng-select>
+          <ng-select [items]="['vim','default']" [(ngModel)]="main.settings.editor" [searchable]="false" [clearable]="false"></ng-select>
         </div>
       </div>
       <div>
         <label>Show tooltips:</label>
         <div class="field-container">
-          <mat-checkbox [(ngModel)]="main.tooltips"></mat-checkbox>
+          <mat-checkbox [(ngModel)]="main.settings.tooltips"></mat-checkbox>
         </div>
       </div>
     </div>

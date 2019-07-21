@@ -9,7 +9,7 @@
         <div class="list-items">
           <div class="list-item" *ngFor="let slcfItem of slcfs | slice: ui.output.slcf.begin:(ui.output.slcf.begin + ui.listRange)">
             <a (click)="activate(slcfItem.id); websocketService.selectCad(slcfItem.idAC)" [ngClass]="{active: slcfItem === slcf}">{{slcfItem.id}}</a>
-            <i class="material-icons red" (click)="delete(slcfItem.id)">delete_forever</i>
+            <i class="material-icons red-hover" (click)="delete(slcfItem.id)">delete_forever</i>
           </div>
         </div>
       </perfect-scrollbar>
@@ -171,11 +171,11 @@
             <div class="list-items">
               <div class="list-item" *ngFor="let slcfItem of lib.slcfs | slice: ui.output.libSlcf.begin:(ui.output.libSlcf.begin + ui.listRange)">
                 <a (click)="activate(slcfItem.id, true)" [ngClass]="{activeLib: slcfItem===slcf}">{{slcfItem.id}}</a>
-                <i class="material-icons" matTooltip="Merge current item with library" [matTooltipDisabled]="!main.tooltips" (click)="mergeLibraryItem(slcfItem.id)">merge_type</i>
-                <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.tooltips" (click)="createCadLayer(slcfItem.id)">layers</i>
-                <i class="material-icons" matTooltip="Create CAD layer and slice" [matTooltipDisabled]="!main.tooltips" (click)="createCad(slcfItem.id)">create</i>
-                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.tooltips" (click)="importLibraryItem(slcfItem.id)">content_copy</i>
-                <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.tooltips" (click)="delete(slcfItem.id, true)">delete_forever</i>
+                <i class="material-icons" matTooltip="Merge current item with library" [matTooltipDisabled]="!main.settings.tooltips" (click)="mergeLibraryItem(slcfItem.id)">merge_type</i>
+                <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.settings.tooltips" (click)="createCadLayer(slcfItem.id)">layers</i>
+                <i class="material-icons" matTooltip="Create CAD layer and slice" [matTooltipDisabled]="!main.settings.tooltips" (click)="createCad(slcfItem.id)">create</i>
+                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.settings.tooltips" (click)="importLibraryItem(slcfItem.id)">content_copy</i>
+                <i class="material-icons red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(slcfItem.id, true)">delete_forever</i>
               </div>
             </div>
           </perfect-scrollbar>

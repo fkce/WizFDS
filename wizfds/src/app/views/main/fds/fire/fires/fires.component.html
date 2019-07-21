@@ -9,7 +9,7 @@
         <div class="list-items">
           <div class="list-item" *ngFor="let fireItem of fires | slice: ui.fires.fire.begin:(ui.fires.fire.begin + ui.listRange)">
             <a (click)="activate(fireItem.id); websocketService.selectCad(fireItem.idAC)" [ngClass]="{active: fireItem === fire}">{{fireItem.id}}</a>
-            <i class="material-icons red" (click)="delete(fireItem.id)">delete_forever</i>
+            <i class="material-icons red-hover" (click)="delete(fireItem.id)">delete_forever</i>
           </div>
         </div>
       </perfect-scrollbar>
@@ -316,10 +316,10 @@
               <div class="list-item " *ngFor="let fireItem of lib.fires | slice: ui.fires.libFire.begin:(ui.fires.libFire.begin
                   + ui.listRange) ">
                 <a (click)="activate(fireItem.id, true)" [ngClass]="{activeLib: fireItem===fire} ">{{fireItem.id}}</a>
-                <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.tooltips" (click)="createCadLayer(fireItem.id)">layers</i>
-                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.tooltips"
+                <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.settings.tooltips" (click)="createCadLayer(fireItem.id)">layers</i>
+                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.settings.tooltips"
                   (click)="importLibraryItem(fireItem.id)">content_copy</i>
-                <i class="material-icons red" matTooltip="Delete" [matTooltipDisabled]="!main.tooltips" (click)="delete(fireItem.id, true)">delete_forever</i>
+                <i class="material-icons red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(fireItem.id, true)">delete_forever</i>
               </div>
             </div>
           </perfect-scrollbar>

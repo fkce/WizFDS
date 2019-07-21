@@ -1,5 +1,6 @@
 import { Component, OnInit, Inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { toNumber } from 'lodash';
 
 @Component({
   selector: 'custom-ramp-dialog',
@@ -30,11 +31,11 @@ export class CustomRampDialogComponent implements OnInit {
 
   submit() {
     let data = {
-      alpha: this.alpha,
-      alpha2: this.alpha2,
-      sprinklerActivationTime: this.sprinklerActivationTime,
-      maxHrr: this.maxHrr,
-      step: this.step
+      alpha: toNumber(this.alpha),
+      alpha2: toNumber(this.alpha2),
+      sprinklerActivationTime: toNumber(this.sprinklerActivationTime),
+      maxHrr: toNumber(this.maxHrr),
+      step: toNumber(this.step)
     }
     this.dialogRef.close(data);
   }

@@ -12,7 +12,7 @@
               *ngFor="let meshItem of meshes | slice: ui.geometry.mesh.begin:(ui.geometry.mesh.begin + ui.listRange)">
               <a (click)="activate(meshItem.id, 'mesh'); websocketService.selectCad(meshItem.idAC)"
                 [ngClass]="{active: meshItem === mesh}">{{meshItem.id}}</a>
-              <i class="material-icons red" (click)="delete(meshItem.id, 'mesh')">delete_forever</i>
+              <i class="material-icons red-hover" (click)="delete(meshItem.id, 'mesh')">delete_forever</i>
             </div>
           </div>
         </perfect-scrollbar>

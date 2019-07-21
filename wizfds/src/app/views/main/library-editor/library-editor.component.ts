@@ -82,7 +82,7 @@ export class LibraryEditorComponent implements OnInit, OnDestroy {
   }
 
   ngAfterViewInit() {
-    this.editorOptions.keyMap = this.main.editor;
+    this.editorOptions.keyMap = this.main.settings.editor;
     this.config = this.editorOptions || {};
     this.codemirrorInit(this.config);
   }

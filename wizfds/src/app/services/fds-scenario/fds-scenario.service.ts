@@ -31,7 +31,7 @@ export class FdsScenarioService {
    */
   public setCurrentFdsScenario(projectId: number, fdsScenarioId: number): Observable<FdsScenario> {
     // Set current scenario in main object
-    this.httpManager.get(this.main.hostAddres + '/api/fdsScenario/' + fdsScenarioId).then((result: Result) => {
+    this.httpManager.get(this.main.settings.hostAddress + '/api/fdsScenario/' + fdsScenarioId).then((result: Result) => {
 
       this.main.currentFdsScenario = new FdsScenario(JSON.stringify(result.data));
 
@@ -42,6 +42,7 @@ export class FdsScenarioService {
       this.main.currentProject = project;
 
       this.uiStateService.setUiState();
+      this.main.autoSave.fdsObjectSaveFont = 'mdi mdi-content-save';
       this.notifierService.notify(result.meta.status, result.meta.details[0]);
     });
 
@@ -54,7 +55,7 @@ export class FdsScenarioService {
    */
   public createFdsScenario(projectId: number) {
     // Request
-    this.httpManager.post(this.main.hostAddres + '/api/fdsScenario/' + projectId, JSON.stringify({})).then((result: Result) => {
+    this.httpManager.post(this.main.settings.hostAddress + '/api/fdsScenario/' + projectId, JSON.stringify({})).then((result: Result) => {
       let data = result.data;
       let fdsScenario = new FdsScenario(JSON.stringify({ id: data['id'], projectId: data['projectId'], name: data['name'], fdsObject: new Fds(JSON.stringify({})) }));
       // add ui state in fdsscenario constructor ???
@@ -83,14 +84,15 @@ export class FdsScenarioService {
     if (syncType == 'head') {
       let fdsScenario = this.main.projects[projectIndex].fdsScenarios[fdsScenarioIndex];
 
-      this.httpManager.put(this.main.hostAddres + '/api/fdsScenario/' + fdsScenario.id, JSON.stringify({ type: 'head', data: { id: fdsScenario.id, name: fdsScenario.name } })).then((result: Result) => {
+      this.httpManager.put(this.main.settings.hostAddress + '/api/fdsScenario/' + fdsScenario.id, JSON.stringify({ type: 'head', data: { id: fdsScenario.id, name: fdsScenario.name } })).then((result: Result) => {
         if (this.main.currentFdsScenario != undefined) {
           this.main.currentFdsScenario = fdsScenario;
           // Change chid after scenario name update
           this.main.currentFdsScenario.fdsObject.general.head.chid = this.main.currentFdsScenario.name;
           this.main.currentFdsScenario.fdsObject.general.head.title = this.main.currentFdsScenario.name + ' scenario';
         }
-
+        clearTimeout(this.main.autoSave.timeout);
+        this.main.autoSave.fdsObjectSaveFont = 'mdi mdi-content-save green';
         this.notifierService.notify(result.meta.status, result.meta.details[0]);
       });
     }
@@ -98,8 +100,10 @@ export class FdsScenarioService {
     else if (syncType == 'input') {
       let fdsScenario = this.main.currentFdsScenario;
 
-      this.httpManager.put(this.main.hostAddres + '/api/fdsScenario/' + fdsScenario.id, JSON.stringify({ type: 'input', data: { id: fdsScenario.id, fdsFile: fdsScenario.fdsFile } })).then((result: Result) => {
+      this.httpManager.put(this.main.settings.hostAddress + '/api/fdsScenario/' + fdsScenario.id, JSON.stringify({ type: 'input', data: { id: fdsScenario.id, fdsFile: fdsScenario.fdsFile } })).then((result: Result) => {
         this.main.projects[projectIndex].fdsScenarios[fdsScenarioIndex] = fdsScenario;
+        clearTimeout(this.main.autoSave.timeout);
+        this.main.autoSave.fdsObjectSaveFont = 'mdi mdi-content-save green';
         this.notifierService.notify(result.meta.status, result.meta.details[0]);
       });
     }
@@ -107,8 +111,10 @@ export class FdsScenarioService {
     else if (syncType == 'all') {
       let fdsScenario = this.main.currentFdsScenario;
 
-      this.httpManager.put(this.main.hostAddres + '/api/fdsScenario/' + fdsScenario.id, JSON.stringify({ type: 'all', data: fdsScenario.toJSON() })).then((result: Result) => {
+      this.httpManager.put(this.main.settings.hostAddress + '/api/fdsScenario/' + fdsScenario.id, JSON.stringify({ type: 'all', data: fdsScenario.toJSON() })).then((result: Result) => {
         this.main.projects[projectIndex].fdsScenarios[fdsScenarioIndex] = fdsScenario;
+        clearTimeout(this.main.autoSave.timeout);
+        this.main.autoSave.fdsObjectSaveFont = 'mdi mdi-content-save green';
         if(!quiet) {
           this.notifierService.notify(result.meta.status, result.meta.details[0]);
         }
@@ -123,9 +129,9 @@ export class FdsScenarioService {
    */
   public duplicateFdsScenario(projectId: number, fdsScenarioId: number) {
     // Request
-    this.httpManager.get(this.main.hostAddres + '/api/fdsScenario/' + fdsScenarioId).then((getScenarioResult: Result) => {
+    this.httpManager.get(this.main.settings.hostAddress + '/api/fdsScenario/' + fdsScenarioId).then((getScenarioResult: Result) => {
       let getScenarioData = getScenarioResult.data;
-      this.httpManager.post(this.main.hostAddres + '/api/fdsScenario/' + projectId, JSON.stringify({})).then((result: Result) => {
+      this.httpManager.post(this.main.settings.hostAddress + '/api/fdsScenario/' + projectId, JSON.stringify({})).then((result: Result) => {
         let data = result.data;
 
         // Find scenarios starting with duplicated scenario name && get currnet index
@@ -160,7 +166,7 @@ export class FdsScenarioService {
 
         fdsScenarioIndex = findIndex(this.main.projects[projectIndex].fdsScenarios, function (o) { return o.id == fdsScenario.id; });
 
-        this.httpManager.put(this.main.hostAddres + '/api/fdsScenario/' + fdsScenario.id, JSON.stringify({ type: 'all', data: fdsScenario.toJSON() })).then((result: Result) => {
+        this.httpManager.put(this.main.settings.hostAddress + '/api/fdsScenario/' + fdsScenario.id, JSON.stringify({ type: 'all', data: fdsScenario.toJSON() })).then((result: Result) => {
           this.main.projects[projectIndex].fdsScenarios[fdsScenarioIndex] = fdsScenario;
 
           if (result.meta.status == 'sucessful') {
@@ -180,7 +186,7 @@ export class FdsScenarioService {
    * @param fdsScenarioId 
    */
   public deleteFdsScenario(projectId: number, fdsScenarioId: number) {
-    this.httpManager.delete(this.main.hostAddres + '/api/fdsScenario/' + fdsScenarioId).then((result: Result) => {
+    this.httpManager.delete(this.main.settings.hostAddress + '/api/fdsScenario/' + fdsScenarioId).then((result: Result) => {
       let project = find(this.main.projects, function (o) { return o.id == projectId });
       project.fdsScenarios.splice(findIndex(project.fdsScenarios, function (o) { return o.id == fdsScenarioId }), 1);
       this.notifierService.notify(result.meta.status, result.meta.details[0]);
