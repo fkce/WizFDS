@@ -93,9 +93,6 @@ function main() {
 			$r->addRoute('DELETE' , '/api/fdsScenario/{id}'         , 'deleteScenario');
 			$r->addRoute('GET'    , '/api/fdsScenario/{id}'         , 'getScenario');
 
-			$r->addRoute('POST'   , '/api/objtotext'                , 'fdsObjectToText');
-			$r->addRoute('POST'   , '/api/texttoobj'                , 'fdsTextToObject');
-
 			$r->addRoute('POST'   , '/api/runfdssimulation'         , 'runFdsSimulaion');
 
 			$r->addRoute('GET'    , '/api/settings'                 , 'getSettings');
