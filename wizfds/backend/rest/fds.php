@@ -1,61 +1,49 @@
 <?php 
-// FDS SCENARIOS
-	function createScenario($args) {/*{{{*/ 
+require_once("../config.php");
+require_once("../db.php");
 
-		try {
-			$post=file_get_contents('php://input');
-			$postData=json_decode($post);
-			$data=Array(
-				"projectId"=>nullToEmpty($args['project_id']),
-				"name"=>"New FDS scenario",
-				"fdsFile"=>"",
-				"fdsObject"=>"",
-				"uiState"=>"",
-				"acFile"=>"",
-				"acPath"=>"",
-				"user_id"=>$_SESSION['user_id']
-			);
-			global $db;
-			$result=$db->pg_create("insert into scenarios(project_id, name, fds_file, fds_object, ui_state, ac_file, ac_hash, user_id) values ($1, $2, $3, $4, $5, $6, $7, $8) returning id", $data);
+function createScenario($args) { 
 
-			$id=$result[0]['id'];
-			$data['id']=$id;
+	$db = new Database();
+	$res = new Message("createScenario()");
+	$data = array();
 
-			
-		} catch(Exception $e) {
-			$result="error";
-		}
+	try {
+		$postData=json_decode(file_get_contents('php://input'));
+		$data=array(
+			"projectId"=>nullToEmpty($args['project_id']),
+			"name"=>"New FDS scenario",
+			"fdsFile"=>"",
+			"fdsObject"=>"",
+			"uiState"=>"",
+			"acFile"=>"",
+			"acPath"=>"",
+			"user_id"=>$_SESSION['user_id']
+		);
+		$result = $db->pg_create("insert into scenarios(project_id, name, fds_file, fds_object, ui_state, ac_file, ac_hash, user_id) values ($1, $2, $3, $4, $5, $6, $7, $8) returning id", $data);
 
-		if($result!="error" && !is_null($id) && $id!="") {
-			// Utworz katalog ze scenariuszem
-			$path="~/wizfds_users/".$_SESSION['email']."/".$args['project_id']."/fds/$id";
+		if(!empty($result)) {
+			$id = $result[0]['id'];
+			$data['id'] = $id;
+
+			# Create directory with scenario
+			$path = "~/wizfds_users/". $_SESSION['email'] ."/". $args['project_id'] ."/fds/$id";
 			system("mkdir -p $path");
 
-			
-			$decoded_ui=json_decode($data['ui_state']);
-			$data['ui_state']=$decoded_ui;
+			# ????
+			//$decoded_ui=json_decode($data['ui_state']);
+			//$data['ui_state']=$decoded_ui;
 
-			$res=Array(
-				"meta"=>Array(
-					"status" => "success",
-					"from" => "createScenario()",
-					"details" => Array($data['name']." created")
-				),
-				"data"=>$data
-			);
-		} else {
-			$res=Array(
-				"meta"=>Array(
-					"status" => "error",
-					"from" => "createScenario()",
-					"details" => Array("Server error! Project was not created properly")
-				),
-				"data"=>array()
-			);
+			echo json_encode($res->createResponse("success", array($data['name'] ." created"), $data));
 		}
-		echo json_encode($res);	
+		else {
+			echo json_encode($res->createResponse("success", array("Server error! Project was not created properly"), $data));
+		}
+	} catch(Exception $e) {
+		echo json_encode($res->createResponse("success", array("Server error! Project was not created properly"), $data));
 	}
-/*}}}*/
+}
+
 	function updateScenario($args) {/*{{{*/
 		global $db;
 		$result = "";

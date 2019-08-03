@@ -27,4 +27,20 @@ class Config {
 		return fgets(fopen($this->usersPath . $user .'/appSecret.txt', 'r'));
     }
 }
+
+class Message {
+    public $response = array( "meta"=>array( "status" => "error", "from" => "", "details" => ""), "data"=>array( "data" => null, "payload" => null));
+
+    function __construct($from) {
+        $this->response['meta']['from'] = $from;
+    }
+
+    function createResponse($status, $details, $data) {
+        $this->response['meta']['status'] = isset($status) ? $status : "error";
+        $this->response['meta']['details'] = isset($details) ? $details : "No details ...";
+        $this->response['data']['data'] = isset($data) ? $data : Array();
+        return $this->response;
+    }
+
+}
 ?>
