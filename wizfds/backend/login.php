@@ -17,7 +17,6 @@ function guidv4($data)
 } 
 
 function loginForm() {
-	
 	echo "
 	<form method='post' action=".$_SERVER['REQUEST_URI'].">
 	<div class='login'>
@@ -184,6 +183,72 @@ function makeRegister() {
 	}
 }
 
+# get country info
+function ip_info($ip = NULL, $purpose = "location", $deep_detect = TRUE) {
+    $output = NULL;
+    if (filter_var($ip, FILTER_VALIDATE_IP) === FALSE) {
+        $ip = $_SERVER["REMOTE_ADDR"];
+        if ($deep_detect) {
+            if (filter_var(@$_SERVER['HTTP_X_FORWARDED_FOR'], FILTER_VALIDATE_IP))
+                $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+            if (filter_var(@$_SERVER['HTTP_CLIENT_IP'], FILTER_VALIDATE_IP))
+                $ip = $_SERVER['HTTP_CLIENT_IP'];
+        }
+    }
+    $purpose    = str_replace(array("name", "\n", "\t", " ", "-", "_"), NULL, strtolower(trim($purpose)));
+    $support    = array("country", "countrycode", "state", "region", "city", "location", "address");
+    $continents = array(
+        "AF" => "Africa",
+        "AN" => "Antarctica",
+        "AS" => "Asia",
+        "EU" => "Europe",
+        "OC" => "Australia (Oceania)",
+        "NA" => "North America",
+        "SA" => "South America"
+    );
+    if (filter_var($ip, FILTER_VALIDATE_IP) && in_array($purpose, $support)) {
+        $ipdat = @json_decode(file_get_contents("http://www.geoplugin.net/json.gp?ip=" . $ip));
+        if (@strlen(trim($ipdat->geoplugin_countryCode)) == 2) {
+            switch ($purpose) {
+                case "location":
+                    $output = array(
+                        "city"           => @$ipdat->geoplugin_city,
+                        "state"          => @$ipdat->geoplugin_regionName,
+                        "country"        => @$ipdat->geoplugin_countryName,
+                        "country_code"   => @$ipdat->geoplugin_countryCode,
+                        "continent"      => @$continents[strtoupper($ipdat->geoplugin_continentCode)],
+                        "continent_code" => @$ipdat->geoplugin_continentCode
+                    );
+                    break;
+                case "address":
+                    $address = array($ipdat->geoplugin_countryName);
+                    if (@strlen($ipdat->geoplugin_regionName) >= 1)
+                        $address[] = $ipdat->geoplugin_regionName;
+                    if (@strlen($ipdat->geoplugin_city) >= 1)
+                        $address[] = $ipdat->geoplugin_city;
+                    $output = implode(", ", array_reverse($address));
+                    break;
+                case "city":
+                    $output = @$ipdat->geoplugin_city;
+                    break;
+                case "state":
+                    $output = @$ipdat->geoplugin_regionName;
+                    break;
+                case "region":
+                    $output = @$ipdat->geoplugin_regionName;
+                    break;
+                case "country":
+                    $output = @$ipdat->geoplugin_countryName;
+                    break;
+                case "countrycode":
+                    $output = @$ipdat->geoplugin_countryCode;
+                    break;
+            }
+        }
+    }
+    return $output;
+}
+
 # signin demo user
 function demoUser() {
 	$config = new Config();
@@ -192,6 +257,10 @@ function demoUser() {
 		$_SESSION['user_id'] = $config->demoUserId;
 		$_SESSION['email'] = $config->demoUserEmail;
 
+		$headers = "From: wizfds@wizfds.com\r\nReply-To: wizfds@wizfds.com";
+		mail("mateusz.fliszkiewicz@fkce.pl", "WizFDS demo user in use", "Someone from ". ip_info('Visitor', 'Address') ." is using WizFDS!", $headers);
+		
+
 		header("Location: https://". $_SERVER['SERVER_NAME']);
 		return;
 	}
@@ -199,7 +268,10 @@ function demoUser() {
 
 # init 
 if(!isset($_SESSION['email'])) { 
+	echo $test;
+
 	demoUser();
+
 	echo "
 	<html>
 	<head>
@@ -241,3 +313,6 @@ if(!isset($_SESSION['email'])) {
 	</html>
 	";
 } 
+else {
+	header("Location: https://". $_SERVER['SERVER_NAME']);
+}

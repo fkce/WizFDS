@@ -47,7 +47,7 @@ if(isset($_SESSION['user_id']) and $_SESSION['user_id'] != "") {
 	if($session_id == ""){
 		$update=$db->pg_change("UPDATE users SET session_id = '". session_id('wizfds') ."', access_time = current_timestamp, access_ip = '". $_SERVER['REMOTE_ADDR'] ."' where id = ". $_SESSION['user_id'] .";");
 	} else {
-		$check=$db->pg_read("SELECT access_time from users where current_timestamp - access_time < INTERVAL '20 minutes' and id = ". $_SESSION['user_id'] .";");
+		$check=$db->pg_read("SELECT access_time from users where current_timestamp - access_time < INTERVAL '60 minutes' and id = ". $_SESSION['user_id'] .";");
 		if(count($check) > 0){
 			$update=$db->pg_change("UPDATE users SET access_time = current_timestamp where id = ". $_SESSION['user_id'] .";");
 		}
@@ -79,8 +79,8 @@ function main() {
 		$dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) {
 			$r->addRoute('GET'    , '/'                             , 'getIndex');
 
-			$r->addRoute('GET'    , '/login'                        , 'login');
-			$r->addRoute('POST'   , '/login'                        , 'login');
+			$r->addRoute(['GET', 'POST']    , '/login'                        , 'login');
+			$r->addRoute(['GET', 'POST']   , '/register'                     , 'register');
 			$r->addRoute('GET'    , '/logout'                       , 'logout');
 
 			$r->addRoute('GET'    , '/api/projects'                 , 'getProjects');
@@ -115,7 +115,8 @@ function main() {
 	} else {
 		$dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) {
 			$r->addRoute('GET'  , '/'      , 'getFrontPage');
-			$r->addRoute(['GET', 'POST']  , '/login'      , 'login');
+			$r->addRoute(['GET', 'POST']   , '/login'      , 'login');
+			$r->addRoute(['GET', 'POST']   , '/register'                     , 'register');
 			$r->addRoute('GET'  , '/{nothing:.+}'      , 'getFrontPage');
 		});
  	}

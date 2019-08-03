@@ -12,6 +12,12 @@ function login() {
 	include("login.php");
 }
 
+function register() {
+	session_destroy(); $_SESSION=""; session_name("wizfds"); session_start();  
+	$_REQUEST['addUserShowForm'] = '';
+	include("login.php");
+}
+
 function logout() {
 	session_destroy(); $_SESSION=''; session_start();  
 	header("Location: https://wizfds.com");
