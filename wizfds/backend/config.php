@@ -29,7 +29,7 @@ class Config {
 }
 
 class Message {
-    public $response = array( "meta"=>array( "status" => "error", "from" => "", "details" => ""), "data"=>array( "data" => null, "payload" => null));
+    public $response = array( "meta"=>array( "status" => "error", "from" => "", "details" => ""), "data"=>array());
 
     function __construct($from) {
         $this->response['meta']['from'] = $from;
@@ -38,7 +38,7 @@ class Message {
     function createResponse($status, $details, $data) {
         $this->response['meta']['status'] = isset($status) ? $status : "error";
         $this->response['meta']['details'] = isset($details) ? $details : "No details ...";
-        $this->response['data']['data'] = isset($data) ? $data : Array();
+        $this->response['data'] = isset($data) ? $data : array();
         return $this->response;
     }
 
