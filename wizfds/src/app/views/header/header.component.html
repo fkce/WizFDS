@@ -1,6 +1,6 @@
 <div class="demo" *ngIf="main.userId == 5">
   <p>You are in demo mode. You can not create new projects & scenarios. To have full access just <a
-      href='https://wizfds.com/register'>register new account</a></p>
+      href="https://wizfds.com/register">register new account</a></p>
 </div>
 <div class="idle" *ngIf="main.idle.showWarning">
   <p>Session timout in {{main.idle.timeout | minSec}}. <a (click)="refreshSession()">Continue</a> session.</p>

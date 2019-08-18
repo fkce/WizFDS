@@ -3,8 +3,6 @@ import { Injectable, isDevMode } from '@angular/core';
 import { HttpEvent, HttpInterceptor, HttpHandler, HttpRequest, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-import { MainService } from '@services/main/main.service';
-
 @Injectable()
 export class HttpManagerInterceptor implements HttpInterceptor {
 

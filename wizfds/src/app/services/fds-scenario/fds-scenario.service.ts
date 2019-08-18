@@ -45,6 +45,7 @@ export class FdsScenarioService {
       this.main.autoSave.fdsObjectSaveFont = 'mdi mdi-content-save';
       this.main.autoSave.libSaveFont = 'mdi mdi-content-save';
       this.notifierService.notify(result.meta.status, result.meta.details[0]);
+      this.mainService.resetIdle();
     });
 
     return of(this.main.currentFdsScenario)
@@ -63,6 +64,7 @@ export class FdsScenarioService {
       this.main.currentProject.fdsScenarios.push(fdsScenario);
       this.notifierService.notify(result.meta.status, result.meta.details[0]);
       this.setCurrentFdsScenario(projectId, fdsScenario.id);
+      this.mainService.resetIdle();
     });
   }
 
@@ -97,6 +99,7 @@ export class FdsScenarioService {
           this.main.autoSave.fdsObjectSaveFont = 'mdi mdi-content-save green';
         }
         this.notifierService.notify(result.meta.status, result.meta.details[0]);
+        this.mainService.resetIdle();
       });
     }
     // Sync only fds input file - user-defined input
@@ -110,6 +113,7 @@ export class FdsScenarioService {
           this.main.autoSave.fdsObjectSaveFont = 'mdi mdi-content-save green';
         }
         this.notifierService.notify(result.meta.status, result.meta.details[0]);
+        this.mainService.resetIdle();
       });
     }
     // Sync all data
@@ -121,9 +125,11 @@ export class FdsScenarioService {
         if (result.meta.status == 'success') {
           clearTimeout(this.main.autoSave.fdsObjectTimeout);
           this.main.autoSave.fdsObjectSaveFont = 'mdi mdi-content-save green';
+          this.mainService.resetIdle();
         }
         if (!quiet) {
           this.notifierService.notify(result.meta.status, result.meta.details[0]);
+          this.mainService.resetIdle();
         }
       });
     }
@@ -176,12 +182,13 @@ export class FdsScenarioService {
         this.httpManager.put(this.main.settings.hostAddress + '/api/fdsScenario/' + fdsScenario.id, JSON.stringify({ type: 'all', data: fdsScenario.toJSON() })).then((result: Result) => {
           this.main.projects[projectIndex].fdsScenarios[fdsScenarioIndex] = fdsScenario;
 
-          if (result.meta.status == 'sucessful') {
+          if (result.meta.status == 'success') {
             this.notifierService.notify(result.meta.status, fdsScenario.name + ' duplicated');
           }
           else {
             this.notifierService.notify(result.meta.status, fdsScenario.name + ' not duplicated');
           }
+          this.mainService.resetIdle();
         });
       });
     });
@@ -197,6 +204,7 @@ export class FdsScenarioService {
       let project = find(this.main.projects, function (o) { return o.id == projectId });
       project.fdsScenarios.splice(findIndex(project.fdsScenarios, function (o) { return o.id == fdsScenarioId }), 1);
       this.notifierService.notify(result.meta.status, result.meta.details[0]);
+      this.mainService.resetIdle();
     });
   }
 

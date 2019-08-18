@@ -15,7 +15,7 @@ import { HttpManagerService } from '@services/http-manager/http-manager.service'
 import { FdsScenarioService } from '@services/fds-scenario/fds-scenario.service';
 import { environment } from '@env/environment';
 import { NotifierService } from 'angular-notifier';
-import { Subscription, timer } from 'rxjs';
+import { timer } from 'rxjs';
 
 @Component({
   selector: 'app-root',
@@ -85,7 +85,7 @@ export class AppComponent {
     // For developing purpose
     if (isDevMode()) {
       setTimeout(() => {
-        this.setCurrentFdsScenario(30, 53);
+        //this.setCurrentFdsScenario(30, 53);
       }, 1000);
       setTimeout(() => {
         //this.router.navigate(['/fds/fire/fire']);
@@ -119,13 +119,11 @@ export class AppComponent {
     );
 
     // Idle implementation 
-    // przypisac source do zmiennej w obiekcie main
-    // przy zapytaniu na serwer zrobic unsubscribe i pozniej subscribe nowy
-    // timer (55 min, co sekundę pozniej)
     this.main.idle.timer = timer(0, this.main.idle.interval);
     this.main.idle.subscription = this.main.idle.timer.subscribe((val) => {
         this.mainService.updateIdle();
     });
+
   }
 
   ngAfterViewInit() {
@@ -153,8 +151,8 @@ export class AppComponent {
       }
     }
 
-    // Autosave changes in Library every 15 seconds when change is detected
-    // First check if FdsObject was changed
+    // Autosave changes in Library every 20 seconds when change is detected
+    // First check if Library was changed
     if (this.lib != undefined && !isEqual(this.main.autoSave.libDiffer, this.lib)) {
       clearTimeout(this.main.autoSave.libTimeout);
       // Check if not null else init

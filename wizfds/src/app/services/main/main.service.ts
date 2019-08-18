@@ -1,7 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, isDevMode } from '@angular/core';
 import { BehaviorSubject, Observable, of, timer } from 'rxjs';
 import { Main } from './main';
-import { HttpManagerService, Result } from '../http-manager/http-manager.service';
+import { HttpManagerService, Result } from '@services/http-manager/http-manager.service';
 import { each } from 'lodash';
 import { NotifierService } from 'angular-notifier';
 
@@ -46,11 +46,14 @@ export class MainService {
 
   public updateSettings() {
     this.httpManager.put(this.main.settings.hostAddress + '/api/settings/' + this.main.userId, this.main.toJSON()).then((result: Result) => {
-
       this.notifierService.notify(result.meta.status, result.meta.details[0]);
+      this.resetIdle();
     });
   }
 
+  /**
+   * Reset idle
+   */
   public resetIdle() {
       this.main.idle.subscription.unsubscribe();
       this.main.idle.interval = 60000;
@@ -58,8 +61,6 @@ export class MainService {
       this.main.idle.showWarning = false;
       this.subscribeIdle();
   }
-
-  // dodac do zapytan http
 
   public subscribeIdle() {
     this.main.idle.timer = timer(this.main.idle.interval, this.main.idle.interval);
@@ -70,7 +71,9 @@ export class MainService {
 
   public updateIdle() {
     this.main.idle.timeout = this.main.idle.timeout - this.main.idle.interval / 1000;
-    console.log(this.main.idle.timeout);
+    if(isDevMode()) {
+      console.log(this.main.idle.timeout);
+    }
 
     if (this.main.idle.timeout <= 600 && !this.main.idle.showWarning) {
       this.main.idle.subscription.unsubscribe();
@@ -84,7 +87,9 @@ export class MainService {
     }
   }
 
-  /** Get max id from list */
+  /** 
+   * Get max id from list 
+  */
   public getListId(list: any[], type?: string): number {
     if (list.length > 0) {
 
@@ -107,9 +112,7 @@ export class MainService {
         }
       });
       maxId++;
-
       return maxId;
-
     }
     else return 1;
   }

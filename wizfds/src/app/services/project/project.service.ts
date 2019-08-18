@@ -1,11 +1,10 @@
-import { Result, HttpManagerService } from '../http-manager/http-manager.service';
+import { Result, HttpManagerService } from '@services/http-manager/http-manager.service';
 import { Injectable } from '@angular/core';
-import { MainService } from '../main/main.service';
+import { MainService } from '@services/main/main.service';
 import { Project } from './project';
-import { BehaviorSubject ,  Observable ,  of } from 'rxjs';
-import { Main } from '../main/main';
+import { Main } from '@services/main/main';
 import { NotifierService } from 'angular-notifier';
-import { forEach, find, findIndex } from 'lodash';
+import { forEach, find } from 'lodash';
 
 @Injectable()
 export class ProjectService {
@@ -29,6 +28,7 @@ export class ProjectService {
         this.main.projects.push(new Project(JSON.stringify(project)));
       });
       this.notifierService.notify(result.meta.status, result.meta.details[0]);
+      this.mainService.resetIdle();
     });
   }
 
@@ -42,6 +42,7 @@ export class ProjectService {
 
   /** Create new project */
   public createProject() {
+    this.mainService.resetIdle();
     return this.httpManager.post(this.main.settings.hostAddress+ '/api/project', JSON.stringify({}));
   }
 
@@ -50,12 +51,14 @@ export class ProjectService {
     let project: Project = find(this.main.projects, function (o) { return o.id == projectId });
     this.httpManager.put(this.main.settings.hostAddress+ '/api/project/' + project.id, project.toJSON()).then((result: Result) => {
       this.notifierService.notify(result.meta.status, result.meta.details[0]);
+      this.mainService.resetIdle();
     });
 
   }
 
   /** Delete project */
   public deleteProject(projectId: number) {
+    this.mainService.resetIdle();
     return this.httpManager.delete(this.main.settings.hostAddress+ '/api/project/' + projectId);
   }
 

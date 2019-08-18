@@ -19,7 +19,7 @@ export class HttpManagerService {
   private _progress: boolean;
 
   constructor(
-    private http: HttpClient,
+    private http: HttpClient
   ) {
     this.progress = false;
   }
@@ -64,7 +64,7 @@ export class HttpManagerService {
    * @param apiURL 
    * @param object 
    */
-  put(apiURL: string, object: any) {
+  public put(apiURL: string, object: any) {
     this.progress = true;
     let promise = new Promise((resolve, reject) => {
       this.http.put(apiURL, object)
@@ -106,7 +106,7 @@ export class HttpManagerService {
    * @param apiURL 
    * @param object 
    */
-  post(apiURL: string, object: any) {
+  public post(apiURL: string, object: any) {
     this.progress = true;
     let promise = new Promise((resolve, reject) => {
       this.http.post(apiURL, object)
@@ -148,7 +148,7 @@ export class HttpManagerService {
    * @param apiURL 
    * @param object 
    */
-  delete(apiURL: string) {
+  public delete(apiURL: string) {
     this.progress = true;
     let promise = new Promise((resolve, reject) => {
       this.http.delete(apiURL)

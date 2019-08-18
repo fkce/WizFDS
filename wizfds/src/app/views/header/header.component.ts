@@ -109,7 +109,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   /** Log-out from app */
   public logOut() {
-    window.location.href = this.main.settings.hostAddress+ '/logout';
+    window.location.href = this.main.settings.hostAddress + '/logout';
   }
 
   /**
@@ -148,7 +148,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
    */
   public refreshSession() {
     this.httpManager.get(this.main.settings.hostAddress + '/api/refreshSession').then((result: Result) => {
-      console.log(result);
+      if (result.meta.status == 'success') {
+        this.mainService.resetIdle();
+      }
     });
 
   }
