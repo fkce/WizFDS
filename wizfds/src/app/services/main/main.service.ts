@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject ,  Observable ,  of } from 'rxjs';
+import { BehaviorSubject, Observable, of, timer } from 'rxjs';
 import { Main } from './main';
 import { HttpManagerService, Result } from '../http-manager/http-manager.service';
 import { each } from 'lodash';
@@ -15,7 +15,7 @@ export class MainService {
   constructor(
     private httpManager: HttpManagerService,
     private readonly notifierService: NotifierService
-  ) { 
+  ) {
     this.getSettings();
   }
 
@@ -29,7 +29,7 @@ export class MainService {
    * table users
    */
   public getSettings() {
-    this.httpManager.get(this.main.settings.hostAddress + '/api/settings').then((result:Result) => {
+    this.httpManager.get(this.main.settings.hostAddress + '/api/settings').then((result: Result) => {
       let main = new Main(JSON.stringify(result.data));
       this.main.userId = main.userId;
       this.main.settings.userName = main.settings.userName;
@@ -45,11 +45,45 @@ export class MainService {
   }
 
   public updateSettings() {
-    this.httpManager.put(this.main.settings.hostAddress + '/api/settings/'+this.main.userId, this.main.toJSON()).then((result:Result) => {
+    this.httpManager.put(this.main.settings.hostAddress + '/api/settings/' + this.main.userId, this.main.toJSON()).then((result: Result) => {
 
       this.notifierService.notify(result.meta.status, result.meta.details[0]);
     });
+  }
 
+  public resetIdle() {
+      this.main.idle.subscription.unsubscribe();
+      this.main.idle.interval = 60000;
+      this.main.idle.timeout = 3600;
+      this.main.idle.showWarning = false;
+      this.subscribeIdle();
+  }
+
+  // dodac do zapytan http
+
+  public subscribeIdle() {
+    this.main.idle.timer = timer(this.main.idle.interval, this.main.idle.interval);
+    this.main.idle.subscription = this.main.idle.timer.subscribe((val) => {
+        this.updateIdle();
+    });
+  }
+
+  public updateIdle() {
+    this.main.idle.timeout = this.main.idle.timeout - this.main.idle.interval / 1000;
+    console.log(this.main.idle.timeout);
+
+
+    if (this.main.idle.timeout <= 600 && !this.main.idle.showWarning) {
+      this.main.idle.subscription.unsubscribe();
+      this.main.idle.interval = 1000;
+      this.main.idle.showWarning = true;
+      this.subscribeIdle();
+    }
+    else if (this.main.idle.timeout <= 0) {
+      this.main.idle.subscription.unsubscribe();
+      window.location.href = 'https://wizfds.com/logout';
+      //this.resetIdle();
+    }
   }
 
   /** Get max id from list */
@@ -62,7 +96,7 @@ export class MainService {
       // Check max Id of existing elements
       each(list, function (element) {
         if (element['id'] != "") {
-          if(type == 'jetfan') {
+          if (type == 'jetfan') {
             id = Number(element['id'].toString().substr(6));
           }
           else {
@@ -82,5 +116,4 @@ export class MainService {
     else return 1;
   }
 
-  // zaladuj dane z bazy danych o ustawieniach uzytkownika ...
 }

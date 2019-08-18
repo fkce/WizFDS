@@ -13,6 +13,7 @@ import { WebsocketMessageObject } from '@services/websocket/websocket-message';
 
 import { saveAs } from 'file-saver';
 import { join } from 'lodash';
+import { HttpManagerService } from '@services/http-manager/http-manager.service';
 
 @Component({
   selector: 'app-header',
@@ -38,7 +39,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private fdsScenarioService: FdsScenarioService,
     private uiStateService: UiStateService,
     private libraryService: LibraryService,
-    private jsonFdsService: JsonFdsService
+    private jsonFdsService: JsonFdsService,
+    private httpManager: HttpManagerService,
   ) { }
 
   ngOnInit() {
@@ -139,6 +141,16 @@ export class HeaderComponent implements OnInit, OnDestroy {
       status: 'succes'
     }
     this.websocketService.sendMessage(message);
+  }
+
+  /**
+   * Refresh session
+   */
+  public refreshSession() {
+    //this.httpManager.get(this.main.settings.hostAddress + '/api/fdsScenario/' + fdsScenarioId).then((result: Result) => {
+
+    //});
+
   }
 
 }

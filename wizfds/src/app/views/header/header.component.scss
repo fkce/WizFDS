@@ -16,6 +16,26 @@
     }
 }
 
+.idle {
+    position: fixed;
+    top: -2px;
+	left: 0;
+	right: 0;
+	height: 0;
+    text-align: center;
+    p {
+        padding: 0.3rem;
+        background-color: $green;
+        display: inline;
+        font-size: 0.78rem;
+        border-radius: 2px;
+        color: $grey1;
+        a {
+            color: $red;
+        }
+    }
+}
+
 .header-container {
     display: grid;
     grid-template-columns: minmax(9rem, 14%) minmax(78rem, auto);

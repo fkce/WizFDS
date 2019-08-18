@@ -2,6 +2,9 @@
   <p>You are in demo mode. You can not create new projects & scenarios. To have full access just <a
       href='https://wizfds.com/register'>register new account</a></p>
 </div>
+<div class="idle" *ngIf="main.idle.showWarning">
+  <p>Session timout in {{main.idle.timeout | minSec}}. <a (click)="refreshSession()">Continue</a> session.</p>
+</div>
 
 <div class="header-container">
 
@@ -61,7 +64,8 @@
     <div class="left-bottom">
       <div class="buttons" *ngIf="main.currentProject != undefined && main.currentFdsScenario != undefined">
         <div class="menu" (click)="updateFdsScenario(main.currentProject.id, main.currentFdsScenario.id)">
-          <i [class]="main.autoSave.fdsObjectSaveFont" matTooltip="Save scenario" [matTooltipDisabled]="!main.settings.tooltips"></i>
+          <i [class]="main.autoSave.fdsObjectSaveFont" matTooltip="Save scenario"
+            [matTooltipDisabled]="!main.settings.tooltips"></i>
           &nbsp;&nbsp;|&nbsp;&nbsp;
         </div>
         <div class="menu" (click)="downloadFdsInputFile()">
@@ -77,8 +81,8 @@
 
     <div class="right-bottom">
       <div class="menu" (click)="updateFdsLibrary()">
-        <i class="material-icons" matTooltip="Save library"
-          [matTooltipDisabled]="!main.settings.tooltips">save</i>
+        <i [class]="main.autoSave.libSaveFont" matTooltip="Save library"
+          [matTooltipDisabled]="!main.settings.tooltips"></i>
         &nbsp;&nbsp;|&nbsp;&nbsp;
       </div>
       <div class="menu">
@@ -86,7 +90,7 @@
           <i class="material-icons" matTooltip="Library editor" [matTooltipDisabled]="!main.settings.tooltips"
             (click)="activate('library')" [ngClass]="{'active': uiState.active == 'library'}">notes</i>
         </a>
-        &nbsp;&nbsp;|&nbsp;&nbsp;
+        &nbsp;&nbsp;||&nbsp;&nbsp;
       </div>
       <div class="menu"
         *ngIf="main.currentProject != undefined && main.currentFdsScenario != undefined && websocket.isConnected"

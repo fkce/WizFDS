@@ -290,7 +290,8 @@ ng-katex {
 @import "~@angular/material/prebuilt-themes/pink-bluegrey.css";
 
 // Material Design Icons (https://materialdesignicons.com/)
-$mdi-font-path: "~@mdi/font/fonts";
+//$mdi-font-path: "~@mdi/font/fonts";
+$mdi-font-path: "/view/assets/fonts";
 @import "~@mdi/font/scss/materialdesignicons.scss";
 .mdi {
   margin-top: -1px;

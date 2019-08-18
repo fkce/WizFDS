@@ -43,6 +43,7 @@ export class FdsScenarioService {
 
       this.uiStateService.setUiState();
       this.main.autoSave.fdsObjectSaveFont = 'mdi mdi-content-save';
+      this.main.autoSave.libSaveFont = 'mdi mdi-content-save';
       this.notifierService.notify(result.meta.status, result.meta.details[0]);
     });
 
@@ -91,8 +92,10 @@ export class FdsScenarioService {
           this.main.currentFdsScenario.fdsObject.general.head.chid = this.main.currentFdsScenario.name;
           this.main.currentFdsScenario.fdsObject.general.head.title = this.main.currentFdsScenario.name + ' scenario';
         }
-        clearTimeout(this.main.autoSave.timeout);
-        this.main.autoSave.fdsObjectSaveFont = 'mdi mdi-content-save green';
+        if (result.meta.status == 'success') {
+          clearTimeout(this.main.autoSave.fdsObjectTimeout);
+          this.main.autoSave.fdsObjectSaveFont = 'mdi mdi-content-save green';
+        }
         this.notifierService.notify(result.meta.status, result.meta.details[0]);
       });
     }
@@ -102,8 +105,10 @@ export class FdsScenarioService {
 
       this.httpManager.put(this.main.settings.hostAddress + '/api/fdsScenario/' + fdsScenario.id, JSON.stringify({ type: 'input', data: { id: fdsScenario.id, fdsFile: fdsScenario.fdsFile } })).then((result: Result) => {
         this.main.projects[projectIndex].fdsScenarios[fdsScenarioIndex] = fdsScenario;
-        clearTimeout(this.main.autoSave.timeout);
-        this.main.autoSave.fdsObjectSaveFont = 'mdi mdi-content-save green';
+        if (result.meta.status == 'success') {
+          clearTimeout(this.main.autoSave.fdsObjectTimeout);
+          this.main.autoSave.fdsObjectSaveFont = 'mdi mdi-content-save green';
+        }
         this.notifierService.notify(result.meta.status, result.meta.details[0]);
       });
     }
@@ -113,9 +118,11 @@ export class FdsScenarioService {
 
       this.httpManager.put(this.main.settings.hostAddress + '/api/fdsScenario/' + fdsScenario.id, JSON.stringify({ type: 'all', data: fdsScenario.toJSON() })).then((result: Result) => {
         this.main.projects[projectIndex].fdsScenarios[fdsScenarioIndex] = fdsScenario;
-        clearTimeout(this.main.autoSave.timeout);
-        this.main.autoSave.fdsObjectSaveFont = 'mdi mdi-content-save green';
-        if(!quiet) {
+        if (result.meta.status == 'success') {
+          clearTimeout(this.main.autoSave.fdsObjectTimeout);
+          this.main.autoSave.fdsObjectSaveFont = 'mdi mdi-content-save green';
+        }
+        if (!quiet) {
           this.notifierService.notify(result.meta.status, result.meta.details[0]);
         }
       });
@@ -161,7 +168,7 @@ export class FdsScenarioService {
         // Splice scenario on proper position
         let projectIndex = findIndex(this.main.projects, function (o) { return o.id == projectId; });
         let fdsScenarioIndex = findIndex(this.main.projects[projectIndex].fdsScenarios, function (o) { return o.id == id; });
-        
+
         this.main.currentProject.fdsScenarios.splice(fdsScenarioIndex + 1, 0, fdsScenario);
 
         fdsScenarioIndex = findIndex(this.main.projects[projectIndex].fdsScenarios, function (o) { return o.id == fdsScenario.id; });

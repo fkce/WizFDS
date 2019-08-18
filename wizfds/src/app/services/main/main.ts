@@ -19,11 +19,18 @@ export interface ISettings {
 export interface IAutoSave {
     fdsObjectDiffer: object,
     fdsObjectSaveFont: string,
-    timeout: any,
+    fdsObjectTimeout: any,
+    libDiffer: object,
+    libSaveFont: string,
+    libTimeout: any,
     timeoutScenarioId: number
 }
 export interface IIdle {
+    timer: any,
+    subscription: any,
     timeout: number,
+    interval: number,
+    showWarning: boolean
 }
 export interface IMain {
     userId: number,
@@ -75,14 +82,20 @@ export class Main {
         this.autoSave = {
             fdsObjectDiffer: null,
             fdsObjectSaveFont: 'mdi mdi-content-save',
-            timeout: null,
+            fdsObjectTimeout: null,
+            libDiffer: null,
+            libSaveFont: 'mdi mdi-content-save',
+            libTimeout: null,
             timeoutScenarioId: 0
         }
 
         this.idle = {
-            timeout: base.timeout || 3600,
+            timer: null,
+            subscription: null,
+            timeout: 3600,
+            interval: 60000,
+            showWarning: false
         }
-
     }
 
     /**

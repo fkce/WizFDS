@@ -1,5 +1,7 @@
 <?php
-// MAIN
+require_once("config.php");
+require_once("db.php");
+
 function getFrontPage() {
 	include("welcome/index.html");
 }
@@ -23,42 +25,47 @@ function logout() {
 	header("Location: https://wizfds.com");
 }
 
+function refreshSession() {
+	$res = new Message("refreshSession()");
+	$data = array();
+	echo json_encode($res->createResponse("success", array("Session refreshed"), $data));
+}
+
 // SETTINGS
 function getSettings($args) {
-	$user_id=$_SESSION['user_id'];
+	$db = new Database();
+	$res = new Message("getSettings()");
+	$data = array();
 
-	global $db;
-	$result=$db->pg_read("select username, editor, websocket_host, websocket_port, email, tooltips from users where id=$1", array($user_id));
-	extract($result[0]);
+	$result=$db->pg_read("select username, editor, websocket_host, websocket_port, email, tooltips from users where id=$1", array($_SESSION['user_id']));
 	
-	$answer=Array(
-		"meta"=>Array(
-			"status" => "info",
-			"from" => "getSettings()",
-			"details" => Array("Settings loaded")
-		),
-		"data"=>Array(
-			"userId" => $user_id,
+	if(!empty($result)) {
+		extract($result[0]);
+		$data = array(
+			"userId" => $_SESSION['user_id'],
 			"userName" => $username,
 			"editor" => $editor,
 			"websocketHost" => $websocket_host,
 			"websocketPort" => $websocket_port,
 			"email" => $email,
 			"tooltips" => $tooltips
-		)
-	);
-	echo json_encode($answer);	
+		);
+		echo json_encode($res->createResponse("info", array("Settings loaded"), $data));
+	}
+	else {
+		echo json_encode($res->createResponse("error", array("Server error! Settings not loaded"), $data));
+	}
 }
 
 function updateSettings($args) {
-	$user_id=$_SESSION['user_id'];
-	$post=file_get_contents('php://input');
+	$db = new Database();
+	$res = new Message("updateSettings()");
+	$data = array();
 
 	try {
-		$postData=json_decode($post);
-
+		$postData=json_decode(file_get_contents('php://input'));
 		$data=Array(
-			"id" => $user_id,
+			"id" => $_SESSION['user_id'],
 			"userName" => nullToEmpty($postData->userName),
 			"editor" => nullToEmpty($postData->editor),
 			"websocket_host" => nullToEmpty($postData->websocket->host),
@@ -67,33 +74,17 @@ function updateSettings($args) {
 			"tooltips" => nullToEmpty($postData->tooltips)
 		);
 		
-		global $db;
 		$result=$db->pg_change("update users set username=$2, editor=$3, websocket_host=$4, websocket_port=$5, email=$6, tooltips=$7 where id=$1;", $data);
 
+		if(!empty($result)) {
+			echo json_encode($res->createResponse("info", array("Settings updated"), $data));
+		}
+		else {
+			echo json_encode($res->createResponse("error", array("Server error! Settings not updated"), $data));
+		}
 	} catch(Exception $e) {
-		$result = "error";
+		echo json_encode($res->createResponse("error", array("Server error! Settings not updated"), $data));
 	}
-
-	if($result != "error" && $result > 0) {
-		$answer=Array(
-			"meta"=>Array(
-				"status" => "success",
-				"from" => "updateSettings()",
-				"details" => Array("User settings have been successfully updated")
-			),
-			"data"=>$data
-		);
-	} else {
-		$answer=Array(
-			"meta"=>Array(
-				"status" => "error",
-				"from" => "updateSettings()",
-				"details" => Array("An error has occur - settings were not saved properly")
-			),
-			"data" => Array()
-		);
-	}
-	echo json_encode($answer);	
 }
 
 ?>

@@ -175,7 +175,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
 
   /** Set fds scenario name  */
   public updateFdsScenario(projectId: number, fdsScenarioId: number) {
-    this.fdsScenarioService.updateFdsScenario(projectId, fdsScenarioId, 'head');
+    this.fdsScenarioService.updateFdsScenario(projectId, fdsScenarioId, 'head', true);
   }
 
   /** Download fds file */

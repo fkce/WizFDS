@@ -97,6 +97,7 @@ function main() {
 
 			$r->addRoute('GET'    , '/api/settings'                 , 'getSettings');
 			$r->addRoute('PUT'    , '/api/settings/{id}'            , 'updateSettings');
+			$r->addRoute('GET'    , '/api/refreshSession'            , 'refreshSession');
 
 			$r->addRoute('GET'    , '/api/categories'               , 'getCategories');
 			$r->addRoute('POST'   , '/api/category'                 , 'createCategory');

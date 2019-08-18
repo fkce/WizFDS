@@ -1,371 +1,246 @@
 <?php
-// PROJECTS
-	function getProjects() {/*{{{*/
+require_once("config.php");
+require_once("db.php");
+
+function getProjects() {
+	$db = new Database();
+	$res = new Message("getProjects()");
+	$data = array();
+
+	try {
+		$result = $db->pg_read("select id, name, description, category_id from projects where user_id=$1 order by name, id", array($_SESSION['user_id']));
 		
-		$user_id=$_SESSION['user_id'];
+		foreach($result as $project) {
 
-		// SELECT z PROJECTS, ale też dla każdego projektu select z tabeli scenariusze: Nazwa, czy ma plik DWG, czy ma plik FDS
-		try {
+			# Create new scenarios array for each project
+			if(isset($scenarios)) unset($scenarios);
+			$scenarios = array();
 
-			global $db;
-			$data = array();
+			$resultScenario = $db->pg_read("select id, project_id, name, fds_file, ac_file, ac_hash from scenarios where project_id=$1 order by name", array($project['id']));
 
-			$result=$db->pg_read("select id, name, description, category_id from projects where user_id=$1 order by name, id", array($_SESSION['user_id']));
-			
-			foreach($result as $project) {
+			if(!empty($resultScenario)) {
+				foreach($resultScenario as $scenario){
+					$hasFDS = $scenario['fds_file'] != "" ? true : false;
+					$hasDWG = $scenario['ac_file'] != "" ? true : false;
 
-				// FDS scenarios
-				if(isset($scenarios)) unset($scenarios);
-				$scenarios = array();
-
-				$resultScenario=$db->pg_read("select id, project_id, name, fds_file, ac_file, ac_hash from scenarios where project_id=$1 order by name", array($project['id']));
-				if(!empty($resultScenario)) {
-					foreach($resultScenario as $scenario){
-						if($scenario['fds_file']!="") {
-							$hasFDS=true;
-						} else {
-							$hasFDS=false;
-						}
-						if($scenario['ac_file']!="") {
-							$hasDWG=true;
-						} else {
-							$hasDWG=false;
-						}		
-
-						$scenarios[] = Array(
-							"id"=>$scenario['id'],
-							//"project_id"=>$scenario['project_id'],
-							"name"=>$scenario['name'],
-							
-							//"fds_object"=>$scenario['fds_object'],
-							//"ui_state"=>$scenario['ui_state']
-							"hasFdsFile"=>$hasFDS,
-							"hasAcFile"=>$hasDWG
-						);
-					}
+					# Add to scenarios array
+					$scenarios[] = Array(
+						"id"=>$scenario['id'],
+						"name"=>$scenario['name'],
+						"hasFdsFile"=>$hasFDS,
+						"hasAcFile"=>$hasDWG
+					);
 				}
-
-				$data[] = Array(
-					"id"=>$project['id'],
-					"name"=>$project['name'],
-					"description"=>$project['description'],
-					"category"=>$project['category_id'], 
-					"fdsScenarios"=>$scenarios,
-				);
 			}
-		} catch(Exception $e) {
-			$result = "error";
+
+			# Add to projects array
+			$data[] = Array(
+				"id"=>$project['id'],
+				"name"=>$project['name'],
+				"description"=>$project['description'],
+				"category"=>$project['category_id'], 
+				"fdsScenarios"=>$scenarios,
+			);
 		}
+
+		echo json_encode($res->createResponse("success", array("Projects loaded"), $data));
+
+	} catch(Exception $e) {
+		echo json_encode($res->createResponse("error", array("Server error! Projects not loaded"), $data));
+	}
+}
+
+function createProject() {
+	$db = new Database();
+	$res = new Message("createProject()");
+	$data = array();
+
+	try {
+
+		$result = $db->pg_read("select uuid from categories where user_id=$1", array($_SESSION['user_id']));
+		$category_id = empty($result) ? '0000-0000-0000' : $result[0]['uuid'];
+
+		$data = Array(
+			"user_id"=>$_SESSION['user_id'],
+			"name"=>"New project",
+			"description"=>"Project description",
+			"category_id"=>$category_id
+		);
 		
-		if($result!="error") {
-			$res=Array(
-				"meta"=>Array(
-					"status" => "info",
-					"from" => "getProjects()",
-					"details" => Array("Projects loaded")
-				),
-				"data"=>$data
-			);
-		} else {
-			$res=Array(
-				"meta"=>Array(
-					"status" => "error",
-					"from" => "getProjects()",
-					"details" => Array("Server error! Projects were not loaded properly")
-				),
-				"data"=>array()
-			);
-		}
-		echo json_encode($res);	
+		$result = $db->pg_create("insert into projects(user_id,name,description,category_id) values ($1, $2, $3, $4) returning id", $data);
+		
+		if(!empty($result)) {
+			$id = $result[0]['id'];
+			$data['id'] = $id;
 
-	}/*}}}*/
-	function createProject() {/*{{{*/
-	
-		$user_id=$_SESSION['user_id'];
-		$post=file_get_contents('php://input');
-
-		try {
-			//$postData=json_decode($post);
-			global $db;
-
-			$result=$db->pg_read("select uuid from categories where user_id=$1", array($user_id));
-			if(count($result) < 1){
-				$category_id = '0000-0000-0000';
-			} else {
-				$category_id = $result[0]['uuid'];
-			}
-			$data=Array(
-				"user_id"=>$user_id,
-				"name"=>"New project",
-				"description"=>"Project description",
-				"category_id"=>$category_id
-			);
-			
-			$result=$db->pg_create("insert into projects(user_id,name,description,category_id) values ($1, $2, $3, $4) returning id", $data);
-			
-			$id=$result[0]['id'];
-			$data['id']=$id;
-
-			$path="~/wizfds_users/".$_SESSION['email']."/$id";
+			# Create project directory
+			$path="~/wizfds_users/". $_SESSION['email'] ."/$id";
 			system("mkdir -p $path");
 
-		} catch(Exception $e) {
-			$result="error";
+			echo json_encode($res->createResponse("success", array($data['name'] ." created", $path), $data));
 		}
-
-		if($result!="error" && !is_null($id) && $id!="") {
-			$res=Array(
-				"meta"=>Array(
-					"status" => "success",
-					"from" => "createProject()",
-					"details" => Array($data['name']." created", $path)
-				),
-				"data"=>$data
-			);
-		} else {
-			$res=Array(
-				"meta"=>Array(
-					"bd"=>$result,
-					"status" => "error",
-					"from" => "createProject()",
-					"details" => Array("Server error! Project was not created")
-				),
-				"data"=>array()
-			);
-
+		else {
+			echo json_encode($res->createResponse("error", array("Server error! Project not created"), $data));
 		}
-		echo json_encode($res);	
-	}/*}}}*/
-	function deleteProject($args) {/*{{{*/
-
-		try {
-			$data=Array(
-				"id"=>$args['id'],
-				"user_id"=>$_SESSION['user_id']
-			);
-
-			global $db;
-			$db_result_scenarios=$db->pg_change("delete from scenarios where project_id=$1 and user_id=$2;", $data);
-			$db_result_projects=$db->pg_change("delete from projects where id=$1 and user_id=$2;", $data);
-
-			if($db_result_projects==1) {
-				$path="~/wizfds_users/".$_SESSION['email']."/".$data['id'];
-				rrmdir($path);
-			}
-
-		} catch(Exception $e) {
-			$result="error";
-		}
-		if($result!="error" && $db_result_projects==1) {
-			$res=Array(
-				"meta"=>Array(
-					"status" => "success",
-					"from" => "deleteProject()",
-					"details" => Array("Project was deleted")
-				),
-				"data"=>$data
-			);
-		} else {
-			$res=Array(
-				"meta"=>Array(
-					"status" => "error",
-					"from" => "deleteProject()",
-					"details" => Array("Server error! Project was not deleted")
-				),
-				"data"=>""
-			);
-
-		}
-		echo json_encode($res);	
-	}/*}}}*/
-	function updateProject($args) {/*{{{*/
-		
-		global $db;
-		$result = "";
-		$post=file_get_contents('php://input');
-		
-		try {
-			$postData=json_decode($post);
-			$data=Array(
-				"id"=>nullToEmpty($postData->id),
-				"name"=>nullToEmpty($postData->name),
-				"description"=>nullToEmpty($postData->description),
-				"category_id"=>nullToEmpty($postData->category),
-				"user_id"=>$_SESSION['user_id']
-			);
-			
-
-			$db_result=$db->pg_change("update projects set name=$2, description=$3, category_id=$4 where id=$1 and user_id=$5;", $data);
-			
-			
-		} catch(Exception $e) {
-			$result="error";
-		}
-		if($result!="error" && $db_result==1) {
-			$res=Array(
-				"meta"=>Array(
-					"status" => "success",
-					"from" => "updateProject()",
-					"details" => Array("Project ".$postData->name." updated")
-				),
-				"data"=>$postData,
-			);
-		} else {
-			$res=Array(
-				"meta"=>Array(
-					"status" => "error",
-					"from" => "updateProject()",
-					"details" => Array("Project ".$postData->name." was not updated")
-				),
-				"data"=>$postData
-			);
-
-		}
-		echo json_encode($res);	
-
-	}/*}}}*/
-// CATEGORIES
-	function getCategories($args) {/*{{{*/
-
-		$user_id=$_SESSION['user_id'];
-
-		global $db;
-		$categories=$db->pg_read("select label, uuid, active, visible from categories where user_id=$1", array($user_id));
-		
-		$res=Array(
-			"meta"=>Array(
-				"status" => "info",
-				"from" => "getCategories()",
-				"details" => Array("Categories loaded")
-			),
-			"data"=>$categories
-		);
-		echo json_encode($res);	
-
+	} catch(Exception $e) {
+		echo json_encode($res->createResponse("error", array("Server error! Project not created"), $data));
 	}
-/*}}}*/
-	function createCategory() {/*{{{*/
+}
+
+function deleteProject($args) {
+	$db = new Database();
+	$res = new Message("deleteProject()");
+	$data = array();
+
+	try {
+		$data = array(
+			"id"=>$args['id'],
+			"user_id"=>$_SESSION['user_id']
+		);
+
+		$result_scenarios = $db->pg_change("delete from scenarios where project_id=$1 and user_id=$2;", $data);
+		$result = $db->pg_change("delete from projects where id=$1 and user_id=$2;", $data);
+
+		if(!empty($result)) {
+			# Remove project directory
+			$path="~/wizfds_users/". $_SESSION['email'] ."/". $data['id'];
+			rrmdir($path);
+
+			echo json_encode($res->createResponse("success", array("Project deleted"), $data));
+		}
+		else {
+			echo json_encode($res->createResponse("error", array("Server error! Project not deleted"), $data));
+		}
+	} catch(Exception $e) {
+		echo json_encode($res->createResponse("error", array("Server error! Project not deleted"), $data));
+	}
+}
+
+function updateProject($args) {
+	$db = new Database();
+	$res = new Message("updateProject()");
+	$data = array();
 	
-		$user_id=$_SESSION['user_id'];
-		$post=file_get_contents('php://input');
-
-		try {
-			$postData=json_decode($post);
-
-			$data=Array(
-				"user_id"=>$user_id,
-				"label"=>$postData->label,
-				"uuid"=>$postData->uuid,
-				"active"=>json_encode(nullToEmpty($postData->active)),
-				"visible"=>json_encode(nullToEmpty($postData->visible)),
-			);
-			
-			global $db;
-			$result=$db->pg_create("insert into categories (user_id, label, uuid, active, visible) values ($1, $2, $3, $4, $5)", $data);
-
-		} catch(Exception $e) {
-			$result="error";
-		}
-
-		if($result!="error") {
-			$res=Array(
-				"meta"=>Array(
-					"status" => "success",
-					"from" => "createCategory()",
-					"details" => Array("Category created")
-				),
-				"data"=>$data
-			);
-		} else {
-			$res=Array(
-				"meta"=>Array(
-					"bd"=>$result,
-					"status" => "error",
-					"from" => "createCategory()",
-					"details" => Array("Category was not created")
-				),
-				"data"=>array()
-			);
-
-		}
-		echo json_encode($res);	
-	}/*}}}*/
-	function deleteCategory($args) {/*{{{*/
-	
-		global $db;
+	try {
+		$postData = json_decode(file_get_contents('php://input'));
+		$data = array(
+			"id"=>nullToEmpty($postData->id),
+			"name"=>nullToEmpty($postData->name),
+			"description"=>nullToEmpty($postData->description),
+			"category_id"=>nullToEmpty($postData->category),
+			"user_id"=>$_SESSION['user_id']
+		);
 		
-		try {
-			$data=Array(
-				"uuid"=>$args['uuid'],
-				"user_id"=>$_SESSION['user_id']
-			);
+		$result = $db->pg_change("update projects set name=$2, description=$3, category_id=$4 where id=$1 and user_id=$5;", $data);
 
-			$result=$db->pg_change("delete from categories where uuid=$1 and user_id=$2;", $data);
-
-		} catch(Exception $e) {
-			$result="error";
+		if(!empty($result)) {
+			echo json_encode($res->createResponse("success", array("Project ". $postData->name ." updated"), $data));
 		}
-		if($result!="error") {
-			$res=Array(
-				"meta"=>Array(
-					"status" => "success",
-					"from" => "deleteCategory()",
-					"details" => array("Category deleted")
-				),
-				"data"=>$data
-			);
-		} else {
-			$res=Array(
-				"meta"=>Array(
-					"status" => "error",
-					"from" => "deleteCategory()",
-					"details" => array("Category was not deleted")
-				),
-				"data"=>$data
-			);
+		else {
+			echo json_encode($res->createResponse("error", array("Server error! Project not updated"), $data));
 		}
-		echo json_encode($res);	
+	} catch(Exception $e) {
+		echo json_encode($res->createResponse("error", array("Server error! Project not updated"), $data));
+	}
+}
 
+function getCategories($args) {
+	$db = new Database();
+	$res = new Message("getCategories()");
+	$data = array();
 
-	}/*}}}*/
-	function updateCategory($args) {/*{{{*/
-		global $db;
-		$post=file_get_contents('php://input');
+	try {
+		$result = $db->pg_read("select label, uuid, active, visible from categories where user_id=$1", array($_SESSION['user_id']));
+		$data = $result;
+
+		if(!empty($result)) {
+			echo json_encode($res->createResponse("info", array("Categories loaded"), $data));
+		}
+		else {
+			echo json_encode($res->createResponse("error", array("Server error! Categories not loaded"), $data));
+		}
+	} catch(Exception $e) {
+		echo json_encode($res->createResponse("error", array("Server error! Project not updated"), $data));
+	}
+}
+
+function createCategory() {
+	$db = new Database();
+	$res = new Message("createCategory()");
+	$data = array();
+
+	try {
+		$data = array(
+			"user_id"=>$_SESSION['user_id'],
+			"label"=>$postData->label,
+			"uuid"=>$postData->uuid,
+			"active"=>json_encode(nullToEmpty($postData->active)),
+			"visible"=>json_encode(nullToEmpty($postData->visible)),
+		);
 		
-		try {
-			$postData=json_decode($post);
-			$data=Array(
-				"label"=>nullToEmpty($postData->label),
-				"uuid"=>nullToEmpty($postData->uuid),
-				"active"=>json_encode(nullToEmpty($postData->active)),
-				"visible"=>json_encode(nullToEmpty($postData->visible)),
-				"user_id"=>$_SESSION['user_id']
-			);
+		$result = $db->pg_create("insert into categories (user_id, label, uuid, active, visible) values ($1, $2, $3, $4, $5)", $data);
 
-			$db_result=$db->pg_change("update categories set label=$1, active=$3, visible=$4 where uuid=$2 and user_id=$5;", $data);
-			
-		} catch(Exception $e) {
-			$result="error";
+		if(!empty($result)) {
+			echo json_encode($res->createResponse("success", array("Category created"), $data));
 		}
-		if($result!="error" && $db_result==1) {
-			$res=Array(
-				"meta"=>Array(
-					"status" => "success",
-					"from" => "updateCategory()",
-					"details" => array("Category updated")
-				),
-				"data"=>$postData
-			);
-		} else {
-			$res=Array(
-				"meta"=>Array(
-					"status" => "error",
-					"from" => "updateCategory()",
-					"details" => array("Category was not updated")
-				),
-				"data"=>$postData
-			);
+		else {
+			echo json_encode($res->createResponse("error", array("Server error! Category not created"), $data));
 		}
-		echo json_encode($res);	
-	}/*}}}*/
+	} catch(Exception $e) {
+		echo json_encode($res->createResponse("error", array("Server error! Category not created"), $data));
+	}
+}
+
+function deleteCategory($args) {
+	$db = new Database();
+	$res = new Message("deleteCategory()");
+	$data = array();
+		
+	try {
+		$data = array(
+			"uuid"=>$args['uuid'],
+			"user_id"=>$_SESSION['user_id']
+		);
+
+		$result = $db->pg_change("delete from categories where uuid=$1 and user_id=$2;", $data);
+
+		if(!empty($result)) {
+			echo json_encode($res->createResponse("success", array("Category deleted"), $data));
+		}
+		else {
+			echo json_encode($res->createResponse("error", array("Server error! Category not deleted"), $data));
+		}
+	} catch(Exception $e) {
+		echo json_encode($res->createResponse("error", array("Server error! Category not deleted"), $data));
+	}
+}
+
+function updateCategory($args) {
+	$db = new Database();
+	$res = new Message("updateCategory()");
+	$data = array();
+
+	try {
+		$postData = json_decode(file_get_contents('php://input'));
+		$data = array(
+			"label"=>nullToEmpty($postData->label),
+			"uuid"=>nullToEmpty($postData->uuid),
+			"active"=>json_encode(nullToEmpty($postData->active)),
+			"visible"=>json_encode(nullToEmpty($postData->visible)),
+			"user_id"=>$_SESSION['user_id']
+		);
+
+		$result = $db->pg_change("update categories set label=$1, active=$3, visible=$4 where uuid=$2 and user_id=$5;", $data);
+
+		if(!empty($result)) {
+			echo json_encode($res->createResponse("info", array("Category updated"), $data));
+		}
+		else {
+			echo json_encode($res->createResponse("error", array("Server error! Category not updated"), $data));
+		}
+	} catch(Exception $e) {
+		echo json_encode($res->createResponse("error", array("Server error! Category not updated"), $data));
+	}
+}
+
 ?>

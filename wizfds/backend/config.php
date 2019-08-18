@@ -41,6 +41,5 @@ class Message {
         $this->response['data'] = isset($data) ? $data : array();
         return $this->response;
     }
-
 }
 ?>

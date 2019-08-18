@@ -8,7 +8,6 @@ function createScenario($args) {
 	$data = array();
 
 	try {
-		$postData = json_decode(file_get_contents('php://input'));
 		$data = array(
 			"projectId"=>nullToEmpty($args['project_id']),
 			"name"=>"New FDS scenario",
@@ -32,10 +31,10 @@ function createScenario($args) {
 			echo json_encode($res->createResponse("success", array($data['name'] ." created"), $data));
 		}
 		else {
-			echo json_encode($res->createResponse("error", array("Server error! Scenario was not created"), $data));
+			echo json_encode($res->createResponse("error", array("Server error! Scenario not created"), $data));
 		}
 	} catch(Exception $e) {
-		echo json_encode($res->createResponse("error", array("Server error! Scenario was not created"), $data));
+		echo json_encode($res->createResponse("error", array("Server error! Scenario not created"), $data));
 	}
 }
 
@@ -124,7 +123,7 @@ function deleteScenario($args) {
 
 function getScenario($args) {
 	$db = new Database();
-	$res = new Message("deleteScenario()");
+	$res = new Message("getScenario()");
 	$data = array();
 
 	try {

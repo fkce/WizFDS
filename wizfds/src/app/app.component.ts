@@ -15,6 +15,7 @@ import { HttpManagerService } from '@services/http-manager/http-manager.service'
 import { FdsScenarioService } from '@services/fds-scenario/fds-scenario.service';
 import { environment } from '@env/environment';
 import { NotifierService } from 'angular-notifier';
+import { Subscription, timer } from 'rxjs';
 
 @Component({
   selector: 'app-root',
@@ -70,7 +71,9 @@ export class AppComponent {
     this.categoryService.getCategories();
 
     this.libraryService.loadLibrary();
-    this.libraryService.getLibrary().subscribe(library => this.lib = library);
+    setTimeout(() => {
+      this.libraryService.getLibrary().subscribe(library => this.lib = library);
+    }, 1500);
 
     setTimeout(() => {
       this.websocket.initializeWebSocket();
@@ -115,6 +118,19 @@ export class AppComponent {
       }
     );
 
+    // Idle implementation 
+    // przypisac source do zmiennej w obiekcie main
+    // przy zapytaniu na serwer zrobic unsubscribe i pozniej subscribe nowy
+    // timer (55 min, co sekundę pozniej)
+    this.main.idle.timer = timer(0, this.main.idle.interval);
+    this.main.idle.subscription = this.main.idle.timer.subscribe((val) => {
+        this.mainService.updateIdle();
+    });
+
+    //this.idleSub = timer(0, 10000).pipe(
+    //  switchMap(() => this.myservice.checkdata())
+    //).subscribe(result => this.statustext = result);
+
   }
 
   ngAfterViewInit() {
@@ -123,17 +139,16 @@ export class AppComponent {
 
   ngDoCheck(): void {
 
-    // Autosave changes in FdsObject every 30 seconds when change is detected
+    // Autosave changes in FdsObject every 20 seconds when change is detected
     // First check if FdsObject was changed
     if (this.main.currentFdsScenario != undefined && !isEqual(this.main.autoSave.fdsObjectDiffer, this.main.currentFdsScenario.fdsObject)) {
-      clearTimeout(this.main.autoSave.timeout);
+      clearTimeout(this.main.autoSave.fdsObjectTimeout);
       // Check if scenario or project was not changed in the meanwhile
       if (this.main.autoSave.fdsObjectDiffer != null && this.main.autoSave.timeoutScenarioId == this.main.currentFdsScenario.id) {
         this.main.autoSave.fdsObjectSaveFont = 'mdi mdi-content-save-edit red';
-        
-        this.main.autoSave.timeout = setTimeout(() => {
+
+        this.main.autoSave.fdsObjectTimeout = setTimeout(() => {
           this.fdsScenarioService.updateFdsScenario(this.main.currentProject.id, this.main.currentFdsScenario.id, 'all', true);
-          //this.main.autoSave.fdsObjectSaveFont = 'mdi mdi-content-save green';
         }, 20000);
         this.main.autoSave.fdsObjectDiffer = cloneDeep(this.main.currentFdsScenario.fdsObject);
       }
@@ -143,7 +158,22 @@ export class AppComponent {
       }
     }
 
-    // Here implement idle 
+    // Autosave changes in Library every 15 seconds when change is detected
+    // First check if FdsObject was changed
+    if (this.lib != undefined && !isEqual(this.main.autoSave.libDiffer, this.lib)) {
+      clearTimeout(this.main.autoSave.libTimeout);
+      // Check if not null else init
+      if (this.main.autoSave.libDiffer != null) {
+        this.main.autoSave.libSaveFont = 'mdi mdi-content-save-edit red';
+        this.main.autoSave.libTimeout = setTimeout(() => {
+          this.libraryService.updateLibrary(true);
+        }, 20000);
+        this.main.autoSave.libDiffer = cloneDeep(this.lib);
+      }
+      else {
+        this.main.autoSave.libDiffer = cloneDeep(this.lib);
+      }
+    }
 
   }
 

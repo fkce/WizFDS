@@ -46,9 +46,15 @@ export class LibraryService {
   }
 
   /** Update library in database */
-  updateLibrary() {
+  updateLibrary(quiet: boolean = false) {
     this.httpManager.put(this.main.settings.hostAddress+ '/api/library', JSON.stringify(this.library.toJSON())).then((result: Result) => {
-      this.notifierService.notify(result.meta.status, result.meta.details[0]);
+      if(result.meta.status == 'success') {
+        clearTimeout(this.main.autoSave.libTimeout);
+        this.main.autoSave.libSaveFont = 'mdi mdi-content-save green';
+      }
+      if(!quiet) {
+        this.notifierService.notify(result.meta.status, result.meta.details[0]);
+      }
     });
   }
 

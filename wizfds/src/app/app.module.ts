@@ -93,6 +93,7 @@ import { RgbInputDirective } from './directives/inputs/rgb-input.directive';
 import { ParabolaChartComponent } from './views/main/fds/shared/parabola-chart/parabola-chart.component';
 import { CustomRampDialogComponent } from './views/main/fds/fire/fires/custom-ramp-dialog/custom-ramp-dialog.component';
 import { ComplexComponent } from './views/main/fds/geometry/complex/complex.component';
+import { MinSecPipe } from './pipes/min-sec/min-sec.pipe';
 
 
 @NgModule({
@@ -137,6 +138,7 @@ import { ComplexComponent } from './views/main/fds/geometry/complex/complex.comp
     RgbInputDirective,
     CustomRampDialogComponent,
     ComplexComponent,
+    MinSecPipe,
   ],
   imports: [
     BrowserModule,
