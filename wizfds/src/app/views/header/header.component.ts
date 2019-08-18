@@ -13,7 +13,7 @@ import { WebsocketMessageObject } from '@services/websocket/websocket-message';
 
 import { saveAs } from 'file-saver';
 import { join } from 'lodash';
-import { HttpManagerService } from '@services/http-manager/http-manager.service';
+import { HttpManagerService, Result } from '@services/http-manager/http-manager.service';
 
 @Component({
   selector: 'app-header',
@@ -147,9 +147,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
    * Refresh session
    */
   public refreshSession() {
-    //this.httpManager.get(this.main.settings.hostAddress + '/api/fdsScenario/' + fdsScenarioId).then((result: Result) => {
-
-    //});
+    this.httpManager.get(this.main.settings.hostAddress + '/api/refreshSession').then((result: Result) => {
+      console.log(result);
+    });
 
   }
 

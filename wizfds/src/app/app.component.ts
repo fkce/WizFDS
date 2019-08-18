@@ -126,11 +126,6 @@ export class AppComponent {
     this.main.idle.subscription = this.main.idle.timer.subscribe((val) => {
         this.mainService.updateIdle();
     });
-
-    //this.idleSub = timer(0, 10000).pipe(
-    //  switchMap(() => this.myservice.checkdata())
-    //).subscribe(result => this.statustext = result);
-
   }
 
   ngAfterViewInit() {

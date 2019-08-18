@@ -72,7 +72,6 @@ export class MainService {
     this.main.idle.timeout = this.main.idle.timeout - this.main.idle.interval / 1000;
     console.log(this.main.idle.timeout);
 
-
     if (this.main.idle.timeout <= 600 && !this.main.idle.showWarning) {
       this.main.idle.subscription.unsubscribe();
       this.main.idle.interval = 1000;
@@ -82,7 +81,6 @@ export class MainService {
     else if (this.main.idle.timeout <= 0) {
       this.main.idle.subscription.unsubscribe();
       window.location.href = 'https://wizfds.com/logout';
-      //this.resetIdle();
     }
   }
 
