@@ -85,6 +85,19 @@ namespace WizFDS.Export
                 public List<double[]> faces { get; set; }
                 public SurfGeom surf { get; set; }
             }
+            public class GeomFromFaces
+            {
+                public class MeshFace
+                {
+                    public double idAC { get; set; }
+                    public string surf_type { get; set; }
+                    public string surf_id { get; set; }
+                    public int[] color { get; set; }
+                    public List<double[]> faceIndexes { get; set; }
+                }
+                public List<double[]> verts { get; set; }
+                public List<MeshFace> faces { get; set; }
+            }
             public class Hole
             {
                 public double idAC { get; set; }
@@ -109,6 +122,7 @@ namespace WizFDS.Export
             public List<Surf> surfs { get; set; }
             public List<Obst> obsts { get; set; }
             public List<Geom> geoms { get; set; }
+            public GeomFromFaces geomFromFaces { get; set; }
 
             public Geometry()
             {
@@ -277,6 +291,69 @@ namespace WizFDS.Export
 
                 this.geoms.Add(geom);
             }
+            // Adds ...
+            public void AddGeomFromFaces(Face acEnt)
+            {
+                if (this.geomFromFaces == null)
+                {
+                    this.geomFromFaces = new GeomFromFaces
+                    {
+                        verts = new List<double[]>(),
+                        faces = new List<GeomFromFaces.MeshFace>()
+                    };
+                }
+
+                for (short i = 0; i < 3; i++)
+                {
+                    double[] point = new double[] { acEnt.GetVertexAt(i).X, acEnt.GetVertexAt(i).Y, acEnt.GetVertexAt(i).Z };
+                    if (!this.geomFromFaces.verts.Contains(point))
+                    {
+                        this.geomFromFaces.verts.Add(point);
+                    }
+                }
+
+                GeomFromFaces.MeshFace meshFace = new GeomFromFaces.MeshFace() {};
+                meshFace.idAC = Convert.ToInt64(acEnt.Handle.ToString(), 16);
+                meshFace.surf_type = "surf_id";
+                meshFace.surf_id = acEnt.Layer;
+                meshFace.color = new int[] { (int)acEnt.Color.ColorValue.R, (int)acEnt.Color.ColorValue.G, (int)acEnt.Color.ColorValue.B };
+
+                double[] vertsIndexes = new double[3];
+                for (short i = 0; i < 3; i++)
+                {
+                    double[] point = new double[] { acEnt.GetVertexAt(i).X, acEnt.GetVertexAt(i).Y, acEnt.GetVertexAt(i).Z };
+                    vertsIndexes[i] = this.geomFromFaces.verts.IndexOf(point);
+                }
+                meshFace.faceIndexes.Add(vertsIndexes);
+                this.geomFromFaces.faces.Add(meshFace);
+
+                Console.WriteLine(this.geomFromFaces.verts);
+                /*
+                // Add faces and vertices
+                int[] faceArr = acEnt.FaceArray.ToArray();
+                Point3dCollection vertices = acEnt.Vertices;
+                int edges = 0;
+
+                // Generate vertices
+                foreach (Point3d vertice in vertices)
+                {
+                    geom.verts.Add(new double[] { vertice.X, vertice.Y, vertice.Z });
+                }
+
+                // Generate faces
+                for (int x = 0; x < faceArr.Length; x = x + edges + 1)
+                {
+                    geom.faces.Add(new double[] { faceArr[x + 1] + 1, faceArr[x + 2] + 1, faceArr[x + 3] + 1 });
+                    edges = faceArr[x];
+                }
+
+                this.geoms.Add(geom);
+                */
+            }
+
+            // Here add geom from surfaces
+            // 1. Add dictionary with egdges
+            // 2. Add surfaces from edges
         }
         private class Ventilation
         {
@@ -867,35 +944,6 @@ namespace WizFDS.Export
                 this.fires.Add(fire);
             }
         }
-        private class ComplexGeometries
-        {
-            public class ComplexGeometry
-            {
-                public double idAC { get; set; }
-                public List<Array> vertices { get; set; }
-                public List<Array> faces { get; set; }
-                public string surf_id { get; set; }
-                public int[] color { get; set; }
-            }
-            public List<ComplexGeometry> complex { get; set; }
-
-            public ComplexGeometries()
-            {
-                this.complex = new List<ComplexGeometry>();
-            }
-
-            public void AddComplex(Entity acEnt)
-            {
-                ComplexGeometry geom = new ComplexGeometry
-                {
-                    surf_id = Layers.GetSurfaceName(acEnt.Layer),
-                    idAC = Convert.ToInt64(acEnt.Handle.ToString(), 16),
-                    color = Layers.GetLayerColor(acEnt.Layer)
-                    
-                };
-                this.complex.Add(geom);
-            }
-        }
 
         private class FdsObject
         {
@@ -950,12 +998,12 @@ namespace WizFDS.Export
                                 try
                                 {
 
-                                    if (acEnt.Layer.Contains("!FDS_OBST"))
+                                    if (acEnt.Layer.Contains("!FDS_OBST") || acEnt.Layer.Contains("!FDS_GEOM"))
                                     {
                                         // Check if complex geometry
                                         if (acEnt.GetType() == typeof(SubDMesh))
                                         {
-                                            geometry.AddGeom((SubDMesh) acEnt);
+                                            geometry.AddGeom((SubDMesh)acEnt);
 
                                             if (geometry.surfs.Count > 0)
                                             {
@@ -966,6 +1014,10 @@ namespace WizFDS.Export
                                             {
                                                 geometry.AddSurf(acEnt.Layer, acEnt.Handle);
                                             }
+                                        }
+                                        else if (acEnt.GetType() == typeof(Face))
+                                        {
+                                            geometry.AddGeomFromFaces((Face)acEnt);
                                         }
                                         else
                                         {
@@ -1044,6 +1096,10 @@ namespace WizFDS.Export
                                                 specie.AddSurf(acEnt.Layer, acEnt.Handle);
                                             }
                                         }
+                                    }
+                                    else if (acEnt.Layer.Contains("!FDS_GEOM"))
+                                    {
+
                                     }
                                 }
                                 catch (System.Exception e)

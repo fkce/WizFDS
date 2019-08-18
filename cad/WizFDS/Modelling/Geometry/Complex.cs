@@ -79,7 +79,14 @@ namespace WizFDS.Modelling.Geometry
                         SubDMesh mesh = new SubDMesh();
                         mesh.SetDatabaseDefaults();
                         mesh.SetSubDMesh(md.VertexArray, md.FaceArray, 0);
-                        mesh.Layer = sol.Layer;
+                        if (sol.Layer.Contains("!FDS_GEOM") || sol.Layer.Contains("!FDS_OBST"))
+                        {
+                            mesh.Layer = sol.Layer;
+                        }
+                        else
+                        {
+                            mesh.Layer = "!FDS_GEOM[inert](0)";
+                        }
 
                         // Add mesh to DB
                         acBlkTblRec.AppendEntity(mesh);
