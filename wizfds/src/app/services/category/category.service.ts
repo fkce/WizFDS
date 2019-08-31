@@ -4,8 +4,8 @@ import {Main} from '../main/main';
 import { Injectable } from '@angular/core';
 import { Category, CategoryInterface } from './category';
 import { IdGeneratorService } from '../id-generator/id-generator.service';
-import { NotifierService } from 'angular-notifier';
 import { forEach } from 'lodash';
+import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 
 @Injectable()
 export class CategoryService {
@@ -16,7 +16,7 @@ export class CategoryService {
     private mainService:MainService, 
     private httpManager:HttpManagerService, 
     private idGeneratorService:IdGeneratorService, 
-    private readonly notifierService: NotifierService
+    private snackBarService: SnackBarService
   ) { 
     // Sync with main object
     this.mainService.getMain().subscribe(main => this.main = main);
@@ -32,7 +32,7 @@ export class CategoryService {
 
         this.main.categories.push(new Category(JSON.stringify(category)));
       });
-      this.notifierService.notify(result.meta.status, result.meta.details[0]);
+      this.snackBarService.notify(result.meta.status, result.meta.details[0]);
     });
   }
 
@@ -41,7 +41,7 @@ export class CategoryService {
     let category = new Category(JSON.stringify({uuid: this.idGeneratorService.genUUID, label:"New category", active:true, visible:true}));
     this.httpManager.post(this.main.settings.hostAddress + '/api/category', category.toJSON()).then((result:Result) => {
       this.main.categories.push(category);
-      this.notifierService.notify(result.meta.status, result.meta.details[0]);
+      this.snackBarService.notify(result.meta.status, result.meta.details[0]);
     });
   }
 
@@ -49,7 +49,7 @@ export class CategoryService {
   updataCategory(uuid:string, category:Category) {
     this.httpManager.put(this.main.settings.hostAddress + '/api/category/'+uuid, category.toJSON()).then((result:Result) => {
 
-      this.notifierService.notify(result.meta.status, result.meta.details[0]);
+      this.snackBarService.notify(result.meta.status, result.meta.details[0]);
     });
   }
 
@@ -57,7 +57,7 @@ export class CategoryService {
   deleteCategory(uuid:string) {
     this.httpManager.delete(this.main.settings.hostAddress + '/api/category/'+uuid).then((result:Result) => {
 
-      this.notifierService.notify(result.meta.status, result.meta.details[0]);
+      this.snackBarService.notify(result.meta.status, result.meta.details[0]);
     });
   }
 

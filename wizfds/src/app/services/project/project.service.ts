@@ -3,8 +3,8 @@ import { Injectable } from '@angular/core';
 import { MainService } from '@services/main/main.service';
 import { Project } from './project';
 import { Main } from '@services/main/main';
-import { NotifierService } from 'angular-notifier';
 import { forEach, find } from 'lodash';
+import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 
 @Injectable()
 export class ProjectService {
@@ -14,7 +14,7 @@ export class ProjectService {
   constructor(
     private mainService: MainService,
     private httpManager: HttpManagerService,
-    private readonly notifierService: NotifierService
+    private snackBarService: SnackBarService
   ) {
     // Sync with main object
     this.mainService.getMain().subscribe(main => this.main = main);
@@ -27,7 +27,7 @@ export class ProjectService {
       forEach(result.data, (project) => {
         this.main.projects.push(new Project(JSON.stringify(project)));
       });
-      this.notifierService.notify(result.meta.status, result.meta.details[0]);
+      this.snackBarService.notify(result.meta.status, result.meta.details[0]);
       this.mainService.resetIdle();
     });
   }
@@ -50,7 +50,7 @@ export class ProjectService {
   public updateProject(projectId: number) {
     let project: Project = find(this.main.projects, function (o) { return o.id == projectId });
     this.httpManager.put(this.main.settings.hostAddress+ '/api/project/' + project.id, project.toJSON()).then((result: Result) => {
-      this.notifierService.notify(result.meta.status, result.meta.details[0]);
+      this.snackBarService.notify(result.meta.status, result.meta.details[0]);
       this.mainService.resetIdle();
     });
 

@@ -12,9 +12,9 @@ import { WebsocketService } from '@services/websocket/websocket.service';
 import { WebsocketMessageObject } from '@services/websocket/websocket-message';
 
 import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
-import { NotifierService } from '../../../../../../../node_modules/angular-notifier';
 import { set, cloneDeep, find, forEach, findIndex } from 'lodash';
 import { colors } from '@enums/fds/enums/fds-enums-colors';
+import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 
 @Component({
   selector: 'app-mesh',
@@ -54,7 +54,7 @@ export class MeshComponent implements OnInit, OnDestroy {
     public websocketService: WebsocketService,
     private uiStateService: UiStateService,
     private route: ActivatedRoute,
-    private readonly notifierService: NotifierService
+    private snackBarService: SnackBarService
   ) { }
 
   ngOnInit() {

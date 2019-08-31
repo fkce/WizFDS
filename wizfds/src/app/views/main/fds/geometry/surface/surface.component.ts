@@ -14,10 +14,10 @@ import { FdsEnums } from '@enums/fds/enums/fds-enums';
 import { IdGeneratorService } from '@services/id-generator/id-generator.service';
 import { colors } from '@enums/fds/enums/fds-enums-colors';
 import { WebsocketMessageObject } from '@services/websocket/websocket-message';
-import { NotifierService } from '../../../../../../../node_modules/angular-notifier';
 
 import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
 import { cloneDeep, find, set, findIndex, each } from 'lodash';
+import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 
 @Component({
   selector: 'app-surface',
@@ -60,7 +60,7 @@ export class SurfaceComponent implements OnInit, OnDestroy {
     private websocketService: WebsocketService,
     private uiStateService: UiStateService,
     private libraryService: LibraryService,
-    private readonly notifierService: NotifierService
+    private snackBarService: SnackBarService
   ) { }
 
   ngOnInit() {
@@ -86,28 +86,28 @@ export class SurfaceComponent implements OnInit, OnDestroy {
       (message) => {
         if (message.status == 'error') {
           this.surf = cloneDeep(this.surfOld);
-          this.notifierService.notify('error', 'CAD: Cannot sync ...');
+          this.snackBarService.notify('error', 'CAD: Cannot sync ...');
         }
         else if (message.status == 'success') {
           this.surfOld = cloneDeep(this.surf);
           if (message.method == 'createObstSurfWeb') {
             this.surf.idAC = message.data['idAC'];
-            this.notifierService.notify('success', 'CAD: Surface layer created');
+            this.snackBarService.notify('success', 'CAD: Surface layer created');
           }
           else if (message.method == 'updateObstSurfWeb') {
-            this.notifierService.notify('success', 'CAD: Surf updated');
+            this.snackBarService.notify('success', 'CAD: Surf updated');
           }
           else if (message.method == 'deleteObstSurfWeb') {
-            this.notifierService.notify('success', 'CAD: Surf deleted');
+            this.snackBarService.notify('success', 'CAD: Surf deleted');
           }
           else if (message.method == 'selectObjectWeb') {
-            this.notifierService.notify('success', 'CAD: Element selected');
+            this.snackBarService.notify('success', 'CAD: Element selected');
           }
         }
       },
       (error) => {
         this.surf = cloneDeep(this.surfOld);
-        this.notifierService.notify('error', 'CAD: Cannot sync ...');
+        this.snackBarService.notify('error', 'CAD: Cannot sync ...');
       }
     );
   }

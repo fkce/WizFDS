@@ -57,18 +57,28 @@ export class Xb {
     /** Recalculate area */
     public calcArea() {
         let area: number = 0;
-        setTimeout(() => {
-            if (this.z1 == this.z2) {
-                area = Math.abs((this.x2 - this.x1) * (this.y2 - this.y1));
-            }
-            else if (this.y1 == this.y2) {
-                area = Math.abs((this.x2 - this.x1) * (this.z2 - this.z1));
-            }
-            else if (this.x1 == this.x2) {
-                area = Math.abs((this.z2 - this.z1) * (this.z2 - this.z1));
-            }
-            this.area = area;
-        }, 50);
+        //setTimeout(() => {
+        //    if (this.z1 == this.z2) {
+        //        area = Math.abs((this.x2 - this.x1) * (this.y2 - this.y1));
+        //    }
+        //    else if (this.y1 == this.y2) {
+        //        area = Math.abs((this.x2 - this.x1) * (this.z2 - this.z1));
+        //    }
+        //    else if (this.x1 == this.x2) {
+        //        area = Math.abs((this.z2 - this.z1) * (this.z2 - this.z1));
+        //    }
+        //    this.area = area;
+        //}, 50);
+        if (this.z1 == this.z2) {
+            area = Math.abs((this.x2 - this.x1) * (this.y2 - this.y1));
+        }
+        else if (this.y1 == this.y2) {
+            area = Math.abs((this.x2 - this.x1) * (this.z2 - this.z1));
+        }
+        else if (this.x1 == this.x2) {
+            area = Math.abs((this.z2 - this.z1) * (this.z2 - this.z1));
+        }
+        this.area = area;
         return area;
     }
 

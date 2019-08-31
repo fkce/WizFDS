@@ -15,11 +15,11 @@ import { Main } from '@services/main/main';
 import { SurfVent } from '@services/fds-object/ventilation/surf-vent';
 import { IdGeneratorService } from '@services/id-generator/id-generator.service';
 import { colors } from '@enums/fds/enums/fds-enums-colors';
-import { NotifierService } from '../../../../../../../node_modules/angular-notifier';
 
 import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
 import { find, findIndex, cloneDeep, set, filter } from 'lodash';
 import { WebsocketMessageObject } from '@services/websocket/websocket-message';
+import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 
 @Component({
   selector: 'app-basic',
@@ -68,7 +68,7 @@ export class BasicComponent implements OnInit, OnDestroy {
     private uiStateService: UiStateService,
     private libraryService: LibraryService,
     private route: ActivatedRoute,
-    private readonly notifierService: NotifierService
+    private snackBarService: SnackBarService
   ) { }
 
   ngOnInit() {
@@ -97,7 +97,7 @@ export class BasicComponent implements OnInit, OnDestroy {
         else if (message.status == 'success') {
           this.surfOld = cloneDeep(this.surf);
           if (message.method == 'createVentSurfWeb') {
-            this.notifierService.notify('success', 'CAD: Vent layer created');
+            this.snackBarService.notify('success', 'CAD: Vent layer created');
           }
         }
       },

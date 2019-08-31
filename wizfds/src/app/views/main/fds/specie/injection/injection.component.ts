@@ -13,7 +13,6 @@ import { Fds } from '@services/fds-object/fds-object';
 import { Main } from '@services/main/main';
 import { IdGeneratorService } from '@services/id-generator/id-generator.service';
 import { colors } from '@enums/fds/enums/fds-enums-colors';
-import { NotifierService } from '../../../../../../../node_modules/angular-notifier';
 
 import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
 import { find, findIndex, cloneDeep, set, filter, forEach } from 'lodash';
@@ -21,6 +20,7 @@ import { WebsocketMessageObject } from '@services/websocket/websocket-message';
 import { VentSpec } from '@services/fds-object/specie/vent';
 import { SurfSpec } from '@services/fds-object/specie/surf-spec';
 import { Spec } from '@services/fds-object/specie/spec';
+import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 
 @Component({
   selector: 'app-injection',
@@ -72,7 +72,7 @@ export class InjectionComponent implements OnInit, OnDestroy {
     private uiStateService: UiStateService,
     private libraryService: LibraryService,
     private route: ActivatedRoute,
-    private readonly notifierService: NotifierService
+    private snackBarService: SnackBarService
   ) { }
 
   ngOnInit() {
@@ -103,7 +103,7 @@ export class InjectionComponent implements OnInit, OnDestroy {
         else if (message.status == 'success') {
           this.surfOld = cloneDeep(this.surf);
           if (message.method == 'createVentSurfWeb') {
-            this.notifierService.notify('success', 'CAD: Vent layer created');
+            this.snackBarService.notify('success', 'CAD: Vent layer created');
           }
         }
       },

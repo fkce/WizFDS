@@ -11,11 +11,11 @@ import { Spec } from '@services/fds-object/specie/spec';
 import { MainService } from '@services/main/main.service';
 import { UiStateService } from '@services/ui-state/ui-state.service';
 import { LibraryService } from '@services/library/library.service';
-import { NotifierService } from 'angular-notifier';
 import { IdGeneratorService } from '@services/id-generator/id-generator.service';
 
 import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
 import { map, filter, includes, find, findIndex, cloneDeep, set } from 'lodash';
+import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 
 @Component({
   selector: 'app-isosurface',
@@ -53,7 +53,7 @@ export class IsosurfaceComponent implements OnInit, OnDestroy {
     private mainService: MainService,
     private uiStateService: UiStateService,
     private libraryService: LibraryService,
-    private readonly notifierService: NotifierService,
+    private snackBarService: SnackBarService,
   ) { }
 
   ngOnInit() {
@@ -167,7 +167,7 @@ export class IsosurfaceComponent implements OnInit, OnDestroy {
       this.isof.values = libIsof.values;
     }
     else {
-        this.notifierService.notify('warning', 'Select current isof before merging');
+        this.snackBarService.notify('warning', 'Select current isof before merging');
     }
   }
 

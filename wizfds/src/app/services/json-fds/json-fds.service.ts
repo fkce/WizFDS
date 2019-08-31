@@ -1,7 +1,6 @@
 import { Injectable, isDevMode } from '@angular/core';
 import { Main } from '@services/main/main';
 import { MainService } from '@services/main/main.service';
-import { NotifierService } from 'angular-notifier';
 import { FdsEntities } from '@enums/fds/entities/fds-entities';
 import { IFds } from '@services/fds-object/fds-object';
 import { forEach, forOwn, unset, toUpper, has, includes, isArray, join, cloneDeep, concat, replace, each, toInteger } from 'lodash';
@@ -18,6 +17,7 @@ import { SurfSpec } from '@services/fds-object/specie/surf-spec';
 import { Spec } from '@services/fds-object/specie/spec';
 import { Color } from '@services/fds-object/primitives';
 import { Geom } from '@services/fds-object/geometry/geom';
+import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 
 @Injectable()
 export class JsonFdsService {
@@ -36,7 +36,7 @@ export class JsonFdsService {
 
   constructor(
     private mainService: MainService,
-    private readonly notifierService: NotifierService
+    private snackBarService: SnackBarService
   ) {
     this.mainService.getMain().subscribe(main => this.main = main);
   }

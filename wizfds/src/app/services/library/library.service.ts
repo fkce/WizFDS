@@ -1,11 +1,11 @@
 import { Injectable, isDevMode } from '@angular/core';
 import { BehaviorSubject ,  Observable ,  of } from 'rxjs';
-import { NotifierService } from 'angular-notifier';
 
 import { Result, HttpManagerService } from '@services/http-manager/http-manager.service';
 import { MainService } from '@services/main/main.service';
 import { Main } from '@services/main/main';
 import { Library } from './library';
+import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 
 @Injectable()
 export class LibraryService {
@@ -18,7 +18,7 @@ export class LibraryService {
   constructor(
     private mainService: MainService,
     private httpManager: HttpManagerService,
-    private readonly notifierService: NotifierService
+    private snackBarService: SnackBarService
   ) {
     this.mainService.getMain().subscribe(main => this.main = main);
   }
@@ -41,7 +41,7 @@ export class LibraryService {
   public loadLibrary() {
     this.httpManager.get(this.main.settings.hostAddress + '/api/library').then((result: Result) => {
       this.setLibrary(JSON.stringify(result.data));
-      this.notifierService.notify(result.meta.status, result.meta.details[0]);
+      this.snackBarService.notify(result.meta.status, result.meta.details[0]);
     });
   }
 
@@ -53,7 +53,7 @@ export class LibraryService {
         this.main.autoSave.libSaveFont = 'mdi mdi-content-save green';
       }
       if(!quiet) {
-        this.notifierService.notify(result.meta.status, result.meta.details[0]);
+        this.snackBarService.notify(result.meta.status, result.meta.details[0]);
       }
     });
   }

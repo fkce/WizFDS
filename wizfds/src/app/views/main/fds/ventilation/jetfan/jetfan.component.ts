@@ -13,12 +13,12 @@ import { Main } from '@services/main/main';
 import { LibraryService } from '@services/library/library.service';
 import { Library } from '@services/library/library';
 import { IdGeneratorService } from '@services/id-generator/id-generator.service';
-import { NotifierService } from 'angular-notifier';
 
 import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
 import { set, cloneDeep, find, forEach, findIndex, filter } from 'lodash';
 import { WebsocketMessageObject } from '@services/websocket/websocket-message';
 import { colors } from '@enums/fds/enums/fds-enums-colors';
+import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 
 @Component({
   selector: 'app-jetfan',
@@ -63,7 +63,7 @@ export class JetfanComponent implements OnInit, OnDestroy {
     private uiStateService: UiStateService,
     private libraryService: LibraryService,
     private route: ActivatedRoute,
-    private readonly notifierService: NotifierService,
+    private snackBarService: SnackBarService,
   ) { }
 
   ngOnInit() {
@@ -91,7 +91,7 @@ export class JetfanComponent implements OnInit, OnDestroy {
         else if (message.status == 'success') {
           this.jetfanOld = cloneDeep(this.jetfan);
           if (message.method == 'createJetfanSurfWeb') {
-            this.notifierService.notify('success', 'CAD: Jetfan layer created');
+            this.snackBarService.notify('success', 'CAD: Jetfan layer created');
           }
         }
       },
@@ -258,7 +258,7 @@ export class JetfanComponent implements OnInit, OnDestroy {
       }
     }
     else {
-      this.notifierService.notify('warning', 'Select current slcf before merging');
+      this.snackBarService.notify('warning', 'Select current slcf before merging');
     }
   }
 

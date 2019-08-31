@@ -7,9 +7,9 @@ import { MainService } from '@services/main/main.service';
 import { CadService } from '@services/cad/cad.service';
 import { remove, each, findIndex } from 'lodash';
 import { Fds } from '@services/fds-object/fds-object';
-import { NotifierService } from 'angular-notifier';
 import { Surf } from '@services/fds-object/geometry/surf';
 import { WebsocketMessageObject } from './websocket-message';
+import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 
 @Injectable({
   providedIn: 'root',
@@ -33,7 +33,7 @@ export class WebsocketService {
     private mainService: MainService,
     private cadService: CadService,
     private router: Router,
-    private readonly notifierService: NotifierService
+    private snackBarService: SnackBarService
   ) {
     this.mainService.getMain().subscribe(main => this.main = main);
   }
@@ -61,7 +61,7 @@ export class WebsocketService {
       this.ws = new WebSocket(this.WS_URL);
       this.ws.onopen = (e) => {
         this.isConnected = true;
-        this.notifierService.notify('success', 'CAD connection opened');
+        this.snackBarService.notify('success', 'CAD connection opened');
       };
 
       this.ws.onclose = (e) => {
@@ -94,7 +94,7 @@ export class WebsocketService {
       }
 
       return () => {
-        this.notifierService.notify('warning', 'CAD connection closed');
+        this.snackBarService.notify('warning', 'CAD connection closed');
         this.ws.close();
         this.isConnected = false;
       };
@@ -164,7 +164,7 @@ export class WebsocketService {
           if (this.main.currentFdsScenario != undefined) {
             this.fds = this.main.currentFdsScenario.fdsObject;
             this.fExport(message.data);
-            this.notifierService.notify('success', 'Geometry imported');
+            this.snackBarService.notify('success', 'Geometry imported');
           }
           break;
         }
@@ -224,7 +224,7 @@ export class WebsocketService {
 
           this.fds = this.main.currentFdsScenario.fdsObject;
           this.fExport(message.data);
-          this.notifierService.notify('success', 'Geometry imported');
+          this.snackBarService.notify('success', 'Geometry imported');
 
           break;
         }
@@ -234,7 +234,7 @@ export class WebsocketService {
 
           this.fds = this.main.currentFdsScenario.fdsObject;
           this.fSelect(message.data);
-          this.notifierService
+          //this.notifierService
 
           break;
         }

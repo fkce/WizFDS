@@ -23,7 +23,8 @@ export interface IAutoSave {
     libDiffer: object,
     libSaveFont: string,
     libTimeout: any,
-    timeoutScenarioId: number
+    timeoutScenarioId: number,
+    disable: boolean
 }
 export interface IIdle {
     timer: any,
@@ -86,7 +87,8 @@ export class Main {
             libDiffer: null,
             libSaveFont: 'mdi mdi-content-save',
             libTimeout: null,
-            timeoutScenarioId: 0
+            timeoutScenarioId: 0,
+            disable: false
         }
 
         this.idle = {

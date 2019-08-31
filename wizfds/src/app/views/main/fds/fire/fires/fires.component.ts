@@ -14,7 +14,6 @@ import { Library } from '@services/library/library';
 import { IdGeneratorService } from '@services/id-generator/id-generator.service';
 import { colors } from '@enums/fds/enums/fds-enums-colors';
 import { FdsEnums } from '@enums/fds/enums/fds-enums';
-import { NotifierService } from '../../../../../../../node_modules/angular-notifier';
 
 import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
 import { set, cloneDeep, find, findIndex, filter, isObject, toNumber, round } from 'lodash';
@@ -23,6 +22,7 @@ import { WebsocketMessageObject } from '@services/websocket/websocket-message';
 import { MatDialog, MatDialogRef, MatDialogConfig } from '@angular/material/dialog';
 import { CustomRampDialogComponent } from './custom-ramp-dialog/custom-ramp-dialog.component';
 import { RampChartComponent } from '../../shared/ramp-chart/ramp-chart.component';
+import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 
 @Component({
   selector: 'app-fires',
@@ -73,7 +73,7 @@ export class FiresComponent implements OnInit, OnDestroy {
     private uiStateService: UiStateService,
     private libraryService: LibraryService,
     private route: ActivatedRoute,
-    private readonly notifierService: NotifierService,
+    private snackBarService: SnackBarService,
     private customRampDialog: MatDialog
   ) { }
 
@@ -101,7 +101,7 @@ export class FiresComponent implements OnInit, OnDestroy {
         else if (message.status == 'success') {
           this.fireOld = cloneDeep(this.fire);
           if (message.method == 'createFireSurfWeb') {
-            this.notifierService.notify('success', 'CAD: Fire layer created');
+            this.snackBarService.notify('success', 'CAD: Fire layer created');
           }
         }
       },
@@ -311,16 +311,16 @@ export class FiresComponent implements OnInit, OnDestroy {
 
           // Improper data handling
           if(data['alpha'] <= 0 || !data['alpha'] || data['alpha'] == "") {
-            this.notifierService.notify('error', 'Alpha1 must be grater than zero');
+            this.snackBarService.notify('error', 'Alpha1 must be grater than zero');
           }
           else if(data['maxHrr'] <= 0 || !data['maxHrr'] || data['maxHrr'] == "") {
-            this.notifierService.notify('error', 'Max HRR must be grater than zero');
+            this.snackBarService.notify('error', 'Max HRR must be grater than zero');
           }
           else if(data['sprinklerActivationTime'] <= 0 || !data['sprinklerActivationTime'] || data['sprinklerActivationTime'] == "") {
-            this.notifierService.notify('error', 'Sprinkler activation time must be grater than zero');
+            this.snackBarService.notify('error', 'Sprinkler activation time must be grater than zero');
           }
           else if(data['step'] <= 0 || !data['step'] || data['step'] == "") {
-            this.notifierService.notify('error', 'Time step must be grater than zero');
+            this.snackBarService.notify('error', 'Time step must be grater than zero');
           }
           else {
             this.generateCustomRamp();

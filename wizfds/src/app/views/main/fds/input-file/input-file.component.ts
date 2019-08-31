@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, OnDestroy, isDevMode, HostListener } from '@angular/core';
+import { Component, OnInit, ViewChild, OnDestroy, isDevMode } from '@angular/core';
 
 import * as CodeMirror from 'codemirror';
 import 'codemirror/keymap/vim';
@@ -146,7 +146,9 @@ export class InputFileComponent implements OnInit, OnDestroy {
 
   public downloadFile() {
     let blob = new Blob([this.cm.getValue()], { type: "text/plain;charset=utf-8" });
+    console.log('111');
     saveAs(blob, this.main.currentFdsScenario.name + ".fds");
+    console.log('222');
   }
 
   /**

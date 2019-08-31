@@ -10,8 +10,8 @@ import { UiState } from '@services/ui-state/ui-state';
 import { UiStateService } from '@services/ui-state/ui-state.service';
 import { Result } from '@services/http-manager/http-manager.service';
 
-import { NotifierService } from 'angular-notifier';
 import { find, forEach, remove, findIndex } from 'lodash';
+import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 
 @Component({
   selector: 'app-projects',
@@ -27,12 +27,13 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   mainSub;
   uiSub;
 
-  constructor(private mainService: MainService,
+  constructor(
+    private mainService: MainService,
     private projectService: ProjectService,
     private fdsScenarioService: FdsScenarioService,
     public uiStateService: UiStateService,
     private categoryService: CategoryService,
-    private readonly notifierService: NotifierService
+    private snackBarService: SnackBarService
   ) { }
 
   ngOnInit() {
@@ -95,7 +96,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
         let data = result.data;
         let project = new Project(JSON.stringify({ id: data['id'], name: data['name'], description: data['description'], category: data['category_id'] }));
         this.main.projects.splice(0, 0, project);
-        this.notifierService.notify(result.meta.status, result.meta.details[0]);
+        this.snackBarService.notify(result.meta.status, result.meta.details[0]);
         this.updateProjectsList();
       });
   }
@@ -117,7 +118,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     this.projectService.deleteProject(projectId).then((result: Result) => {
       ;
       this.main.projects.splice(findIndex(this.main.projects, function (o) { return o.id == project.id }), 1);
-      this.notifierService.notify(result.meta.status, result.meta.details[0]);
+      this.snackBarService.notify(result.meta.status, result.meta.details[0]);
       this.updateProjectsList();
     });
   }
@@ -150,11 +151,13 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   public setCurrentFdsScenario(projectId: number, fdsScenarioId: number) {
     if (this.main.currentFdsScenario != undefined) {
       if (this.main.currentFdsScenario.id != fdsScenarioId) {
-        this.fdsScenarioService.setCurrentFdsScenario(projectId, fdsScenarioId).subscribe();
+        //this.fdsScenarioService.setCurrentFdsScenario(projectId, fdsScenarioId).subscribe();
+        this.fdsScenarioService.setCurrentFdsScenario(projectId, fdsScenarioId);
       }
     }
     else {
-      this.fdsScenarioService.setCurrentFdsScenario(projectId, fdsScenarioId).subscribe();
+      //this.fdsScenarioService.setCurrentFdsScenario(projectId, fdsScenarioId).subscribe();
+      this.fdsScenarioService.setCurrentFdsScenario(projectId, fdsScenarioId);
     }
   }
 

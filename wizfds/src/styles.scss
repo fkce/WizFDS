@@ -275,16 +275,28 @@ ng-katex {
   padding-left: 0.5rem;
 }
 
-// Angular notifier import & modifications
-@import "~angular-notifier/styles.scss";
-.notifier__notification--material {
-  padding: {
-    top: 2px;
-    right: 22px;
-    bottom: 1px;
-    left: 22px;
-  }
+// Angular snack-bar
+.info {
+    background: #5bc0de;
+    color: $white;
+    font-family: "Play" !important;
 }
+.error {
+    background: #d9534f;
+    color: $white;
+    font-family: "Play" !important;
+}
+.success {
+    background: #5cb85c;
+    color: $white;
+    font-family: "Play" !important;
+}
+.warning {
+    background: #f0ad4e;
+    color: $white;
+    font-family: "Play" !important;
+}
+
 
 // Angular theme
 @import "~@angular/material/prebuilt-themes/pink-bluegrey.css";

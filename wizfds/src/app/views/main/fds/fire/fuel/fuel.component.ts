@@ -12,9 +12,9 @@ import { Spec } from '@services/fds-object/specie/spec';
 import { IdGeneratorService } from '@services/id-generator/id-generator.service';
 import { FdsEnums } from '@enums/fds/enums/fds-enums';
 
-import { NotifierService } from 'angular-notifier';
 import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
 import { findIndex, find, cloneDeep, set, remove } from 'lodash';
+import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 
 @Component({
   selector: 'app-fuel',
@@ -53,7 +53,7 @@ export class FuelComponent implements OnInit, OnDestroy {
     private mainService: MainService,
     private uiStateService: UiStateService,
     private libraryService: LibraryService,
-    private readonly notifierService: NotifierService
+    private snackBarService: SnackBarService
   ) { }
 
   ngOnInit() {
@@ -113,7 +113,7 @@ export class FuelComponent implements OnInit, OnDestroy {
         this.activate(element.id);
       }
       else {
-        this.notifierService.notify('warning', 'You can specify only one fuel');
+        this.snackBarService.notify('warning', 'You can specify only one fuel');
       }
     }
     else {

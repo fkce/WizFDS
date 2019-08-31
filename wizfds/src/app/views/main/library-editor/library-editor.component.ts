@@ -5,7 +5,6 @@ import { MainService } from '@services/main/main.service';
 import { Main } from '@services/main/main';
 import { Library } from '@services/library/library';
 import { LibraryService } from '@services/library/library.service';
-import { NotifierService } from '../../../../../node_modules/angular-notifier';
 
 import * as CodeMirror from 'codemirror';
 import 'codemirror/keymap/vim';
@@ -18,6 +17,7 @@ import 'codemirror/addon/display/fullscreen';
 import 'codemirror/addon/fold/foldcode';
 import 'codemirror/addon/fold/foldgutter';
 import 'codemirror/addon/fold/fds-fold';
+import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 
 @Component({
   selector: 'app-library-editor',
@@ -70,7 +70,7 @@ export class LibraryEditorComponent implements OnInit, OnDestroy {
 
   constructor(
     private mainService: MainService,
-    private readonly notifierService: NotifierService,
+    private snackBarService: SnackBarService,
     private libraryService: LibraryService
   ) {
   }
@@ -127,7 +127,7 @@ export class LibraryEditorComponent implements OnInit, OnDestroy {
       this.libraryService.updateLibrary();
     }
     else {
-      this.notifierService.notify('error', parseLibrary);
+      this.snackBarService.notify('error', parseLibrary);
     }
   }
 
@@ -158,7 +158,7 @@ export class LibraryEditorComponent implements OnInit, OnDestroy {
         this.cm.setValue(input);
       }
       else {
-        this.notifierService.notify('error', parseLibrary);
+        this.snackBarService.notify('error', parseLibrary);
       }
 
     }

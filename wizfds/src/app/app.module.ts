@@ -11,15 +11,13 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule } from '@angular/material/dialog';
+import { MatSnackBarModule, MAT_SNACK_BAR_DEFAULT_OPTIONS } from '@angular/material/snack-bar';
 
 // Ng-select
 import { NgSelectModule } from '@ng-select/ng-select';
 
 // KaTex
 import { KatexModule } from 'ng-katex';
-
-// angular-notifier
-import { NotifierModule } from 'angular-notifier';
 
 // Perfect Scrollbar
 import { PerfectScrollbarModule } from 'ngx-perfect-scrollbar';
@@ -36,11 +34,11 @@ import { HttpManagerInterceptor } from './services/http-manager/http-manager-int
 import { HttpManagerService } from './services/http-manager/http-manager.service';
 
 // Services
-import { webSocket } from 'rxjs/observable/dom/webSocket';
 import { WebsocketService } from './services/websocket/websocket.service';
 import { FdsScenarioService } from './services/fds-scenario/fds-scenario.service';
 import { ProjectService } from './services/project/project.service';
 import { MainService } from './services/main/main.service';
+import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 
 // Components
 import { AppComponent } from './app.component';
@@ -55,7 +53,6 @@ import { ObstructionComponent } from './views/main/fds/geometry/obstruction/obst
 // Directives
 import { IntegerInputDirective } from './directives/inputs/integer-input.directive';
 
-import { NotificationComponent } from './views/main/notification/notification.component';
 import { IdGeneratorService } from './services/id-generator/id-generator.service';
 import { CadService } from './services/cad/cad.service';
 import { LibraryService } from './services/library/library.service';
@@ -106,7 +103,6 @@ import { MinSecPipe } from './pipes/min-sec/min-sec.pipe';
     MeshComponent,
     GeneralComponent,
     ObstructionComponent,
-    NotificationComponent,
     FdsMenuComponent,
     UserSettingsComponent,
     IntegerInputDirective,
@@ -149,15 +145,12 @@ import { MinSecPipe } from './pipes/min-sec/min-sec.pipe';
     KatexModule,
     PerfectScrollbarModule,
     NgSelectModule,
-    NotifierModule.withConfig({
-      position: { horizontal: { position: 'right', } },
-      behaviour: { autoHide: 3000, },
-    }),
     BrowserAnimationsModule,
     MatTooltipModule,
     MatProgressBarModule,
     MatCheckboxModule,
-    MatDialogModule
+    MatDialogModule,
+    MatSnackBarModule
   ],
   providers: [
     MainService,
@@ -179,7 +172,16 @@ import { MinSecPipe } from './pipes/min-sec/min-sec.pipe';
     {
       provide: PERFECT_SCROLLBAR_CONFIG,
       useValue: DEFAULT_PERFECT_SCROLLBAR_CONFIG
-    }
+    },
+    {
+      provide: MAT_SNACK_BAR_DEFAULT_OPTIONS,
+      useValue: {
+        duration: 800,
+        horizontalPosition: 'right',
+        verticalPosition: 'bottom'
+      }
+    },
+    SnackBarService
   ],
   entryComponents: [
     CustomRampDialogComponent

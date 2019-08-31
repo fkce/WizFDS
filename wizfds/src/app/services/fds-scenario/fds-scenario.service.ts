@@ -6,9 +6,9 @@ import { Observable, of } from 'rxjs';
 import { find, findIndex, filter, forEach, split, toNumber, last } from 'lodash';
 import { FdsScenario } from './fds-scenario';
 import { Fds } from '../fds-object/fds-object';
-import { NotifierService } from 'angular-notifier';
 import { UiStateService } from '../ui-state/ui-state.service';
 import { UiState } from '@services/ui-state/ui-state';
+import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 
 @Injectable()
 export class FdsScenarioService {
@@ -19,7 +19,7 @@ export class FdsScenarioService {
     private mainService: MainService,
     private httpManager: HttpManagerService,
     private uiStateService: UiStateService,
-    private readonly notifierService: NotifierService
+    private snackBarService: SnackBarService
   ) {
     this.mainService.getMain().subscribe(main => this.main = main);
   }
@@ -33,7 +33,10 @@ export class FdsScenarioService {
     // Set current scenario in main object
     this.httpManager.get(this.main.settings.hostAddress + '/api/fdsScenario/' + fdsScenarioId).then((result: Result) => {
 
+      // Disable autoSave besause of performance
+      this.main.autoSave.disable = true;
       this.main.currentFdsScenario = new FdsScenario(JSON.stringify(result.data));
+      this.main.autoSave.disable = false;
 
       // Set current project in main object
       let project = find(this.main.projects, function (o) {
@@ -44,7 +47,7 @@ export class FdsScenarioService {
       this.uiStateService.setUiState();
       this.main.autoSave.fdsObjectSaveFont = 'mdi mdi-content-save';
       this.main.autoSave.libSaveFont = 'mdi mdi-content-save';
-      this.notifierService.notify(result.meta.status, result.meta.details[0]);
+      this.snackBarService.notify(result.meta.status, result.meta.details[0]);
       this.mainService.resetIdle();
     });
 
@@ -62,7 +65,7 @@ export class FdsScenarioService {
       let fdsScenario = new FdsScenario(JSON.stringify({ id: data['id'], projectId: data['projectId'], name: data['name'], fdsObject: new Fds(JSON.stringify({})) }));
       // add ui state in fdsscenario constructor ???
       this.main.currentProject.fdsScenarios.push(fdsScenario);
-      this.notifierService.notify(result.meta.status, result.meta.details[0]);
+      this.snackBarService.notify(result.meta.status, result.meta.details[0]);
       this.setCurrentFdsScenario(projectId, fdsScenario.id);
       this.mainService.resetIdle();
     });
@@ -98,7 +101,7 @@ export class FdsScenarioService {
           clearTimeout(this.main.autoSave.fdsObjectTimeout);
           this.main.autoSave.fdsObjectSaveFont = 'mdi mdi-content-save green';
         }
-        this.notifierService.notify(result.meta.status, result.meta.details[0]);
+        this.snackBarService.notify(result.meta.status, result.meta.details[0]);
         this.mainService.resetIdle();
       });
     }
@@ -112,7 +115,7 @@ export class FdsScenarioService {
           clearTimeout(this.main.autoSave.fdsObjectTimeout);
           this.main.autoSave.fdsObjectSaveFont = 'mdi mdi-content-save green';
         }
-        this.notifierService.notify(result.meta.status, result.meta.details[0]);
+        this.snackBarService.notify(result.meta.status, result.meta.details[0]);
         this.mainService.resetIdle();
       });
     }
@@ -128,7 +131,7 @@ export class FdsScenarioService {
           this.mainService.resetIdle();
         }
         if (!quiet) {
-          this.notifierService.notify(result.meta.status, result.meta.details[0]);
+          this.snackBarService.notify(result.meta.status, result.meta.details[0]);
           this.mainService.resetIdle();
         }
       });
@@ -183,10 +186,10 @@ export class FdsScenarioService {
           this.main.projects[projectIndex].fdsScenarios[fdsScenarioIndex] = fdsScenario;
 
           if (result.meta.status == 'success') {
-            this.notifierService.notify(result.meta.status, fdsScenario.name + ' duplicated');
+            this.snackBarService.notify(result.meta.status, fdsScenario.name + ' duplicated');
           }
           else {
-            this.notifierService.notify(result.meta.status, fdsScenario.name + ' not duplicated');
+            this.snackBarService.notify(result.meta.status, fdsScenario.name + ' not duplicated');
           }
           this.mainService.resetIdle();
         });
@@ -203,7 +206,7 @@ export class FdsScenarioService {
     this.httpManager.delete(this.main.settings.hostAddress + '/api/fdsScenario/' + fdsScenarioId).then((result: Result) => {
       let project = find(this.main.projects, function (o) { return o.id == projectId });
       project.fdsScenarios.splice(findIndex(project.fdsScenarios, function (o) { return o.id == fdsScenarioId }), 1);
-      this.notifierService.notify(result.meta.status, result.meta.details[0]);
+      this.snackBarService.notify(result.meta.status, result.meta.details[0]);
       this.mainService.resetIdle();
     });
   }

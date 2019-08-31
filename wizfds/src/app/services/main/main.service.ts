@@ -3,7 +3,7 @@ import { BehaviorSubject, Observable, of, timer } from 'rxjs';
 import { Main } from './main';
 import { HttpManagerService, Result } from '@services/http-manager/http-manager.service';
 import { each } from 'lodash';
-import { NotifierService } from 'angular-notifier';
+import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 
 @Injectable()
 export class MainService {
@@ -14,7 +14,7 @@ export class MainService {
 
   constructor(
     private httpManager: HttpManagerService,
-    private readonly notifierService: NotifierService
+    private snackBarService: SnackBarService
   ) {
     this.getSettings();
   }
@@ -40,13 +40,13 @@ export class MainService {
       this.main.idle.timeout = main.idle.timeout;
       this.main.websocket.host = main.websocket.host;
       this.main.websocket.port = main.websocket.port;
-      this.notifierService.notify(result.meta.status, result.meta.details[0]);
+      this.snackBarService.notify(result.meta.status, result.meta.details[0]);
     });
   }
 
   public updateSettings() {
     this.httpManager.put(this.main.settings.hostAddress + '/api/settings/' + this.main.userId, this.main.toJSON()).then((result: Result) => {
-      this.notifierService.notify(result.meta.status, result.meta.details[0]);
+      this.snackBarService.notify(result.meta.status, result.meta.details[0]);
       this.resetIdle();
     });
   }

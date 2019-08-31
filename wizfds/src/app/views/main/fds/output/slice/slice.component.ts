@@ -16,10 +16,10 @@ import { FdsEnums } from '@enums/fds/enums/fds-enums';
 import { Quantity } from '@services/fds-object/primitives';
 import { Spec } from '@services/fds-object/specie/spec';
 
-import { NotifierService } from 'angular-notifier';
 import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
 import { filter, map, includes, cloneDeep, find, findIndex, set, remove, merge } from 'lodash';
 import { WebsocketMessageObject } from '@services/websocket/websocket-message';
+import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 
 @Component({
   selector: 'app-slice',
@@ -62,7 +62,7 @@ export class SliceComponent implements OnInit, OnDestroy {
     private uiStateService: UiStateService,
     private libraryService: LibraryService,
     private route: ActivatedRoute,
-    private readonly notifierService: NotifierService
+    private snackBarService: SnackBarService
   ) { }
 
   ngOnInit() {
@@ -88,7 +88,7 @@ export class SliceComponent implements OnInit, OnDestroy {
         else if (message.status == 'success') {
           this.slcfOld = cloneDeep(this.slcf);
           if (message.method == 'createSlcfSurfWeb') {
-            this.notifierService.notify('success', 'CAD: Slice layer created');
+            this.snackBarService.notify('success', 'CAD: Slice layer created');
           }
         }
       },
@@ -209,7 +209,7 @@ export class SliceComponent implements OnInit, OnDestroy {
       this.slcf.quantities = libSlcf.quantities;
     }
     else {
-      this.notifierService.notify('warning', 'Select current slcf before merging');
+      this.snackBarService.notify('warning', 'Select current slcf before merging');
     }
   }
 

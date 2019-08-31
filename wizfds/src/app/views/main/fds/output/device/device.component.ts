@@ -12,7 +12,6 @@ import { Spec } from '@services/fds-object/specie/spec';
 import { MainService } from '@services/main/main.service';
 import { UiStateService } from '@services/ui-state/ui-state.service';
 import { LibraryService } from '@services/library/library.service';
-import { NotifierService } from 'angular-notifier';
 import { IdGeneratorService } from '@services/id-generator/id-generator.service';
 import { FdsEnums } from '@enums/fds/enums/fds-enums';
 import { WebsocketService } from '@services/websocket/websocket.service';
@@ -20,6 +19,7 @@ import { WebsocketService } from '@services/websocket/websocket.service';
 import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
 import { map, filter, includes, find, findIndex, cloneDeep, set } from 'lodash';
 import { WebsocketMessageObject } from '@services/websocket/websocket-message';
+import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 
 @Component({
   selector: 'app-device',
@@ -61,7 +61,7 @@ export class DeviceComponent implements OnInit, OnDestroy {
     private uiStateService: UiStateService,
     private libraryService: LibraryService,
     private route: ActivatedRoute,
-    private readonly notifierService: NotifierService,
+    private snackBarService: SnackBarService,
     public websocketService: WebsocketService
   ) { }
 
@@ -83,18 +83,18 @@ export class DeviceComponent implements OnInit, OnDestroy {
       (message) => {
         if (message.status == 'error') {
           this.devc = cloneDeep(this.devcOld);
-          this.notifierService.notify('error', 'CAD: Cannot sync ...');
+          this.snackBarService.notify('error', 'CAD: Cannot sync ...');
         }
         else if (message.status == 'success') {
           this.devcOld = cloneDeep(this.devc);
           if (message.method == 'createDevcSurfWeb') {
-            this.notifierService.notify('success', 'CAD: Device layer created');
+            this.snackBarService.notify('success', 'CAD: Device layer created');
           }
         }
       },
       (error) => {
         this.devc = cloneDeep(this.devcOld);
-        this.notifierService.notify('error', 'CAD: Cannot sync ...');
+        this.snackBarService.notify('error', 'CAD: Cannot sync ...');
       }
     );
 
@@ -214,7 +214,7 @@ export class DeviceComponent implements OnInit, OnDestroy {
       this.devc.trip_direction = libDevc.trip_direction;
     }
     else {
-      this.notifierService.notify('warning', 'Select current devc before merging');
+      this.snackBarService.notify('warning', 'Select current devc before merging');
     }
   }
 
