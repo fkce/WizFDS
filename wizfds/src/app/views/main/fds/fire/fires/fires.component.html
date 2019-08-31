@@ -220,7 +220,7 @@
         <div>
           <label>X1:</label>
           <div class="field-container">
-            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="fire.vent.xb.x1" (change)="fire.calcArea()"
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="fire.vent.xb.x1" (ngModelChange)="fire.calcArea()"
               decimalInput />
             <ng-katex equation="m"></ng-katex>
           </div>
@@ -228,7 +228,7 @@
         <div>
           <label>X2:</label>
           <div class=" field-container ">
-            <input type="text " [ngModelOptions]="{updateOn: 'blur'} " [(ngModel)]="fire.vent.xb.x2" (change)="fire.calcArea()"
+            <input type="text " [ngModelOptions]="{updateOn: 'blur'} " [(ngModel)]="fire.vent.xb.x2" (ngModelChange)="fire.calcArea()"
               decimalInput />
             <ng-katex equation="m"></ng-katex>
           </div>
@@ -236,7 +236,7 @@
         <div>
           <label>Y1:</label>
           <div class="field-container">
-            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="fire.vent.xb.y1" (change)="fire.calcArea()"
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="fire.vent.xb.y1" (ngModelChange)="fire.calcArea()"
               decimalInput />
             <ng-katex equation="m"></ng-katex>
           </div>
@@ -244,7 +244,7 @@
         <div>
           <label>Y2:</label>
           <div class=" field-container ">
-            <input type="text " [ngModelOptions]="{updateOn: 'blur'} " [(ngModel)]="fire.vent.xb.y2" (change)="fire.calcArea()"
+            <input type="text " [ngModelOptions]="{updateOn: 'blur'} " [(ngModel)]="fire.vent.xb.y2" (ngModelChange)="fire.calcArea()"
               decimalInput />
             <ng-katex equation="m"></ng-katex>
           </div>
@@ -252,7 +252,7 @@
         <div>
           <label>Z1:</label>
           <div class="field-container">
-            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="fire.vent.xb.z1" (change)="fire.calcArea()"
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="fire.vent.xb.z1" (ngModelChange)="fire.calcArea()"
               decimalInput />
             <ng-katex equation="m"></ng-katex>
           </div>
@@ -260,7 +260,7 @@
         <div>
           <label>Z2:</label>
           <div class=" field-container ">
-            <input type="text " [ngModelOptions]="{updateOn: 'blur'} " [(ngModel)]="fire.vent.xb.z2" (change)="fire.calcArea()"
+            <input type="text " [ngModelOptions]="{updateOn: 'blur'} " [(ngModel)]="fire.vent.xb.z2" (ngModelChange)="fire.calcArea()"
               decimalInput />
             <ng-katex equation="m"></ng-katex>
           </div>
