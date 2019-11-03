@@ -27,7 +27,6 @@ namespace WizFDS.Ribbon
         public static RibbonButton lHideFdsBtn = new RibbonButton();
         public static RibbonButton lHideOtherBtn = new RibbonButton();
 
-        static RibbonPanel cfastPanel = new RibbonPanel();
         static RibbonPanel syncPanel = new RibbonPanel();
 
         public Ribbon()
@@ -68,225 +67,128 @@ namespace WizFDS.Ribbon
             try
             {
                 RibbonControl ribbonControl = ComponentManager.Ribbon;
-                RibbonTab Tab = new RibbonTab();
-                Tab.Title = "WizFDS";
-                Tab.Id = "wizfds_id2586";
+                RibbonTab Tab = new RibbonTab
+                {
+                    Title = "WizFDS",
+                    Id = "wizfds_id2586"
+                };
                 ribbonControl.Tabs.Add(Tab);
-                // Cfast Panel
-                RibbonPanelSource cfastPanelSource = new RibbonPanelSource();
-                cfastPanelSource.Title = "CFAST model";
-                cfastPanel.Source = cfastPanelSource;
-                Tab.Panels.Add(cfastPanel);
 
-#if AAMKS
-        #region Cfast panel
-                // Cfast buttons
-                RibbonButton cRoomBtn = new RibbonButton();
-                cRoomBtn.Text = "Room";
-                cRoomBtn.Name = "Room";
-                cRoomBtn.ShowText = true;
-                cRoomBtn.ShowImage = true;
-                cRoomBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                cRoomBtn.LargeImage = Images.getBitmap(Properties.Resources.obstLarge);
-                cRoomBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                cRoomBtn.Size = RibbonItemSize.Large;
-                cRoomBtn.CommandHandler = new RibbonCommandHandler();
-
-                RibbonButton cCorridorBtn = new RibbonButton();
-                cCorridorBtn.Text = "Corridor";
-                cCorridorBtn.Name = "Corridor";
-                cCorridorBtn.ShowText = true;
-                cCorridorBtn.ShowImage = true;
-                cCorridorBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                cCorridorBtn.LargeImage = Images.getBitmap(Properties.Resources.corridorLarge);
-                cCorridorBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                cCorridorBtn.Size = RibbonItemSize.Large;
-                cCorridorBtn.CommandHandler = new RibbonCommandHandler();
-
-                RibbonButton cHallBtn = new RibbonButton();
-                cHallBtn.Text = "Hall";
-                cHallBtn.Name = "Hall";
-                cHallBtn.ShowText = true;
-                cHallBtn.ShowImage = true;
-                cHallBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                cHallBtn.LargeImage = Images.getBitmap(Properties.Resources.obstLarge);
-                cHallBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                cHallBtn.Size = RibbonItemSize.Large;
-                cHallBtn.CommandHandler = new RibbonCommandHandler();
-
-                RibbonButton cStairBtn = new RibbonButton();
-                cStairBtn.Text = "Staircase";
-                cStairBtn.Name = "Staircase";
-                cStairBtn.ShowText = true;
-                cStairBtn.ShowImage = true;
-                cStairBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                cStairBtn.LargeImage = Images.getBitmap(Properties.Resources.staircaseLarge);
-                cStairBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                cStairBtn.Size = RibbonItemSize.Large;
-                cStairBtn.CommandHandler = new RibbonCommandHandler();
-
-                // Add to main panel
-                cfastPanelSource.Items.Add(cRoomBtn);
-                cfastPanelSource.Items.Add(cCorridorBtn);
-                cfastPanelSource.Items.Add(cHallBtn);
-                cfastPanelSource.Items.Add(cStairBtn);
-                cfastPanelSource.Items.Add(new RibbonSeparator());
-
-                RibbonButton cDoorBtn = new RibbonButton();
-                cDoorBtn.Text = "Door";
-                cDoorBtn.Name = "Door";
-                cDoorBtn.ShowText = true;
-                cDoorBtn.ShowImage = true;
-                cDoorBtn.Image = Images.getBitmap(Properties.Resources.door);
-                cDoorBtn.LargeImage = Images.getBitmap(Properties.Resources.doorLarge);
-                cDoorBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                cDoorBtn.Size = RibbonItemSize.Large;
-                cDoorBtn.CommandHandler = new RibbonCommandHandler();
-
-                RibbonButton cWindowBtn = new RibbonButton();
-                cWindowBtn.Text = "Window";
-                cWindowBtn.Name = "Window";
-                cWindowBtn.ShowText = true;
-                cWindowBtn.ShowImage = true;
-                cWindowBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                cWindowBtn.LargeImage = Images.getBitmap(Properties.Resources.windowLarge);
-                cWindowBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                cWindowBtn.Size = RibbonItemSize.Large;
-                cWindowBtn.CommandHandler = new RibbonCommandHandler();
-
-                RibbonButton cInletBtn = new RibbonButton();
-                cInletBtn.Text = "Inlet";
-                cInletBtn.Name = "Inlet";
-                cInletBtn.ShowText = true;
-                cInletBtn.ShowImage = true;
-                cInletBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                cInletBtn.LargeImage = Images.getBitmap(Properties.Resources.inletLarge);
-                cInletBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                cInletBtn.Size = RibbonItemSize.Large;
-                cInletBtn.CommandHandler = new RibbonCommandHandler();
-
-                cfastPanelSource.Items.Add(cDoorBtn);
-                cfastPanelSource.Items.Add(cWindowBtn);
-                cfastPanelSource.Items.Add(cInletBtn);
-
-                RibbonButton cVventBtn = new RibbonButton();
-                cVventBtn.Text = "Vvent";
-                cVventBtn.Name = "Vvent";
-                cVventBtn.ShowText = true;
-                cVventBtn.ShowImage = true;
-                cVventBtn.Image = Images.getBitmap(Properties.Resources.vent);
-                cVventBtn.LargeImage = Images.getBitmap(Properties.Resources.defaultIcoLarge);
-                cVventBtn.CommandHandler = new RibbonCommandHandler();
-
-                RibbonButton cHoleBtn = new RibbonButton();
-                cHoleBtn.Text = "Auto Hole";
-                cHoleBtn.Name = "Holeaut";
-                cHoleBtn.ShowText = true;
-                cHoleBtn.ShowImage = true;
-                cHoleBtn.Image = Images.getBitmap(Properties.Resources.holeaut);
-                cHoleBtn.LargeImage = Images.getBitmap(Properties.Resources.defaultIcoLarge);
-                //cHoleBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                //cHoleBtn.Size = RibbonItemSize.Large;
-                cHoleBtn.CommandHandler = new RibbonCommandHandler();
-
-                RibbonButton cHolemanBtn = new RibbonButton();
-                cHolemanBtn.Text = "Hole";
-                cHolemanBtn.Name = "Holeman";
-                cHolemanBtn.ShowText = true;
-                cHolemanBtn.ShowImage = true;
-                cHolemanBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                cHolemanBtn.LargeImage = Images.getBitmap(Properties.Resources.defaultIcoLarge);
-                cHolemanBtn.CommandHandler = new RibbonCommandHandler();
-
-                // Create row panel 
-                RibbonRowPanel cVentRow = new RibbonRowPanel();
-                cVentRow.Items.Add(cVventBtn);
-                cVentRow.Items.Add(new RibbonRowBreak());
-                cVentRow.Items.Add(cHoleBtn);
-                cVentRow.Items.Add(new RibbonRowBreak());
-                cVentRow.Items.Add(cHolemanBtn);
-
-                cfastPanelSource.Items.Add(cVentRow);
-        #endregion
-#endif
-
-#if WIZFDS
-
-        #region FDS Geometry Panel
+                #region FDS Geometry Panel
                 // FDS Geometry Panel
-                Autodesk.Windows.RibbonPanelSource fdsGeometryPanelSource = new RibbonPanelSource();
-                fdsGeometryPanelSource.Title = "FDS Geometry";
+                RibbonPanelSource fdsGeometryPanelSource = new RibbonPanelSource
+                {
+                    Title = "Geometry"
+                };
                 RibbonPanel fdsGeometryPanel = new RibbonPanel();
                 fdsGeometryPanel.Source = fdsGeometryPanelSource;
                 Tab.Panels.Add(fdsGeometryPanel);
 
-                // FDS buttons
-                RibbonButton fMeshBtn = new RibbonButton();
-                fMeshBtn.Name = "Mesh";
-                fMeshBtn.Text = "Mesh";
-                fMeshBtn.ShowText = true;
-                fMeshBtn.ShowImage = true;
-                fMeshBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                fMeshBtn.LargeImage = Images.getBitmap(Properties.Resources.meshLarge);
-                fMeshBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                fMeshBtn.Size = RibbonItemSize.Large;
-                fMeshBtn.CommandHandler = new RibbonCommandHandler();
-                RibbonToolTip fMeshTT = new RibbonToolTip();
-                fMeshTT.Command = "FMESH";
-                fMeshTT.Title = "Create MESH manually";
-                fMeshTT.Content = "Create MESH using two points in drawing";
-                fMeshTT.ExpandedContent = "Define Z min level, Z max level and than two points in drawing. Layer is changed automatically to !FDS_MESH.";
+                // FDS Geometry buttons
+                RibbonButton fMeshBtn = new RibbonButton
+                {
+                    Name = "Mesh",
+                    Text = "Mesh",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.mesh),
+                    LargeImage = Images.getBitmap(Properties.Resources.meshLarge),
+                    Orientation = System.Windows.Controls.Orientation.Vertical,
+                    Size = RibbonItemSize.Large,
+                    CommandHandler = new RibbonCommandHandler()
+                };
+                RibbonToolTip fMeshTT = new RibbonToolTip
+                {
+                    Command = "FMESH",
+                    Title = "MESH manual",
+                    Content = "Create MESH manually using two points in drawing",
+                    ExpandedContent = "Define Z min level, Z max level and than two points in drawing. Layer is changed automatically to !FDS_MESH."
+                };
                 fMeshBtn.ToolTip = fMeshTT;
 
-                RibbonButton fMeshAutoBtn = new RibbonButton();
-                fMeshAutoBtn.Name = "MeshAuto";
-                fMeshAutoBtn.Text = "Mesh\nauto";
-                fMeshAutoBtn.ShowText = true;
-                fMeshAutoBtn.ShowImage = true;
-                fMeshAutoBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                fMeshAutoBtn.LargeImage = Images.getBitmap(Properties.Resources.meshLarge);
-                fMeshAutoBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                fMeshAutoBtn.Size = RibbonItemSize.Large;
-                fMeshAutoBtn.CommandHandler = new RibbonCommandHandler();
-                RibbonToolTip fMeshAutoTT = new RibbonToolTip();
-                fMeshAutoTT.Command = "FMESHAUTO";
-                fMeshAutoTT.Title = "Create MESH automatically";
-                fMeshAutoTT.Content = "Create multiple MESHes using two points in drawing";
-                fMeshAutoTT.ExpandedContent = "Define horizontal and vertical mesh numbers. Z level is automatically fitted to FDS geometry. Layer is changed automatically to !FDS_MESH.";
+                RibbonButton fMeshAutoBtn = new RibbonButton
+                {
+                    Name = "MeshAuto",
+                    Text = "Mesh\nauto",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.meshAuto),
+                    LargeImage = Images.getBitmap(Properties.Resources.meshAutoLarge),
+                    Orientation = System.Windows.Controls.Orientation.Vertical,
+                    Size = RibbonItemSize.Large,
+                    CommandHandler = new RibbonCommandHandler()
+                };
+                RibbonToolTip fMeshAutoTT = new RibbonToolTip
+                {
+                    Command = "FMESHAUTO",
+                    Title = "MESH auto",
+                    Content = "Create multiple MESHes automatically using two points in drawing",
+                    ExpandedContent = "Define horizontal and vertical mesh numbers. Z level is automatically fitted to FDS geometry. Layer is changed automatically to !FDS_MESH."
+                };
                 fMeshAutoBtn.ToolTip = fMeshAutoTT;
 
-                RibbonButton fOpenBtn = new RibbonButton();
-                fOpenBtn.Name = "Open";
-                fOpenBtn.Text = "Open";
-                fOpenBtn.ShowText = true;
-                fOpenBtn.ShowImage = true;
-                fOpenBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                fOpenBtn.LargeImage = Images.getBitmap(Properties.Resources.openLarge);
-                //fOpenBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                fOpenBtn.Size = RibbonItemSize.Standard;
-                fOpenBtn.CommandHandler = new RibbonCommandHandler();
+                RibbonButton fOpenBtn = new RibbonButton
+                {
+                    Name = "Open",
+                    Text = "Open",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.open),
+                    LargeImage = Images.getBitmap(Properties.Resources.openLarge),
+                    //fOpenBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
+                    Size = RibbonItemSize.Standard,
+                    CommandHandler = new RibbonCommandHandler()
+                };
+                RibbonToolTip fOpenTT = new RibbonToolTip
+                {
+                    Command = "FOPEN",
+                    Title = "OPEN",
+                    Content = "Create OPEN boundary in x, y, z direction",
+                    ExpandedContent = "Choose manually mesh which and then sides to open. Layer is changed automatically to !FDS_MESH[open]."
+                };
+                fOpenBtn.ToolTip = fOpenTT;
 
-                RibbonButton fOpenVisualBtn = new RibbonButton();
-                fOpenVisualBtn.Name = "OpenVisual";
-                fOpenVisualBtn.Text = "Visual open";
-                fOpenVisualBtn.ShowText = true;
-                fOpenVisualBtn.ShowImage = true;
-                fOpenVisualBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                fOpenVisualBtn.LargeImage = Images.getBitmap(Properties.Resources.openLarge);
-                //fOpenVisualBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                fOpenVisualBtn.Size = RibbonItemSize.Standard;
-                fOpenVisualBtn.CommandHandler = new RibbonCommandHandler();
+                RibbonButton fOpenVisualBtn = new RibbonButton
+                {
+                    Name = "OpenVisual",
+                    Text = "Visual open",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.open),
+                    LargeImage = Images.getBitmap(Properties.Resources.openLarge),
+                    //fOpenVisualBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
+                    Size = RibbonItemSize.Standard,
+                    CommandHandler = new RibbonCommandHandler()
+                };
+                RibbonToolTip fOpenVisualTT = new RibbonToolTip
+                {
+                    Command = "FOPEN",
+                    Title = "OPEN visual",
+                    Content = "Create OPEN boundary in visual mode",
+                    ExpandedContent = "Choose visually sides of mesh to open. Layer is changed automatically to !FDS_MESH[open]."
+                };
+                fOpenVisualBtn.ToolTip = fOpenVisualTT;
 
-                RibbonButton fOpenManualBtn = new RibbonButton();
-                fOpenManualBtn.Name = "OpenManual";
-                fOpenManualBtn.Text = "Manual open";
-                fOpenManualBtn.ShowText = true;
-                fOpenManualBtn.ShowImage = true;
-                fOpenManualBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                fOpenManualBtn.LargeImage = Images.getBitmap(Properties.Resources.openLarge);
-                //fOpenManualBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                fOpenManualBtn.Size = RibbonItemSize.Standard;
-                fOpenManualBtn.CommandHandler = new RibbonCommandHandler();
+                RibbonButton fOpenManualBtn = new RibbonButton
+                {
+                    Name = "OpenManual",
+                    Text = "Manual open",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.openManual),
+                    LargeImage = Images.getBitmap(Properties.Resources.openManualLarge),
+                    //fOpenManualBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
+                    Size = RibbonItemSize.Standard,
+                    CommandHandler = new RibbonCommandHandler()
+                };
+                RibbonToolTip fOpenManualTT = new RibbonToolTip
+                {
+                    Command = "FOPEN",
+                    Title = "OPEN manual",
+                    Content = "Create OPEN vents",
+                    ExpandedContent = "Create OPEN boundary on the part of the MESH side. Layer is changed automatically to !FDS_MESH[open]."
+                };
+                fOpenManualBtn.ToolTip = fOpenManualTT;
 
                 // Add to main panel
                 RibbonRowPanel fOpenRow = new RibbonRowPanel();
@@ -301,54 +203,80 @@ namespace WizFDS.Ribbon
                 fdsGeometryPanelSource.Items.Add(fOpenRow);
                 fdsGeometryPanelSource.Items.Add(new RibbonSeparator());
 
-                RibbonButton fObstBtn = new RibbonButton();
-                fObstBtn.Name = "Obst";
-                fObstBtn.Text = "Obst";
-                fObstBtn.ShowText = true;
-                fObstBtn.ShowImage = true;
-                fObstBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                fObstBtn.LargeImage = Images.getBitmap(Properties.Resources.obstLarge);
-                fObstBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                fObstBtn.Size = RibbonItemSize.Large;
-                fObstBtn.CommandHandler = new RibbonCommandHandler();
+                RibbonButton fObstBtn = new RibbonButton
+                {
+                    Name = "Obst",
+                    Text = "Obst",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.defaultIco),
+                    LargeImage = Images.getBitmap(Properties.Resources.obstLarge),
+                    Orientation = System.Windows.Controls.Orientation.Vertical,
+                    Size = RibbonItemSize.Large,
+                    CommandHandler = new RibbonCommandHandler()
+                };
+                RibbonToolTip fObstTT = new RibbonToolTip
+                {
+                    Command = "FOBST",
+                    Title = "OBST",
+                    Content = "Create OBST",
+                    //ExpandedContent = "Create OPEN boundary on the part of the MESH side. Layer is changed automatically to !FDS_MESH[open]."
+                };
+                fObstBtn.ToolTip = fObstTT;
 
-                RibbonButton fHoleBtn = new RibbonButton();
-                fHoleBtn.Name = "Hole";
-                fHoleBtn.Text = "Hole";
-                fHoleBtn.ShowText = true;
-                fHoleBtn.ShowImage = true;
-                fHoleBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                fHoleBtn.LargeImage = Images.getBitmap(Properties.Resources.obstLarge);
-                fHoleBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                fHoleBtn.Size = RibbonItemSize.Large;
-                fHoleBtn.CommandHandler = new RibbonCommandHandler();
+                RibbonButton fHoleBtn = new RibbonButton
+                {
+                    Name = "Hole",
+                    Text = "Hole",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.defaultIco),
+                    LargeImage = Images.getBitmap(Properties.Resources.holeLarge),
+                    Orientation = System.Windows.Controls.Orientation.Vertical,
+                    Size = RibbonItemSize.Large,
+                    CommandHandler = new RibbonCommandHandler()
+                };
+                RibbonToolTip fHoleTT = new RibbonToolTip
+                {
+                    Command = "FHOLE",
+                    Title = "HOLE",
+                    Content = "Create OBST",
+                    //ExpandedContent = "Create OPEN boundary on the part of the MESH side. Layer is changed automatically to !FDS_MESH[open]."
+                };
+                fHoleBtn.ToolTip = fHoleTT;
 
-                RibbonButton fWallBtn = new RibbonButton();
-                fWallBtn.Name = "Wall";
-                fWallBtn.Text = "Wall";
-                fWallBtn.ShowText = true;
-                fWallBtn.ShowImage = true;
-                fWallBtn.Image = Images.getBitmap(Properties.Resources.wall);
-                fWallBtn.LargeImage = Images.getBitmap(Properties.Resources.wallLarge);
-                fWallBtn.CommandHandler = new RibbonCommandHandler();
+                RibbonButton fWallBtn = new RibbonButton
+                {
+                    Name = "Wall",
+                    Text = "Wall",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.wall),
+                    LargeImage = Images.getBitmap(Properties.Resources.wallLarge),
+                    CommandHandler = new RibbonCommandHandler()
+                };
 
-                RibbonButton fCeilingBtn = new RibbonButton();
-                fCeilingBtn.Name = "Ceiling";
-                fCeilingBtn.Text = "Ceiling";
-                fCeilingBtn.ShowText = true;
-                fCeilingBtn.ShowImage = true;
-                fCeilingBtn.Image = Images.getBitmap(Properties.Resources.ceiling);
-                fCeilingBtn.LargeImage = Images.getBitmap(Properties.Resources.defaultIcoLarge);
-                fCeilingBtn.CommandHandler = new RibbonCommandHandler();
+                RibbonButton fCeilingBtn = new RibbonButton
+                {
+                    Name = "Ceiling",
+                    Text = "Ceiling",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.ceiling),
+                    LargeImage = Images.getBitmap(Properties.Resources.defaultIcoLarge),
+                    CommandHandler = new RibbonCommandHandler()
+                };
 
-                RibbonButton fCWallBtn = new RibbonButton();
-                fCWallBtn.Name = "CWall";
-                fCWallBtn.Text = "CWall";
-                fCWallBtn.ShowText = true;
-                fCWallBtn.ShowImage = true;
-                fCWallBtn.Image = Images.getBitmap(Properties.Resources.cwall);
-                fCWallBtn.LargeImage = Images.getBitmap(Properties.Resources.wallLarge);
-                fCWallBtn.CommandHandler = new RibbonCommandHandler();
+                RibbonButton fCWallBtn = new RibbonButton
+                {
+                    Name = "CWall",
+                    Text = "CWall",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.cwall),
+                    LargeImage = Images.getBitmap(Properties.Resources.wallLarge),
+                    CommandHandler = new RibbonCommandHandler()
+                };
 
                 // Create row panel 
                 RibbonRowPanel fGeometryRow = new RibbonRowPanel();
@@ -362,177 +290,207 @@ namespace WizFDS.Ribbon
                 fdsGeometryPanelSource.Items.Add(fHoleBtn);
                 fdsGeometryPanelSource.Items.Add(fGeometryRow);
 
-                RibbonButton fGeomBtn = new RibbonButton();
-                fGeomBtn.Name = "Geom";
-                fGeomBtn.Text = "Complex\nauto";
-                fGeomBtn.ShowText = true;
-                fGeomBtn.ShowImage = true;
-                fGeomBtn.Image = Images.getBitmap(Properties.Resources.geom);
-                fGeomBtn.LargeImage = Images.getBitmap(Properties.Resources.geomLarge);
-                fGeomBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                fGeomBtn.Size = RibbonItemSize.Large;
-                fGeomBtn.CommandHandler = new RibbonCommandHandler();
+                RibbonButton fGeomBtn = new RibbonButton
+                {
+                    Name = "Geom",
+                    Text = "Complex\nauto",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.geom),
+                    LargeImage = Images.getBitmap(Properties.Resources.geomLarge),
+                    Orientation = System.Windows.Controls.Orientation.Vertical,
+                    Size = RibbonItemSize.Large,
+                    CommandHandler = new RibbonCommandHandler()
+                };
 
-                RibbonButton fGeomManBtn = new RibbonButton();
-                fGeomManBtn.Name = "GeomMan";
-                fGeomManBtn.Text = "Complex\nmanual";
-                fGeomManBtn.ShowText = true;
-                fGeomManBtn.ShowImage = true;
-                fGeomManBtn.Image = Images.getBitmap(Properties.Resources.geomMan);
-                fGeomManBtn.LargeImage = Images.getBitmap(Properties.Resources.geomManLarge);
-                fGeomManBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                fGeomManBtn.Size = RibbonItemSize.Large;
-                fGeomManBtn.CommandHandler = new RibbonCommandHandler();
+                RibbonButton fGeomManBtn = new RibbonButton
+                {
+                    Name = "GeomMan",
+                    Text = "Complex\nmanual",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.geomMan),
+                    LargeImage = Images.getBitmap(Properties.Resources.geomManLarge),
+                    Orientation = System.Windows.Controls.Orientation.Vertical,
+                    Size = RibbonItemSize.Large,
+                    CommandHandler = new RibbonCommandHandler()
+                };
 
                 fdsGeometryPanelSource.Items.Add(new RibbonSeparator());
                 fdsGeometryPanelSource.Items.Add(fGeomBtn);
                 fdsGeometryPanelSource.Items.Add(fGeomManBtn);
 
-        #endregion
+                #endregion
 
-        #region FDS Ventilation Panel
+                #region FDS Ventilation Panel
                 // FDS Ventilation Panel
-                Autodesk.Windows.RibbonPanelSource fdsVentilationPanelSource = new RibbonPanelSource();
-                fdsVentilationPanelSource.Title = "FDS Ventilation";
+                Autodesk.Windows.RibbonPanelSource fdsVentilationPanelSource = new RibbonPanelSource
+                {
+                    Title = "Ventilation"
+                };
                 RibbonPanel fdsVentilationPanel = new RibbonPanel();
                 fdsVentilationPanel.Source = fdsVentilationPanelSource;
                 Tab.Panels.Add(fdsVentilationPanel);
 
-                RibbonButton fVentBtn = new RibbonButton();
-                fVentBtn.Name = "Vent";
-                fVentBtn.Text = "Vent";
-                fVentBtn.ShowText = true;
-                fVentBtn.ShowImage = true;
-                fVentBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                fVentBtn.LargeImage = Images.getBitmap(Properties.Resources.ventLarge);
-                fVentBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                fVentBtn.Size = RibbonItemSize.Large;
-                fVentBtn.CommandHandler = new RibbonCommandHandler();
+                RibbonButton fVentBtn = new RibbonButton
+                {
+                    Name = "Vent",
+                    Text = "Vent",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.defaultIco),
+                    LargeImage = Images.getBitmap(Properties.Resources.ventLarge),
+                    Orientation = System.Windows.Controls.Orientation.Vertical,
+                    Size = RibbonItemSize.Large,
+                    CommandHandler = new RibbonCommandHandler()
+                };
 
-                RibbonButton fJetfanBtn = new RibbonButton();
-                fJetfanBtn.Name = "Jetfan";
-                fJetfanBtn.Text = "Jetfan";
-                fJetfanBtn.ShowText = true;
-                fJetfanBtn.ShowImage = true;
-                fJetfanBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                fJetfanBtn.LargeImage = Images.getBitmap(Properties.Resources.jetfanLarge);
-                fJetfanBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                fJetfanBtn.Size = RibbonItemSize.Large;
-                fJetfanBtn.CommandHandler = new RibbonCommandHandler();
+                RibbonButton fJetfanBtn = new RibbonButton
+                {
+                    Name = "Jetfan",
+                    Text = "Jetfan",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.defaultIco),
+                    LargeImage = Images.getBitmap(Properties.Resources.jetfanLarge),
+                    Orientation = System.Windows.Controls.Orientation.Vertical,
+                    Size = RibbonItemSize.Large,
+                    CommandHandler = new RibbonCommandHandler()
+                };
 
                 fdsVentilationPanelSource.Items.Add(fVentBtn);
                 fdsVentilationPanelSource.Items.Add(fJetfanBtn);
-        #endregion
+                #endregion
 
-        #region FDS Specie Panel
+                #region FDS Specie Panel
                 // FDS Specie Panel
-                Autodesk.Windows.RibbonPanelSource fdsSpeciePanelSource = new RibbonPanelSource();
-                fdsSpeciePanelSource.Title = "FDS Specie";
+                Autodesk.Windows.RibbonPanelSource fdsSpeciePanelSource = new RibbonPanelSource
+                {
+                    Title = "Specie"
+                };
                 RibbonPanel fdsSpeciePanel = new RibbonPanel();
                 fdsSpeciePanel.Source = fdsSpeciePanelSource;
                 Tab.Panels.Add(fdsSpeciePanel);
 
-                RibbonButton fSpecBtn = new RibbonButton();
-                fSpecBtn.Name = "Specie";
-                fSpecBtn.Text = "Specie";
-                fSpecBtn.ShowText = true;
-                fSpecBtn.ShowImage = true;
-                fSpecBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                fSpecBtn.LargeImage = Images.getBitmap(Properties.Resources.ventLarge);
-                fSpecBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                fSpecBtn.Size = RibbonItemSize.Large;
-                fSpecBtn.CommandHandler = new RibbonCommandHandler();
+                RibbonButton fSpecBtn = new RibbonButton
+                {
+                    Name = "Specie",
+                    Text = "Specie",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.defaultIco),
+                    LargeImage = Images.getBitmap(Properties.Resources.ventLarge),
+                    Orientation = System.Windows.Controls.Orientation.Vertical,
+                    Size = RibbonItemSize.Large,
+                    CommandHandler = new RibbonCommandHandler()
+                };
 
                 fdsSpeciePanelSource.Items.Add(fSpecBtn);
-        #endregion
+                #endregion
 
-        #region FDS Fire Panel
+                #region FDS Fire Panel
                 // FDS Fire Panel
-                Autodesk.Windows.RibbonPanelSource fdsFirePanelSource = new RibbonPanelSource();
-                fdsFirePanelSource.Title = "FDS Fire";
+                Autodesk.Windows.RibbonPanelSource fdsFirePanelSource = new RibbonPanelSource
+                {
+                    Title = "Fire"
+                };
                 RibbonPanel fdsFirePanel = new RibbonPanel();
                 fdsFirePanel.Source = fdsFirePanelSource;
                 Tab.Panels.Add(fdsFirePanel);
 
-                RibbonButton fFireBtn = new RibbonButton();
-                fFireBtn.Name = "Fire";
-                fFireBtn.Text = "Fire";
-                fFireBtn.ShowText = true;
-                fFireBtn.ShowImage = true;
-                fFireBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                fFireBtn.LargeImage = Images.getBitmap(Properties.Resources.fireLarge);
-                fFireBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                fFireBtn.Size = RibbonItemSize.Large;
-                fFireBtn.CommandHandler = new RibbonCommandHandler();
+                RibbonButton fFireBtn = new RibbonButton
+                {
+                    Name = "Fire",
+                    Text = "Fire",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.defaultIco),
+                    LargeImage = Images.getBitmap(Properties.Resources.fireLarge),
+                    Orientation = System.Windows.Controls.Orientation.Vertical,
+                    Size = RibbonItemSize.Large,
+                    CommandHandler = new RibbonCommandHandler()
+                };
 
                 fdsFirePanelSource.Items.Add(fFireBtn);
-        #endregion
+                #endregion
 
-        #region FDS Output Panel
+                #region FDS Output Panel
                 // FDS Output Panel
-                Autodesk.Windows.RibbonPanelSource fdsOutputPanelSource = new RibbonPanelSource();
-                fdsOutputPanelSource.Title = "FDS Output";
+                Autodesk.Windows.RibbonPanelSource fdsOutputPanelSource = new RibbonPanelSource
+                {
+                    Title = "Output"
+                };
                 RibbonPanel fdsOutputPanel = new RibbonPanel();
                 fdsOutputPanel.Source = fdsOutputPanelSource;
                 Tab.Panels.Add(fdsOutputPanel);
 
-                RibbonButton fDevcBtn = new RibbonButton();
-                fDevcBtn.Name = "Devc";
-                fDevcBtn.Text = "Devc";
-                fDevcBtn.ShowText = true;
-                fDevcBtn.ShowImage = true;
-                fDevcBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                fDevcBtn.LargeImage = Images.getBitmap(Properties.Resources.deviceLarge);
-                fDevcBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                fDevcBtn.Size = RibbonItemSize.Large;
-                fDevcBtn.CommandHandler = new RibbonCommandHandler();
+                RibbonButton fDevcBtn = new RibbonButton
+                {
+                    Name = "Devc",
+                    Text = "Devc",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.defaultIco),
+                    LargeImage = Images.getBitmap(Properties.Resources.deviceLarge),
+                    Orientation = System.Windows.Controls.Orientation.Vertical,
+                    Size = RibbonItemSize.Large,
+                    CommandHandler = new RibbonCommandHandler()
+                };
 
-                RibbonButton fSlcfBtn = new RibbonButton();
-                fSlcfBtn.Name = "Slcf";
-                fSlcfBtn.Text = "Slcf";
-                fSlcfBtn.ShowText = true;
-                fSlcfBtn.ShowImage = true;
-                fSlcfBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                fSlcfBtn.LargeImage = Images.getBitmap(Properties.Resources.sliceLarge);
-                fSlcfBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                fSlcfBtn.Size = RibbonItemSize.Large;
-                fSlcfBtn.CommandHandler = new RibbonCommandHandler();
+                RibbonButton fSlcfBtn = new RibbonButton
+                {
+                    Name = "Slcf",
+                    Text = "Slcf",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.defaultIco),
+                    LargeImage = Images.getBitmap(Properties.Resources.sliceLarge),
+                    Orientation = System.Windows.Controls.Orientation.Vertical,
+                    Size = RibbonItemSize.Large,
+                    CommandHandler = new RibbonCommandHandler()
+                };
 
                 fdsOutputPanelSource.Items.Add(fDevcBtn);
                 fdsOutputPanelSource.Items.Add(fSlcfBtn);
-        #endregion
+                #endregion
 
-        #region Layers Panel
+                #region Layers Panel
                 // Layers Panel
-                Autodesk.Windows.RibbonPanelSource layersPanelSource = new RibbonPanelSource();
-                layersPanelSource.Title = "Layers";
+                Autodesk.Windows.RibbonPanelSource layersPanelSource = new RibbonPanelSource
+                {
+                    Title = "Layers"
+                };
                 RibbonPanel layersPanel = new RibbonPanel();
                 layersPanel.Source = layersPanelSource;
                 Tab.Panels.Add(layersPanel);
 
                 //CreateBasicLayers
-                RibbonButton lCreateBasicBtn = new RibbonButton();
-                lCreateBasicBtn.Name = "CreateBasic";
-                lCreateBasicBtn.Text = "Create\nbasic";
-                lCreateBasicBtn.ShowText = true;
-                lCreateBasicBtn.ShowImage = true;
-                lCreateBasicBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                lCreateBasicBtn.LargeImage = Images.getBitmap(Properties.Resources.layersLarge);
-                lCreateBasicBtn.Size = RibbonItemSize.Large;
-                lCreateBasicBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                lCreateBasicBtn.CommandHandler = new RibbonCommandHandler();
+                RibbonButton lCreateBasicBtn = new RibbonButton
+                {
+                    Name = "CreateBasic",
+                    Text = "Create\nbasic",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.basicLayers),
+                    LargeImage = Images.getBitmap(Properties.Resources.basicLayersLarge),
+                    Size = RibbonItemSize.Large,
+                    Orientation = System.Windows.Controls.Orientation.Vertical,
+                    CommandHandler = new RibbonCommandHandler()
+                };
 
                 //CreateFdsLayer
-                RibbonButton lCreateFdsBtn = new RibbonButton();
-                lCreateFdsBtn.Name = "CreateFds";
-                lCreateFdsBtn.Text = "Create\nFDS";
-                lCreateFdsBtn.ShowText = true;
-                lCreateFdsBtn.ShowImage = true;
-                lCreateFdsBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                lCreateFdsBtn.LargeImage = Images.getBitmap(Properties.Resources.layersLarge);
-                lCreateFdsBtn.Size = RibbonItemSize.Large;
-                lCreateFdsBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                lCreateFdsBtn.CommandHandler = new RibbonCommandHandler();
+                RibbonButton lCreateFdsBtn = new RibbonButton
+                {
+                    Name = "CreateFds",
+                    Text = "Create\nFDS",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.defaultIco),
+                    LargeImage = Images.getBitmap(Properties.Resources.layersLarge),
+                    Size = RibbonItemSize.Large,
+                    Orientation = System.Windows.Controls.Orientation.Vertical,
+                    CommandHandler = new RibbonCommandHandler()
+                };
 
                 //HideFdsLayer
                 //RibbonButton lHideFdsBtn = new RibbonButton();
@@ -559,38 +517,44 @@ namespace WizFDS.Ribbon
                 lHideOtherBtn.CommandHandler = new RibbonCommandHandler();
 
                 //CreateLayersForLevel
-                RibbonButton lCreateLevelBtn = new RibbonButton();
-                lCreateLevelBtn.Name = "CreateFdsLevel";
-                lCreateLevelBtn.Text = "Add level";
-                lCreateLevelBtn.ShowText = true;
-                lCreateLevelBtn.ShowImage = true;
-                lCreateLevelBtn.Image = Images.getBitmap(Properties.Resources.levelAdd);
-                lCreateLevelBtn.LargeImage = Images.getBitmap(Properties.Resources.defaultIcoLarge);
-                lCreateLevelBtn.Size = RibbonItemSize.Standard;
-                //lCreateLevelBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                lCreateLevelBtn.CommandHandler = new RibbonCommandHandler();
+                RibbonButton lCreateLevelBtn = new RibbonButton
+                {
+                    Name = "CreateFdsLevel",
+                    Text = "Add level",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.levelAdd),
+                    LargeImage = Images.getBitmap(Properties.Resources.defaultIcoLarge),
+                    Size = RibbonItemSize.Standard,
+                    //lCreateLevelBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
+                    CommandHandler = new RibbonCommandHandler()
+                };
 
                 //HideForLevel
-                RibbonButton lHideLevelBtn = new RibbonButton();
-                lHideLevelBtn.Name = "HideLevel";
-                lHideLevelBtn.Text = "Hide level";
-                lHideLevelBtn.ShowText = true;
-                lHideLevelBtn.ShowImage = true;
-                lHideLevelBtn.Image = Images.getBitmap(Properties.Resources.levelHide);
-                lHideLevelBtn.LargeImage = Images.getBitmap(Properties.Resources.defaultIcoLarge);
-                lHideLevelBtn.Size = RibbonItemSize.Standard;
-                lHideLevelBtn.CommandHandler = new RibbonCommandHandler();
+                RibbonButton lHideLevelBtn = new RibbonButton
+                {
+                    Name = "HideLevel",
+                    Text = "Hide level",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.levelHide),
+                    LargeImage = Images.getBitmap(Properties.Resources.defaultIcoLarge),
+                    Size = RibbonItemSize.Standard,
+                    CommandHandler = new RibbonCommandHandler()
+                };
 
                 //ShowForLevel
-                RibbonButton lShowLevelBtn = new RibbonButton();
-                lShowLevelBtn.Name = "ShowLevel";
-                lShowLevelBtn.Text = "Show level";
-                lShowLevelBtn.ShowText = true;
-                lShowLevelBtn.ShowImage = true;
-                lShowLevelBtn.Image = Images.getBitmap(Properties.Resources.levelShow);
-                lShowLevelBtn.LargeImage = Images.getBitmap(Properties.Resources.defaultIcoLarge);
-                lShowLevelBtn.Size = RibbonItemSize.Standard;
-                lShowLevelBtn.CommandHandler = new RibbonCommandHandler();
+                RibbonButton lShowLevelBtn = new RibbonButton
+                {
+                    Name = "ShowLevel",
+                    Text = "Show level",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.levelShow),
+                    LargeImage = Images.getBitmap(Properties.Resources.defaultIcoLarge),
+                    Size = RibbonItemSize.Standard,
+                    CommandHandler = new RibbonCommandHandler()
+                };
 
                 RibbonRowPanel lLayersLevelRow = new RibbonRowPanel();
                 lLayersLevelRow.Items.Add(lCreateLevelBtn);
@@ -607,52 +571,43 @@ namespace WizFDS.Ribbon
                 layersPanelSource.Items.Add(lHideOtherBtn);
                 layersPanelSource.Items.Add(new RibbonSeparator());
                 layersPanelSource.Items.Add(lLayersLevelRow);
-        #endregion
-#endif
+                #endregion
 
-        #region Sync Panel
+                #region Sync Panel
 
-#if AAMKS
                 // Sync Panel
-                Autodesk.Windows.RibbonPanelSource syncPanelSource = new RibbonPanelSource();
-                syncPanelSource.Title = "Sync";
+                Autodesk.Windows.RibbonPanelSource syncPanelSource = new RibbonPanelSource
+                {
+                    Title = "Sync"
+                };
                 syncPanel.Source = syncPanelSource;
                 Tab.Panels.Add(syncPanel);
 
-                RibbonButton sCfastBtn = new RibbonButton();
-                sCfastBtn.Name = "sCFAST";
-                sCfastBtn.Text = "Export\nCFAST";
-                sCfastBtn.ShowText = true;
-                sCfastBtn.ShowImage = true;
-                sCfastBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                sCfastBtn.LargeImage = Images.getBitmap(Properties.Resources.exportLarge);
-                sCfastBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                sCfastBtn.Size = RibbonItemSize.Large;
-                sCfastBtn.CommandHandler = new RibbonCommandHandler();
-#endif
-#if WIZFDS
-                RibbonButton sFdsBtn = new RibbonButton();
-                sFdsBtn.Name = "sFDS";
-                sFdsBtn.Text = "Export\nFDS";
-                sFdsBtn.ShowText = true;
-                sFdsBtn.ShowImage = true;
-                sFdsBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                sFdsBtn.LargeImage = Images.getBitmap(Properties.Resources.exportLarge);
-                sFdsBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                sFdsBtn.Size = RibbonItemSize.Large;
-                sFdsBtn.CommandHandler = new RibbonCommandHandler();
+                RibbonButton sFdsBtn = new RibbonButton
+                {
+                    Name = "sFDS",
+                    Text = "Export\nFDS",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.defaultIco),
+                    LargeImage = Images.getBitmap(Properties.Resources.exportLarge),
+                    Orientation = System.Windows.Controls.Orientation.Vertical,
+                    Size = RibbonItemSize.Large,
+                    CommandHandler = new RibbonCommandHandler()
+                };
 
-                RibbonButton sFdsSelectBtn = new RibbonButton();
-                sFdsSelectBtn.Name = "sFDSSelect";
-                sFdsSelectBtn.Text = "Select\nFDS object";
-                sFdsSelectBtn.ShowText = true;
-                sFdsSelectBtn.ShowImage = true;
-                sFdsSelectBtn.Image = Images.getBitmap(Properties.Resources.defaultIco);
-                sFdsSelectBtn.LargeImage = Images.getBitmap(Properties.Resources.selectLarge);
-                sFdsSelectBtn.Orientation = System.Windows.Controls.Orientation.Vertical;
-                sFdsSelectBtn.Size = RibbonItemSize.Large;
-                sFdsSelectBtn.CommandHandler = new RibbonCommandHandler();
-#endif
+                RibbonButton sFdsSelectBtn = new RibbonButton
+                {
+                    Name = "sFDSSelect",
+                    Text = "Select\nFDS object",
+                    ShowText = true,
+                    ShowImage = true,
+                    Image = Images.getBitmap(Properties.Resources.defaultIco),
+                    LargeImage = Images.getBitmap(Properties.Resources.selectLarge),
+                    Orientation = System.Windows.Controls.Orientation.Vertical,
+                    Size = RibbonItemSize.Large,
+                    CommandHandler = new RibbonCommandHandler()
+                };
 
                 // Websocket button
                 sWebsocketBtn.Name = "sWebsocket";
@@ -673,16 +628,10 @@ namespace WizFDS.Ribbon
                 sWebsocketBtn.Size = RibbonItemSize.Large;
                 sWebsocketBtn.CommandHandler = new RibbonCommandHandler();
 
-#if AAMKS
-                syncPanelSource.Items.Add(sCfastBtn);
-                syncPanelSource.Items.Add(new RibbonSeparator());
-#endif
-#if WIZFDS
                 syncPanelSource.Items.Add(sFdsBtn);
                 syncPanelSource.Items.Add(sFdsSelectBtn);
                 syncPanelSource.Items.Add(new RibbonSeparator());
                 syncPanelSource.Items.Add(sWebsocketBtn);
-#endif
         #endregion
 
                 RibbonInit.isRibbonInited = true;
@@ -691,7 +640,7 @@ namespace WizFDS.Ribbon
                 Tab.IsVisible = true;
                 Tab.IsActive = true;
 
-    }
+            }
             catch (System.Exception)
             {
                
@@ -714,42 +663,6 @@ namespace WizFDS.Ribbon
                     RibbonButton button = parameter as RibbonButton;
                     switch (button.Name)
                     {
-                        // CFAST
-                        case "Room":
-                            acDoc.SendStringToExecute("cRoom\n", true, false, true);
-                            break;
-                        case "Corridor":
-                            acDoc.SendStringToExecute("cCorridor\n", true, false, true);
-                            break;
-                        case "Hall":
-                            acDoc.SendStringToExecute("cHall\n", true, false, true);
-                            break;
-                        case "Staircase":
-                            acDoc.SendStringToExecute("cStaircase\n", true, false, true);
-                            break;
-                        case "Door":
-                            acDoc.SendStringToExecute("cDoor\n", true, false, true);
-                            break;
-                        case "Window":
-                            acDoc.SendStringToExecute("cWindow\n", true, false, true);
-                            break;
-                        case "Inlet":
-                            acDoc.SendStringToExecute("cInlet\n", true, false, true);
-                            break;
-                        case "Vvent":
-                            acDoc.SendStringToExecute("cVvent\n", true, false, true);
-                            break;
-                        case "Mvent":
-                            acDoc.SendStringToExecute("cMvent\n", true, false, true);
-                            break;
-                        case "Holeaut":
-                            acDoc.SendStringToExecute("cHole\n", true, false, true);
-                            break;
-                        case "Holeman":
-                            acDoc.SendStringToExecute("cHoleman\n", true, false, true);
-                            break;
-
-                        // FDS
                         case "Mesh":
                             acDoc.SendStringToExecute("fMesh\n", true, false, true);
                             break;
@@ -916,132 +829,7 @@ namespace WizFDS.Ribbon
                 Tab.Id = "wizfds_id2586";
                 ribbonControl.Tabs.Add(Tab);
 
-#if AAMKS
-#region Cfast panel
-                // Cfast Panel
-                RibbonPanelSource cfastPanelSource = new RibbonPanelSource();
-                cfastPanelSource.Title = "CFAST model";
-                cfastPanel.Source = cfastPanelSource;
-                Tab.Panels.Add(cfastPanel);
 
-                // Cfast buttons
-                RibbonButton cRoomBtn = new RibbonButton();
-                cRoomBtn.Text = "Room";
-                cRoomBtn.ExternalImage = true;
-                cRoomBtn.Image = Images.getBitmapPath(Properties.Resources.defaultIco, "defaultIco");
-                cRoomBtn.LargeImage = Images.getBitmapPath(Properties.Resources.obstLarge, "obstLarge");
-                cRoomBtn.CommandParameter = "cRoom";
-                cRoomBtn.ButtonStyle = 0;
-                cRoomBtn.ToolTip = "Room";
-
-                RibbonButton cCorridorBtn = new RibbonButton();
-                cCorridorBtn.Text = "Corridor";
-                cCorridorBtn.ExternalImage = true;
-                cCorridorBtn.Image = Images.getBitmapPath(Properties.Resources.defaultIco, "defaultIco");
-                cCorridorBtn.LargeImage = Images.getBitmapPath(Properties.Resources.corridorLarge, "corridorLarge");
-                cCorridorBtn.CommandParameter = "cCorridor";
-                cCorridorBtn.ButtonStyle = 0;
-                cCorridorBtn.ToolTip = "Corridor";
-
-                RibbonButton cHallBtn = new RibbonButton();
-                cHallBtn.Text = "Hall";
-                cHallBtn.ExternalImage = true;
-                cHallBtn.Image = Images.getBitmapPath(Properties.Resources.defaultIco, "defaultIco");
-                cHallBtn.LargeImage = Images.getBitmapPath(Properties.Resources.obstLarge, "obstLarge");
-                cHallBtn.CommandParameter = "cHall";
-                cHallBtn.ButtonStyle = 0;
-                cHallBtn.ToolTip = "Hall";
-
-                RibbonButton cStairBtn = new RibbonButton();
-                cStairBtn.Text = "Staircase";
-                cStairBtn.ExternalImage = true;
-                cStairBtn.Image = Images.getBitmapPath(Properties.Resources.defaultIco, "defaultIco");
-                cStairBtn.LargeImage = Images.getBitmapPath(Properties.Resources.staircaseLarge, "staircaseLarge");
-                cStairBtn.CommandParameter = "cStaircase";
-                cStairBtn.ButtonStyle = 0;
-                cStairBtn.ToolTip = "Staircase";
-
-                // Add to main panel
-                RibbonSeparator separator = new RibbonSeparator();
-                separator.SeparatorStyle = RibbonSeparatorStyle.Line;
-
-                cfastPanelSource.Items.Add(cRoomBtn);
-                cfastPanelSource.Items.Add(cCorridorBtn);
-                cfastPanelSource.Items.Add(cHallBtn);
-                cfastPanelSource.Items.Add(cStairBtn);
-                cfastPanelSource.Items.Add(separator);
-
-                RibbonButton cDoorBtn = new RibbonButton();
-                cDoorBtn.Text = "Door";
-                cDoorBtn.ExternalImage = true;
-                cDoorBtn.Image = Images.getBitmapPath(Properties.Resources.door, "door");
-                cDoorBtn.LargeImage = Images.getBitmapPath(Properties.Resources.doorLarge, "doorLarge");
-                cDoorBtn.CommandParameter = "cDoor";
-                cDoorBtn.ButtonStyle = 0;
-                cDoorBtn.ToolTip = "Door";
-
-                RibbonButton cWindowBtn = new RibbonButton();
-                cWindowBtn.Text = "Window";
-                cWindowBtn.ExternalImage = true;
-                cWindowBtn.Image = Images.getBitmapPath(Properties.Resources.defaultIco, "defaultIco");
-                cWindowBtn.LargeImage = Images.getBitmapPath(Properties.Resources.windowLarge, "windowLarge");
-                cWindowBtn.CommandParameter = "cWindow";
-                cWindowBtn.ButtonStyle = 0;
-                cWindowBtn.ToolTip = "Window";
-
-                RibbonButton cInletBtn = new RibbonButton();
-                cInletBtn.Text = "Inlet";
-                cInletBtn.ExternalImage = true;
-                cInletBtn.Image = Images.getBitmapPath(Properties.Resources.defaultIco, "defaultIco");
-                cInletBtn.LargeImage = Images.getBitmapPath(Properties.Resources.inletLarge, "inletLarge");
-                cInletBtn.CommandParameter = "cInlet";
-                cInletBtn.ButtonStyle = 0;
-                cInletBtn.ToolTip = "Inlet";
-
-                cfastPanelSource.Items.Add(cDoorBtn);
-                cfastPanelSource.Items.Add(cWindowBtn);
-                cfastPanelSource.Items.Add(cInletBtn);
-
-                RibbonButton cVventBtn = new RibbonButton();
-                cVventBtn.Text = "Vvent";
-                cVventBtn.ExternalImage = true;
-                cVventBtn.Image = Images.getBitmapPath(Properties.Resources.vent, "vent");
-                cVventBtn.LargeImage = Images.getBitmapPath(Properties.Resources.ventLarge, "ventLarge");
-                cVventBtn.CommandParameter = "cVvent";
-                cVventBtn.ButtonStyle = RibbonButtonStyle.SmallWithText;
-                cVventBtn.ToolTip = "Vertical vent";
-
-                RibbonButton cHoleBtn = new RibbonButton();
-                cHoleBtn.Text = "Auto Hole";
-                cHoleBtn.ExternalImage = true;
-                cHoleBtn.Image = Images.getBitmapPath(Properties.Resources.holeaut, "holeaut");
-                cHoleBtn.LargeImage = Images.getBitmapPath(Properties.Resources.defaultIcoLarge, "defaultIcoLarge");
-                cHoleBtn.CommandParameter = "cHole";
-                cHoleBtn.ButtonStyle = RibbonButtonStyle.SmallWithText;
-                cHoleBtn.ToolTip = "Auto hole";
-
-                RibbonButton cHolemanBtn = new RibbonButton();
-                cHolemanBtn.Text = "Hole";
-                cHolemanBtn.ExternalImage = true;
-                cHolemanBtn.Image = Images.getBitmapPath(Properties.Resources.defaultIco, "defaultIco");
-                cHolemanBtn.LargeImage = Images.getBitmapPath(Properties.Resources.defaultIcoLarge, "defaultIcoLarge");
-                cHolemanBtn.CommandParameter = "cHoleman";
-                cHolemanBtn.ButtonStyle = RibbonButtonStyle.SmallWithText;
-                cHolemanBtn.ToolTip = "Hole";
-
-                // Create row panel 
-                RibbonRowPanel cVentRow = new RibbonRowPanel();
-                cVentRow.Items.Add(cVventBtn);
-                cVentRow.Items.Add(new RibbonRowBreak());
-                cVentRow.Items.Add(cHoleBtn);
-                cVentRow.Items.Add(new RibbonRowBreak());
-                cVentRow.Items.Add(cHolemanBtn);
-
-                cfastPanelSource.Items.Add(cVentRow);
-#endregion
-#endif
-
-#if WIZFDS
 #region FDS Geometry Panel
                 // FDS Geometry Panel
                 RibbonPanelSource fdsGeometryPanelSource = new RibbonPanelSource();
@@ -1390,7 +1178,7 @@ namespace WizFDS.Ribbon
                 layersPanelSource.Items.Add(separator4);
                 layersPanelSource.Items.Add(lLayersLevelRow);
 #endregion
-#endif
+
 #region Sync Panel
 
                 // Sync Panel

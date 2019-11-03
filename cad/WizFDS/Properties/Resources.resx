@@ -151,9 +151,6 @@
   <data name="deviceLarge" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\deviceLarge.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="doorLarge" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\doorLarge.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
   <data name="jetfanLarge" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\jetfanLarge.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
@@ -163,68 +160,17 @@
   <data name="sliceLarge" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\sliceLarge.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="ventLarge" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\ventLarge.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
   <data name="wall" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\wall.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="holeLarge" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\holeLarge.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="3dorbit" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\3dorbit.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="corridorLarge" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\corridorLarge.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
   <data name="defaultIco" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\defaultIco.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="defaultIcoLarge" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\defaultIcoLarge.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="holeaut" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\holeaut.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="staircaseLarge" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\staircaseLarge.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="vent" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\vent.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="viewBack" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\viewBack.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="viewBottom" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\viewBottom.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="viewFront" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\viewFront.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="viewLeft" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\viewLeft.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="viewRight" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\viewRight.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="viewTop" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\viewTop.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="windowLarge" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\windowLarge.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="zoomExt" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\zoomExt.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="area" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\area.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="dist" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\dist.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="inletLarge" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\inletLarge.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="meshAutoLarge" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\meshAutoLarge.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -256,9 +202,6 @@
   <data name="SuperSocket.Common" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Library\SuperSocket.Common.dll;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="door" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\door.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
   <data name="geom" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\geom.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
@@ -270,5 +213,80 @@
   </data>
   <data name="geomManLarge" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\geomManLarge.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="basicLayers" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\basicLayers.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="basicLayersLarge" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\basicLayersLarge.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="ceilingLarge" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\ceilingLarge.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="cwallLarge" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\cwallLarge.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="device" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\device.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="export" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\export.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="fire" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\fire.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="hole" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\hole.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="jetfan" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\jetfan.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="layerOff" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\layerOff.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="layerOn" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\layerOn.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="layers" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\layers.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="levelAddLarge" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\levelAddLarge.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="levelHideLarge" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\levelHideLarge.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="levelShowLarge" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\levelShowLarge.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="mesh" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\mesh.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="meshAuto" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\meshAuto.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="obst" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\obst.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="open" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\open.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="openManual" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\openManual.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="openManualLarge" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\openManualLarge.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="select" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\select.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="slice" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\slice.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="vent" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\vent.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="ventLarge" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\ventLarge.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
 </root>

@@ -1,0 +1,35 @@
+https://materialdesignicons.com/
+
+Color: 217, 217, 217
+	   #d9d9d9
+Small size: 16 x 16 px
+Large size: 32 x 32 px
+No padding, no margin
+
+basicLayers -> layers-outline
+ceiling -> border-inside
+default -> apps
+device -> thermometer-lines
+export -> export
+fire -> fire
+geom -> graphql
+jetfan ->  weather-windy
+layerOff -> lightbulb-on-outline
+layerOn ->  lightbulb-on, color: #ffde31
+layers ->  layers-triple-outline
+levelAdd -> playlist-plus
+levelShow -> playlist-check
+levelHide -> playlist-remove
+mesh -> builing
+meshAuto ->  view-grid-plus-outline
+obst -> cube-outline
+open -> cube
+openManual -> tab-unselected
+select -> gesture-double-tap
+slice ->  box-cutter
+cwall -> format-vertical-align-top
+vent -> flip-to-front
+open -> border-style
+
+geomMan -> vector-triangle
+wall -> cube-unfolded

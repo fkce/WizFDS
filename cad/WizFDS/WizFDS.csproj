@@ -58,7 +58,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'AutoCAD_Debug|AnyCPU'">
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\AutoCAD_Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;ARX_APP, AAMKS, WIZFDS, DEBUG</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;ARX_APP, WIZFDS, DEBUG</DefineConstants>
     <DebugType>full</DebugType>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
@@ -75,7 +75,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'AutoCAD_Release|AnyCPU'">
     <OutputPath>bin\AutoCAD_Release\</OutputPath>
-    <DefineConstants>TRACE;ARX_APP, AAMKS, WIZFDS</DefineConstants>
+    <DefineConstants>TRACE;ARX_APP, WIZFDS</DefineConstants>
     <Optimize>true</Optimize>
     <DebugType>pdbonly</DebugType>
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -268,8 +268,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Cfast\Cfast.cs" />
-    <Compile Include="Export\ExportCfast.cs" />
     <Compile Include="Export\ImportUtils.cs" />
     <Compile Include="Modelling\Fire\Fire.cs" />
     <Compile Include="Modelling\Geometry\Complex.cs" />
@@ -284,7 +282,6 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
-    <Compile Include="Results\GenResults.cs" />
     <Compile Include="Ribbon\Ribbon.cs" />
     <Compile Include="Ribbon\RibbonInit.cs" />
     <Compile Include="Export\ExportFds.cs" />
@@ -310,19 +307,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="Resources\zoomExt.bmp" />
-    <None Include="Resources\viewTop.bmp" />
-    <None Include="Resources\viewRight.bmp" />
-    <None Include="Resources\viewLeft.bmp" />
-    <None Include="Resources\viewFront.bmp" />
-    <None Include="Resources\viewBottom.bmp" />
-    <None Include="Resources\viewBack.bmp" />
-    <None Include="Resources\staircaseLarge.png" />
-    <None Include="Resources\windowLarge.png" />
-    <None Include="Resources\vent.png" />
-    <None Include="Resources\topLarge.png" />
     <None Include="Resources\wall.png" />
-    <None Include="Resources\ventLarge.png" />
     <None Include="Resources\wallLarge.png" />
     <None Include="Resources\websocOpenLarge.png" />
     <None Include="Resources\websocCloseLarge.png" />
@@ -333,15 +318,9 @@
     <None Include="Resources\jetfanLarge.png" />
     <None Include="Resources\ceiling.png" />
     <None Include="Resources\cwall.png" />
-    <None Include="Resources\doorLarge.png" />
     <None Include="Resources\holeLarge.png" />
-    <None Include="Resources\3dorbit.bmp" />
     <None Include="Resources\defaultIco.png" />
     <None Include="Resources\defaultIcoLarge.png" />
-    <None Include="Resources\holeaut.png" />
-    <None Include="Resources\corridorLarge.png" />
-    <None Include="Resources\dist.bmp" />
-    <None Include="Resources\area.bmp" />
     <None Include="Resources\meshLarge.png" />
     <None Include="Resources\openLarge.png" />
     <None Include="Resources\selectLarge.png" />
@@ -363,7 +342,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\inletLarge.png" />
     <None Include="Resources\meshAutoLarge.png" />
     <None Include="Resources\layerOffLarge.png" />
     <None Include="Resources\layerOnLarge.png" />
@@ -393,13 +371,85 @@
     <None Include="Resources\geomLarge.png" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\door.png" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Resources\geomMan.png" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\geomManLarge.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\open.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\vent.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\ventLarge.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\ceilingLarge.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\cwallLarge.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\device.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\export.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\fire.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\hole.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\jetfan.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\layerOff.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\layerOn.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\layers.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\levelAddLarge.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\levelHideLarge.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\levelShowLarge.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\mesh.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\meshAuto.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\obst.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\select.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\slice.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\basicLayers.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\basicLayersLarge.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\openManual.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\openManualLarge.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

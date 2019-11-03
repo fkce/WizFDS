@@ -68,7 +68,6 @@ namespace WizFDS.Properties {
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-
         internal static System.Drawing.Bitmap defaultIcoLarge {
             get {
                 object obj = ResourceManager.GetObject("defaultIcoLarge", resourceCulture);
@@ -76,82 +75,32 @@ namespace WizFDS.Properties {
             }
         }
 
-
-        #endregion
-
-        #region CFAST icons
-
-        internal static System.Drawing.Bitmap corridorLarge {
-            get {
-                object obj = ResourceManager.GetObject("corridorLarge", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-
-        internal static System.Drawing.Bitmap staircaseLarge {
-            get {
-                object obj = ResourceManager.GetObject("staircaseLarge", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-
-        internal static System.Drawing.Bitmap door {
-            get {
-                object obj = ResourceManager.GetObject("door", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-
-        internal static System.Drawing.Bitmap doorLarge {
-            get {
-                object obj = ResourceManager.GetObject("doorLarge", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-
-        internal static System.Drawing.Bitmap windowLarge {
-            get {
-                object obj = ResourceManager.GetObject("windowLarge", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-
-        internal static System.Drawing.Bitmap inletLarge {
-            get {
-                object obj = ResourceManager.GetObject("inletLarge", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-
-        internal static System.Drawing.Bitmap holeLarge {
-            get {
-                object obj = ResourceManager.GetObject("holeLarge", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-
-        internal static System.Drawing.Bitmap vent {
-            get {
-                object obj = ResourceManager.GetObject("vent", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-
-        internal static System.Drawing.Bitmap holeaut {
-            get {
-                object obj = ResourceManager.GetObject("holeaut", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-
-
         #endregion
 
         #region FDS Geometry icons
 
+        internal static System.Drawing.Bitmap obst {
+            get {
+                object obj = ResourceManager.GetObject("obst", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
         internal static System.Drawing.Bitmap obstLarge {
             get {
                 object obj = ResourceManager.GetObject("obstLarge", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+
+        internal static System.Drawing.Bitmap hole {
+            get {
+                object obj = ResourceManager.GetObject("hole", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        internal static System.Drawing.Bitmap holeLarge {
+            get {
+                object obj = ResourceManager.GetObject("holeLarge", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -162,6 +111,12 @@ namespace WizFDS.Properties {
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
+        internal static System.Drawing.Bitmap ceilingLarge {
+            get {
+                object obj = ResourceManager.GetObject("ceilingLarge", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
 
         internal static System.Drawing.Bitmap cwall {
             get {
@@ -169,7 +124,19 @@ namespace WizFDS.Properties {
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
+        internal static System.Drawing.Bitmap cwallLarge {
+            get {
+                object obj = ResourceManager.GetObject("cwallLarge", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
 
+        internal static System.Drawing.Bitmap mesh {
+            get {
+                object obj = ResourceManager.GetObject("mesh", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
         internal static System.Drawing.Bitmap meshLarge {
             get {
                 object obj = ResourceManager.GetObject("meshLarge", resourceCulture);
@@ -177,6 +144,12 @@ namespace WizFDS.Properties {
             }
         }
 
+        internal static System.Drawing.Bitmap meshAuto {
+            get {
+                object obj = ResourceManager.GetObject("meshAuto", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
         internal static System.Drawing.Bitmap meshAutoLarge {
             get {
                 object obj = ResourceManager.GetObject("meshAutoLarge", resourceCulture);
@@ -184,9 +157,28 @@ namespace WizFDS.Properties {
             }
         }
         
+        internal static System.Drawing.Bitmap open {
+            get {
+                object obj = ResourceManager.GetObject("open", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
         internal static System.Drawing.Bitmap openLarge {
             get {
                 object obj = ResourceManager.GetObject("openLarge", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+
+        internal static System.Drawing.Bitmap openManual {
+            get {
+                object obj = ResourceManager.GetObject("openManual", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        internal static System.Drawing.Bitmap openManualLarge {
+            get {
+                object obj = ResourceManager.GetObject("openManualLarge", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -197,7 +189,6 @@ namespace WizFDS.Properties {
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-
         internal static System.Drawing.Bitmap wallLarge {
             get {
                 object obj = ResourceManager.GetObject("wallLarge", resourceCulture);
@@ -211,7 +202,6 @@ namespace WizFDS.Properties {
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-
         internal static System.Drawing.Bitmap geomLarge {
             get {
                 object obj = ResourceManager.GetObject("geomLarge", resourceCulture);
@@ -225,7 +215,6 @@ namespace WizFDS.Properties {
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-
         internal static System.Drawing.Bitmap geomManLarge {
             get {
                 object obj = ResourceManager.GetObject("geomManLarge", resourceCulture);
@@ -237,6 +226,12 @@ namespace WizFDS.Properties {
 
         #region FDS Fire & Ventilation & Output icons 
 
+        internal static System.Drawing.Bitmap vent {
+            get {
+                object obj = ResourceManager.GetObject("vent", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
         internal static System.Drawing.Bitmap ventLarge {
             get {
                 object obj = ResourceManager.GetObject("ventLarge", resourceCulture);
@@ -244,6 +239,12 @@ namespace WizFDS.Properties {
             }
         }
 
+        internal static System.Drawing.Bitmap jetfan {
+            get {
+                object obj = ResourceManager.GetObject("jetfan", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
         internal static System.Drawing.Bitmap jetfanLarge {
             get {
                 object obj = ResourceManager.GetObject("jetfanLarge", resourceCulture);
@@ -251,6 +252,12 @@ namespace WizFDS.Properties {
             }
         }
 
+        internal static System.Drawing.Bitmap fire {
+            get {
+                object obj = ResourceManager.GetObject("fire", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
         internal static System.Drawing.Bitmap fireLarge {
             get {
                 object obj = ResourceManager.GetObject("fireLarge", resourceCulture);
@@ -258,6 +265,12 @@ namespace WizFDS.Properties {
             }
         }
 
+        internal static System.Drawing.Bitmap device {
+            get {
+                object obj = ResourceManager.GetObject("device", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
         internal static System.Drawing.Bitmap deviceLarge {
             get {
                 object obj = ResourceManager.GetObject("deviceLarge", resourceCulture);
@@ -265,6 +278,12 @@ namespace WizFDS.Properties {
             }
         }
 
+        internal static System.Drawing.Bitmap slice {
+            get {
+                object obj = ResourceManager.GetObject("slice", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
         internal static System.Drawing.Bitmap sliceLarge {
             get {
                 object obj = ResourceManager.GetObject("sliceLarge", resourceCulture);
@@ -272,10 +291,16 @@ namespace WizFDS.Properties {
             }
         }
 
-
         #endregion
 
         #region Layers
+
+        internal static System.Drawing.Bitmap layerOff {
+            get {
+                object obj = ResourceManager.GetObject("layerOff", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
         internal static System.Drawing.Bitmap layerOffLarge {
             get {
                 object obj = ResourceManager.GetObject("layerOffLarge", resourceCulture);
@@ -283,6 +308,12 @@ namespace WizFDS.Properties {
             }
         }
 
+        internal static System.Drawing.Bitmap layerOn {
+            get {
+                object obj = ResourceManager.GetObject("layerOn", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
         internal static System.Drawing.Bitmap layerOnLarge {
             get {
                 object obj = ResourceManager.GetObject("layerOnLarge", resourceCulture);
@@ -290,9 +321,28 @@ namespace WizFDS.Properties {
             }
         }
 
+        internal static System.Drawing.Bitmap layers {
+            get {
+                object obj = ResourceManager.GetObject("layers", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
         internal static System.Drawing.Bitmap layersLarge {
             get {
                 object obj = ResourceManager.GetObject("layersLarge", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+
+        internal static System.Drawing.Bitmap basicLayers {
+            get {
+                object obj = ResourceManager.GetObject("basicLayers", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        internal static System.Drawing.Bitmap basicLayersLarge {
+            get {
+                object obj = ResourceManager.GetObject("basicLayersLarge", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -303,10 +353,22 @@ namespace WizFDS.Properties {
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
+        internal static System.Drawing.Bitmap levelAddLarge {
+            get {
+                object obj = ResourceManager.GetObject("levelAddLarge", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
 
         internal static System.Drawing.Bitmap levelHide {
             get {
                 object obj = ResourceManager.GetObject("levelHide", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        internal static System.Drawing.Bitmap levelHideLarge {
+            get {
+                object obj = ResourceManager.GetObject("levelHideLarge", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -317,11 +379,23 @@ namespace WizFDS.Properties {
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
+        internal static System.Drawing.Bitmap levelShowLarge {
+            get {
+                object obj = ResourceManager.GetObject("levelShow", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
 
         #endregion
 
         #region FDS Export & Websocket icons
 
+        internal static System.Drawing.Bitmap export {
+            get {
+                object obj = ResourceManager.GetObject("export", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
         internal static System.Drawing.Bitmap exportLarge {
             get {
                 object obj = ResourceManager.GetObject("exportLarge", resourceCulture);
@@ -329,6 +403,12 @@ namespace WizFDS.Properties {
             }
         }
 
+        internal static System.Drawing.Bitmap select {
+            get {
+                object obj = ResourceManager.GetObject("select", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
         internal static System.Drawing.Bitmap selectLarge {
             get {
                 object obj = ResourceManager.GetObject("selectLarge", resourceCulture);
@@ -342,7 +422,6 @@ namespace WizFDS.Properties {
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-
         internal static System.Drawing.Bitmap websocCloseLarge {
             get {
                 object obj = ResourceManager.GetObject("websocCloseLarge", resourceCulture);
@@ -350,84 +429,7 @@ namespace WizFDS.Properties {
             }
         }
 
-
         #endregion
-
-
-        #region Utils icons
-
-        internal static System.Drawing.Bitmap orbit {
-            get {
-                object obj = ResourceManager.GetObject("3dorbit", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-
-        internal static System.Drawing.Bitmap zoomExt {
-            get {
-                object obj = ResourceManager.GetObject("zoomExt", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-
-        internal static System.Drawing.Bitmap dist {
-            get {
-                object obj = ResourceManager.GetObject("dist", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-
-        internal static System.Drawing.Bitmap area {
-            get {
-                object obj = ResourceManager.GetObject("area", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-
-        internal static System.Drawing.Bitmap viewTop {
-            get {
-                object obj = ResourceManager.GetObject("viewTop", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-
-        internal static System.Drawing.Bitmap viewBottom {
-            get {
-                object obj = ResourceManager.GetObject("viewBottom", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-
-        internal static System.Drawing.Bitmap viewFront {
-            get {
-                object obj = ResourceManager.GetObject("viewFront", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-
-        internal static System.Drawing.Bitmap viewBack {
-            get {
-                object obj = ResourceManager.GetObject("viewBack", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-
-        internal static System.Drawing.Bitmap viewLeft {
-            get {
-                object obj = ResourceManager.GetObject("viewLeft", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-
-        internal static System.Drawing.Bitmap viewRight {
-            get {
-                object obj = ResourceManager.GetObject("viewRight", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-
-        #endregion
-
 
     }
 }
