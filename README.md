@@ -16,11 +16,11 @@ GUI is divided into 2 separated tools. All geometrical entities are created in A
 # How to start using?
 ## AutoCAD plugin
 1. Install AutoCAD plugin [(download)](https://github.com/fkce/WizFDS/releases/download/0.3.0/WizFDS_0.3.0.msi)
-2. Run AutoCAD and type in command line:
+2. Run AutoCAD and type in AutoCAD command line:
 ```
 netload
 ```
-3. Choose wizFDS.dll file (default location: _C:\Program Files\firemodels\WizFDS\WizFDS.dll_)
+3. Choose WizFDS.dll file (default instalation location: _C:\Program Files\firemodels\WizFDS\WizFDS.dll_)
 4. Start drawing FDS entities
 [(see video tutorial)](https://github.com/fkce/WizFDS/wiki/How-to-start-using%3F#autocad-plugin)
 
@@ -30,7 +30,7 @@ netload
 3. Connect with Autocad [(read more about known problems with connecting)](https://github.com/fkce/WizFDS/wiki/Known-problems#insecure-websocket-connection)
 4. Set up boundary conditions
 5. Edit your file in text/vim editor
-6. Download it and run on your / external resources  
+6. Download input file and run it on your / external resources  
 [(see video tutorial)](https://github.com/fkce/WizFDS/wiki/How-to-start-using%3F#web-application)
 
 # Authors
