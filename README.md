@@ -3,7 +3,7 @@
 WizFDS is Graphical User Interface (**GUI**) for Fire Dynamics Simulator (**FDS**).  
 The software is open-source project released under GNU v3.0 license founded by F&K Consulting Engineers Ltd.  
 
-GUI is divided into 2 separated tools. All geometrical entities are created in AutoCAD/BricsCAD plugin [(download)](https://github.com/fkce/WizFDS/releases/download/0.3.0/WizFDS_0.3.0.msi). Other boundary conditions are set in web application [(link)](https://wizfds.com/login) which communicate with AutoCAD through websocket protocol.
+GUI is divided into 2 separated tools. All geometrical entities are created in AutoCAD/BricsCAD plugin [(download)](https://github.com/fkce/WizFDS/releases/download/0.4.1/WizFDS_0.3.1.msi). Other boundary conditions are set in web application [(link)](https://wizfds.com/login) which communicate with AutoCAD through websocket protocol.
 
 **WizFDS is still under development and may include bugs.** However, we count on your help and support!
 
@@ -15,7 +15,7 @@ GUI is divided into 2 separated tools. All geometrical entities are created in A
 
 # How to start using?
 ## AutoCAD plugin
-1. Install AutoCAD plugin [(download)](https://github.com/fkce/WizFDS/releases/download/0.3.0/WizFDS_0.3.0.msi)
+1. Install AutoCAD plugin [(download)](https://github.com/fkce/WizFDS/releases/download/0.4.1/WizFDS_0.3.1.msi)
 2. Run AutoCAD and type in AutoCAD command line:
 ```
 netload
