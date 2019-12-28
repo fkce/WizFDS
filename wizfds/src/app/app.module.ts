@@ -91,6 +91,7 @@ import { ParabolaChartComponent } from './views/main/fds/shared/parabola-chart/p
 import { CustomRampDialogComponent } from './views/main/fds/fire/fires/custom-ramp-dialog/custom-ramp-dialog.component';
 import { ComplexComponent } from './views/main/fds/geometry/complex/complex.component';
 import { MinSecPipe } from './pipes/min-sec/min-sec.pipe';
+import { LargeNumberPipe } from './pipes/large-number/large-number.pipe';
 
 
 @NgModule({
@@ -135,6 +136,7 @@ import { MinSecPipe } from './pipes/min-sec/min-sec.pipe';
     CustomRampDialogComponent,
     ComplexComponent,
     MinSecPipe,
+    LargeNumberPipe,
   ],
   imports: [
     BrowserModule,

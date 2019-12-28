@@ -70,13 +70,13 @@
           <div>
             <label>Mesh cells no:</label>
             <div class="field-container">
-              {{mesh.calcCells()}}
+              {{mesh.calcCells() | largeNumber }}
             </div>
           </div>
           <div>
             <label>Domain cells no:</label>
             <div class="field-container">
-              {{totalCells()}}
+              {{totalCells() | largeNumber}}
             </div>
           </div>
         </div>
@@ -197,7 +197,7 @@
   </div>
 
   <div class="single-amper-container">
-    
+
     <div class="list-wrapper">
       <div class="list-drawer">
         <div class="list-title" (click)="add('open')">
@@ -207,7 +207,8 @@
           <div class="list-items">
             <div class="list-item"
               *ngFor="let openItem of opens | slice:ui.geometry.open.begin:(ui.geometry.open.begin + ui.listRange)">
-              <a (click)="activate(openItem.id, 'open'); websocketService.selectCad(openItem.idAC)" [ngClass]="{active: openItem === open}">
+              <a (click)="activate(openItem.id, 'open'); websocketService.selectCad(openItem.idAC)"
+                [ngClass]="{active: openItem === open}">
                 {{openItem.id}} </a>
               <i class="material-icons" (click)="delete(openItem.id, 'open')">delete_forever</i>
             </div>

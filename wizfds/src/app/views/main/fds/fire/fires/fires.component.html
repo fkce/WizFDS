@@ -189,7 +189,7 @@
           <!--<div *ngIf="(fire.surf.fire_type=='radially_spreading' || fire.surf.fire_type=='constant_hrr' || (fire.surf.fire_type=='time_dependent_hrrpua' && !fire.surf.ramp.steps)) && fire.surf.hrr.hrr_type=='hrrpua'">-->
           <label>Max HRR:</label>
           <div class="field-container">
-            {{ fire.totalHrr() }} &nbsp;
+            {{ fire.totalHrr() | largeNumber}} &nbsp;
             <ng-katex equation="kW"></ng-katex>
           </div>
         </div>
