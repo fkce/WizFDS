@@ -38,23 +38,19 @@ export class Hrr {
         this.spread_rate = get(base, 'spread_rate', 0) as number;
         this.time_function = get(base, 'time_function', 'ramp') as string;
         this.tau_q = get(base, 'tau_q', surf.tau_q.default[0]) as number;
+
+        // This area is assigned from vent-fire
         this.area = get(base, 'area', 1) as number;
-        this.alpha = get(base, 'alpha', 0) as number;
-        this.alpha2 = get(base, 'alpha2', 0) as number;
+        this.alpha = get(base, 'alpha', 0.04689) as number;
+        this.alpha2 = get(base, 'alpha2', 0.01172) as number;
         this.maxHrr = get(base, 'maxHrr', 0) as number;
         this.sprinklerActivationTime = get(base, 'sprinklerActivationTime', 0) as number;
+        this.calc(true,false,false)
     }
 
     public calc(alpha?: boolean, spread_rate?: boolean, tau_q?: boolean) {
 
         setTimeout(() => {
-            if (spread_rate) {
-                let alpha = round(Math.pow(this.spread_rate, 2) * Math.PI * this.value, 6);
-                let tauQ = round(Math.sqrt((this.value * this.area) / alpha) * (-1), 2);
-
-                this.alpha = alpha;
-                this.tau_q = tauQ;
-            }
 
             if (alpha) {
                 let radius1 = Math.sqrt(((this.alpha * Math.pow(10, 2)) / (Math.PI * this.value)));
@@ -64,6 +60,14 @@ export class Hrr {
 
                 this._spread_rate = spreadRate;
                 this._tau_q = tauQ;
+            }
+
+            if (spread_rate) {
+                let alpha = round(Math.pow(this.spread_rate, 2) * Math.PI * this.value, 6);
+                let tauQ = round(Math.sqrt((this.value * this.area) / alpha) * (-1), 2);
+
+                this.alpha = alpha;
+                this.tau_q = tauQ;
             }
 
             if (tau_q) {
@@ -199,7 +203,7 @@ export class Hrr {
      * @param {number} value
      */
     public set area(value: number) {
-        this._area = round(value, 6);
+        this._area = value;
     }
 
     /**

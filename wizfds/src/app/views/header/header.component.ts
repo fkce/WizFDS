@@ -32,6 +32,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   libSub;
 
   // Component variables
+  diagnostic: string = "";
 
   constructor(
     private mainService: MainService,
@@ -52,6 +53,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
       this.connectCad();
     }, 1000)
     this.websocket = this.websocketService;
+    if (isDevMode()) {
+      this.diagnostic = "Show diagnostic data";
+    }
   }
 
   ngOnDestroy() {

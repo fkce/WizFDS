@@ -1,7 +1,7 @@
 import { Spec } from "./specie/spec";
 import { Part } from "./particle/part";
 
-import { get, map, toString, find, forEach, isEqual } from "lodash";
+import { get, map, toString, find, forEach, isEqual, round } from "lodash";
 import { colors } from "@enums/fds/enums/fds-enums-colors";
 
 export interface IXb {
@@ -10,8 +10,7 @@ export interface IXb {
     y1: number,
     y2: number,
     z1: number,
-    z2: number
-    area?: number
+    z2: number,
 }
 export class Xb {
     private _x1: number;
@@ -20,7 +19,6 @@ export class Xb {
     private _y2: number;
     private _z1: number;
     private _z2: number;
-    private _area: number;
 
     constructor(jsonString: string, type?: string) {
 
@@ -40,50 +38,6 @@ export class Xb {
             this.z1 = get(base, 'z1', 0);
             this.z2 = get(base, 'z2', 1);
         }
-
-        let area: number = 0;
-        if (this.z1 == this.z2) {
-            area = Math.abs((this.x2 - this.x1) * (this.y2 - this.y1));
-        }
-        else if (this.y1 == this.y2) {
-            area = Math.abs((this.x2 - this.x1) * (this.z2 - this.z1));
-        }
-        else if (this.x1 == this.x2) {
-            area = Math.abs((this.z2 - this.z1) * (this.z2 - this.z1));
-        }
-        this.area = area;
-    }
-
-    /** Recalculate area */
-    public calcArea() {
-        let area: number = 0;
-        if (this.z1 == this.z2) {
-            area = Math.abs((this.x2 - this.x1) * (this.y2 - this.y1));
-        }
-        else if (this.y1 == this.y2) {
-            area = Math.abs((this.x2 - this.x1) * (this.z2 - this.z1));
-        }
-        else if (this.x1 == this.x2) {
-            area = Math.abs((this.z2 - this.z1) * (this.z2 - this.z1));
-        }
-        this.area = area;
-        return area;
-    }
-
-    /**
-     * Getter area
-     * @return {number}
-     */
-    public get area(): number {
-        return this._area;
-    }
-
-    /**
-     * Setter area
-     * @param {number} value
-     */
-    public set area(value: number) {
-        this._area = value;
     }
 
     /**
@@ -100,8 +54,7 @@ export class Xb {
      */
     public set x1(value: number) {
         this._x1 = value;
-        console.log(this.x1);
-        this.calcArea();
+        //this.calcArea();
     }
 
     /**
@@ -118,7 +71,7 @@ export class Xb {
      */
     public set x2(value: number) {
         this._x2 = value;
-        this.calcArea();
+        //this.calcArea();
     }
 
     /**
@@ -135,7 +88,7 @@ export class Xb {
      */
     public set y1(value: number) {
         this._y1 = value;
-        this.calcArea();
+        //this.calcArea();
     }
 
     /**
@@ -152,7 +105,7 @@ export class Xb {
      */
     public set y2(value: number) {
         this._y2 = value;
-        this.calcArea();
+        //this.calcArea();
     }
 
     /**
@@ -169,7 +122,7 @@ export class Xb {
      */
     public set z1(value: number) {
         this._z1 = value;
-        this.calcArea();
+        //this.calcArea();
     }
 
     /**
@@ -186,7 +139,7 @@ export class Xb {
      */
     public set z2(value: number) {
         this._z2 = value;
-        this.calcArea();
+        //this.calcArea();
     }
 
     toJSON(): object {
@@ -220,6 +173,15 @@ export class Xyz {
         this.x = get(base, 'x', 0);
         this.y = get(base, 'y', 0);
         this.z = get(base, 'z', 0);
+    }
+
+    public recalc(xb?: Xb) {
+
+        if (!xb) xb = new Xb(JSON.stringify({}));
+
+        this.x = round((xb.x2 - xb.x1) / 2, 3);
+        this.y = round((xb.y2 - xb.y1) / 2, 3);
+        this.z = round((xb.z2 - xb.z1) / 2, 3);
     }
 
     /**
@@ -456,7 +418,7 @@ export class Color {
             tmpShow = tmpColor.show;
         }
         // If isset rgb
-        else if (rgb != undefined && rgb.length > 0){
+        else if (rgb != undefined && rgb.length > 0) {
             // Check if predefined color exists
             forEach(colors, (tmpColor) => {
                 if (isEqual(rgb, tmpColor.rgb)) {
@@ -493,7 +455,7 @@ export class Color {
             if (isEqual(rgb, color.rgb)) tmpColor = color;
         });
         // Set color with RGB only
-        if(tmpColor.rgb == undefined) {
+        if (tmpColor.rgb == undefined) {
             tmpColor = colors[0];
             tmpColor.rgb = rgb;
         }

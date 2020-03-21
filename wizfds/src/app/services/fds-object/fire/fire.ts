@@ -3,7 +3,7 @@ import { Ramp } from "../ramp/ramp";
 import { SurfFire } from './surf-fire';
 import { VentFire } from './vent-fire';
 import { round } from 'lodash';
-import { Color } from '../primitives';
+import { Color, Xb } from '../primitives';
 
 export interface IFire {
     id: string,
@@ -46,43 +46,62 @@ export class Fire {
             this.surf = new SurfFire(JSON.stringify({}));
             this.surf.id = this.id;
         }
+
+        // For old scenarios - to remove
         if (base['color'] != undefined) {
             this.surf.color = new Color(JSON.stringify(base['color']));
         }
 
-        if (base.vent != undefined) {
+        if (base.vent) {
             this.vent = new VentFire(JSON.stringify(base.vent));
-            this.surf.hrr.area = this.vent.xb.area;
+            this.surf.hrr.area = this.vent.area;
         } else {
             this.vent = new VentFire(JSON.stringify({}));
-            this.surf.hrr.area = this.vent.xb.area;
+            this.vent.area = this.vent.calcArea();
+            this.vent.xyz.recalc(this.vent.xb);
+            this.surf.hrr.area = this.vent.area;
         }
-
     }
 
     /** Calculate total heat release rate */
     public totalHrr() {
-        var area = Math.abs(this.vent.xb.x2 - this.vent.xb.x1) * Math.abs(this.vent.xb.y2 - this.vent.xb.y1);
+
+        let area = this.vent.area;
         var hrrpua = 0;
-        if (this.surf.hrr['hrr_type'] == 'hrrpua') {
+        if (this.surf.hrr.hrr_type == 'hrrpua') {
             hrrpua = this.surf.hrr.value;
-            this.surf.hrr['area'] = area;
+            this.surf.hrr.area = area;
         }
         return round((1 * area * hrrpua), 6);
     }
 
     /** Calculate total time of fire spreading */
     public totalTime() {
-        var time = (Math.sqrt(this.totalHrr() / this.surf.hrr['alpha'])).toFixed(0);
+
+        var time = (Math.sqrt(this.totalHrr() / this.surf.hrr.alpha)).toFixed(0);
         return time;
     }
 
     /** Recalculate vent area and fire params */
     public calcArea() {
-        this.surf.hrr.area = this.vent.xb.area;
-        setTimeout(() => {
-            this.surf.hrr.calc(true);
-        }, 10);
+
+        // Check first if this.vent.radius > 0 
+        if (this.vent.radius > 0) {
+            // Calc area for vent ... here can be more complex algorithm to count 
+            // affected by radius cells and then calculate total Hrr ...
+            this.vent.area = round(Math.PI * Math.pow(this.vent.radius, 2), 3);
+            this.surf.hrr.area = this.vent.area;
+            this.surf.hrr.calc(false, true, false);
+        }
+        else {
+            // Make sure that there is no negative value
+            this.vent.radius = 0;
+
+            this.vent.area = this.vent.calcArea();
+            this.vent.xyz.recalc(this.vent.xb);
+            this.surf.hrr.area = this.vent.area;
+            this.surf.hrr.calc(false, true, false);
+        }
     }
 
     public get id(): string {

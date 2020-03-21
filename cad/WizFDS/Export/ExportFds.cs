@@ -291,7 +291,7 @@ namespace WizFDS.Export
 
                 this.geoms.Add(geom);
             }
-            // Adds ...
+            // TODO: Add geom exporting from faces with different layers
             public void AddGeomFromFaces(Face acEnt)
             {
                 if (this.geomFromFaces == null)
@@ -350,7 +350,6 @@ namespace WizFDS.Export
                 this.geoms.Add(geom);
                 */
             }
-
             // Here add geom from surfaces
             // 1. Add dictionary with egdges
             // 2. Add surfaces from edges

@@ -46,7 +46,7 @@ namespace WizFDS.Utils
         }
 
         public static bool layersCreated = false;
-        public static bool layersCreatedCfast = false;
+        public static bool layersCreatedEvac = false;
 
         // Uniwersalne wartosci
         public static double oldZmin;
@@ -115,42 +115,6 @@ namespace WizFDS.Utils
             }
 
             acApp.SetSystemVariable("osmode", 0);
-
-            ResetUCS();
-        }
-        public static void InitCfast()
-        {
-            // wyłącza sie przyciaganie
-            if (layersCreatedCfast == false)
-            {
-                Point2d snap = new Point2d(0.1, 0.1);
-                acApp.SetSystemVariable("snapunit", (Object)snap);
-            }
-            Layers.CreateBasicLayersCfast();
-            oldSnapMode = acApp.GetSystemVariable("snapmode");
-            oldOsMode = acApp.GetSystemVariable("osmode");
-            oldOrtho = acApp.GetSystemVariable("orthomode");
-            oldLayer = acApp.GetSystemVariable("clayer");
-#if BRX_APP
-            snapUnit = (Point3d)acApp.GetSystemVariable("snapunit");
-#elif ARX_APP
-            snapUnit = (Point2d)acApp.GetSystemVariable("snapunit");
-#endif
-
-            if(snapUnit.X <= 1)
-                acApp.SetSystemVariable("snapmode", 1);
-            else
-            {
-#if BRX_APP
-                Point3d snap = new Point3d(0.2, 0.2, 0.2);
-#elif ARX_APP
-                Point2d snap = new Point2d(0.2, 0.2);
-#endif
-                acApp.SetSystemVariable("snapunit", snap);
-                acApp.SetSystemVariable("snapmode", 1);
-            }
-
-            //acApp.SetSystemVariable("osmode", 0);
 
             ResetUCS();
         }

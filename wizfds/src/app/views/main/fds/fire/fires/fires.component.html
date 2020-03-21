@@ -183,7 +183,6 @@
           </div>
         </div>
 
-
         <!-- Other labels -->
         <div *ngIf="(fire.surf.fire_type=='radially_spreading' || fire.surf.fire_type=='constant_hrr' || (fire.surf.fire_type=='time_dependent_hrrpua' && !fire.surf.ramp)) && fire.surf.hrr.hrr_type=='hrrpua'">
           <!--<div *ngIf="(fire.surf.fire_type=='radially_spreading' || fire.surf.fire_type=='constant_hrr' || (fire.surf.fire_type=='time_dependent_hrrpua' && !fire.surf.ramp.steps)) && fire.surf.hrr.hrr_type=='hrrpua'">-->
@@ -268,7 +267,7 @@
         <div>
           <label>Total area:</label>
           <div class=" field-container ">
-            {{ fire.surf.hrr.area }} &nbsp;
+            {{ fire.vent.area }} &nbsp;
             <ng-katex equation="m^2"></ng-katex>
           </div>
         </div>
@@ -295,6 +294,15 @@
             <ng-katex equation="m"></ng-katex>
           </div>
         </div>
+        <div *ngIf="fire.surf.fire_type=='radially_spreading'">
+          <label>Radius:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="fire.vent.radius" (ngModelChange)="fire.calcArea()"
+              decimalInput />
+            <ng-katex equation="m"></ng-katex>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>

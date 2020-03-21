@@ -157,17 +157,19 @@ namespace WizFDS.Utils
         }
 
 #if DEBUG
-        [CommandMethod("xx")]
-        public void xx()
+        [CommandMethod("fTest")]
+        public void fTest()
         {
             Utils.Init();
             //Utils.Utils.UtilsInitCfast();
-            Utils.CreateBox(0, 1, 0, 2, 0, 3, "!FDS_OBST[inert](0)");
             Utils.CreateBox(0, 4, 0, 0.2, 0, 3, "!FDS_OBST[inert](0)");
             Utils.CreateBox(-0.2, 0, 0, 4, 0, 3, "!FDS_OBST[inert](0)");
-            Utils.CreateBox(-1, 5, -2, 8, 0, 3.6, "!FDS_MESH");
-            Utils.CreateExtrudedSurface(new Point3d(2, 2, 2), new Point3d(2, 2.4, 2.2), "!FDS_VENT[vent]");
-            Utils.CreateExtrudedSurface(new Point3d(4, -2.4, 0), new Point3d(4, 8.4, 3.0), "!FDS_SLCF[slice]");
+            Utils.CreateBox(0, 4, 3.8, 4, 0, 3, "!FDS_OBST[inert](0)");
+            Utils.CreateBox(4, 4.2, 0, 4, 0, 3, "!FDS_OBST[inert](0)");
+            Utils.CreateBox(1, 1.2, 1, 3, -2, -1, "!FDS_OBST[inert](0)");
+            //Utils.CreateBox(-1, 5, -2, 8, 0, 3.6, "!FDS_MESH");
+            //Utils.CreateExtrudedSurface(new Point3d(2, 2, 2), new Point3d(2, 2.4, 2.2), "!FDS_VENT[vent]");
+            //Utils.CreateExtrudedSurface(new Point3d(4, -2.4, 0), new Point3d(4, 8.4, 3.0), "!FDS_SLCF[slice]");
 
             Utils.ZoomInit();
         }

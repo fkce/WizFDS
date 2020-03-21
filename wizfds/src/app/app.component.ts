@@ -85,11 +85,11 @@ export class AppComponent {
     // For developing purpose
     if (isDevMode()) {
       setTimeout(() => {
-        //this.setCurrentFdsScenario(30, 53);
-      }, 1000);
+        //this.setCurrentFdsScenario(1, 66);
+      }, 4000);
       setTimeout(() => {
         //this.router.navigate(['/fds/fire/fire']);
-      }, 2000);
+      }, 6000);
     }
 
     // Subscribe websocket requests status for websocket CAD sync

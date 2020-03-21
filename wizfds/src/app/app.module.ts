@@ -92,6 +92,7 @@ import { CustomRampDialogComponent } from './views/main/fds/fire/fires/custom-ra
 import { ComplexComponent } from './views/main/fds/geometry/complex/complex.component';
 import { MinSecPipe } from './pipes/min-sec/min-sec.pipe';
 import { LargeNumberPipe } from './pipes/large-number/large-number.pipe';
+import { PositiveNumberPipe } from './pipes/positive-number/positive-number.pipe';
 
 
 @NgModule({
@@ -137,6 +138,7 @@ import { LargeNumberPipe } from './pipes/large-number/large-number.pipe';
     ComplexComponent,
     MinSecPipe,
     LargeNumberPipe,
+    PositiveNumberPipe,
   ],
   imports: [
     BrowserModule,

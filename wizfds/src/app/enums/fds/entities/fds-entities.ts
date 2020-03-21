@@ -13763,6 +13763,27 @@ export const FdsEntities =
               }
             ]
           },
+          radius: {
+            type: 'Real',
+            default: [
+              0.
+            ],
+            units: 'm',
+            help: '',
+            pattern: '',
+            valid_ranges: [
+              {
+                minExclusive: '__',
+                maxExclusive: '__'
+              }
+            ],
+            reasonable_ranges: [
+              {
+                minExclusive: '__',
+                maxExclusive: '__'
+              }
+            ]
+          },
           reynolds_stress: {
             type: 'RealArray',
             units: 'm^2/s^2',

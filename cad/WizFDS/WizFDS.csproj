@@ -268,6 +268,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Evac\Drawing.cs" />
+    <Compile Include="Evac\Export.cs" />
     <Compile Include="Export\ImportUtils.cs" />
     <Compile Include="Modelling\Fire\Fire.cs" />
     <Compile Include="Modelling\Geometry\Complex.cs" />

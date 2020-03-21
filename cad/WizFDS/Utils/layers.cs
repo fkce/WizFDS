@@ -287,6 +287,56 @@ namespace WizFDS.Utils
             return;
         }
 
+        public static void CreateEvacBasicLayers()
+        {
+            if (Utils.layersCreatedEvac == false)
+            {
+                // Get the current document and database
+                Document acDoc = acApp.DocumentManager.MdiActiveDocument;
+                Database acCurDb = acDoc.Database;
+
+                // Start a transaction
+                using (Transaction acTrans = acCurDb.TransactionManager.StartTransaction())
+                {
+                    // Open the Layer table for read
+                    LayerTable acLyrTbl;
+                    acLyrTbl = acTrans.GetObject(acCurDb.LayerTableId, OpenMode.ForRead) as LayerTable;
+
+                    Dictionary<string, short> layers = new Dictionary<string, short>();
+                    layers.Add("!FDS_EVAC[room]", 201);
+                    layers.Add("!FDS_EVAC[cor]", 201);
+                    layers.Add("!FDS_EVAC[door]", 201);
+                    layers.Add("!FDS_EVAC[dcloser]", 201);
+                    layers.Add("!FDS_EVAC[delectr]", 201);
+                    layers.Add("!FDS_EVAC[obst]", 201);
+
+                    foreach (KeyValuePair<string, short> layer in layers)
+                    {
+
+                        if (acLyrTbl.Has(layer.Key) == false)
+                        {
+                            LayerTableRecord acLyrTblRec = new LayerTableRecord();
+
+                            // Assign the layer the ACI color 1 and a name
+                            acLyrTblRec.Color = Color.FromColorIndex(ColorMethod.ByAci, layer.Value);
+                            acLyrTblRec.Name = layer.Key;
+
+                            // Upgrade the Layer table for write
+                            acLyrTbl.UpgradeOpen();
+
+                            // Append the new layer to the Layer table and the transaction
+                            acLyrTbl.Add(acLyrTblRec);
+                            acTrans.AddNewlyCreatedDBObject(acLyrTblRec, true);
+                        }
+                    }
+                    acTrans.Commit();
+                    Utils.layersCreatedEvac = true;
+                }
+                return;
+            }
+            return;
+        }
+
         public static void CreateFloorLayers(int begin, int end)
         {
 
@@ -436,61 +486,6 @@ namespace WizFDS.Utils
             return id;
         }
 
-        public static void CreateBasicLayersCfast()
-        {
-            if (Utils.layersCreatedCfast == false)
-            {
-                // Get the current document and database
-                Document acDoc = acApp.DocumentManager.MdiActiveDocument;
-                Database acCurDb = acDoc.Database;
-
-                // Start a transaction
-                using (Transaction acTrans = acCurDb.TransactionManager.StartTransaction())
-                {
-                    // Open the Layer table for read
-                    LayerTable acLyrTbl;
-                    acLyrTbl = acTrans.GetObject(acCurDb.LayerTableId, OpenMode.ForRead) as LayerTable;
-
-                    Dictionary<string, short> layers = new Dictionary<string, short>();
-                    layers.Add("!CFAST_ROOM(0)", 150);
-                    layers.Add("!CFAST_CORRIDOR(0)", 32);
-                    layers.Add("!CFAST_HALL(0)", 191);
-                    layers.Add("!CFAST_DPLAIN(0)", 3);
-                    layers.Add("!CFAST_DCLOSER(0)", 2);
-                    layers.Add("!CFAST_DELECTRIC(0)", 4);
-                    layers.Add("!CFAST_HOLE(0)", 124);
-                    layers.Add("!CFAST_WINDOW(0)", 6);
-                    layers.Add("!CFAST_VVENT(0)", 4);
-                    layers.Add("!CFAST_INLET(0)", 66);
-                    layers.Add("!CFAST_MVENT(0)", 254);
-                    layers.Add("!CFAST_STAIRCASE(0)", 254);
-
-                    foreach (KeyValuePair<string, short> layer in layers)
-                    {
-
-                        if (acLyrTbl.Has(layer.Key) == false)
-                        {
-                            LayerTableRecord acLyrTblRec = new LayerTableRecord();
-
-                            // Assign the layer the ACI color 1 and a name
-                            acLyrTblRec.Color = Color.FromColorIndex(ColorMethod.ByAci, layer.Value);
-                            acLyrTblRec.Name = layer.Key;
-
-                            // Upgrade the Layer table for write
-                            acLyrTbl.UpgradeOpen();
-
-                            // Append the new layer to the Layer table and the transaction
-                            acLyrTbl.Add(acLyrTblRec);
-                            acTrans.AddNewlyCreatedDBObject(acLyrTblRec, true);
-                        }
-                    }
-                    acTrans.Commit();
-                    Utils.layersCreated = true;
-                }
-                return;
-            }
-            return;
-        }
         public static void CreateLayerForCurrentFloor(string layer)
         {
             Editor ed = acApp.DocumentManager.MdiActiveDocument.Editor;
@@ -689,7 +684,7 @@ namespace WizFDS.Utils
             }
         }
 
-        // !!! Dokonczyc !!!
+        // TODO: finish and test below method
         [CommandMethod("fCreateLevel")]
         public void fCreateLevel()
         {
@@ -1044,6 +1039,47 @@ namespace WizFDS.Utils
                 return;
             }
         }
+
+        [CommandMethod("fFilterFdsObstEvacLayers")]
+        public static void fFilterFdsObstEvacLayers()
+        {
+            Editor ed = acApp.DocumentManager.MdiActiveDocument.Editor;
+            try
+            {
+                // Get the current document and database, and start a transaction
+                Document acDoc = Application.DocumentManager.MdiActiveDocument;
+                Database acCurDb = acDoc.Database;
+
+                using (Transaction acTrans = acCurDb.TransactionManager.StartTransaction())
+                {
+                    // This example returns the layer table for the current database
+                    LayerTable acLyrTbl;
+                    acLyrTbl = acTrans.GetObject(acCurDb.LayerTableId,
+                                                 OpenMode.ForRead) as LayerTable;
+
+                    // Step through the Layer table and print each layer name
+                    foreach (ObjectId acObjId in acLyrTbl)
+                    {
+                        LayerTableRecord acLyrTblRec;
+                        acLyrTblRec = acTrans.GetObject(acObjId, OpenMode.ForWrite) as LayerTableRecord;
+                        acLyrTblRec.IsOff = true;
+
+                        if (acLyrTblRec.Name.Contains("!FDS_OBST") || acLyrTblRec.Name.Contains("!FDS_EVAC"))
+                        {
+                            acLyrTblRec.IsOff = false;
+                        }
+                    }
+                    acTrans.Commit();
+                }
+                return;
+            }
+            catch (System.Exception e)
+            {
+                ed.WriteMessage("\nProgram exception: " + e.ToString());
+                return;
+            }
+        }
+
 
     }
 }
