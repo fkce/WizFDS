@@ -1,7 +1,7 @@
 import { Spec } from "./specie/spec";
 import { Part } from "./particle/part";
 
-import { get, map, toString, find, forEach, isEqual, round } from "lodash";
+import { get, map, toString, find, forEach, isEqual, round, toNumber } from "lodash";
 import { colors } from "@enums/fds/enums/fds-enums-colors";
 
 export interface IXb {
@@ -179,9 +179,9 @@ export class Xyz {
 
         if (!xb) xb = new Xb(JSON.stringify({}));
 
-        this.x = round((xb.x2 - xb.x1) / 2, 3);
-        this.y = round((xb.y2 - xb.y1) / 2, 3);
-        this.z = round((xb.z2 - xb.z1) / 2, 3);
+        this.x = round(toNumber(xb.x1) + (xb.x2 - xb.x1) / 2, 3);
+        this.y = round(toNumber(xb.y1) + (xb.y2 - xb.y1) / 2, 3);
+        this.z = round(toNumber(xb.z1) + (xb.z2 - xb.z1) / 2, 3);
     }
 
     /**

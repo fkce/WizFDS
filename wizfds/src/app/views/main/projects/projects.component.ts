@@ -45,7 +45,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     // Wait for projects and categories if first loading page
     setTimeout(() => {
       this.updateProjectsList();
-    }, 2000);
+    }, 2500);
 
   }
 

@@ -92,6 +92,7 @@ export class Fire {
             this.vent.area = round(Math.PI * Math.pow(this.vent.radius, 2), 3);
             this.surf.hrr.area = this.vent.area;
             this.surf.hrr.calc(false, true, false);
+            this.vent.xyz.recalc(this.vent.xb);
         }
         else {
             // Make sure that there is no negative value
@@ -101,6 +102,7 @@ export class Fire {
             this.vent.xyz.recalc(this.vent.xb);
             this.surf.hrr.area = this.vent.area;
             this.surf.hrr.calc(false, true, false);
+            this.vent.xyz.recalc(this.vent.xb);
         }
     }
 
