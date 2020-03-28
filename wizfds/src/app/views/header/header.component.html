@@ -16,17 +16,16 @@
 
     <div class="left-top">
 
-      <div>
-        <span>
-          <a routerLink="">
-            <i class="material-icons" matTooltip="Projects" [matTooltipDisabled]="!main.settings.tooltips"
-              (click)="activate('projects')" [ngClass]="{'active': uiState.active == 'projects'}">view_list</i>
-          </a>
-        </span>
-        <span *ngIf="main.currentProject != undefined" matTooltip="Id: {{main.currentProject.id}}">
+      <div class="project-scenario">
+        <mat-icon routerLink="" aria-label="Projects" matTooltip="Projects"
+          [matTooltipDisabled]="!main.settings.tooltips" (click)="activate('projects')"
+          [ngClass]="{'active': uiState.active == 'projects'}">view_list</mat-icon>
+        <span class="cursor-default" *ngIf="main.currentProject != undefined" matTooltip="Id: {{main.currentProject.id}}"
+          [matTooltipDisabled]="!main.settings.tooltips">
           &nbsp;|&nbsp; {{main.currentProject.name}} &nbsp;|&nbsp;
         </span>
-        <span *ngIf="main.currentProject != undefined && main.currentFdsScenario != undefined" matTooltip="Id: {{main.currentFdsScenario.id}}">
+        <span class="cursor-default" *ngIf="main.currentProject != undefined && main.currentFdsScenario != undefined"
+          matTooltip="Id: {{main.currentFdsScenario.id}}" [matTooltipDisabled]="!main.settings.tooltips">
           {{main.currentFdsScenario.name}} &nbsp;|&nbsp;
         </span>
       </div>
@@ -44,63 +43,65 @@
 
     <div class="right-top">
       <div class="id">
-        <p matTooltip="Id: {{ main.userId }}">{{ main.settings.userName }}</p>
-        <p class="email">({{ main.settings.email }})</p>
+        <p class="cursor-default" matTooltip="Id: {{ main.userId }}" [matTooltipDisabled]="!main.settings.tooltips">
+          {{ main.settings.userName }}</p>
+        <p class="email cursor-default">({{ main.settings.email }})</p>
       </div>
       <div class="menu">
         &nbsp;&nbsp;
-        <a routerLink="settings">
-          <i class="material-icons" matTooltip="Settings" [matTooltipDisabled]="!main.settings.tooltips"
-            (click)="activate('settings')" [ngClass]="{'active': uiState.active == 'settings'}">settings</i>
-        </a>
+        <mat-icon routerLink="settings" aria-label="Settings" matTooltip="Settings"
+          [matTooltipDisabled]="!main.settings.tooltips" (click)="activate('settings')"
+          [ngClass]="{'active': uiState.active == 'settings'}">settings</mat-icon>
         &nbsp;&nbsp;|&nbsp;&nbsp;
       </div>
-      <div class="menu" matTooltip="Log out" [matTooltipDisabled]="!main.settings.tooltips" (click)="logOut()">
-        <i class="material-icons">exit_to_app</i>
+      <div class="menu" (click)="logOut()">
+        <mat-icon aria-label="Log out" matTooltip="Log out" [matTooltipDisabled]="!main.settings.tooltips">exit_to_app
+        </mat-icon>
       </div>
     </div>
 
     <div class="left-bottom">
       <div class="buttons" *ngIf="main.currentProject != undefined && main.currentFdsScenario != undefined">
         <div class="menu" (click)="updateFdsScenario(main.currentProject.id, main.currentFdsScenario.id)">
-          <i [class]="main.autoSave.fdsObjectSaveFont" matTooltip="Save scenario"
-            [matTooltipDisabled]="!main.settings.tooltips"></i>
+          <mat-icon [class]="main.autoSave.fdsObjectSaveFont" svgIcon="content-save" aria-label="Save scenario"
+            matTooltip="Save scenario" [matTooltipDisabled]="!main.settings.tooltips"></mat-icon>
           &nbsp;&nbsp;|&nbsp;&nbsp;
         </div>
         <div class="menu" (click)="downloadFdsInputFile()">
-          <i class="material-icons" matTooltip="Download *.fds"
-            [matTooltipDisabled]="!main.settings.tooltips">file_download</i>
+          <mat-icon aria-label="Save scenario" matTooltip="Download *.fds"
+            [matTooltipDisabled]="!main.settings.tooltips">file_download</mat-icon>
           &nbsp;&nbsp;|&nbsp;&nbsp;
         </div>
       </div>
     </div>
 
-    <div class="center-bottom" (click)="showDiagnosticData()">
-      {{ diagnostic }}
+    <div class="center-bottom" *ngIf="diagnostic" (click)="showDiagnosticData()">
+        <mat-icon aria-label="Show diagnostic data" matTooltip="Show diagnostic data"
+          [matTooltipDisabled]="!main.settings.tooltips">code-braces</mat-icon>
     </div>
 
     <div class="right-bottom">
-      <div class="menu" (click)="updateFdsLibrary()">
-        <i [class]="main.autoSave.libSaveFont" matTooltip="Save library"
-          [matTooltipDisabled]="!main.settings.tooltips"></i>
+      <div class="menu" (click)="updateFdsLibrary()" *ngIf="main.currentProject != undefined && main.currentFdsScenario != undefined">
+        <mat-icon [class]="main.autoSave.libSaveFont" svgIcon="content-save" aria-label="Sort projects by name"
+          matTooltip="Save library" [matTooltipDisabled]="!main.settings.tooltips"></mat-icon>
         &nbsp;&nbsp;|&nbsp;&nbsp;
       </div>
-      <div class="menu">
-        <a routerLink="library">
-          <i class="material-icons" matTooltip="Library editor" [matTooltipDisabled]="!main.settings.tooltips"
-            (click)="activate('library')" [ngClass]="{'active': uiState.active == 'library'}">notes</i>
-        </a>
+      <div class="menu" *ngIf="main.currentProject != undefined && main.currentFdsScenario != undefined">
+        <mat-icon routerLink="library" aria-label="Library editor" matTooltip="Library editor"
+          [matTooltipDisabled]="!main.settings.tooltips" (click)="activate('library')"
+          [ngClass]="{'active': uiState.active == 'library'}">notes</mat-icon>
         &nbsp;&nbsp;||&nbsp;&nbsp;
       </div>
       <div class="menu"
         *ngIf="main.currentProject != undefined && main.currentFdsScenario != undefined && websocket.isConnected"
         (click)="getCadGeometryWeb()">
-        <i class="material-icons" matTooltip="Get CAD geometry" [matTooltipDisabled]="!main.settings.tooltips">360</i>
+        <mat-icon aria-label="Get CAD geometry" matTooltip="Get CAD geometry"
+          [matTooltipDisabled]="!main.settings.tooltips">360</mat-icon>
         &nbsp;&nbsp;|&nbsp;&nbsp;
       </div>
       <div class="menu">
-        <i class="material-icons" (click)="connectCad()" matTooltip="Connect CAD"
-          [matTooltipDisabled]="!main.settings.tooltips" [ngClass]="{'connected':websocket.isConnected}">dvr</i>
+        <mat-icon aria-label="Connect CAD" matTooltip="Connect CAD" [matTooltipDisabled]="!main.settings.tooltips"
+          (click)="connectCad()" [ngClass]="{'connected':websocket.isConnected}">dvr</mat-icon>
       </div>
     </div>
   </div>

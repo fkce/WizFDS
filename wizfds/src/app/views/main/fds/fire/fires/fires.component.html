@@ -3,22 +3,22 @@
   <div class="list-wrapper">
     <div class="list-drawer">
       <div class="list-title" (click)="add()">
-        <i class="material-icons">add_box</i> Add FIRE
+        <mat-icon>add_box</mat-icon> Add FIRE
       </div>
       <perfect-scrollbar #fireScrollbar (psScrollY)="scrollbarUpdate('fire')">
         <div class="list-items">
           <div class="list-item" *ngFor="let fireItem of fires | slice: ui.fires.fire.begin:(ui.fires.fire.begin + ui.listRange)">
             <a (click)="activate(fireItem.id); websocketService.selectCad(fireItem.idAC)" [ngClass]="{active: fireItem === fire}">{{fireItem.id}}</a>
-            <i class="material-icons red-hover" (click)="delete(fireItem.id)">delete_forever</i>
+            <mat-icon class="red-hover" (click)="delete(fireItem.id)">delete_forever</mat-icon>
           </div>
         </div>
       </perfect-scrollbar>
       <div class="list-bottom" *ngIf="fires.length > ui.listRange">
-        <i class="material-icons" *ngIf="ui.fires.fire.begin > 0" (click)="uiStateService.decreaseRange('fires.fire')">chevron_left</i>
+        <mat-icon class="material-icons" *ngIf="ui.fires.fire.begin > 0" (click)="uiStateService.decreaseRange('fires.fire')">chevron_left</mat-icon>
         <div>{{ui.fires.fire.begin}} - {{ui.fires.fire.begin + ui.listRange > fires.length ? fires.length :
           ui.fires.fire.begin
           + ui.listRange}}</div>
-        <i class="material-icons" *ngIf="ui.fires.fire.begin + ui.listRange < fires.length" (click)="uiStateService.increaseRange('fires.fire')">chevron_right</i>
+        <mat-icon class="material-icons" *ngIf="ui.fires.fire.begin + ui.listRange < fires.length" (click)="uiStateService.increaseRange('fires.fire')">chevron_right</mat-icon>
       </div>
     </div>
   </div>
@@ -131,7 +131,7 @@
           <div class="field-container">
             <ng-select [items]="(objectType == 'current') ? ramps : libRamps" bindLabel="id" placeholder="No RAMP"
               [(ngModel)]="fire.surf.ramp" [searchable]="false" [clearable]="true"> </ng-select>
-            <i (click)="addRamp('fire')" class="material-icons">add_box</i>
+            <mat-icon (click)="addRamp('fire')">add_box</mat-icon>
           </div>
         </div>
         <div *ngIf="fire.surf.fire_type=='time_dependent_hrrpua' && fire.surf.hrr.time_function=='ramp'">
@@ -317,26 +317,26 @@
       <div class="lib-area">
         <div class="list">
           <div class="list-title" (click)="add(true)">
-            <i class="material-icons ">add_box</i> Add FIRE
+            <mat-icon>add_box</mat-icon> Add FIRE
           </div>
           <perfect-scrollbar #libFireScrollbar (psScrollY)="scrollbarUpdate('libFire')">
             <div class="list-items">
               <div class="list-item " *ngFor="let fireItem of lib.fires | slice: ui.fires.libFire.begin:(ui.fires.libFire.begin
                   + ui.listRange) ">
                 <a (click)="activate(fireItem.id, true)" [ngClass]="{activeLib: fireItem===fire} ">{{fireItem.id}}</a>
-                <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.settings.tooltips" (click)="createCadLayer(fireItem.id)">layers</i>
-                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.settings.tooltips"
-                  (click)="importLibraryItem(fireItem.id)">content_copy</i>
-                <i class="material-icons red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(fireItem.id, true)">delete_forever</i>
+                <mat-icon matTooltip="Create CAD layer" [matTooltipDisabled]="!main.settings.tooltips" (click)="createCadLayer(fireItem.id)">layers</mat-icon>
+                <mat-icon matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.settings.tooltips"
+                  (click)="importLibraryItem(fireItem.id)">content_copy</mat-icon>
+                <mat-icon class="material-icons red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(fireItem.id, true)">delete_forever</mat-icon>
               </div>
             </div>
           </perfect-scrollbar>
           <div class="list-bottom " *ngIf="libFires.length> ui.listRange">
-            <i class="material-icons" *ngIf="ui.fires.libFire.begin > 0" (click)="uiStateService.decreaseRange('fires.libFire')">chevron_left</i>
+            <mat-icon *ngIf="ui.fires.libFire.begin > 0" (click)="uiStateService.decreaseRange('fires.libFire')">chevron_left</mat-icon>
             <div>{{ui.fires.libFire.begin}} - {{ui.fires.libFire.begin + ui.listRange > libFires.length ?
               libFires.length : ui.fires.libFire.begin
               + ui.listRange}}</div>
-            <i class="material-icons" *ngIf="ui.fires.libFire.begin + ui.listRange < libFires.length" (click)="uiStateService.increaseRange('fires.libFire')">chevron_right</i>
+            <mat-icon *ngIf="ui.fires.libFire.begin + ui.listRange < libFires.length" (click)="uiStateService.increaseRange('fires.libFire')">chevron_right</mat-icon>
           </div>
         </div>
       </div>

@@ -3,21 +3,21 @@
   <div class="list-wrapper">
     <div class="list-drawer">
       <div class="list-title" (click)="add()">
-        <i class="material-icons">add_box</i> Add SLCF
+        <mat-icon>add_box</mat-icon> Add SLCF
       </div>
       <perfect-scrollbar #slcfScrollbar (psScrollY)="scrollbarUpdate('slcf')">
         <div class="list-items">
           <div class="list-item" *ngFor="let slcfItem of slcfs | slice: ui.output.slcf.begin:(ui.output.slcf.begin + ui.listRange)">
             <a (click)="activate(slcfItem.id); websocketService.selectCad(slcfItem.idAC)" [ngClass]="{active: slcfItem === slcf}">{{slcfItem.id}}</a>
-            <i class="material-icons red-hover" (click)="delete(slcfItem.id)">delete_forever</i>
+            <mat-icon class="red-hover" (click)="delete(slcfItem.id)">delete_forever</mat-icon>
           </div>
         </div>
       </perfect-scrollbar>
       <div class="list-bottom" *ngIf="slcfs.length > ui.listRange">
-        <i class="material-icons" *ngIf="ui.output.slcf.begin > 0" (click)="uiStateService.decreaseRange('output.slcf')">chevron_left</i>
+        <mat-icon *ngIf="ui.output.slcf.begin > 0" (click)="uiStateService.decreaseRange('output.slcf')">chevron_left</mat-icon>
         <div>{{ui.output.slcf.begin}} - {{ui.output.slcf.begin + ui.listRange > slcfs.length ? slcfs.length : ui.output.slcf.begin
           + ui.listRange}}</div>
-        <i class="material-icons" *ngIf="ui.output.slcf.begin + ui.listRange < slcfs.length" (click)="uiStateService.increaseRange('output.slcf')">chevron_right</i>
+        <mat-icon *ngIf="ui.output.slcf.begin + ui.listRange < slcfs.length" (click)="uiStateService.increaseRange('output.slcf')">chevron_right</mat-icon>
       </div>
     </div>
   </div>
@@ -165,25 +165,25 @@
       <div class="lib-area">
         <div class="list">
           <div class="list-title" (click)="add(true)">
-            <i class="material-icons">add_box</i> Add SLCF
+            <mat-icon>add_box</mat-icon> Add SLCF
           </div>
           <perfect-scrollbar #libSlcfScrollbar (psScrollY)="scrollbarUpdate('libSlcf')">
             <div class="list-items">
               <div class="list-item" *ngFor="let slcfItem of lib.slcfs | slice: ui.output.libSlcf.begin:(ui.output.libSlcf.begin + ui.listRange)">
                 <a (click)="activate(slcfItem.id, true)" [ngClass]="{activeLib: slcfItem===slcf}">{{slcfItem.id}}</a>
-                <i class="material-icons" matTooltip="Merge current item with library" [matTooltipDisabled]="!main.settings.tooltips" (click)="mergeLibraryItem(slcfItem.id)">merge_type</i>
-                <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.settings.tooltips" (click)="createCadLayer(slcfItem.id)">layers</i>
-                <i class="material-icons" matTooltip="Create CAD layer and slice" [matTooltipDisabled]="!main.settings.tooltips" (click)="createCad(slcfItem.id)">create</i>
-                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.settings.tooltips" (click)="importLibraryItem(slcfItem.id)">content_copy</i>
-                <i class="material-icons red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(slcfItem.id, true)">delete_forever</i>
+                <mat-icon matTooltip="Merge current item with library" [matTooltipDisabled]="!main.settings.tooltips" (click)="mergeLibraryItem(slcfItem.id)">merge_type</mat-icon>
+                <mat-icon matTooltip="Create CAD layer" [matTooltipDisabled]="!main.settings.tooltips" (click)="createCadLayer(slcfItem.id)">layers</mat-icon>
+                <mat-icon matTooltip="Create CAD layer and slice" [matTooltipDisabled]="!main.settings.tooltips" (click)="createCad(slcfItem.id)">create</mat-icon>
+                <mat-icon matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.settings.tooltips" (click)="importLibraryItem(slcfItem.id)">content_copy</mat-icon>
+                <mat-icon class="red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(slcfItem.id, true)">delete_forever</mat-icon>
               </div>
             </div>
           </perfect-scrollbar>
           <div class="list-bottom" *ngIf="libSlcfs.length> ui.listRange">
-            <i class="material-icons" *ngIf="ui.output.libSlcf.begin > 0" (click)="uiStateService.decreaseRange('slcfs.libSlcf')">chevron_left</i>
+            <mat-icon *ngIf="ui.output.libSlcf.begin > 0" (click)="uiStateService.decreaseRange('slcfs.libSlcf')">chevron_left</mat-icon>
             <div>{{ui.output.libSlcf.begin}} - {{ui.output.libSlcf.begin + ui.listRange > libSlcfs.length ? libSlcfs.length :
               ui.output.slcf.begin + ui.listRange}}</div>
-            <i class="material-icons" *ngIf="ui.output.libSlcf.begin + ui.listRange < libSlcfs.length" (click)="uiStateService.increaseRange('slcfs.libSlcf')">chevron_right</i>
+            <mat-icon *ngIf="ui.output.libSlcf.begin + ui.listRange < libSlcfs.length" (click)="uiStateService.increaseRange('slcfs.libSlcf')">chevron_right</mat-icon>
           </div>
         </div>
       </div>

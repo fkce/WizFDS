@@ -10,7 +10,7 @@ import { UiState } from '@services/ui-state/ui-state';
 import { UiStateService } from '@services/ui-state/ui-state.service';
 import { Result } from '@services/http-manager/http-manager.service';
 
-import { find, forEach, remove, findIndex } from 'lodash';
+import { find, forEach, remove, findIndex, sortBy } from 'lodash';
 import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 
 @Component({
@@ -40,8 +40,10 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     this.mainSub = this.mainService.getMain().subscribe(main => this.main = main);
     this.uiSub = this.uiStateService.uiObservable.subscribe(uiObservable => this.ui = uiObservable);
 
-    // Try to update list asap
-    this.updateProjectsList();
+    // Try to update list asap if project & category is inited
+    if(this.main.init.isProjectsInited && this.main.init.isCategoriesInited) {
+      this.updateProjectsList();
+    }
 
     // Wait for projects and categories if first loading page
     // If there is slow internet connection wait another 2 sec 
@@ -77,6 +79,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
         }
       });
     });
+    this.sortProjectsByCategory();
   }
 
   /**
@@ -203,6 +206,30 @@ export class ProjectsComponent implements OnInit, OnDestroy {
       this.main.currentFdsScenario = undefined;
 
     this.fdsScenarioService.deleteFdsScenario(projectId, fdsScenarioId);
+  }
+
+  /** Sort projects by name */
+  public sortProjectsByName() {
+    this.projects = sortBy(this.projects, (project) => {
+      return project.name;
+    });
+  }
+
+  /** Sort projects by category */
+  public sortProjectsByCategory() {
+    if (this.main != undefined && this.main.categories != undefined) {
+      let current = find(this.main.categories, (category) => { return category.label == 'current'; }).uuid;
+      let finished = find(this.main.categories, (category) => { return category.label == 'finished'; }).uuid;
+      let archive = find(this.main.categories, (category) => { return category.label == 'archive'; }).uuid;
+      this.projects = sortBy(this.projects, (project) => {
+        let rank = {
+          [current]: 1,
+          [finished]: 2,
+          [archive]: 3
+        };
+        return rank[project.category];
+      });
+    }
   }
 
 }

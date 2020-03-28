@@ -1,11 +1,85 @@
 // Reset sytles
-html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, 
-p, blockquote, pre, a, abbr, acronym, address, big, cite, code, del, 
-dfn, em, img, ins, kbd, q, s, samp, small, strike, strong, sub, sup, tt, 
-var, b, u, i, center, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, 
-table, caption, tbody, tfoot, thead, tr, th, td, article, aside, canvas, 
-details, embed, figure, figcaption, footer, header, hgroup, menu, nav, 
-output, ruby, section, summary, time, mark, audio, video {
+html,
+body,
+div,
+span,
+applet,
+object,
+iframe,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+blockquote,
+pre,
+a,
+abbr,
+acronym,
+address,
+big,
+cite,
+code,
+del,
+dfn,
+em,
+img,
+ins,
+kbd,
+q,
+s,
+samp,
+small,
+strike,
+strong,
+sub,
+sup,
+tt,
+var,
+b,
+u,
+i,
+center,
+dl,
+dt,
+dd,
+ol,
+ul,
+li,
+fieldset,
+form,
+label,
+legend,
+table,
+caption,
+tbody,
+tfoot,
+thead,
+tr,
+th,
+td,
+article,
+aside,
+canvas,
+details,
+embed,
+figure,
+figcaption,
+footer,
+header,
+hgroup,
+menu,
+nav,
+output,
+ruby,
+section,
+summary,
+time,
+mark,
+audio,
+video {
   margin: 0;
   padding: 0;
   border: 0;
@@ -21,7 +95,17 @@ body {
   padding: 0;
 }
 /* HTML5 display-role reset for older browsers */
-article, aside, details, figcaption, figure, footer, header, hgroup, menu, nav, section {
+article,
+aside,
+details,
+figcaption,
+figure,
+footer,
+header,
+hgroup,
+menu,
+nav,
+section {
   display: block;
 }
 body {
@@ -114,23 +198,17 @@ a.activeLib {
   color: $green;
 }
 
-i {
-  display: inline-block;
-  vertical-align: middle;
-  height: 24px;
-  width: 24px;
+mat-icon:hover {
+  color: $blue;
   cursor: pointer;
 }
-i:hover {
-  color: $blue;
-}
-i.red {
+mat-icon.red {
   color: $red;
 }
-i.green {
+mat-icon.green {
   color: $green;
 }
-i.red-hover:hover {
+mat-icon.red-hover:hover {
   color: $red;
 }
 
@@ -234,6 +312,13 @@ select {
   margin-right: 3rem;
 }
 
+.cursor-default {
+  cursor: default;
+}
+.cursor-pointer {
+  cursor: pointer;
+}
+
 // Katex import & modifications
 @import "~katex/dist/katex.css";
 ng-katex {
@@ -277,35 +362,37 @@ ng-katex {
 
 // Angular snack-bar
 .info {
-    background: #5bc0de;
-    color: $white;
-    font-family: "Play" !important;
+  background: #5bc0de;
+  color: $white;
+  font-family: "Play" !important;
 }
 .error {
-    background: #d9534f;
-    color: $white;
-    font-family: "Play" !important;
+  background: #d9534f;
+  color: $white;
+  font-family: "Play" !important;
 }
 .success {
-    background: #5cb85c;
-    color: $white;
-    font-family: "Play" !important;
+  background: #5cb85c;
+  color: $white;
+  font-family: "Play" !important;
 }
 .warning {
-    background: #f0ad4e;
-    color: $white;
-    font-family: "Play" !important;
+  background: #f0ad4e;
+  color: $white;
+  font-family: "Play" !important;
 }
-
 
 // Angular theme
 @import "~@angular/material/prebuilt-themes/pink-bluegrey.css";
 
-// Material Design Icons (https://materialdesignicons.com/)
-//$mdi-font-path: "~@mdi/font/fonts";
-$mdi-font-path: "/view/assets/fonts";
-@import "~@mdi/font/scss/materialdesignicons.scss";
-.mdi {
-  margin-top: -1px;
-  font-size: 24px;
+// Mdi icon settings
+button.mat-menu-item {
+  line-height: 24px !important;
+}
+a.mat-menu-item > mat-icon {
+  margin-bottom: 14px;
+}
+.mat-icon svg {
+  height: 24px;
+  width: 24px;
 }

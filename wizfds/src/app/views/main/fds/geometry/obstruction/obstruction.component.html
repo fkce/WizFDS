@@ -4,21 +4,21 @@
     <div class="list-wrapper">
       <div class="list-drawer">
         <div class="list-title" (click)="add('obst'); createCad('obst')">
-          <i class="material-icons">add_box</i> Add OBST
+          <mat-icon>add_box</mat-icon> Add OBST
         </div>
         <perfect-scrollbar #obstScrollbar (psScrollY)="scrollbarUpdate('obst')">
           <div class="list-items">
             <div class="list-item" *ngFor="let obstItem of geometry.obsts | slice:ui.geometry.obst.begin:(ui.geometry.obst.begin + ui.listRange)">
               <a [ngClass]="{active: obstItem===obst}" (click)="activate(obstItem.id, 'obst'); websocketService.selectCad(obstItem.idAC)"> {{obstItem.id}} </a>
-              <i class="material-icons red-hover" (click)="deleteCad('obst'); delete(obstItem.id, 'obst')">delete_forever</i>
+              <mat-icon class="red-hover" (click)="deleteCad('obst'); delete(obstItem.id, 'obst')">delete_forever</mat-icon>
             </div>
           </div>
         </perfect-scrollbar>
         <div class="list-bottom" *ngIf="geometry.obsts.length > ui.listRange">
-          <i class="material-icons" *ngIf="ui.geometry.obst.begin > 0" (click)="uiStateService.decreaseRange('geometry.obst')">chevron_left</i>
+          <mat-icon *ngIf="ui.geometry.obst.begin > 0" (click)="uiStateService.decreaseRange('geometry.obst')">chevron_left</mat-icon>
           <div>{{ui.geometry.obst.begin}} - {{ui.geometry.obst.begin + ui.listRange > geometry.obsts.length ? geometry.obsts.length
             : ui.geometry.obst.begin + ui.listRange}}</div>
-          <i class="material-icons" *ngIf="ui.geometry.obst.begin + ui.listRange < geometry.obsts.length" (click)="uiStateService.increaseRange('geometry.obst')">chevron_right</i>
+          <mat-icon *ngIf="ui.geometry.obst.begin + ui.listRange < geometry.obsts.length" (click)="uiStateService.increaseRange('geometry.obst')">chevron_right</mat-icon>
         </div>
       </div>
     </div>
@@ -205,21 +205,21 @@
     <div class="list-wrapper">
       <div class="list-drawer">
         <div class="list-title" (click)="add('hole'); createCad('hole')">
-          <i class="material-icons">add_box</i> Add HOLE
+          <mat-icon>add_box</mat-icon> Add HOLE
         </div>
         <perfect-scrollbar #holeScrollbar (psScrollY)="scrollbarUpdate('hole')">
           <div class="list-items">
             <div class="list-item" *ngFor="let holeItem of geometry.holes | slice:ui.geometry.hole.begin:(ui.geometry.hole.begin + ui.listRange)">
               <a [ngClass]="{active: holeItem===hole}" (click)="activate(holeItem.id, 'hole'); websocketService.selectCad(holeItem.idAC)"> {{holeItem.id}} </a>
-              <i class="material-icons red-hover" (click)="deleteCad('hole'); delete(holeItem.id, 'hole')">delete_forever</i>
+              <mat-icon class="red-hover" (click)="deleteCad('hole'); delete(holeItem.id, 'hole')">delete_forever</mat-icon>
             </div>
           </div>
         </perfect-scrollbar>
         <div class="list-bottom" *ngIf="geometry.holes.length > ui.listRange">
-          <i class="material-icons" *ngIf="ui.geometry.hole.begin > 0" (click)="uiStateService.decreaseRange('geometry.hole')">chevron_left</i>
+          <mat-icon *ngIf="ui.geometry.hole.begin > 0" (click)="uiStateService.decreaseRange('geometry.hole')">chevron_left</mat-icon>
           <div>{{ui.geometry.hole.begin}} - {{ui.geometry.hole.begin + ui.listRange > geometry.holes.length ? geometry.holes.length
             : ui.geometry.hole.begin + ui.listRange}}</div>
-          <i class="material-icons" *ngIf="ui.geometry.hole.begin + ui.listRange < geometry.holes.length" (click)="uiStateService.increaseRange('geometry.hole')">chevron_right</i>
+          <mat-icon *ngIf="ui.geometry.hole.begin + ui.listRange < geometry.holes.length" (click)="uiStateService.increaseRange('geometry.hole')">chevron_right</mat-icon>
         </div>
       </div>
     </div>

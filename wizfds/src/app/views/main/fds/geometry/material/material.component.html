@@ -3,21 +3,21 @@
   <div class="list-wrapper">
     <div class="list-drawer">
       <div class="list-title" (click)="add()">
-        <i class="material-icons">add_box</i> Add MATL
+        <mat-icon>add_box</mat-icon> Add MATL
       </div>
       <perfect-scrollbar #matlScrollbar (psScrollY)="scrollbarUpdate('matl')">
         <div class="list-items">
           <div class="list-item" *ngFor="let matlItem of geometry.matls | slice: ui.geometry.matl.begin:(ui.geometry.matl.begin + ui.listRange)">
             <a (click)="activate(matlItem.id)" [ngClass]="{active: matlItem === matl}">{{matlItem.id}}</a>
-            <i class="material-icons red-hover" (click)="delete(matlItem.id)">delete_forever</i>
+            <mat-icon class="red-hover" (click)="delete(matlItem.id)">delete_forever</mat-icon>
           </div>
         </div>
       </perfect-scrollbar>
       <div class="list-bottom" *ngIf="geometry.matls.length > ui.listRange">
-        <i class="material-icons" *ngIf="ui.geometry.matl.begin > 0" (click)="uiStateService.decreaseRange('geometry.matl')">chevron_left</i>
+        <mat-icon *ngIf="ui.geometry.matl.begin > 0" (click)="uiStateService.decreaseRange('geometry.matl')">chevron_left</mat-icon>
         <div>{{ui.geometry.matl.begin}} - {{ui.geometry.matl.begin + ui.listRange > geometry.matls.length ? geometry.matls.length
           : ui.geometry.matl.begin + ui.listRange}}</div>
-        <i class="material-icons" *ngIf="ui.geometry.matl.begin + ui.listRange < geometry.matls.length" (click)="uiStateService.increaseRange('geometry.matl')">chevron_right</i>
+        <mat-icon *ngIf="ui.geometry.matl.begin + ui.listRange < geometry.matls.length" (click)="uiStateService.increaseRange('geometry.matl')">chevron_right</mat-icon>
       </div>
     </div>
   </div>
@@ -72,7 +72,7 @@
           <div class="field-container">
             <ng-select [items]="(objectType == 'current') ? ramps : libRamps" bindLabel="id" placeholder="No RAMP" [(ngModel)]="matl.conductivity_ramp"
               [searchable]="false" [clearable]="true"> </ng-select>
-            <i (click)="addRamp('matl','conductivity')" class="material-icons">add_box</i>
+            <mat-icon (click)="addRamp('matl','conductivity')" class="material-icons">add_box</mat-icon>
           </div>
         </div>
       </div>
@@ -91,7 +91,7 @@
           <div class="field-container">
             <ng-select [items]="(objectType == 'current') ? ramps : libRamps" bindLabel="id" placeholder="No RAMP" [(ngModel)]="matl.specific_heat_ramp"
               [searchable]="false" [clearable]="true"> </ng-select>
-            <i (click)="addRamp('matl','specific_heat')" class="material-icons">add_box</i>
+            <mat-icon (click)="addRamp('matl','specific_heat')" class="material-icons">add_box</mat-icon>
           </div>
         </div>
       </div>
@@ -110,22 +110,22 @@
       <div class="lib-area">
         <div class="list">
           <div class="list-title" (click)="add(true)">
-            <i class="material-icons">add_box</i> Add MATL
+            <mat-icon>add_box</mat-icon> Add MATL
           </div>
           <perfect-scrollbar #libMatlScrollbar (psScrollY)="scrollbarUpdate('libMatl')">
             <div class="list-items">
               <div class="list-item" *ngFor="let matlItem of lib.matls | slice: ui.geometry.libMatl.begin:(ui.geometry.libMatl.begin + ui.listRange)">
                 <a (click)="activate(matlItem.id, true)" [ngClass]="{activeLib: matlItem === matl}">{{matlItem.id}}</a>
-                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.settings.tooltips" (click)="importLibraryItem(matlItem.id)">content_copy</i>
-                <i class="material-icons red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(matlItem.id, true)">delete_forever</i>
+                <mat-icon matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.settings.tooltips" (click)="importLibraryItem(matlItem.id)">content_copy</mat-icon>
+                <mat-icon class="red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(matlItem.id, true)">delete_forever</mat-icon>
               </div>
             </div>
           </perfect-scrollbar>
           <div class="list-bottom" *ngIf="libMatls.length > ui.listRange">
-            <i class="material-icons" *ngIf="ui.geometry.libMatl.begin > 0" (click)="uiStateService.decreaseRange('geometry.libMatl')">chevron_left</i>
+            <mat-icon *ngIf="ui.geometry.libMatl.begin > 0" (click)="uiStateService.decreaseRange('geometry.libMatl')">chevron_left</mat-icon>
             <div>{{ui.geometry.libMatl.begin}} - {{ui.geometry.libMatl.begin + ui.listRange > libMatls.length ? libMatls.length
               : ui.geometry.libMatl.begin + ui.listRange}}</div>
-            <i class="material-icons" *ngIf="ui.geometry.libMatl.begin + ui.listRange < libMatls.length" (click)="uiStateService.increaseRange('geometry.libMatl')">chevron_right</i>
+            <mat-icon *ngIf="ui.geometry.libMatl.begin + ui.listRange < libMatls.length" (click)="uiStateService.increaseRange('geometry.libMatl')">chevron_right</mat-icon>
           </div>
         </div>
       </div>

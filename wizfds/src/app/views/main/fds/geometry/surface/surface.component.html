@@ -3,22 +3,22 @@
   <div class="list-wrapper">
     <div class="list-drawer">
       <div class="list-title" (click)="add()">
-        <i class="material-icons">add_box</i> Add SURF
+        <mat-icon>add_box</mat-icon> Add SURF
       </div>
       <perfect-scrollbar #surfScrollbar (psScrollY)="scrollbarUpdate('surf')">
         <div class="list-items">
           <div class="list-item" *ngFor="let surfItem of surfs | slice: ui.geometry.surf.begin:(ui.geometry.surf.begin + ui.listRange)">
             <a (click)="activate(surfItem.id)" [ngClass]="{active: surfItem===surf}"> {{surfItem.id}} </a>
-            <i class="material-icons red-hover" *ngIf="surf.editable==true" (click)="delete(surfItem.id)">delete_forever</i>
+            <mat-icon class="red-hover" *ngIf="surf.editable==true" (click)="delete(surfItem.id)">delete_forever</mat-icon>
           </div>
         </div>
       </perfect-scrollbar>
       <div class="list-bottom" *ngIf="geometry.surfs.length > ui.listRange">
-        <i class="material-icons" *ngIf="ui.geometry.surf.begin > 0" (click)="uiStateService.decreaseRange('geometry.surf')">chevron_left</i>
+        <mat-icon *ngIf="ui.geometry.surf.begin > 0" (click)="uiStateService.decreaseRange('geometry.surf')">chevron_left</mat-icon>
         <div>{{ui.geometry.surf.begin}} - {{ui.geometry.surf.begin + ui.listRange > geometry.surfs.length ?
           geometry.surfs.length
           : ui.geometry.surf.begin + ui.listRange}}</div>
-        <i class="material-icons" *ngIf="ui.geometry.surf.begin + ui.listRange < geometry.surfs.length" (click)="uiStateService.increaseRange('geometry.surf')">chevron_right</i>
+        <mat-icon *ngIf="ui.geometry.surf.begin + ui.listRange < geometry.surfs.length" (click)="uiStateService.increaseRange('geometry.surf')">chevron_right</mat-icon>
       </div>
     </div>
   </div>
@@ -96,7 +96,7 @@
         <div class="form-row">
           <div (click)="addLayer()">
             <div class="field-container click">
-              <i class="material-icons">add_box</i> Add layer
+              <mat-icon>add_box</mat-icon> Add layer
             </div>
           </div>
         </div>
@@ -119,14 +119,14 @@
             <div>
               <label>Delete layer</label>
               <div class="field-container" (click)="deleteLayer(layerIndex)">
-                <i class="material-icons red-hover">delete_forever</i>
+                <mat-icon class="red-hover">delete_forever</mat-icon>
               </div>
             </div>
 
             <div>
               <label>Add material</label>
               <div class="field-container" (click)="addMaterial(layerIndex)">
-                <i class="material-icons">add_box</i>
+                <mat-icon>add_box</mat-icon>
               </div>
             </div>
           </div>
@@ -155,7 +155,7 @@
             <div>
               <label>Delete material:</label>
               <div class="field-container">
-                <i class="material-icons red-hover" (click)="deleteMaterial(layerIndex, materialIndex)">delete_forever</i>
+                <mat-icon class="red-hover" (click)="deleteMaterial(layerIndex, materialIndex)">delete_forever</mat-icon>
               </div>
             </div>
           </div>
@@ -174,26 +174,26 @@
       <div class="lib-area">
         <div class="list">
           <div class="list-title" (click)="add(true)">
-            <i class="material-icons">add_box</i> Add SURF
+            <mat-icon>add_box</mat-icon> Add SURF
           </div>
           <perfect-scrollbar #libSurfScrollbar (psScrollY)="scrollbarUpdate('libSurf')">
             <div class="list-items">
               <div class="list-item" *ngFor="let surfItem of lib.surfs | slice:ui.geometry.libSurf.begin:(ui.geometry.libSurf.begin + ui.listRange)">
                 <a (click)="activate(surfItem.id, true)" [ngClass]="{activeLib: surfItem === surf}">{{surfItem.id}}</a>
-                <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.settings.tooltips" (click)="createCad(surfItem.id)">layers</i>
-                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.settings.tooltips"
-                  (click)="importLibraryItem(surfItem.id);">content_copy</i>
-                <i class="material-icons red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(surfItem.id, true)">delete_forever</i>
+                <mat-icon matTooltip="Create CAD layer" [matTooltipDisabled]="!main.settings.tooltips" (click)="createCad(surfItem.id)">layers</mat-icon>
+                <mat-icon matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.settings.tooltips"
+                  (click)="importLibraryItem(surfItem.id);">content_copy</mat-icon>
+                <mat-icon class="red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(surfItem.id, true)">delete_forever</mat-icon>
               </div>
             </div>
           </perfect-scrollbar>
           <div class="list-bottom">
             <div class="list-controls" *ngIf="libSurfs.length > ui.listRange">
-              <i class="material-icons" *ngIf="ui.geometry.libSurf.begin > 0" (click)="uiStateService.decreaseRange('geometry.libSurf')">chevron_left</i>
+              <mat-icon *ngIf="ui.geometry.libSurf.begin > 0" (click)="uiStateService.decreaseRange('geometry.libSurf')">chevron_left</mat-icon>
               <div>{{ui.geometry.libSurf.begin}} - {{ui.geometry.libSurf.begin + ui.listRange > libSurfs.length ?
                 libSurfs.length
                 : ui.geometry.libSurf.begin + ui.listRange}}</div>
-              <i class="material-icons" *ngIf="ui.geometry.libSurf.begin + ui.listRange < libSurfs.length" (click)="uiStateService.increaseRange('geometry.libSurf')">chevron_right</i>
+              <mat-icon *ngIf="ui.geometry.libSurf.begin + ui.listRange < libSurfs.length" (click)="uiStateService.increaseRange('geometry.libSurf')">chevron_right</mat-icon>
             </div>
           </div>
         </div>

@@ -1,107 +1,124 @@
 <div>
   <div class="n1" routerLink="fds/general" (click)="activate('general')">
-    <i class="material-icons null"></i>
+    <mat-icon [ngClass]="{'active': uiState.active == 'general'}" svgIcon="cog-transfer-outline" aria-label="General"></mat-icon>&nbsp;
     <a [ngClass]="{'active': uiState.active == 'general'}">General</a>
   </div>
 
   <div class="n1" (click)="toggleMenu('geometry')">
-    <i *ngIf="!uiState.fdsMenu.geometry" class="material-icons">expand_more</i>
-    <i *ngIf="uiState.fdsMenu.geometry" class="material-icons">expand_less</i>
+    <mat-icon *ngIf="!uiState.fdsMenu.geometry">expand_more</mat-icon>
+    <mat-icon *ngIf="uiState.fdsMenu.geometry">expand_less</mat-icon>&nbsp;
     <a>Geometry</a>
   </div>
   <div class="ng2" [ngClass]="uiState.fdsMenu.geometry ? 'open' : 'close'">
     <div class="n2" routerLink="fds/geometry/mesh" (click)="activate('mesh')">
+      <mat-icon [ngClass]="{'active': uiState.active == 'mesh'}" svgIcon="domain" aria-label="Mesh"></mat-icon>&nbsp;
       <a [ngClass]="{'active': uiState.active == 'mesh'}">Mesh</a>
     </div>
     <div class="n2" routerLink="fds/geometry/material" (click)="activate('material')">
+      <mat-icon [ngClass]="{'active': uiState.active == 'material'}" svgIcon="brush" aria-label="Material"></mat-icon>&nbsp;
       <a [ngClass]="{'active': uiState.active == 'material'}">Material</a>
     </div>
     <div class="n2" routerLink="fds/geometry/surface" (click)="activate('surface')">
+      <mat-icon [ngClass]="{'active': uiState.active == 'surface'}" svgIcon="buffer" aria-label="Surface"></mat-icon>&nbsp;
       <a [ngClass]="{'active': uiState.active == 'surface'}">Surface</a>
     </div>
     <div class="n2" routerLink="fds/geometry/obstruction" (click)="activate('obstruction')">
+      <mat-icon [ngClass]="{'active': uiState.active == 'obstruction'}" svgIcon="cube-outline" aria-label="Surface"></mat-icon>&nbsp;
       <a [ngClass]="{'active': uiState.active == 'obstruction'}">Obstruction</a>
     </div>
     <div class="n2" routerLink="fds/geometry/complex" (click)="activate('complex')">
+      <mat-icon [ngClass]="{'active': uiState.active == 'complex'}" svgIcon="graphql" aria-label="Ramp"></mat-icon>&nbsp;
       <a [ngClass]="{'active': uiState.active == 'complex'}">Complex</a>
     </div>
   </div>
 
   <div class="n1" (click)="toggleMenu('ventilation')">
-    <i *ngIf="!uiState.fdsMenu.ventilation" class="material-icons">expand_more</i>
-    <i *ngIf="uiState.fdsMenu.ventilation" class="material-icons">expand_less</i>
+    <mat-icon *ngIf="!uiState.fdsMenu.ventilation">expand_more</mat-icon>
+    <mat-icon *ngIf="uiState.fdsMenu.ventilation">expand_less</mat-icon>&nbsp;
     <a>Ventilation</a>
   </div>
   <div class="ng2" [ngClass]="uiState.fdsMenu.ventilation ? 'open' : 'close'">
     <div class="n2" routerLink="fds/ventilation/basic" (click)="activate('basic')">
+      <mat-icon [ngClass]="{'active': uiState.active == 'basic'}" svgIcon="flip-to-front" aria-label="Vent"></mat-icon>&nbsp;
       <a [ngClass]="{'active': uiState.active == 'basic'}">Basic</a>
     </div>
     <div class="n2" routerLink="fds/ventilation/jetfan" (click)="activate('jetfan')">
+      <mat-icon [ngClass]="{'active': uiState.active == 'jetfan'}" svgIcon="weather-windy" aria-label="Jetfan"></mat-icon>&nbsp;
       <a [ngClass]="{'active': uiState.active == 'jetfan'}">Jetfan</a>
     </div>
   </div>
 
   <div class="n1" (click)="toggleMenu('fire')">
-    <i *ngIf="!uiState.fdsMenu.fire" class="material-icons">expand_more</i>
-    <i *ngIf="uiState.fdsMenu.fire" class="material-icons">expand_less</i>
+    <mat-icon *ngIf="!uiState.fdsMenu.fire">expand_more</mat-icon>
+    <mat-icon *ngIf="uiState.fdsMenu.fire">expand_less</mat-icon>&nbsp;
     <a>Fire</a>
   </div>
   <div class="ng2" [ngClass]="uiState.fdsMenu.fire ? 'open' : 'close'">
     <div class="n2" routerLink="fds/fire/fire" (click)="activate('fires')">
+      <mat-icon [ngClass]="{'active': uiState.active == 'fires'}" svgIcon="fire" aria-label="Fire"></mat-icon>&nbsp;
       <a [ngClass]="{'active': uiState.active == 'fires'}">Fire</a>
     </div>
     <div class="n2" routerLink="fds/fire/fuel" (click)="activate('fuel')">
+      <mat-icon [ngClass]="{'active': uiState.active == 'fuel'}" svgIcon="flask-outline" aria-label="Fuel"></mat-icon>&nbsp;
       <a [ngClass]="{'active': uiState.active == 'fuel'}">Fuel</a>
     </div>
     <div class="n2" routerLink="fds/fire/combustion" (click)="activate('combustion')">
+      <mat-icon [ngClass]="{'active': uiState.active == 'combustion'}" svgIcon="tune" aria-label="Combustion"></mat-icon>&nbsp;
       <a [ngClass]="{'active': uiState.active == 'combustion'}">Combustion</a>
     </div>
   </div>
 
   <div class="n1" (click)="toggleMenu('specie')">
-    <i *ngIf="!uiState.fdsMenu.specie" class="material-icons">expand_more</i>
-    <i *ngIf="uiState.fdsMenu.specie" class="material-icons">expand_less</i>
+    <mat-icon *ngIf="!uiState.fdsMenu.specie">expand_more</mat-icon>
+    <mat-icon *ngIf="uiState.fdsMenu.specie">expand_less</mat-icon>&nbsp;
     <a>Specie</a>
   </div>
   <div class="ng2" [ngClass]="uiState.fdsMenu.specie ? 'open' : 'close'">
     <div class="n2" routerLink="fds/specie/spec" (click)="activate('spec')">
+      <mat-icon [ngClass]="{'active': uiState.active == 'spec'}">scatter_plot</mat-icon>&nbsp;
       <a [ngClass]="{'active': uiState.active == 'spec'}">Spec</a>
     </div>
     <div class="n2" routerLink="fds/specie/injection" (click)="activate('injection')">
+      <mat-icon [ngClass]="{'active': uiState.active == 'injection'}" svgIcon="flip-to-front" aria-label="Injection"></mat-icon>&nbsp;
       <a [ngClass]="{'active': uiState.active == 'injection'}">Injection</a>
     </div>
   </div>
 
   <div class="n1" (click)="toggleMenu('output')">
-    <i *ngIf="!uiState.fdsMenu.output" class="material-icons">expand_more</i>
-    <i *ngIf="uiState.fdsMenu.output" class="material-icons">expand_less</i>
+    <mat-icon *ngIf="!uiState.fdsMenu.output">expand_more</mat-icon>
+    <mat-icon *ngIf="uiState.fdsMenu.output">expand_less</mat-icon>&nbsp;
     <a>Output</a>
   </div>
   <div class="ng2" [ngClass]="uiState.fdsMenu.output ? 'open' : 'close'">
     <div class="n2" routerLink="fds/output/dump" (click)="activate('dump')">
+      <mat-icon [ngClass]="{'active': uiState.active == 'dump'}" svgIcon="timer-outline" aria-label="Dump"></mat-icon>&nbsp;
       <a [ngClass]="{'active': uiState.active == 'dump'}">Dump</a>
     </div>
     <div class="n2" routerLink="fds/output/boundary" (click)="activate('boundary')">
+      <mat-icon [ngClass]="{'active': uiState.active == 'boundary'}" svgIcon="wall" aria-label="Boundary"></mat-icon>&nbsp;
       <a [ngClass]="{'active': uiState.active == 'boundary'}">Boundary</a>
     </div>
     <div class="n2" routerLink="fds/output/slice" (click)="activate('slice')">
+      <mat-icon [ngClass]="{'active': uiState.active == 'slice'}" svgIcon="box-cutter" aria-label="Slice"></mat-icon>&nbsp;
       <a [ngClass]="{'active': uiState.active == 'slice'}">Slice</a>
     </div>
     <div class="n2" routerLink="fds/output/isosurface" (click)="activate('isosurface')">
+      <mat-icon [ngClass]="{'active': uiState.active == 'isosurface'}" svgIcon="waves" aria-label="Isosurface"></mat-icon>&nbsp;
       <a [ngClass]="{'active': uiState.active == 'isosurface'}">Isosurface</a>
     </div>
     <div class="n2" routerLink="fds/output/device" (click)="activate('device')">
+      <mat-icon [ngClass]="{'active': uiState.active == 'device'}" svgIcon="thermometer-lines" aria-label="Device"></mat-icon>&nbsp;
       <a [ngClass]="{'active': uiState.active == 'device'}">Device</a>
     </div>
   </div>
 
   <div class="n1" routerLink="fds/ramp" (click)="activate('ramp')">
-    <i class="material-icons null"></i>
+    <mat-icon [ngClass]="{'active': uiState.active == 'ramp'}" svgIcon="chart-line" aria-label="Ramp"></mat-icon>&nbsp;
     <a [ngClass]="{'active': uiState.active == 'ramp'}">Ramp</a>
   </div>
 
   <div class="n1" routerLink="fds/input" (click)="activate('input')">
-    <i class="material-icons null"></i>
+    <mat-icon [ngClass]="{'active': uiState.active == 'input'}" svgIcon="code-json" aria-label="Input"></mat-icon>&nbsp;
     <a [ngClass]="{'active': uiState.active == 'input'}">Input file</a>
   </div>
 

@@ -13,6 +13,9 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBarModule, MAT_SNACK_BAR_DEFAULT_OPTIONS } from '@angular/material/snack-bar';
 
+import { MatIconRegistry, MatIconModule } from '@angular/material';
+import { DomSanitizer } from '@angular/platform-browser';
+
 // Ng-select
 import { NgSelectModule } from '@ng-select/ng-select';
 
@@ -138,7 +141,7 @@ import { PositiveNumberPipe } from './pipes/positive-number/positive-number.pipe
     ComplexComponent,
     MinSecPipe,
     LargeNumberPipe,
-    PositiveNumberPipe,
+    PositiveNumberPipe
   ],
   imports: [
     BrowserModule,
@@ -154,7 +157,8 @@ import { PositiveNumberPipe } from './pipes/positive-number/positive-number.pipe
     MatProgressBarModule,
     MatCheckboxModule,
     MatDialogModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    MatIconModule
   ],
   providers: [
     MainService,
@@ -192,4 +196,8 @@ import { PositiveNumberPipe } from './pipes/positive-number/positive-number.pipe
   ],
   bootstrap: [AppComponent]
 })
-export class AppModule { }
+export class AppModule {
+  constructor(matIconRegistry: MatIconRegistry, domSanitizer: DomSanitizer) {
+    matIconRegistry.addSvgIconSet(domSanitizer.bypassSecurityTrustResourceUrl('./assets/mdi.svg'));
+  }
+}

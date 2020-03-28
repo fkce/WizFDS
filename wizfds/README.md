@@ -31,3 +31,6 @@ Run `ng e2e` to execute the end-to-end tests via [Protractor](http://www.protrac
 
 ## KaTex
 While compiling --prod version katex module adds fonts to root folder of dist. To prevent this copy all fonts from `node_modules/katex/dist/fonts/` to `src/assets/fonts/` and replace relative to absolute path of @font-face in `node_modules/katex/dist/katex.css` and `node_modules/katex/dist/katex.min.css` (url: /view/assets/fonts/).
+
+## mdi fonts
+Copy node_modules/@mdi/angular-material/mdi.svg to src/assets/

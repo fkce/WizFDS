@@ -32,7 +32,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   libSub;
 
   // Component variables
-  diagnostic: string = "";
+  diagnostic: boolean = false;
 
   constructor(
     private mainService: MainService,
@@ -54,7 +54,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     }, 1000)
     this.websocket = this.websocketService;
     if (isDevMode()) {
-      this.diagnostic = "Show diagnostic data";
+      this.diagnostic = true;
     }
   }
 

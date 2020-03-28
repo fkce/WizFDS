@@ -3,22 +3,22 @@
   <div class="list-wrapper">
     <div class="list-drawer">
       <div class="list-title" (click)="add()">
-        <i class="material-icons">add_box</i> Add SPEC
+        <mat-icon>add_box</mat-icon> Add SPEC
       </div>
       <perfect-scrollbar #specScrollbar (psScrollY)="scrollbarUpdate('spec')">
         <div class="list-items">
           <div class="list-item" *ngFor="let specItem of specs | slice: ui.specie.spec.begin:(ui.specie.spec.begin + ui.listRange)">
             <a (click)="activate(specItem.id)" [ngClass]="{active: specItem === spec}">{{specItem.id}}</a>
-            <i class="material-icons red-hover" (click)="delete(specItem.id)">delete_forever</i>
+            <mat-icon class="red-hover" (click)="delete(specItem.id)">delete_forever</mat-icon>
           </div>
         </div>
       </perfect-scrollbar>
       <div class="list-bottom" *ngIf="specs.length > ui.listRange">
-        <i class="material-icons" *ngIf="ui.specie.spec.begin > 0" (click)="uiStateService.decreaseRange('specs.spec')">chevron_left</i>
+        <mat-icon *ngIf="ui.specie.spec.begin > 0" (click)="uiStateService.decreaseRange('specs.spec')">chevron_left</mat-icon>
         <div>{{ui.specie.spec.begin}} - {{ui.specie.spec.begin + ui.listRange > specs.length ? specs.length :
           ui.specie.spec.begin
           + ui.listRange}}</div>
-        <i class="material-icons" *ngIf="ui.specie.spec.begin + ui.listRange < specs.length" (click)="uiStateService.increaseRange('specs.spec')">chevron_right</i>
+        <mat-icon *ngIf="ui.specie.spec.begin + ui.listRange < specs.length" (click)="uiStateService.increaseRange('specs.spec')">chevron_right</mat-icon>
       </div>
     </div>
   </div>
@@ -81,7 +81,7 @@
         <div>
           <label>Add lumped specie:</label>
           <div class="field-container">
-            <i (click)="addSpecie()" class="material-icons">add_box</i>
+            <mat-icon (click)="addSpecie()">add_box</mat-icon>
           </div>
         </div>
 
@@ -121,7 +121,7 @@
         <div>
           <label>Delete:</label>
           <div class="field-container">
-            <i class="material-icons red-hover" (click)="deleteSpecie(specIndex)">delete_forever</i>
+            <mat-icon class="red-hover" (click)="deleteSpecie(specIndex)">delete_forever</mat-icon>
           </div>
         </div>
       </div>
@@ -140,25 +140,25 @@
       <div class="lib-area">
         <div class="list">
           <div class="list-title" (click)="add(true)">
-            <i class="material-icons">add_box</i> Add SPEC
+            <mat-icon>add_box</mat-icon> Add SPEC
           </div>
           <perfect-scrollbar #libSpecScrollbar (psScrollY)="scrollbarUpdate('libSpec')">
             <div class="list-items">
               <div class="list-item" *ngFor="let specItem of lib.specs | slice: ui.specie.libSpec.begin:(ui.specie.libSpec.begin
                   + ui.listRange)">
                 <a (click)="activate(specItem.id, true)" [ngClass]="{activeLib: specItem===spec}">{{specItem.id}}</a>
-                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.settings.tooltips"
-                  (click)="importLibraryItem(specItem.id)">content_copy</i>
-                <i class="material-icons red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(specItem.id, true)">delete_forever</i>
+                <mat-icon matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.settings.tooltips"
+                  (click)="importLibraryItem(specItem.id)">content_copy</mat-icon>
+                <mat-icon class="red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(specItem.id, true)">delete_forever</mat-icon>
               </div>
             </div>
           </perfect-scrollbar>
           <div class="list-bottom" *ngIf="libSpecs.length> ui.listRange">
-            <i class="material-icons" *ngIf="ui.specie.libSpec.begin > 0" (click)="uiStateService.decreaseRange('specs.libSpec')">chevron_left</i>
+            <mat-icon *ngIf="ui.specie.libSpec.begin > 0" (click)="uiStateService.decreaseRange('specs.libSpec')">chevron_left</mat-icon>
             <div>{{ui.specie.libSpec.begin}} - {{ui.specie.libSpec.begin + ui.listRange > libSpecs.length ?
               libSpecs.length :
               ui.specie.libSpec.begin + ui.listRange}}</div>
-            <i class="material-icons" *ngIf="ui.specie.libSpec.begin + ui.listRange < libSpecs.length" (click)="uiStateService.increaseRange('specs.libSpec')">chevron_right</i>
+            <mat-icon *ngIf="ui.specie.libSpec.begin + ui.listRange < libSpecs.length" (click)="uiStateService.increaseRange('specs.libSpec')">chevron_right</mat-icon>
           </div>
         </div>
       </div>

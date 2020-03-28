@@ -44,6 +44,10 @@ export interface IMain {
     autoSave: IAutoSave,
     idle: IIdle
 }
+export interface IInit {
+    isProjectsInited: boolean;
+    isCategoriesInited: boolean;
+}
 
 export class Main {
     private _userId: number;
@@ -55,6 +59,7 @@ export class Main {
     private _settings: ISettings;
     private _autoSave: IAutoSave;
     private _idle: IIdle;
+    private _init: IInit;
 
     constructor(jsonString: string) {
 
@@ -82,10 +87,10 @@ export class Main {
 
         this.autoSave = {
             fdsObjectDiffer: null,
-            fdsObjectSaveFont: 'mdi mdi-content-save',
+            fdsObjectSaveFont: '',
             fdsObjectTimeout: null,
             libDiffer: null,
-            libSaveFont: 'mdi mdi-content-save',
+            libSaveFont: '',
             libTimeout: null,
             timeoutScenarioId: 0,
             disable: false
@@ -98,6 +103,12 @@ export class Main {
             interval: 60000,
             showWarning: false
         }
+
+        this.init = {
+            isProjectsInited: false,
+            isCategoriesInited: false
+        }
+        
     }
 
     /**
@@ -260,5 +271,21 @@ export class Main {
     public set idle(value: IIdle) {
         this._idle = value;
     }
+
+    /**
+     * Getter init
+     * @return {IInit}
+     */
+	public get init(): IInit {
+		return this._init;
+	}
+
+    /**
+     * Setter init
+     * @param {IInit} value
+     */
+	public set init(value: IInit) {
+		this._init = value;
+	}
 
 }

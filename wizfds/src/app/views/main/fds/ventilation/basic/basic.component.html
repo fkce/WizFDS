@@ -4,21 +4,21 @@
     <div class="list-wrapper">
       <div class="list-drawer">
         <div class="list-title" (click)="add('vent')">
-          <i class="material-icons">add_box</i> Add VENT
+          <mat-icon>add_box</mat-icon> Add VENT
         </div>
         <perfect-scrollbar #ventScrollbar (psScrollY)="scrollbarUpdate('vent')">
           <div class="list-items">
             <div class="list-item" *ngFor="let ventItem of ventilation.vents | slice:ui.ventilation.vent.begin:(ui.ventilation.vent.begin + ui.listRange)">
               <a [ngClass]="{active: ventItem===vent}" (click)="activate(ventItem.id, 'vent'); websocketService.selectCad(ventItem.idAC)"> {{ventItem.id}} </a>
-              <i class="material-icons red-hover" (click)="delete(ventItem.id, 'vent')">delete_forever</i>
+              <mat-icon class="red-hover" (click)="delete(ventItem.id, 'vent')">delete_forever</mat-icon>
             </div>
           </div>
         </perfect-scrollbar>
         <div class="list-bottom" *ngIf="ventilation.vents.length > ui.listRange">
-          <i class="material-icons" *ngIf="ui.ventilation.vent.begin > 0" (click)="uiStateService.decreaseRange('ventilation.vent')">chevron_left</i>
+          <mat-icon *ngIf="ui.ventilation.vent.begin > 0" (click)="uiStateService.decreaseRange('ventilation.vent')">chevron_left</mat-icon>
           <div>{{ui.ventilation.vent.begin}} - {{ui.ventilation.vent.begin + ui.listRange > ventilation.vents.length ? ventilation.vents.length
             : ui.ventilation.vent.begin + ui.listRange}}</div>
-          <i class="material-icons" *ngIf="ui.ventilation.vent.begin + ui.listRange < ventilation.vents.length" (click)="uiStateService.increaseRange('ventilation.vent')">chevron_right</i>
+          <mat-icon *ngIf="ui.ventilation.vent.begin + ui.listRange < ventilation.vents.length" (click)="uiStateService.increaseRange('ventilation.vent')">chevron_right</mat-icon>
         </div>
       </div>
     </div>
@@ -106,21 +106,21 @@
     <div class="list-wrapper">
       <div class="list-drawer">
         <div class="list-title" (click)="add('surf')">
-          <i class="material-icons">add_box</i> Add SURF
+          <mat-icon>add_box</mat-icon> Add SURF
         </div>
         <perfect-scrollbar #surfScrollbar (psScrollY)="scrollbarUpdate('surf')">
           <div class="list-items">
             <div class="list-item" *ngFor="let surfItem of surfs | slice:ui.ventilation.surf.begin:(ui.ventilation.surf.begin + ui.listRange)">
               <a [ngClass]="{active: surfItem===surf}" (click)="activate(surfItem.id, 'surf')"> {{surfItem.id}} </a>
-              <i class="material-icons red-hover" (click)="delete(surfItem.id, 'surf')">delete_forever</i>
+              <mat-icon class="red-hover" (click)="delete(surfItem.id, 'surf')">delete_forever</mat-icon>
             </div>
           </div>
         </perfect-scrollbar>
         <div class="list-bottom" *ngIf="surfs.length > ui.listRange">
-          <i class="material-icons" *ngIf="ui.ventilation.surf.begin > 0" (click)="uiStateService.decreaseRange('ventilation.surf')">chevron_left</i>
+          <mat-icon *ngIf="ui.ventilation.surf.begin > 0" (click)="uiStateService.decreaseRange('ventilation.surf')">chevron_left</mat-icon>
           <div>{{ui.ventilation.surf.begin}} - {{ui.ventilation.surf.begin + ui.listRange > surfs.length ? surfs.length
             : ui.ventilation.surf.begin + ui.listRange}}</div>
-          <i class="material-icons" *ngIf="ui.ventilation.surf.begin + ui.listRange < surfs.length" (click)="uiStateService.increaseRange('ventilation.surf')">chevron_right</i>
+          <mat-icon *ngIf="ui.ventilation.surf.begin + ui.listRange < surfs.length" (click)="uiStateService.increaseRange('ventilation.surf')">chevron_right</mat-icon>
         </div>
       </div>
     </div>
@@ -206,7 +206,7 @@
             <div class="field-container">
               <ng-select [items]="(objectType == 'current') ? ramps : libRamps" bindLabel="id" placeholder="No RAMP" [(ngModel)]="surf.ramp"
                 [searchable]="false" [clearable]="true"> </ng-select>
-              <i (click)="addRamp('vent','conductivity')" class="material-icons">add_box</i>
+              <mat-icon (click)="addRamp('vent','conductivity')">add_box</mat-icon>
             </div>
           </div>
         </div>
@@ -270,23 +270,23 @@
         <div class="lib-area">
           <div class="list">
             <div class="list-title" (click)="add('surf', true)">
-              <i class="material-icons">add_box</i> Add SURF
+              <mat-icon>add_box</mat-icon> Add SURF
             </div>
             <perfect-scrollbar #libSurfScrollbar (psScrollY)="scrollbarUpdate('libSurf')">
               <div class="list-items">
                 <div class="list-item" *ngFor="let surfItem of libSurfs | slice: ui.ventilation.libSurf.begin:(ui.ventilation.libSurf.begin + ui.listRange)">
                   <a (click)="activate(surfItem.id, 'surf', true)" [ngClass]="{activeLib: surfItem === surf}">{{surfItem.id}}</a>
-                  <i class="material-icons" matTooltip="Create CAD layer" [matTooltipDisabled]="!main.settings.tooltips" (click)="createCadLayer(surfItem.id)">layers</i>
-                  <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.settings.tooltips" (click)="importLibraryItem(surfItem.id)">content_copy</i>
-                  <i class="material-icons red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(surfItem.id, 'surf', true)">delete_forever</i>
+                  <mat-icon matTooltip="Create CAD layer" [matTooltipDisabled]="!main.settings.tooltips" (click)="createCadLayer(surfItem.id)">layers</mat-icon>
+                  <mat-icon matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.settings.tooltips" (click)="importLibraryItem(surfItem.id)">content_copy</mat-icon>
+                  <mat-icon class="red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(surfItem.id, 'surf', true)">delete_forever</mat-icon>
                 </div>
               </div>
             </perfect-scrollbar>
             <div class="list-bottom" *ngIf="libSurfs.length > ui.listRange">
-              <i class="material-icons" *ngIf="ui.ventilation.libSurf.begin > 0" (click)="uiStateService.decreaseRange('ventilation.libSurf')">chevron_left</i>
+              <mat-icon *ngIf="ui.ventilation.libSurf.begin > 0" (click)="uiStateService.decreaseRange('ventilation.libSurf')">chevron_left</mat-icon>
               <div>{{ui.ventilation.libSurf.begin}} - {{ui.ventilation.libSurf.begin + ui.listRange > libSurfs.length ? libSurfs.length
                 : ui.ventilation.libSurf.begin + ui.listRange}}</div>
-              <i class="material-icons" *ngIf="ui.ventilation.libSurf.begin + ui.listRange < libSurfs.length" (click)="uiStateService.increaseRange('ventilation.libSurf')">chevron_right</i>
+              <mat-icon *ngIf="ui.ventilation.libSurf.begin + ui.listRange < libSurfs.length" (click)="uiStateService.increaseRange('ventilation.libSurf')">chevron_right</mat-icon>
             </div>
           </div>
         </div>

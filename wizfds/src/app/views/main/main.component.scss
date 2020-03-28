@@ -19,6 +19,8 @@
       border-right: 1px solid $border-dark;
       border-left: 1px solid $border-dark;
       .list-title {
+        display: flex;
+        align-items: center;
         box-shadow: 0 -1px 0 $shadow-dark inset;
         border-bottom: 1px solid $border-light;
         padding: 0.5rem;
@@ -33,6 +35,7 @@
 
         .list-item {
           display: flex;
+          justify-content: space-between;
           a {
             width: 80%;
             line-height: 1.5rem;
@@ -176,6 +179,8 @@
         border-right: 1px solid $border-dark;
         border-left: 1px solid $border-dark;
         .list-title {
+          display: flex;
+          align-items: center;
           box-shadow: 0 -1px 0 $shadow-dark inset;
           border-bottom: 1px solid $border-light;
           padding: 0.5rem;

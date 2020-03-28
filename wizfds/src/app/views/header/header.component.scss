@@ -70,6 +70,10 @@
             align-items: flex-start;
             justify-content: flex-start;
             padding-left: 1rem;
+            .project-scenario {
+                display: flex;
+                align-items: center;
+            }
             .cad-path {
                 font-size: 0.8rem;
                 font-style: italic;

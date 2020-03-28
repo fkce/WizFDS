@@ -67,8 +67,12 @@ export class AppComponent {
 
     this.mainSub = this.mainService.getMain().subscribe(main => this.main = main);
 
-    this.projectService.getProjects();
-    this.categoryService.getCategories();
+    this.projectService.getProjects().then(() => {
+      this.main.init.isProjectsInited = true;
+    });
+    this.categoryService.getCategories().then(() => {
+      this.main.init.isCategoriesInited = true;
+    });
 
     this.libraryService.loadLibrary();
     setTimeout(() => {
@@ -140,7 +144,7 @@ export class AppComponent {
       clearTimeout(this.main.autoSave.fdsObjectTimeout);
       // Check if scenario or project was not changed in the meanwhile
       if (this.main.autoSave.fdsObjectDiffer != null && this.main.autoSave.timeoutScenarioId == this.main.currentFdsScenario.id) {
-        this.main.autoSave.fdsObjectSaveFont = 'mdi mdi-content-save-edit red';
+        this.main.autoSave.fdsObjectSaveFont = 'red';
 
         this.main.autoSave.fdsObjectTimeout = setTimeout(() => {
           this.fdsScenarioService.updateFdsScenario(this.main.currentProject.id, this.main.currentFdsScenario.id, 'all', true);

@@ -7,30 +7,34 @@ $open-curve: ease-out;
 $close-curve: ease-in;
 
 .n0 {
+	display: flex;
+	align-items: center;
     background-color: $grey1;
 	height: 1.5rem;
 	padding: 0.5rem;
     border: none;
 	cursor: pointer;
+	@include no-select;
 }
 .n0:hover {
 	color: $blue;
+	a {
+		color: $blue;
+	}
 }
 
-
 .n1 {
-    background-color: $grey2;
+	display: flex;
+	align-items: center;
+	background-color: $grey2;
 	height: 1.5rem;
 	padding: 0.5rem;
-	//padding: .7rem;
+	padding-left: 1rem;
 	border-bottom: 1px solid $border-light;
 	border-right: 1px solid $border-dark;
 	box-shadow: 0 -1px 0 $shadow-dark inset;
 	cursor: pointer;
-
-	i.null {
-		width:24px;
-	}
+	@include no-select;
 }
 .n1:hover {
 	color: $blue;
@@ -40,17 +44,21 @@ $close-curve: ease-in;
 }
 
 .n2 {
+	display: flex;
+	align-items: center;
 	background-color: $grey4;
 	height: 1.4rem;
 	padding-top: .3rem;
 	padding-left: 2.5rem;
 	width: 100%;
 	cursor: pointer;
+	@include no-select;
 }
 .n2:hover {
-	a {
-		color: $blue;
-	}
+	color: $blue;
+}
+.n2:last-child {
+	padding-bottom: .3rem;
 }
 
 .ng2 {

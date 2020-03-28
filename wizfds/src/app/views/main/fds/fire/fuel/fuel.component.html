@@ -3,21 +3,21 @@
   <div class="list-wrapper">
     <div class="list-drawer">
       <div class="list-title" (click)="add()">
-        <i class="material-icons">add_box</i> Add FUEL
+        <mat-icon>add_box</mat-icon> Add FUEL
       </div>
       <perfect-scrollbar #fuelScrollbar (psScrollY)="scrollbarUpdate('fuel')">
         <div class="list-items">
           <div class="list-item" *ngFor="let fuelItem of fuels | slice: ui.fires.fuel.begin:(ui.fires.fuel.begin + ui.listRange)">
             <a (click)="activate(fuelItem.id)" [ngClass]="{active: fuelItem === fuel}">{{fuelItem.id}}</a>
-            <i class="material-icons red-hover" (click)="delete(fuelItem.id)">delete_forever</i>
+            <mat-icon class="red-hover" (click)="delete(fuelItem.id)">delete_forever</mat-icon>
           </div>
         </div>
       </perfect-scrollbar>
       <div class="list-bottom" *ngIf="fuels.length > ui.listRange">
-        <i class="material-icons" *ngIf="ui.fires.fuel.begin > 0" (click)="uiStateService.decreaseRange('fuels.fuel')">chevron_left</i>
+        <mat-icon *ngIf="ui.fires.fuel.begin > 0" (click)="uiStateService.decreaseRange('fuels.fuel')">chevron_left</mat-icon>
         <div>{{ui.fires.fuel.begin}} - {{ui.fires.fuel.begin + ui.listRange > fuels.length ? fuels.length : ui.fires.fuel.begin
           + ui.listRange}}</div>
-        <i class="material-icons" *ngIf="ui.fires.fuel.begin + ui.listRange < fuels.length" (click)="uiStateService.increaseRange('fuels.fuel')">chevron_right</i>
+        <mat-icon *ngIf="ui.fires.fuel.begin + ui.listRange < fuels.length" (click)="uiStateService.increaseRange('fuels.fuel')">chevron_right</mat-icon>
       </div>
     </div>
   </div>
@@ -138,22 +138,22 @@
       <div class="lib-area">
         <div class="list">
           <div class="list-title" (click)="add(true)">
-            <i class="material-icons">add_box</i> Add FUEL
+            <mat-icon>add_box</mat-icon> Add FUEL
           </div>
           <perfect-scrollbar #libFuelScrollbar (psScrollY)="scrollbarUpdate('libFuel')">
             <div class="list-items">
               <div class="list-item" *ngFor="let fuelItem of lib.fuels | slice: ui.fires.libFuel.begin:(ui.fires.libFuel.begin + ui.listRange)">
                 <a (click)="activate(fuelItem.id, true)" [ngClass]="{activeLib: fuelItem===fuel}">{{fuelItem.id}}</a>
-                <i class="material-icons" matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.settings.tooltips" (click)="importLibraryItem(fuelItem.id)">content_copy</i>
-                <i class="material-icons red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(fuelItem.id, true)">delete_forever</i>
+                <mat-icon matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.settings.tooltips" (click)="importLibraryItem(fuelItem.id)">content_copy</mat-icon>
+                <mat-icon class="red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(fuelItem.id, true)">delete_forever</mat-icon>
               </div>
             </div>
           </perfect-scrollbar>
           <div class="list-bottom " *ngIf="libFuels.length> ui.listRange">
-            <i class="material-icons" *ngIf="ui.fires.libFuel.begin > 0" (click)="uiStateService.decreaseRange('fuels.libFuel')">chevron_left</i>
+            <mat-icon *ngIf="ui.fires.libFuel.begin > 0" (click)="uiStateService.decreaseRange('fuels.libFuel')">chevron_left</mat-icon>
             <div>{{ui.fires.libFuel.begin}} - {{ui.fires.libFuel.begin + ui.listRange > libFuels.length ? libFuels.length : ui.fires.libFuel.begin
               + ui.listRange}}</div>
-            <i class="material-icons" *ngIf="ui.fires.libFuel.begin + ui.listRange < libFuels.length" (click)="uiStateService.increaseRange('fuels.libFuel')">chevron_right</i>
+            <mat-icon *ngIf="ui.fires.libFuel.begin + ui.listRange < libFuels.length" (click)="uiStateService.increaseRange('fuels.libFuel')">chevron_right</mat-icon>
           </div>
         </div>
       </div>
