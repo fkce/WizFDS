@@ -42,10 +42,21 @@ export class ProjectsComponent implements OnInit, OnDestroy {
 
     // Try to update list asap
     this.updateProjectsList();
+
     // Wait for projects and categories if first loading page
-    setTimeout(() => {
-      this.updateProjectsList();
-    }, 2500);
+    // If there is slow internet connection wait another 2 sec 
+    if (this.projects.length < 1) {
+      setTimeout(() => {
+        if (this.main.categories.length > 0 && this.main.projects.length > 0) {
+          this.updateProjectsList();
+        }
+        else {
+          setTimeout(() => {
+            this.updateProjectsList();
+          }, 2000)
+        }
+      }, 2500);
+    }
 
   }
 

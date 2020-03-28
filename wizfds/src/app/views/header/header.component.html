@@ -23,11 +23,11 @@
               (click)="activate('projects')" [ngClass]="{'active': uiState.active == 'projects'}">view_list</i>
           </a>
         </span>
-        <span *ngIf="main.currentProject != undefined">
-          &nbsp;|&nbsp; {{main.currentProject.name}} ({{main.currentProject.id}}) &nbsp;|&nbsp;
+        <span *ngIf="main.currentProject != undefined" matTooltip="Id: {{main.currentProject.id}}">
+          &nbsp;|&nbsp; {{main.currentProject.name}} &nbsp;|&nbsp;
         </span>
-        <span *ngIf="main.currentProject != undefined && main.currentFdsScenario != undefined">
-          {{main.currentFdsScenario.name}} ({{main.currentFdsScenario.id}}) &nbsp;|&nbsp;
+        <span *ngIf="main.currentProject != undefined && main.currentFdsScenario != undefined" matTooltip="Id: {{main.currentFdsScenario.id}}">
+          {{main.currentFdsScenario.name}} &nbsp;|&nbsp;
         </span>
       </div>
       <div class="cad-path">
@@ -40,13 +40,12 @@
     </div>
 
     <div class="center-top">
-
     </div>
 
     <div class="right-top">
       <div class="id">
-        <p>{{ main.settings.userName }}</p>
-        <p class="email">(id: {{ main.userId }}, {{ main.settings.email }})</p>
+        <p matTooltip="Id: {{ main.userId }}">{{ main.settings.userName }}</p>
+        <p class="email">({{ main.settings.email }})</p>
       </div>
       <div class="menu">
         &nbsp;&nbsp;

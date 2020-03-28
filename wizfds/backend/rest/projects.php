@@ -57,7 +57,7 @@ function createProject() {
 
 	try {
 
-		$result = $db->pg_read("select uuid from categories where user_id=$1", array($_SESSION['user_id']));
+		$result = $db->pg_read("select uuid from categories where user_id=$1 and label='current'", array($_SESSION['user_id']));
 		$category_id = empty($result) ? '0000-0000-0000' : $result[0]['uuid'];
 
 		$data = Array(

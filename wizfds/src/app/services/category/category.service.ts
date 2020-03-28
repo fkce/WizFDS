@@ -23,7 +23,7 @@ export class CategoryService {
   }
 
   /** Get categories from DB */
-  getCategories() {
+  public getCategories() {
     this.httpManager.get(this.main.settings.hostAddress + '/api/categories').then((result:Result) => {
       // Iterate through all projects
       forEach(result.data, (category:CategoryInterface) => {
@@ -37,7 +37,7 @@ export class CategoryService {
   }
 
   /** Create new category in DB */
-  createCategory() {
+  public createCategory() {
     let category = new Category(JSON.stringify({uuid: this.idGeneratorService.genUUID, label:"New category", active:true, visible:true}));
     this.httpManager.post(this.main.settings.hostAddress + '/api/category', category.toJSON()).then((result:Result) => {
       this.main.categories.push(category);
@@ -46,7 +46,7 @@ export class CategoryService {
   }
 
   /** Update category in DB */
-  updataCategory(uuid:string, category:Category) {
+  public updataCategory(uuid:string, category:Category) {
     this.httpManager.put(this.main.settings.hostAddress + '/api/category/'+uuid, category.toJSON()).then((result:Result) => {
 
       this.snackBarService.notify(result.meta.status, result.meta.details[0]);
@@ -54,7 +54,7 @@ export class CategoryService {
   }
 
   /** Delete category */
-  deleteCategory(uuid:string) {
+  public deleteCategory(uuid:string) {
     this.httpManager.delete(this.main.settings.hostAddress + '/api/category/'+uuid).then((result:Result) => {
 
       this.snackBarService.notify(result.meta.status, result.meta.details[0]);
