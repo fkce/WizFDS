@@ -20,8 +20,8 @@
         <mat-icon routerLink="" aria-label="Projects" matTooltip="Projects"
           [matTooltipDisabled]="!main.settings.tooltips" (click)="activate('projects')"
           [ngClass]="{'active': uiState.active == 'projects'}">view_list</mat-icon>
-        <span class="cursor-default" *ngIf="main.currentProject != undefined" matTooltip="Id: {{main.currentProject.id}}"
-          [matTooltipDisabled]="!main.settings.tooltips">
+        <span class="cursor-default" *ngIf="main.currentProject != undefined"
+          matTooltip="Id: {{main.currentProject.id}}" [matTooltipDisabled]="!main.settings.tooltips">
           &nbsp;|&nbsp; {{main.currentProject.name}} &nbsp;|&nbsp;
         </span>
         <span class="cursor-default" *ngIf="main.currentProject != undefined && main.currentFdsScenario != undefined"
@@ -75,13 +75,14 @@
       </div>
     </div>
 
-    <div class="center-bottom" *ngIf="diagnostic" (click)="showDiagnosticData()">
-        <mat-icon aria-label="Show diagnostic data" matTooltip="Show diagnostic data"
-          [matTooltipDisabled]="!main.settings.tooltips">code-braces</mat-icon>
+    <div class="center-bottom" (click)="showDiagnosticData()">
+      <mat-icon aria-label="Show diagnostic data" *ngIf="diagnostic" matTooltip="Show diagnostic data"
+        [matTooltipDisabled]="!main.settings.tooltips">code-braces</mat-icon>
     </div>
 
     <div class="right-bottom">
-      <div class="menu" (click)="updateFdsLibrary()" *ngIf="main.currentProject != undefined && main.currentFdsScenario != undefined">
+      <div class="menu" (click)="updateFdsLibrary()"
+        *ngIf="main.currentProject != undefined && main.currentFdsScenario != undefined">
         <mat-icon [class]="main.autoSave.libSaveFont" svgIcon="content-save" aria-label="Sort projects by name"
           matTooltip="Save library" [matTooltipDisabled]="!main.settings.tooltips"></mat-icon>
         &nbsp;&nbsp;|&nbsp;&nbsp;
