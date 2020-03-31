@@ -17,8 +17,8 @@
           </div>
         </perfect-scrollbar>
         <div class="list-bottom" *ngIf="geometry.meshes.length > ui.listRange">
-          <mat-icon *ngIf="ui.geometry.mesh.begin > 0"
-            (click)="uiStateService.decreaseRange('geometry.mesh')">chevron_left</mat-icon>
+          <mat-icon *ngIf="ui.geometry.mesh.begin > 0" (click)="uiStateService.decreaseRange('geometry.mesh')">
+            chevron_left</mat-icon>
           <div>{{ui.geometry.mesh.begin}} - {{ui.geometry.mesh.begin + ui.listRange > geometry.meshes.length ?
             geometry.meshes.length : ui.geometry.mesh.begin + ui.listRange}}</div>
           <mat-icon *ngIf="ui.geometry.mesh.begin + ui.listRange < geometry.meshes.length"
@@ -216,10 +216,10 @@
         </perfect-scrollbar>
         <div class="list-bottom" *ngIf="opens.length > ui.listRange">
           <div class="list-controls">
-            <mat-icon *ngIf="ui.geometry.mesh.begin > 0"
-              (click)="uiStateService.decreaseRange('geometry.open')">chevron_left</mat-icon>
-            <p>{{ui.geometry.open.begin}}-{{ui.geometry.open.begin+listRange>geometry.opens.length ?
-              geometry.opens.length:ui.geometry.open.begin+listRange}}</p>
+            <mat-icon *ngIf="ui.geometry.mesh.begin > 0" (click)="uiStateService.decreaseRange('geometry.open')">
+              chevron_left</mat-icon>
+            <p>{{ui.geometry.open.begin}}-{{ui.geometry.open.begin + ui.listRange>geometry.opens.length ?
+              geometry.opens.length:ui.geometry.open.begin + ui.listRange}}</p>
             <mat-icon *ngIf="ui.geometry.mesh.begin + ui.listRange < geometry.meshes.length"
               (click)="uiStateService.increaseRange('geometry.open')">chevron_right</mat-icon>
           </div>

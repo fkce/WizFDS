@@ -48,7 +48,7 @@ export class RampComponent implements OnInit, OnDestroy {
 
   constructor(
     private mainService: MainService,
-    private uiStateService: UiStateService,
+    public uiStateService: UiStateService,
     private libraryService: LibraryService
   ) { }
 

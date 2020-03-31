@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Mesh } from '../fds-object/geometry/mesh';
-import { upperCase, forEach, sortBy, filter, each, find, cloneDeep, isEqual } from 'lodash';
+import { upperCase, forEach, sortBy, filter, each, find, cloneDeep, isEqual, toInteger, round } from 'lodash';
 import { Obst } from '../fds-object/geometry/obst';
 import { Surf } from '../fds-object/geometry/surf';
 import { MainService } from '../main/main.service';
@@ -141,11 +141,21 @@ export class CadService {
         let tempDevc = find(this.lib.devcs, function (o) {
           return o.id == acElement.id;
         });
-        let libDevc = cloneDeep(tempDevc);
+        let libDevc: Devc = cloneDeep(tempDevc);
 
         if (libDevc != undefined) {
           // Copy to current fds scenario ramp
           // TODO add parts and props
+
+          // If there is device with obst name layer = devc name
+          // device should be put in one of the meshes.
+          // Below we put all devices to the center of first mesh
+          if (this.main.currentFdsScenario.fdsObject.geometry.meshes.length > 0 && this.main.currentFdsScenario.fdsObject.geometry.meshes[0]) {
+            libDevc.xyz.x = round(this.main.currentFdsScenario.fdsObject.geometry.meshes[0].xb.x1 + toInteger(this.main.currentFdsScenario.fdsObject.geometry.meshes[0].ijk[0] / 2) * this.main.currentFdsScenario.fdsObject.geometry.meshes[0].isize, 3);
+            libDevc.xyz.y = round(this.main.currentFdsScenario.fdsObject.geometry.meshes[0].xb.y1 + toInteger(this.main.currentFdsScenario.fdsObject.geometry.meshes[0].ijk[1] / 2) * this.main.currentFdsScenario.fdsObject.geometry.meshes[0].jsize, 3);
+            libDevc.xyz.z = round(this.main.currentFdsScenario.fdsObject.geometry.meshes[0].xb.z1 + toInteger(this.main.currentFdsScenario.fdsObject.geometry.meshes[0].ijk[2] / 2) * this.main.currentFdsScenario.fdsObject.geometry.meshes[0].ksize, 3);
+          }
+
           this.main.currentFdsScenario.fdsObject.output.devcs.push(new Devc(JSON.stringify(libDevc.toJSON()), undefined, this.lib.specs, undefined));
         }
       }
@@ -762,7 +772,7 @@ export class CadService {
           if (libSpec.specieFlowType == 'massFlux' && libSpec.massFlux.length > 0) {
 
             forEach(libSpec.massFlux, (massFluxSpec) => {
-              let tempSpec = find(this.lib.specs, function(o) {
+              let tempSpec = find(this.lib.specs, function (o) {
                 return o.id == massFluxSpec.spec.id;
               });
               let libSpec = cloneDeep(tempSpec);
@@ -776,7 +786,7 @@ export class CadService {
           else if (libSpec.specieFlowType == 'massFraction' && libSpec.massFraction.length > 0) {
 
             forEach(libSpec.massFraction, (massFractionSpec) => {
-              let tempSpec = find(this.lib.specs, function(o) {
+              let tempSpec = find(this.lib.specs, function (o) {
                 return o.id == massFractionSpec.spec.id;
               });
               let libSpec = cloneDeep(tempSpec);

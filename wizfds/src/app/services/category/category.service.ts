@@ -34,7 +34,6 @@ export class CategoryService {
           this.main.categories.push(new Category(JSON.stringify(category)));
         });
         this.snackBarService.notify(result.meta.status, result.meta.details[0]);
-        console.log(result.meta);
         result.meta.status == 'info' ? resolve() : reject();
       });
     });

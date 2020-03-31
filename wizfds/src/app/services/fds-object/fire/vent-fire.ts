@@ -1,7 +1,7 @@
 import { FdsEntities } from '../../../enums/fds/entities/fds-entities';
 import { IdGeneratorService } from '../../id-generator/id-generator.service';
 import { Xb, Xyz } from '../primitives';
-import { get } from 'lodash';
+import { get, round } from 'lodash';
 
 export interface VentObject {
     id: string,
@@ -69,7 +69,7 @@ export class VentFire {
         else if (this.xb.x1 == this.xb.x2) {
             area = Math.abs((this.xb.z2 - this.xb.z1) * (this.xb.z2 - this.xb.z1));
         }
-        return area;
+        return round(area, 6);
     }
 
 

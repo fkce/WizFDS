@@ -58,7 +58,7 @@ export class SurfaceComponent implements OnInit, OnDestroy {
   constructor(
     private mainService: MainService,
     private websocketService: WebsocketService,
-    private uiStateService: UiStateService,
+    public uiStateService: UiStateService,
     private libraryService: LibraryService,
     private snackBarService: SnackBarService
   ) { }

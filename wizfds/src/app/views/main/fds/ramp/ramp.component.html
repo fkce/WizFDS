@@ -15,7 +15,7 @@
       </perfect-scrollbar>
       <div class="list-bottom" *ngIf="ramps.length > ui.listRange">
         <mat-icon *ngIf="ui.ramps.ramp.begin > 0" (click)="uiStateService.decreaseRange('ramps.ramp')">chevron_left</mat-icon>
-        <div>{{ui.ramps.ramp.begin}} - {{ui.ramps.ramp.begin + ui.listRange > ramps.ramps.length ? ramps.ramps.length :
+        <div>{{ui.ramps.ramp.begin}} - {{ui.ramps.ramp.begin + ui.listRange > ramps.length ? ramps.length :
           ui.ramps.ramp.begin
           + ui.listRange}}</div>
         <mat-icon *ngIf="ui.ramps.ramp.begin + ui.listRange < ramps.length" (click)="uiStateService.increaseRange('ramps.ramp')">chevron_right</mat-icon>

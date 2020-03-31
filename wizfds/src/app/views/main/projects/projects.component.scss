@@ -163,7 +163,7 @@ $red: #FF516D;
 
 	.scenario-item:hover {
 		background-color: $grey-hover;
-		i.ico {
+		.ico {
 			color: $blue;
         }
 	}
@@ -181,7 +181,7 @@ $red: #FF516D;
 	.scenario-item.activeScenario {
 		background-color: $grey-hover;
 		border-left: 2px solid $blue;
-		i.ico {
+		.ico {
 			color: $blue;
 		}
 	}

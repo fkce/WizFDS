@@ -10,6 +10,7 @@ import { Fds } from '@services/fds-object/fds-object';
 import { Surf } from '@services/fds-object/geometry/surf';
 import { WebsocketMessageObject } from './websocket-message';
 import { SnackBarService } from '@services/snack-bar/snack-bar.service';
+import { Fire } from '@services/fds-object/fire/fire';
 
 @Injectable({
   providedIn: 'root',
@@ -295,6 +296,16 @@ export class WebsocketService {
       this.fds.output.devcs.push(devc);
     });
 
+    /** Meshes */
+    // Transform CAD elements
+    let newMeshes = this.cadService.transformMeshes(data.geometry.meshes, this.fds.geometry.meshes);
+    // Clone and delete current elements
+    remove(this.fds.geometry.meshes);
+    // Set new meshes to current scenario
+    each(newMeshes, (mesh) => {
+      this.fds.geometry.meshes.push(mesh);
+    });
+
     /** Surfs */
     // Transform CAD elements
     let newSurfs = this.cadService.transformSurfs(data.geometry.surfs, this.fds.geometry.surfs);
@@ -305,16 +316,6 @@ export class WebsocketService {
     // Add new surfs to current scenario
     each(newSurfs, (surf) => {
       this.fds.geometry.surfs.push(surf);
-    });
-
-    /** Meshes */
-    // Transform CAD elements
-    let newMeshes = this.cadService.transformMeshes(data.geometry.meshes, this.fds.geometry.meshes);
-    // Clone and delete current elements
-    remove(this.fds.geometry.meshes);
-    // Set new meshes to current scenario
-    each(newMeshes, (mesh) => {
-      this.fds.geometry.meshes.push(mesh);
     });
 
     /** Opens */
@@ -413,7 +414,9 @@ export class WebsocketService {
     // Clone and delete current elements
     remove(this.fds.fires.fires);
     // Set new meshes to current scenario
-    each(newFires, (fire) => {
+    each(newFires, (fire: Fire) => {
+      fire.vent.area = fire.vent.calcArea();
+      fire.surf.hrr.area = fire.vent.area;
       this.fds.fires.fires.push(fire);
     });
 

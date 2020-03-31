@@ -59,7 +59,7 @@ export class SliceComponent implements OnInit, OnDestroy {
   constructor(
     private mainService: MainService,
     public websocketService: WebsocketService,
-    private uiStateService: UiStateService,
+    public uiStateService: UiStateService,
     private libraryService: LibraryService,
     private route: ActivatedRoute,
     private snackBarService: SnackBarService

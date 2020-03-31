@@ -58,7 +58,7 @@ export class DeviceComponent implements OnInit, OnDestroy {
 
   constructor(
     private mainService: MainService,
-    private uiStateService: UiStateService,
+    public uiStateService: UiStateService,
     private libraryService: LibraryService,
     private route: ActivatedRoute,
     private snackBarService: SnackBarService,

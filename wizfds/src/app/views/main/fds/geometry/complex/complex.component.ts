@@ -47,7 +47,7 @@ export class ComplexComponent implements OnInit, OnDestroy {
     private mainService: MainService,
     public websocketService: WebsocketService,
     private route: ActivatedRoute,
-    private uiStateService: UiStateService
+    public uiStateService: UiStateService
   ) { }
 
   ngOnInit() {
