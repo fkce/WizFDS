@@ -19,6 +19,7 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
+using Autodesk.AutoCAD.Colors;
 #endif
 
 using System;
@@ -175,10 +176,51 @@ namespace WizFDS.Utils
         }
 #endif
 
+        private double[] regXb(String line)
+        {
+            CultureInfo culture = new CultureInfo("en-US");
+            double[] xb = new double[6];
+
+            Regex regExXb = new Regex(@"XB\s*=\s*(\-*\d*\.{0,1}\d*)\s*,\s*(\-*\d*\.{0,1}\d*)\s*,\s*(\-*\d*\.{0,1}\d*)\s*,\s*(\-*\d*\.{0,1}\d*)\s*,\s*(\-*\d*\.{0,1}\d*)\s*,\s*(\-*\d*\.{0,1}\d*)", RegexOptions.IgnoreCase);
+            Match xbMatch = regExXb.Match(line);
+
+            if (xbMatch.Success)
+            {
+                System.Text.RegularExpressions.Group x1G = xbMatch.Groups[1];
+                System.Text.RegularExpressions.Group x2G = xbMatch.Groups[2];
+                System.Text.RegularExpressions.Group y1G = xbMatch.Groups[3];
+                System.Text.RegularExpressions.Group y2G = xbMatch.Groups[4];
+                System.Text.RegularExpressions.Group z1G = xbMatch.Groups[5];
+                System.Text.RegularExpressions.Group z2G = xbMatch.Groups[6];
+                xb[0] = Convert.ToDouble(x1G.Value, culture);
+                xb[1] = Convert.ToDouble(x2G.Value, culture);
+                xb[2] = Convert.ToDouble(y1G.Value, culture);
+                xb[3] = Convert.ToDouble(y2G.Value, culture);
+                xb[4] = Convert.ToDouble(z1G.Value, culture);
+                xb[5] = Convert.ToDouble(z2G.Value, culture);
+            }
+            else
+            {
+                xb = null;
+            }
+            return xb;
+        }
+
+        private string regSurfId(String line)
+        {
+            string surf = "";
+
+            Regex regExSurfId = new Regex(@"SURF_ID\s*=\s*'(.*)'", RegexOptions.IgnoreCase);
+            Match surfId = regExSurfId.Match(line);
+            surf = surfId.Success ? "!FDS_OBST[" + surfId.Groups[1].Value + "](0)" : null;
+
+            return surf;
+        }
+
         [CommandMethod("IFDS")]
         public void iFds()
         {
-            CultureInfo culture = new CultureInfo("en-US");
+            
             Utils.Init();
 #if ARX_APP
             OpenFileDialog theDialog = new OpenFileDialog();
@@ -197,8 +239,7 @@ namespace WizFDS.Utils
                 string filename = theDialog.Filename;
 #endif
                 string[] filelines = File.ReadAllLines(filename);
-
-                double x1, x2, y1, y2, z1, z2;
+                double[] xb = new double[6];
                 string surf = "";
 
                 foreach (string line in filelines)
@@ -206,45 +247,34 @@ namespace WizFDS.Utils
                     if (line.Contains("&OBST"))
                     {
                         //&OBST ID = 'OBST1', XB = 6.8,7., 7,64, 1.8,5.234, SURF_ID = 'gypsum_board' /
+                        xb = regXb(line);
                         surf = "";
+                        surf = regSurfId(line);
 
-                        Regex regExXb = new Regex(@"XB\s*=\s*(\-*\d*\.{0,1}\d*)\s*,\s*(\-*\d*\.{0,1}\d*)\s*,\s*(\-*\d*\.{0,1}\d*)\s*,\s*(\-*\d*\.{0,1}\d*)\s*,\s*(\-*\d*\.{0,1}\d*)\s*,\s*(\-*\d*\.{0,1}\d*)", RegexOptions.IgnoreCase);
-                        Match xb = regExXb.Match(line);
-
-                        if (xb.Success)
+                        Random rnd = new Random();
+                        int color = rnd.Next(1, 255);
+                        
+                        // Check if layer exists
+                        if (surf != null)
                         {
-                            System.Text.RegularExpressions.Group x1G = xb.Groups[1];
-                            System.Text.RegularExpressions.Group x2G = xb.Groups[2];
-                            System.Text.RegularExpressions.Group y1G = xb.Groups[3];
-                            System.Text.RegularExpressions.Group y2G = xb.Groups[4];
-                            System.Text.RegularExpressions.Group z1G = xb.Groups[5];
-                            System.Text.RegularExpressions.Group z2G = xb.Groups[6];
-                            x1 = Convert.ToDouble(x1G.Value, culture);
-                            x2 = Convert.ToDouble(x2G.Value, culture);
-                            y1 = Convert.ToDouble(y1G.Value, culture);
-                            y2 = Convert.ToDouble(y2G.Value, culture);
-                            z1 = Convert.ToDouble(z1G.Value, culture);
-                            z2 = Convert.ToDouble(z2G.Value, culture);
-
-                            ed.WriteMessage(x1.ToString() + "\n");
-                            ed.WriteMessage(x2.ToString() + "\n");
-                            ed.WriteMessage(y1.ToString() + "\n");
-                            ed.WriteMessage(y2.ToString() + "\n");
-                            ed.WriteMessage(z1.ToString() + "\n");
-                            ed.WriteMessage(z2.ToString() + "\n");
-
-                            Regex regExSurfId = new Regex(@"SURF_ID\s*=\s*'(.*)'", RegexOptions.IgnoreCase);
-                            Match surfId = regExSurfId.Match(line);
-                            surf = surfId.Success ? "!FDS_OBST[" + surfId.Groups[1].Value + "](0)" : "!FDS_OBST[inert](0)";
-
-                            Layers.CreateLayer(surf);
-
-                            if (x1 != x2 && y1 != y2 && z1 != z2)
-                            {
-                                Utils.CreateBox(x1, x2, y1, y2, z1, z2, surf);
-                            }
-
+                            Layers.CreateLayer(surf, Color.FromColorIndex(ColorMethod.ByAci, Convert.ToInt16(color)));
                         }
+                        else
+                        {
+                            surf = "!FDS_OBST[inert](0)";
+                            Layers.CreateLayer(surf, Color.FromColorIndex(ColorMethod.ByAci, Convert.ToInt16(color)));
+                        }
+
+                        if (xb != null)
+                        {
+                            Utils.CreateBox(xb[0], xb[1], xb[2], xb[3], xb[4], xb[5], surf);
+                        }
+                    }
+                    else if (line.Contains("&MESH"))
+                    {
+                        xb = regXb(line);
+                        surf = "!FDS_MESH";
+                        Utils.CreateBox(xb[0], xb[1], xb[2], xb[3], xb[4], xb[5], surf);
                     }
                     //ed.WriteMessage(filelines[i]);
                 }

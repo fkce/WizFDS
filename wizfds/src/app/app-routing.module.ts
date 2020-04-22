@@ -25,6 +25,7 @@ import { UserSettingsComponent } from './views/main/user-settings/user-settings.
 import { LibraryEditorComponent } from './views/main/library-editor/library-editor.component';
 import { InjectionComponent } from './views/main/fds/specie/injection/injection.component';
 import { ComplexComponent } from './views/main/fds/geometry/complex/complex.component';
+import { TestComponent } from './web-smokeview/test/test.component';
 
 const routes: Routes = [
   {
@@ -120,6 +121,10 @@ const routes: Routes = [
   {
     path: 'fds/input',
     component: InputFileComponent
+  },
+  {
+    path: 'webSmokeview',
+    component: TestComponent
   },
 ];
 

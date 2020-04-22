@@ -16,11 +16,11 @@
     <StartProgram>C:\Program Files\Autodesk\AutoCAD 2018\acad.exe</StartProgram>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'AutoCAD_Debug|AnyCPU'">
-    <StartProgram>C:\Program Files\Autodesk\AutoCAD 2018\acad.exe</StartProgram>
+    <StartProgram>C:\Program Files\Autodesk\AutoCAD 2020\acad.exe</StartProgram>
     <StartAction>Program</StartAction>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'AutoCAD_Release|AnyCPU'">
-    <StartProgram>C:\Program Files\Autodesk\AutoCAD 2018\acad.exe</StartProgram>
+    <StartProgram>C:\Program Files\Autodesk\AutoCAD 2020\acad.exe</StartProgram>
     <StartAction>Program</StartAction>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'AutoCAD_Release|x64'">

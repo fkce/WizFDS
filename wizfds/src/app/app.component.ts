@@ -84,7 +84,7 @@ export class AppComponent {
     }, 1000);
 
     // Navigate after page is reloaded
-    this.router.navigate(['']);
+    this.router.navigate(['webSmokeview']);
 
     // For developing purpose
     if (isDevMode()) {

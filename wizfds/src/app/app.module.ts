@@ -97,6 +97,7 @@ import { MinSecPipe } from './pipes/min-sec/min-sec.pipe';
 import { LargeNumberPipe } from './pipes/large-number/large-number.pipe';
 import { PositiveNumberPipe } from './pipes/positive-number/positive-number.pipe';
 
+import { WebSmokeviewModule } from './web-smokeview/web-smokeview.module';
 
 @NgModule({
   declarations: [
@@ -158,7 +159,8 @@ import { PositiveNumberPipe } from './pipes/positive-number/positive-number.pipe
     MatCheckboxModule,
     MatDialogModule,
     MatSnackBarModule,
-    MatIconModule
+    MatIconModule,
+    WebSmokeviewModule
   ],
   providers: [
     MainService,

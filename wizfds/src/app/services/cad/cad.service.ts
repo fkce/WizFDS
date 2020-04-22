@@ -159,6 +159,8 @@ export class CadService {
           this.main.currentFdsScenario.fdsObject.output.devcs.push(new Devc(JSON.stringify(libDevc.toJSON()), undefined, this.lib.specs, undefined));
         }
       }
+      // else 
+      // maybe worth to check again XYZ for devc if it's not inside any of the mesh ...
 
       // Check if element already exists
       let res = this.binaryIndexOf(acElement, sortedCurrentElements, 'idAC');
