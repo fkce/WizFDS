@@ -1,0 +1,133 @@
+@import '../../app.component.scss';
+.demo {
+    position: fixed;
+    top: 0;
+	left: 0;
+	right: 0;
+	height: 0;
+    text-align: center;
+    p {
+        display: inline;
+        font-size: 0.78rem;
+        color: $red;
+        a {
+            color: $blue;
+        }
+    }
+}
+
+.idle {
+    position: fixed;
+    top: -2px;
+	left: 0;
+	right: 0;
+	height: 0;
+    text-align: center;
+    p {
+        padding: 0.3rem;
+        background-color: $green;
+        display: inline;
+        font-size: 0.78rem;
+        border-radius: 2px;
+        color: $grey1;
+        a {
+            color: $red;
+        }
+    }
+}
+
+.header-container {
+    display: grid;
+    grid-template-columns: minmax(9rem, 14%) minmax(78rem, auto);
+    grid-column-gap: 1rem;
+    .header-left {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    .header-right {
+        display: grid;
+        grid-template-columns: 65% 10% auto;
+        grid-template-rows: 3rem auto;
+        align-self: center;
+        margin-right: 1rem;
+
+        .menu {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            .connected {
+                color: $green;
+            }
+        }
+
+        .left-top {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-start;
+            padding-left: 1rem;
+            .project-scenario {
+                display: flex;
+                align-items: center;
+            }
+            .cad-path {
+                font-size: 0.8rem;
+                font-style: italic;
+                padding-left: 2rem;
+            }
+        }
+        .right-top {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 1rem;
+            .id {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: flex-end;
+                .email {
+                    font-size: 0.8rem;
+                    font-style: italic;
+                }
+            }
+        }
+        .left-bottom {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            background-color: $grey1;
+            height: 2.5rem;
+            padding-left: 1rem;
+            .buttons {
+                display: flex;
+                flex-direction: row;
+            }
+        }
+        .center-bottom {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            background-color: $grey1;
+            height: 2.5rem;
+            font-size: 0.7rem;
+        }
+        .right-bottom {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-end;
+            background-color: $grey1;
+            height: 2.5rem;
+            padding-right: 1rem;
+        }
+    }
+    height: 100%;
+}

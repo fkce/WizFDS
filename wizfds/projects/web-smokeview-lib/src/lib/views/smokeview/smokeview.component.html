@@ -1,0 +1,77 @@
+<div class="main" #mainContainer>
+
+    <canvas class="renderer" #rendererCanvas if="renderCanvas"></canvas>
+
+    <div class="info" *ngIf="obstService.pickedObst">
+        <p>
+            id: {{ obstService.pickedObst.id }}<br>
+            surf_id: {{ obstService.pickedObst.surf.surf_id.id }}
+        </p>
+    </div>
+
+
+    <div class="menu">
+        <button
+            (click)="obstService.material.wireframe = obstService.material.wireframe ? false : true; obstService.meshBackCap.isVisible = obstService.meshBackCap.isVisible ? false : true;">Trinagles</button>
+        <button (click)="obstService.mesh.edgesWidth = obstService.mesh.edgesWidth == 0.0 ? 0.1 : 0.0;">Outline</button>
+    </div>
+
+    <div class="clip">
+        <p>x:&nbsp;<input type="range" [ngModel]="obstService.clipX" (ngModelChange)="obstService.clip($event, 'x')"
+                min="0" max="100" />&nbsp;{{obstService.clipX}}%</p>
+        <p>y:&nbsp;<input type="range" [ngModel]="obstService.clipY" (ngModelChange)="obstService.clip($event, 'y')"
+                min="0" max="100" />&nbsp;{{obstService.clipY}}%</p>
+        <p>z:&nbsp;<input type="range" [ngModel]="obstService.clipZ" (ngModelChange)="obstService.clip($event, 'z')"
+                min="0" max="100" />&nbsp;{{obstService.clipZ}}%</p><br>
+    </div>
+    <div class="player" *ngIf="playerService.frameNo > 0">
+        <div class="time">Frame: {{playerService.frameCur}}</div>
+        <mat-icon class="controler" (click)="control()" *ngIf="!playerService.isPlay">play_circle_outline</mat-icon>
+        <mat-icon class="controler" (click)="control()" *ngIf="playerService.isPlay">pause_circle_outline</mat-icon>
+        <div slider class="slider-container">
+            <div class="slider" [style.width.px]="playerService.setSlider()"></div>
+        </div>
+    </div>
+
+
+
+
+    <!-- 
+    <div class="left">
+        <p class="upload">
+            <button (click)="fileObstInput.click()">Upload OBST .json file ...</button>
+            <input hidden (change)="onObstFileSelected()" #fileObstInput type="file" id="fileObst" accept=".json">
+        </p>
+        <p class="upload">
+            <button (click)="fileSliceInput.click()">Upload SLCF .json file ...</button>
+            <input hidden (change)="onSliceFileSelected()" #fileSliceInput type="file" id="fileSlice" accept=".json">
+        </p>
+        <p class="upload">
+            <button (click)="fileFdsInput.click()">Upload .fds file ...</button>
+            <input hidden (change)="onFdsFileSelected()" #fileFdsInput type="file" id="fileFds" accept=".fds">
+        </p>
+        <p class="upload">
+            <button (click)="obstService.getFromServer();sliceService.getFromServer()">Show example</button>
+        </p>
+    </div>
+    -->
+    <!--
+    <div class="right">
+        <p>
+            Rotate: <i>use left + move</i><br>
+            Zoom: <i>mouse scroll</i><br>
+            Pan: <i>mouse right + move</i>
+        </p>
+        <p>
+            Clipping:<br>
+            <span><input type="range" [ngModel]="obstService.clipX" (ngModelChange)="obstService.clip($event, 'x')" min="0" max="100" />&nbsp;{{obstService.clipX}}%</span>
+            <span><input type="range" [ngModel]="obstService.clipY" (ngModelChange)="obstService.clip($event, 'y')" min="0" max="100" />&nbsp;{{obstService.clipY}}%</span>
+            <span><input type="range" [ngModel]="obstService.clipZ" (ngModelChange)="obstService.clip($event, 'z')" min="0" max="100" />&nbsp;{{obstService.clipZ}}%</span><br>
+            <button type="button" (click)="obstService.clip(0, 'x'); obstService.clip(0, 'y'); obstService.clip(100, 'z');">Reset</button>
+        </p>
+        <p>
+            <mat-checkbox [ngModel]="sliceService.isBlank" (ngModelChange)="sliceService.toogleBlank()">Blanked</mat-checkbox>
+        </p>
+    </div>
+    -->
+</div>

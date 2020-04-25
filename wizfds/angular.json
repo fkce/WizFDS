@@ -1,0 +1,168 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "projects",
+  "projects": {
+    "wizfds": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "root": "projects/wizfds",
+      "sourceRoot": "projects/wizfds/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:browser",
+          "options": {
+            "outputPath": "dist/wizfds",
+            "index": "projects/wizfds/src/index.html",
+            "main": "projects/wizfds/src/main.ts",
+            "polyfills": "projects/wizfds/src/polyfills.ts",
+            "tsConfig": "projects/wizfds/tsconfig.app.json",
+            "aot": true,
+            "assets": [
+              "projects/wizfds/src/favicon.ico",
+              "projects/wizfds/src/assets"
+            ],
+            "styles": [
+              "projects/wizfds/src/styles.scss"
+            ],
+            "scripts": []
+          },
+          "configurations": {
+            "production": {
+              "fileReplacements": [
+                {
+                  "replace": "projects/wizfds/src/environments/environment.ts",
+                  "with": "projects/wizfds/src/environments/environment.prod.ts"
+                }
+              ],
+              "optimization": true,
+              "outputHashing": "all",
+              "sourceMap": false,
+              "extractCss": true,
+              "namedChunks": false,
+              "extractLicenses": true,
+              "vendorChunk": false,
+              "buildOptimizer": true,
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "5mb",
+                  "maximumError": "10mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "30kb",
+                  "maximumError": "40kb"
+                }
+              ]
+            }
+          }
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "browserTarget": "wizfds:build"
+          },
+          "configurations": {
+            "production": {
+              "browserTarget": "wizfds:build:production"
+            }
+          }
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "browserTarget": "wizfds:build"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "main": "projects/wizfds/src/test.ts",
+            "polyfills": "projects/wizfds/src/polyfills.ts",
+            "tsConfig": "projects/wizfds/tsconfig.spec.json",
+            "karmaConfig": "projects/wizfds/karma.conf.js",
+            "assets": [
+              "projects/wizfds/src/favicon.ico",
+              "projects/wizfds/src/assets"
+            ],
+            "styles": [
+              "projects/wizfds/src/styles.scss"
+            ],
+            "scripts": []
+          }
+        },
+        "lint": {
+          "builder": "@angular-devkit/build-angular:tslint",
+          "options": {
+            "tsConfig": [
+              "projects/wizfds/tsconfig.app.json",
+              "projects/wizfds/tsconfig.spec.json",
+              "projects/wizfds/e2e/tsconfig.json"
+            ],
+            "exclude": [
+              "**/node_modules/**"
+            ]
+          }
+        },
+        "e2e": {
+          "builder": "@angular-devkit/build-angular:protractor",
+          "options": {
+            "protractorConfig": "projects/wizfds/e2e/protractor.conf.js",
+            "devServerTarget": "wizfds:serve"
+          },
+          "configurations": {
+            "production": {
+              "devServerTarget": "wizfds:serve:production"
+            }
+          }
+        }
+      }
+    },
+    "webSmokeviewLib": {
+      "projectType": "library",
+      "root": "projects/web-smokeview-lib",
+      "sourceRoot": "projects/web-smokeview-lib/src",
+      "prefix": "lib",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-ng-packagr:build",
+          "options": {
+            "tsConfig": "projects/web-smokeview-lib/tsconfig.lib.json",
+            "project": "projects/web-smokeview-lib/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/web-smokeview-lib/tsconfig.lib.prod.json"
+            }
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "main": "projects/web-smokeview-lib/src/test.ts",
+            "tsConfig": "projects/web-smokeview-lib/tsconfig.spec.json",
+            "karmaConfig": "projects/web-smokeview-lib/karma.conf.js"
+          }
+        },
+        "lint": {
+          "builder": "@angular-devkit/build-angular:tslint",
+          "options": {
+            "tsConfig": [
+              "projects/web-smokeview-lib/tsconfig.lib.json",
+              "projects/web-smokeview-lib/tsconfig.spec.json"
+            ],
+            "exclude": [
+              "**/node_modules/**"
+            ]
+          }
+        }
+      }
+    }},
+  "defaultProject": "wizfds"
+}

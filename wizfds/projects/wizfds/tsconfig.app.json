@@ -1,0 +1,25 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "./src",
+    "paths": {
+        "@services/*": [ "app/services/*" ],
+        "@directives/*": [ "app/directives/*" ],
+        "@enums/*": [ "app/enums/*" ],
+        "@pipes/*": [ "app/pipes/*" ],
+        "@env/*": [ "environments/*" ]
+    },
+    "types": ["node"]
+  },
+  "files": [
+    "src/main.ts",
+    "src/polyfills.ts"
+  ],
+  "include": [
+    "src/**/*.d.ts"
+  ],
+  "exclude": [
+    "test.ts",
+    "**/*.spec.ts"
+  ]
+}

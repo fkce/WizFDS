@@ -1,0 +1,163 @@
+<div class="single-amper-container">
+
+  <div class="list-wrapper">
+    <div class="list-drawer">
+      <div class="list-title" (click)="add()">
+        <mat-icon>add_box</mat-icon> Add FUEL
+      </div>
+      <perfect-scrollbar #fuelScrollbar (psScrollY)="scrollbarUpdate('fuel')">
+        <div class="list-items">
+          <div class="list-item" *ngFor="let fuelItem of fuels | slice: ui.fires.fuel.begin:(ui.fires.fuel.begin + ui.listRange)">
+            <a (click)="activate(fuelItem.id)" [ngClass]="{active: fuelItem === fuel}">{{fuelItem.id}}</a>
+            <mat-icon class="red-hover" (click)="delete(fuelItem.id)">delete_forever</mat-icon>
+          </div>
+        </div>
+      </perfect-scrollbar>
+      <div class="list-bottom" *ngIf="fuels.length > ui.listRange">
+        <mat-icon *ngIf="ui.fires.fuel.begin > 0" (click)="uiStateService.decreaseRange('fuels.fuel')">chevron_left</mat-icon>
+        <div>{{ui.fires.fuel.begin}} - {{ui.fires.fuel.begin + ui.listRange > fuels.length ? fuels.length : ui.fires.fuel.begin
+          + ui.listRange}}</div>
+        <mat-icon *ngIf="ui.fires.fuel.begin + ui.listRange < fuels.length" (click)="uiStateService.increaseRange('fuels.fuel')">chevron_right</mat-icon>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-box" [ngClass]="objectType == 'current' ? 'current' : 'library'">
+    <div *ngIf="!fuel">
+      <label>Select or add new material</label>
+    </div>
+    <div *ngIf="fuel">
+
+      <div class="form-title">
+        <label>{{fuel.id}} definition</label>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label>Id:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="fuel.id" idInput stringInput/>
+          </div>
+        </div>
+        <div>
+          <label>Fuel:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="fuel.fuel" stringInput/>
+          </div>
+        </div>
+        <div>
+          <label>Fuel specie:</label>
+          <div class="field-container">
+            <ng-select [items]="specs" bindLabel="id" placeholder="No specie" [(ngModel)]="fuel.spec" [searchable]="false" [clearable]="true"></ng-select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-title">
+        <label class="header">Chemical reaction definition</label>
+      </div>
+
+      <div *ngIf="fuel.spec == undefined" class="form-row">
+        <div>
+          <label>Formula:</label>
+          <div class="field-container">
+            <input type="text" [(ngModel)]="fuel.formula" />
+          </div>
+        </div>
+        <div *ngIf="fuel.formula == ''">
+          <label>C:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="fuel.c" decimalInput>
+          </div>
+        </div>
+        <div *ngIf="fuel.formula == ''">
+          <label>H:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="fuel.h" decimalInput>
+          </div>
+        </div>
+        <div *ngIf="fuel.formula == ''">
+          <label>O:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="fuel.o" decimalInput>
+          </div>
+        </div>
+        <div *ngIf="fuel.formula == ''">
+          <label>N:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="fuel.n" decimalInput>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label>Heat of combustion:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="fuel.heat_of_combustion" decimalInput>
+            <ng-katex equation="kJ/kg"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>Soot yield:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="fuel.soot_yield" decimalInput>
+          </div>
+        </div>
+        <div>
+          <label>CO yield:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="fuel.co_yield" decimalInput>
+          </div>
+        </div>
+        <div>
+          <label>Radiative fraction:</label>
+          <div class="field-container">
+            <input type=text [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="fuel.radiative_fraction" decimalInput>
+          </div>
+        </div>
+        <div>
+          <label>Radcal ID:</label>
+          <div class="field-container">
+            <ng-select [items]="RADCALS" bindLabel="label" bindValue="value" placeholder="Select Radcal" [(ngModel)]="fuel.fuel_radcal_id"
+              [searchable]="false" [clearable]="false"></ng-select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="lib-wrapper">
+    <div class="lib-drawer" [ngClass]="ui.fires.fuel.lib=='closed' ? 'closed' : 'opened'">
+      <div class="lib-label-wrapper">
+        <div class="lib-label" (click)="toggleLibrary()">
+          <label>LIBRARY</label>
+        </div>
+      </div>
+      <div class="lib-area">
+        <div class="list">
+          <div class="list-title" (click)="add(true)">
+            <mat-icon>add_box</mat-icon> Add FUEL
+          </div>
+          <perfect-scrollbar #libFuelScrollbar (psScrollY)="scrollbarUpdate('libFuel')">
+            <div class="list-items">
+              <div class="list-item" *ngFor="let fuelItem of lib.fuels | slice: ui.fires.libFuel.begin:(ui.fires.libFuel.begin + ui.listRange)">
+                <a (click)="activate(fuelItem.id, true)" [ngClass]="{activeLib: fuelItem===fuel}">{{fuelItem.id}}</a>
+                <mat-icon matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.settings.tooltips" (click)="importLibraryItem(fuelItem.id)">content_copy</mat-icon>
+                <mat-icon class="red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(fuelItem.id, true)">delete_forever</mat-icon>
+              </div>
+            </div>
+          </perfect-scrollbar>
+          <div class="list-bottom " *ngIf="libFuels.length> ui.listRange">
+            <mat-icon *ngIf="ui.fires.libFuel.begin > 0" (click)="uiStateService.decreaseRange('fuels.libFuel')">chevron_left</mat-icon>
+            <div>{{ui.fires.libFuel.begin}} - {{ui.fires.libFuel.begin + ui.listRange > libFuels.length ? libFuels.length : ui.fires.libFuel.begin
+              + ui.listRange}}</div>
+            <mat-icon *ngIf="ui.fires.libFuel.begin + ui.listRange < libFuels.length" (click)="uiStateService.increaseRange('fuels.libFuel')">chevron_right</mat-icon>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

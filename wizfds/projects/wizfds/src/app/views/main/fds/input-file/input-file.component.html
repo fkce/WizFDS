@@ -1,0 +1,17 @@
+<textarea #host></textarea>
+
+<div class="buttons">
+    <button class="ml+" (click)="downloadFile()">Download</button>
+    <button class="ml+ mr+" (click)="saveFile()" matTooltip="Save user-defined input">Save file</button>
+    <span> | </span>
+    <button *ngIf="!isAmperNumber" matTooltip="(shortcut: F10)" class="ml+" (click)="numberAmpers()">Hide numeration</button>
+    <button *ngIf="isAmperNumber" matTooltip="(shortcut: F10)" class="ml+" (click)="numberAmpers()">Show numeration</button>
+    <button class="ml+ mr+" matTooltip="First highlight rows to tabularize (shortcut: F9)" (click)="tabularize()">Tabularize</button>
+    <span> | </span>
+    <button class="ml+" (click)="foldAll()">Fold all</button>
+    <button class="ml+ mr+" (click)="unfoldAll()">Unfold all</button>
+    <span> | </span>
+    <button class="ml+ mr+" matTooltip="(shortcut: F11)" (click)="toggleFullScreen()">Toogle fullscreen</button>
+    <span> | </span>
+    <span class="ml+ help">Autocomplete: Ctrl+Space</span>
+</div>

@@ -1,0 +1,6 @@
+<textarea #host></textarea>
+<div class="buttons">
+    <button class="ml++" (click)="downloadLibrary()">Download</button>
+    <label class="ml++">Upload<input id="file-upload" type="file" accept=".txt" (change)="fileUpload($event)"></label>
+    <button class="ml++" (click)="saveLibrary()">Save</button>
+</div>

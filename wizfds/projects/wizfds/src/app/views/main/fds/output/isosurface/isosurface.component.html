@@ -1,0 +1,135 @@
+<div class="single-amper-container">
+
+  <div class="list-wrapper">
+    <div class="list-drawer">
+      <div class="list-title" (click)="add()">
+        <mat-icon>add_box</mat-icon> Add ISOF
+      </div>
+      <perfect-scrollbar #isofScrollbar (psScrollY)="scrollbarUpdate('isof')">
+        <div class="list-items">
+          <div class="list-item" *ngFor="let isofItem of isofs | slice: ui.output.isof.begin:(ui.output.isof.begin + ui.listRange)">
+            <a (click)="activate(isofItem.id)" [ngClass]="{active: isofItem === isof}">{{isofItem.id}}</a>
+            <mat-icon class="red-hover" (click)="delete(isofItem.id)">delete_forever</mat-icon>
+          </div>
+        </div>
+      </perfect-scrollbar>
+      <div class="list-bottom" *ngIf="isofs.length > ui.listRange">
+        <mat-icon *ngIf="ui.output.isof.begin > 0" (click)="uiStateService.decreaseRange('output.isof')">chevron_left</mat-icon>
+        <div>{{ui.output.isof.begin}} - {{ui.output.isof.begin + ui.listRange > isofs.length ? isofs.length :
+          ui.output.isof.begin
+          + ui.listRange}}</div>
+        <mat-icon *ngIf="ui.output.isof.begin + ui.listRange < isofs.length" (click)="uiStateService.increaseRange('output.isof')">chevron_right</mat-icon>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-box" [ngClass]="objectType == 'current' ? 'current' : 'library'">
+    <div *ngIf="!isof">
+      <label>Select or add new slice</label>
+    </div>
+    <div *ngIf="isof">
+
+      <div class="form-title">
+        <label>{{isof.id}} definition</label>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label>Id:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="isof.id" idInput stringInput />
+          </div>
+        </div>
+        <div>
+          <label>Select qunatities:</label>
+          <div class="field-container">
+            <ng-select class="custom" [items]="QUANTITIES" bindLabel="id" placeholder="Select quantity" [(ngModel)]="isof.quantity"
+              [searchable]="true" [clearable]="false"></ng-select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label>Add step:</label>
+          <div class="field-container">
+            <mat-icon (click)="isof.addValue()">add_box</mat-icon>
+          </div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div *ngFor="let value of isof.values; index as valueIndex">
+          <label>Value {{ valueIndex + 1 }}:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="isof.values[valueIndex]" decimalInput />
+            <mat-icon class="red-hover" (click)="isof.deleteValue(valueIndex)">delete_forever</mat-icon>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-title" *ngIf="showSpecs()">
+        <label class='header'>Species</label>
+      </div>
+      <div class="form-row" *ngIf="showSpecs()">
+        <div>
+          <label>Add {{ isof.quantity.id }} species:</label>
+          <div class="field-container">
+            <ng-select [items]="SPECIES" bindLabel="id" placeholder="Select species" multiple="true"
+              hideSelected="true" [(ngModel)]="isof.quantity.specs" [closeOnSelect]="false" [clearSearchOnAdd]="true"></ng-select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-title" *ngIf="showParts()">
+        <label class='header'>Parts</label>
+      </div>
+      <div class="form-row" *ngIf="showParts()">
+        <div>
+          <label>Add {{ isof.quantity.id }} parts:</label>
+          <div class="field-container">
+            <ng-select [items]="SPECIES" bindLabel="id" placeholder="Select species" multiple="true"
+              hideSelected="true" [(ngModel)]="isof.quantity.parts" [closeOnSelect]="false" [clearSearchOnAdd]="true"></ng-select>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="lib-wrapper">
+    <div class="lib-drawer" [ngClass]="ui.output.isof.lib=='closed' ? 'closed' : 'opened'">
+      <div class="lib-label-wrapper">
+        <div class="lib-label" (click)="toggleLibrary()">
+          <label>LIBRARY</label>
+        </div>
+      </div>
+      <div class="lib-area">
+        <div class="list">
+          <div class="list-title" (click)="add(true)">
+            <mat-icon>add_box</mat-icon> Add ISOF
+          </div>
+          <perfect-scrollbar #isofLibScrollbar (psScrollY)="scrollbarUpdate( 'libIsof')">
+            <div class="list-items">
+              <div class="list-item" *ngFor="let isofItem of lib.isofs | slice: ui.output.libIsof.begin:(ui.output.libIsof.begin + ui.listRange)">
+                <a (click)="activate(isofItem.id, true)" [ngClass]="{active: isofItem===isof}">{{isofItem.id}}</a>
+                <mat-icon matTooltip="Merge current item with library" [matTooltipDisabled]="!main.settings.tooltips"
+                  (click)="mergeLibraryItem(isofItem.id)">merge_type</mat-icon>
+                <mat-icon matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.settings.tooltips"
+                  (click)="importLibraryItem(isofItem.id)">content_copy</mat-icon>
+                <mat-icon class="red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(isofItem.id, true)">delete_forever</mat-icon>
+              </div>
+            </div>
+          </perfect-scrollbar>
+          <div class="list-bottom" *ngIf="libIsofs.length> ui.listRange">
+            <mat-icon *ngIf="ui.output.libIsof.begin > 0" (click)="uiStateService.decreaseRange('isofs.libIsof')">chevron_left</mat-icon>
+            <div>{{ui.output.libIsof.begin}} - {{ui.output.libIsof.begin + ui.listRange > libIsofs.length ?
+              libIsofs.length :
+              ui.output.libIsof.begin + ui.listRange}}</div>
+            <mat-icon *ngIf="ui.output.libIsof.begin + ui.listRange < libIsofs.length" (click)="uiStateService.increaseRange('isofs.libIsof')">chevron_right</mat-icon>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,56 @@
+@import "../../../../../app.component.scss";
+
+.ramp-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+
+  .ramp-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    div {
+      display: flex;
+      flex-direction: column;
+      align-items: left;
+      padding: 0.3rem;
+      label {
+        font-size: 0.9rem;
+      }
+      div.field-container {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        padding-left: 0rem;
+        input {
+          margin-right: 0.4rem;
+        }
+        span {
+          font-size: 0.9rem;
+        }
+      }
+      div.field-container.click {
+        cursor: pointer;
+      }
+      div.field-container.click:hover {
+        color: $blue;
+      }
+    }
+  }
+
+  .ramp-chart {
+    position: relative;
+    width: 80%;
+    height: 400px;
+
+    .svg {
+      width: 100%;
+    }
+
+    .save-image {
+      position: absolute;
+      top: 0.5rem;
+      left: 0rem;
+    }
+  }
+}

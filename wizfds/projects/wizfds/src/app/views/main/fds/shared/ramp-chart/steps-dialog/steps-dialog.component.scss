@@ -1,0 +1,41 @@
+@import "../../../../../../app.component.scss";
+
+h1 {
+    font-family: "Play";
+}
+
+.ramp-steps {
+    height: auto;
+    border-left: $shadow-dark;
+    border-right: $shadow-dark;
+
+    .header {
+        height: auto;
+        padding: 0.2rem 0.5rem 0.2rem 0.5rem;
+        border-bottom: 1px solid $border-light;
+        box-shadow: 0 -1px 0 $shadow-dark inset;
+    }
+    .ramp-step {
+        display: flex;
+        flex-direction: row;
+        align-items: left;
+        padding-left: 0.5rem;
+
+        div {
+            display: flex;
+            flex-direction: column;
+            padding: 0.1rem;
+            label {
+                font-size: 0.9rem;
+            }
+            div.field-container {
+                display: flex;
+                flex-direction: row;
+                min-width: 4rem;
+                input {
+                    margin-right: 0.5rem;
+                }
+            }
+        }
+    }
+}

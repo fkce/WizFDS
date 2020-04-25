@@ -1,0 +1,19 @@
+<div class="ramp-container">
+  <div class="ramp-header">
+    <div>
+      <button (click)="openStepsDialog()">Modify stpes</button>
+    </div>
+    <div>
+      <label>Dots every:</label>
+      <div class="field-container">
+        <input [(ngModel)]="dotsNth" [ngModelOptions]="{ updateOn:'blur' }" (blur)="updateChart()" integerInput>
+        <span *ngIf="dotsNth == 1">step</span>
+        <span *ngIf="dotsNth > 1">steps</span>
+      </div>
+    </div>
+  </div>
+  <div class="ramp-chart" #rampChart>
+    <mat-icon class="save-image" (click)="saveChart()" matTooltip="Get image file"
+      [matTooltipDisabled]="!main.settings.tooltips">image</mat-icon>
+  </div>
+</div>

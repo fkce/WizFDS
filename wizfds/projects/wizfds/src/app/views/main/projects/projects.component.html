@@ -1,0 +1,89 @@
+<div class="project-header">
+    <div class="add-project">
+        <mat-icon aria-label="New project" matTooltip="New project" [matTooltipDisabled]="!main.settings.tooltips"
+            (click)="newProject()">add_box</mat-icon>
+        <span>&nbsp;&nbsp;|&nbsp;&nbsp;</span>
+        <mat-icon svgIcon="sort-alphabetical-ascending" aria-label="Sort projects by name"
+            matTooltip="Sort projects by name" [matTooltipDisabled]="!main.settings.tooltips"
+            (click)="sortProjectsByName()"></mat-icon>
+        <span>&nbsp;&nbsp;|&nbsp;&nbsp;</span>
+        <mat-icon svgIcon="sort-bool-ascending" aria-label="Sort projects by category"
+            matTooltip="Sort projects by category" [matTooltipDisabled]="!main.settings.tooltips"
+            (click)="sortProjectsByCategory()"></mat-icon>
+        <span>&nbsp;&nbsp;|&nbsp;&nbsp;</span>
+    </div>
+    <div class="project-navigation" *ngIf="projects.length > uiStateService.projects.listRange">
+        <mat-icon *ngIf="uiStateService.projects.begin > 0" (click)="uiStateService.decreaseProjectsRange()">
+            chevron_left</mat-icon>
+        <div>{{uiStateService.projects.begin}} - {{uiStateService.projects.begin + uiStateService.projects.listRange > projects.length
+            ? projects.length : uiStateService.projects.begin + uiStateService.projects.listRange}}</div>
+        <mat-icon *ngIf="uiStateService.projects.begin + uiStateService.projects.listRange < projects.length"
+            (click)="uiStateService.increaseProjectsRange()">chevron_right</mat-icon>
+    </div>
+    <div class="project-categories">
+        <div class="project-category" [ngClass]="category.active ? 'activeCategory' : ''"
+            (click)="category.triggerActive(); changeCategoryActivity(category.uuid, categoryIndex)"
+            *ngFor="let category of main.categories; index as categoryIndex" ng-show="category.visible==true">
+            <p>{{category.label}}</p>
+        </div>
+    </div>
+</div>
+<div
+    *ngFor="let project of projects | slice: uiStateService.projects.begin:(uiStateService.projects.begin + uiStateService.projects.listRange); index as projectIndex">
+    <div class="project" *ngIf="checkProjectCategory(project.category)">
+        <div class="name">
+            <mat-icon class="material-icons mr+" aria-label="Show scenarios"
+                *ngIf="main.currentProject == undefined || project.id != main.currentProject.id"
+                (click)="setCurrentProject(project.id)">expand_more</mat-icon>
+            <mat-icon class="material-icons mr+" aria-label="Hide scenarios"
+                *ngIf="main.currentProject != undefined && project.id == main.currentProject.id"
+                (click)="unsetCurrentProject()">expand_less</mat-icon>
+
+            <input type="text" [(ngModel)]="project.name" [ngModelOptions]="{updateOn:'blur'}"
+                (ngModelChange)="updateProject(project.id)" stringInput>
+        </div>
+        <div class="desc">
+            <input class="description" type="text" [(ngModel)]="project.description"
+                [ngModelOptions]="{updateOn:'blur'}" (ngModelChange)="updateProject(project.id)" stringInput />
+        </div>
+        <div class="category">
+            <ng-select [items]="main.categories" bindLabel="label" bindValue="uuid" placeholder="Select category"
+                [(ngModel)]="project.category" [searchable]="false" [clearable]="false"
+                (ngModelChange)="updateProject(project.id)"></ng-select>
+        </div>
+        <div class="delete">
+            &nbsp;|&nbsp;
+            <mat-icon class="red-hover" (click)="deleteProject(project.id)" aria-label="Delete project"
+                matTooltip="Delete project" [matTooltipDisabled]="!main.settings.tooltips">delete_forever</mat-icon>
+            &nbsp;|
+        </div>
+    </div>
+
+    <div class="scenario"
+        [ngClass]="main.currentProject != undefined && project.id == main.currentProject.id ? 'open' : 'close'">
+        <div class="scenario-item" *ngFor="let fdsScenario of project.fdsScenarios; index as fdsScenarioIndex;"
+            [ngClass]="main.currentFdsScenario != undefined && fdsScenario.id == main.currentFdsScenario.id ? 'activeScenario' : ''">
+            <div class="name" (click)="setCurrentFdsScenario(project.id, fdsScenario.id)">
+                <mat-icon class="ico mr+">apps</mat-icon>
+                <input (click)="setCurrentFdsScenario(project.id, fdsScenario.id)" type="text"
+                    [(ngModel)]="fdsScenario.name" [ngModelOptions]="{updateOn:'blur'}"
+                    (ngModelChange)="updateFdsScenario(project.id, fdsScenario.id)" stringInput />
+            </div>
+            <div class="controls">
+                &nbsp;|&nbsp;
+                <mat-icon matTooltip="Duplicate scenario" [matTooltipDisabled]="!main.settings.tooltips"
+                    (click)="duplicateFdsScenario(project.id, fdsScenario.id)">file_copy</mat-icon>
+                &nbsp;|&nbsp;
+                <mat-icon class="red-hover" matTooltip="Delete scenario" [matTooltipDisabled]="!main.settings.tooltips"
+                    (click)="deleteFdsScenario(project.id, fdsScenario.id)">delete_forever</mat-icon>
+                &nbsp;|
+            </div>
+        </div>
+        <div class="scenario-item">
+            <div class="name" (click)="addFdsScenario(project.id)">
+                <mat-icon>add_box</mat-icon>
+                <span>&nbsp;New scenario</span>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,110 @@
+<div class="demo" *ngIf="main.userId == 5">
+  <p>You are in demo mode. You can not create new projects & scenarios. To have full access just <a
+      href="https://wizfds.com/register">register new account</a></p>
+</div>
+<div class="idle" *ngIf="main.idle.showWarning">
+  <p>Session timout in {{main.idle.timeout | minSec}}. <a (click)="refreshSession()">Continue</a> session.</p>
+</div>
+
+<div class="header-container">
+
+  <div class="header-left">
+    <img src="assets/images/wizfds.png">
+  </div>
+
+  <div class="header-right">
+
+    <div class="left-top">
+
+      <div class="project-scenario">
+        <mat-icon routerLink="" aria-label="Projects" matTooltip="Projects"
+          [matTooltipDisabled]="!main.settings.tooltips" (click)="activate('projects')"
+          [ngClass]="{'active': uiState.active == 'projects'}">view_list</mat-icon>
+        <span class="cursor-default" *ngIf="main.currentProject != undefined"
+          matTooltip="Id: {{main.currentProject.id}}" [matTooltipDisabled]="!main.settings.tooltips">
+          &nbsp;|&nbsp; {{main.currentProject.name}} &nbsp;|&nbsp;
+        </span>
+        <span class="cursor-default" *ngIf="main.currentProject != undefined && main.currentFdsScenario != undefined"
+          matTooltip="Id: {{main.currentFdsScenario.id}}" [matTooltipDisabled]="!main.settings.tooltips">
+          {{main.currentFdsScenario.name}} &nbsp;|&nbsp;
+        </span>
+      </div>
+      <div class="cad-path">
+        <span
+          *ngIf="main.currentFdsScenario != undefined && main.currentFdsScenario.acFile != '' && main.currentFdsScenario.acPath">
+          {{ main.currentFdsScenario.acPath }}{{ main.currentFdsScenario.acFile }}
+        </span>
+      </div>
+
+    </div>
+
+    <div class="center-top">
+    </div>
+
+    <div class="right-top">
+      <div class="id">
+        <p class="cursor-default" matTooltip="Id: {{ main.userId }}" [matTooltipDisabled]="!main.settings.tooltips">
+          {{ main.settings.userName }}</p>
+        <p class="email cursor-default">({{ main.settings.email }})</p>
+      </div>
+      <div class="menu">
+        &nbsp;&nbsp;
+        <mat-icon routerLink="settings" aria-label="Settings" matTooltip="Settings"
+          [matTooltipDisabled]="!main.settings.tooltips" (click)="activate('settings')"
+          [ngClass]="{'active': uiState.active == 'settings'}">settings</mat-icon>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+      </div>
+      <div class="menu" (click)="logOut()">
+        <mat-icon aria-label="Log out" matTooltip="Log out" [matTooltipDisabled]="!main.settings.tooltips">exit_to_app
+        </mat-icon>
+      </div>
+    </div>
+
+    <div class="left-bottom">
+      <div class="buttons" *ngIf="main.currentProject != undefined && main.currentFdsScenario != undefined">
+        <div class="menu" (click)="updateFdsScenario(main.currentProject.id, main.currentFdsScenario.id)">
+          <mat-icon [class]="main.autoSave.fdsObjectSaveFont" svgIcon="content-save" aria-label="Save scenario"
+            matTooltip="Save scenario" [matTooltipDisabled]="!main.settings.tooltips"></mat-icon>
+          &nbsp;&nbsp;|&nbsp;&nbsp;
+        </div>
+        <div class="menu" (click)="downloadFdsInputFile()">
+          <mat-icon aria-label="Save scenario" matTooltip="Download *.fds"
+            [matTooltipDisabled]="!main.settings.tooltips">file_download</mat-icon>
+          &nbsp;&nbsp;|&nbsp;&nbsp;
+        </div>
+      </div>
+    </div>
+
+    <div class="center-bottom" (click)="showDiagnosticData()">
+      <mat-icon aria-label="Show diagnostic data" *ngIf="diagnostic" matTooltip="Show diagnostic data"
+        [matTooltipDisabled]="!main.settings.tooltips">code-braces</mat-icon>
+    </div>
+
+    <div class="right-bottom">
+      <div class="menu" (click)="updateFdsLibrary()"
+        *ngIf="main.currentProject != undefined && main.currentFdsScenario != undefined">
+        <mat-icon [class]="main.autoSave.libSaveFont" svgIcon="content-save" aria-label="Sort projects by name"
+          matTooltip="Save library" [matTooltipDisabled]="!main.settings.tooltips"></mat-icon>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+      </div>
+      <div class="menu" *ngIf="main.currentProject != undefined && main.currentFdsScenario != undefined">
+        <mat-icon routerLink="library" aria-label="Library editor" matTooltip="Library editor"
+          [matTooltipDisabled]="!main.settings.tooltips" (click)="activate('library')"
+          [ngClass]="{'active': uiState.active == 'library'}">notes</mat-icon>
+        &nbsp;&nbsp;||&nbsp;&nbsp;
+      </div>
+      <div class="menu"
+        *ngIf="main.currentProject != undefined && main.currentFdsScenario != undefined && websocket.isConnected"
+        (click)="getCadGeometryWeb()">
+        <mat-icon aria-label="Get CAD geometry" matTooltip="Get CAD geometry"
+          [matTooltipDisabled]="!main.settings.tooltips">360</mat-icon>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+      </div>
+      <div class="menu">
+        <mat-icon aria-label="Connect CAD" matTooltip="Connect CAD" [matTooltipDisabled]="!main.settings.tooltips"
+          (click)="connectCad()" [ngClass]="{'connected':websocket.isConnected}">dvr</mat-icon>
+      </div>
+    </div>
+  </div>
+
+</div>

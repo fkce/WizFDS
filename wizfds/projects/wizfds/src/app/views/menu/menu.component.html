@@ -1,0 +1,9 @@
+<div>
+
+  <div class="n0">
+    <mat-icon [ngClass]="{'active': uiState.active == 'projects'}">view_list</mat-icon>&nbsp;
+    <a routerLink="/" (click)="activate('projects')" [ngClass]="{'active': uiState.active == 'projects'}">Projects</a>
+  </div>
+
+  <app-fds-menu *ngIf='main.currentFdsScenario != undefined'></app-fds-menu>
+</div>
