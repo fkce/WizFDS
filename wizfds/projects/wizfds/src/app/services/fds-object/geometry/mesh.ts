@@ -3,6 +3,11 @@ import { FdsEntities } from '@enums/fds/entities/fds-entities'
 import { Xb, Color } from '../primitives';
 import { get, round, toNumber, toString } from 'lodash';
 
+export interface IVis {
+	xbNorm?: Xb,
+	colorNorm?: number[]
+}
+
 export interface IMesh {
     id: string,
     uuid: string,
@@ -15,7 +20,8 @@ export interface IMesh {
     xb: Xb,
     cells: number,
     mpi_process: string,
-    n_threads: string
+    n_threads: string,
+	vis?: IVis
 }
 
 export class Mesh {
@@ -31,6 +37,7 @@ export class Mesh {
     private _cells: number;
     private _mpi_process: string;
     private _n_threads: string;
+	private _vis: IVis;
 
     constructor(jsonString: string) {
 
@@ -60,6 +67,10 @@ export class Mesh {
         this.cells = this.calcCells();
 
         this.calcIjk();
+
+		this.vis = {};
+		this.vis.xbNorm = (base.vis) ? new Xb(JSON.stringify(base.vis.xbNorm)) : new Xb(JSON.stringify({}));
+		this.vis.colorNorm = (base.vis) ? get(base, 'vis.colorNorm', [1, 1, 1, 1]) : [1, 1, 1, 1];
     }
 
     public calcIjk() {
@@ -371,7 +382,24 @@ export class Mesh {
      */
 	public set n_threads(value: string) {
 		this._n_threads = value;
+    }
+
+    /**
+     * Getter vis
+     * @return {IVis}
+     */
+	public get vis(): IVis {
+		return this._vis;
 	}
+
+    /**
+     * Setter vis
+     * @param {IVis} value
+     */
+	public set vis(value: IVis) {
+		this._vis = value;
+	}
+
     /** Export to json */
     public toJSON(): object {
         let mesh: object = {

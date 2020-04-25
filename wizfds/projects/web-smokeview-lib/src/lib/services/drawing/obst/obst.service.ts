@@ -201,7 +201,7 @@ export class ObstService {
     //this.vertexData.applyToMesh(this.mesh, true);
 
     // Create material with shaders
-    this.material = new BABYLON.ShaderMaterial("shader", this.babylonService.scene, '/assets/obst',
+    this.material = new BABYLON.ShaderMaterial("shader", this.babylonService.scene, '/assets/shaders/obst',
       {
         //needAlphaBlending: true, // set when opacity
         attributes: ["position", "color", "normal"],
@@ -224,10 +224,10 @@ export class ObstService {
     this.vertexData.applyToMesh(this.meshBackCap);
 
     // Create material with shaders
-    this.materialBackCap = new BABYLON.ShaderMaterial("shader", this.babylonService.scene, '/assets/obstBackCap',
+    this.materialBackCap = new BABYLON.ShaderMaterial("shader", this.babylonService.scene, '/assets/shaders/obstBackCap',
       {
         //needAlphaBlending: true, // set when opacity
-        attributes: ["position", "normal"],
+        attributes: ["position", "color", "normal"],
         uniforms: ["world", "worldView", "worldViewProjection", "view", "projection"],
       });
     this.materialBackCap.setFloat("clipX", -1.001);
@@ -293,14 +293,6 @@ export class ObstService {
       // Delete previous object
       if (this.pickedObstMesh) this.pickedObstMesh.dispose();
 
-      // Create material
-      if (!this.pickedObstMaterial) {
-        this.pickedObstMaterial = new BABYLON.StandardMaterial("myMaterial", this.babylonService.scene);
-        this.pickedObstMaterial.ambientColor = new BABYLON.Color3(1, 1, 1);
-        this.pickedObstMaterial.alpha = 0.4;
-        this.pickedObstMaterial.zOffset = -0.03;
-      }
-
       // Create box
       let options = {
         width: this.pickedObst.vis.xbNorm.x2 - this.pickedObst.vis.xbNorm.x1,
@@ -308,13 +300,17 @@ export class ObstService {
         depth: this.pickedObst.vis.xbNorm.z2 - this.pickedObst.vis.xbNorm.z1
       }
       this.pickedObstMesh = BABYLON.MeshBuilder.CreateBox("pickedObst", options, this.babylonService.scene);
+      this.pickedObstMaterial = new BABYLON.StandardMaterial("myMaterial", this.babylonService.scene);
+      this.pickedObstMaterial.ambientColor = new BABYLON.Color3(1, 1, 1);
+      this.pickedObstMaterial.alpha = 0.4;
+      this.pickedObstMaterial.zOffset = -0.03;
       this.pickedObstMesh.material = this.pickedObstMaterial;
       this.pickedObstMesh.enableEdgesRendering();
       this.pickedObstMesh.edgesWidth = 0.1;
       this.pickedObstMesh.edgesColor = new BABYLON.Color4(0.09, 0.49, 0.99, 1);
+      this.pickedObstMesh.position = new BABYLON.Vector3((this.pickedObst.vis.xbNorm.x1 + (this.pickedObst.vis.xbNorm.x2 - this.pickedObst.vis.xbNorm.x1) / 2), this.pickedObst.vis.xbNorm.y1 + ((this.pickedObst.vis.xbNorm.y2 - this.pickedObst.vis.xbNorm.y1) / 2), this.pickedObst.vis.xbNorm.z1 + ((this.pickedObst.vis.xbNorm.z2 - this.pickedObst.vis.xbNorm.z1) / 2));
 
-      let center = new BABYLON.Vector3(((this.pickedObst.vis.xbNorm.x2 - this.pickedObst.vis.xbNorm.x1) / 2) + this.pickedObst.vis.xbNorm.x1, ((this.pickedObst.vis.xbNorm.y2 - this.pickedObst.vis.xbNorm.y1) / 2) + this.pickedObst.vis.xbNorm.y1, ((this.pickedObst.vis.xbNorm.z2 - this.pickedObst.vis.xbNorm.z1) / 2) + this.pickedObst.vis.xbNorm.z1);
-      this.pickedObstMesh.position = center;
+      if (isDevMode()) console.log(this.pickedObstMesh);
     }
   }
 

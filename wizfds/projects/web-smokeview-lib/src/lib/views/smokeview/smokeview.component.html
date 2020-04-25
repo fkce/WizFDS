@@ -11,8 +11,8 @@
 
 
     <div class="menu">
-        <button
-            (click)="obstService.material.wireframe = obstService.material.wireframe ? false : true; obstService.meshBackCap.isVisible = obstService.meshBackCap.isVisible ? false : true;">Trinagles</button>
+        <button (click)="meshService.toogleVisibility()">Meshes</button>
+        <button (click)="obstService.material.wireframe = obstService.material.wireframe ? false : true; obstService.meshBackCap.isVisible = obstService.meshBackCap.isVisible ? false : true;">Trinagles</button>
         <button (click)="obstService.mesh.edgesWidth = obstService.mesh.edgesWidth == 0.0 ? 0.1 : 0.0;">Outline</button>
     </div>
 

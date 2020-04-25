@@ -26,6 +26,7 @@ export class VisualizeComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit() {
     this.smvApiService.renderObsts(this.main.currentFdsScenario.fdsObject.geometry.obsts, this.main.currentFdsScenario.fdsObject.geometry.surfs);
+    this.smvApiService.renderMeshes(this.main.currentFdsScenario.fdsObject.geometry.meshes);
   }
 
   ngOnDestroy() {

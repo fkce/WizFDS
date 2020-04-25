@@ -9,6 +9,7 @@ import { forEach, startsWith, toLower, trim, toNumber, minBy, min, maxBy, max, s
 import { ViewCubeService } from '../../services/babylon/viewCube/view-cube.service';
 import * as BABYLON from 'babylonjs';
 import { IObst } from '../../services/drawing/interfaces';
+import { MeshService } from '../../services/drawing/mesh/mesh.service';
 
 @Component({
   selector: 'lib-smokeview',
@@ -37,11 +38,16 @@ export class SmokeviewComponent implements OnInit {
         //rayHelper.show(this.babylonService.scene, new BABYLON.Color3(0, 0, 1));
         this.obstService.selectObst(ray);
       }
+      else {
+        this.obstService.pickedObstMesh.dispose();
+        this.obstService.pickedObst = undefined;
+      }
     }
   }
 
   constructor(
     public obstService: ObstService,
+    public meshService: MeshService,
     public sliceGeomService: SliceGeomService,
     private babylonService: BabylonService,
     public sliceService: SliceService,

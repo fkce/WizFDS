@@ -141,11 +141,11 @@ export class ViewCubeService {
     this.viewCubeGround.position.z = -0.6;
     this.viewCubeGround.rotation = new BABYLON.Vector3(0, Math.PI, 0);
 
-    //CameraView
+    // CameraView
     this.cameraViewCube = new BABYLON.ArcRotateCamera("cameraView", 0, 0, 0.1, BABYLON.Vector3.Zero(), this.babylonService.scene);
     this.cameraViewCube.setPosition(new BABYLON.Vector3(0, 0, 2));
+    // @ts-ignore
     this.cameraViewCube.target = this.viewCube;
-    //this.cameraViewCube.target = new BABYLON.Vector3(0, -1000, 0);
     this.cameraViewCube.attachControl(this.babylonService.canvas, true);
     this.cameraViewCube.viewport = new BABYLON.Viewport(.85, .8, .2, .2);
     this.cameraViewCube.upVector = new BABYLON.Vector3(0, 0, 1);

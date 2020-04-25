@@ -57,3 +57,19 @@ export interface IObst {
 	devc_id: string,
 	vis: IVis
 }
+
+export interface IMesh {
+    id: string,
+    uuid: string,
+    idAC: number,
+    color: IColor,
+    isize: number,
+    jsize: number,
+    ksize: number,
+    ijk: number[],
+    xb: IXb,
+    cells: number,
+    mpi_process: string,
+    n_threads: string
+	vis: IVis
+}
