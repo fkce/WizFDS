@@ -1,10 +1,10 @@
-@import '../main.component.scss';
+@import "../main.component.scss";
 
-$open-time: .1s;
-$close-time: .1s;
+$open-time: 0.1s;
+$close-time: 0.1s;
 $open-curve: ease-out;
 $close-curve: ease-in;
-$red: #FF516D;
+$red: #ff516d;
 
 .project-header {
     display: flex;
@@ -16,7 +16,7 @@ $red: #FF516D;
     height: 2.5rem;
     background-color: $grey1;
     box-shadow: 0 -1px 0 $shadow-dark inset;
-    
+
     label {
         font-size: 0.9rem;
         cursor: pointer;
@@ -45,11 +45,11 @@ $red: #FF516D;
             border-radius: 2px;
             border: 2px solid #ccc;
             font-size: 0.9rem;
-            font-family: 'Play';
+            font-family: "Play";
             padding: 3px 6px 3px 6px;
             text-align: center;
             transition-duration: 0.4s;
-            -webkit-transition-duration: 0.4s; 
+            -webkit-transition-duration: 0.4s;
             text-decoration: none;
             overflow: hidden;
             cursor: pointer;
@@ -76,6 +76,54 @@ $red: #FF516D;
     }
 }
 
+.app-loading {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+.loading-projects {
+    margin-top: 4rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    .spinner {
+        height: 150px;
+        width: 150px;
+        animation: rotate 2s linear infinite;
+        transform-origin: center center;
+    }
+    .spinner .path {
+        stroke-dasharray: 1, 200;
+        stroke-dashoffset: 0;
+        animation: dash 1.5s ease-in-out infinite;
+        stroke-linecap: round;
+        stroke: #29b6f6;
+    }
+    @keyframes rotate {
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+    @keyframes dash {
+        0% {
+            stroke-dasharray: 1, 200;
+            stroke-dashoffset: 0;
+        }
+        50% {
+            stroke-dasharray: 89, 200;
+            stroke-dashoffset: -35px;
+        }
+        100% {
+            stroke-dasharray: 89, 200;
+            stroke-dashoffset: -124px;
+        }
+    }
+}
 
 .project {
     display: grid;
@@ -85,7 +133,7 @@ $red: #FF516D;
     padding-right: 1rem;
     align-items: center;
     height: 2.5rem;
-	border-bottom: 1px solid $border-light;
+    border-bottom: 1px solid $border-light;
     box-shadow: 0 -1px 0 $shadow-dark inset;
     background-color: $grey2;
     @include no-select;
@@ -123,7 +171,6 @@ $red: #FF516D;
         justify-content: flex-end;
         align-items: center;
     }
-    
 }
 
 .scenario {
@@ -141,35 +188,35 @@ $red: #FF516D;
         justify-content: space-between;
         flex-wrap: nowrap;
         align-items: center;
-		height: 2.5rem;
-		border-left: 2px solid $grey3;
-		.name {
+        height: 2.5rem;
+        border-left: 2px solid $grey3;
+        .name {
             margin-left: 2rem;
-			display: flex;
-			flex-direction: row;
-			align-items: center;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
             justify-content: flex-start;
             width: 100%;
             cursor: pointer;
-		}
-		.controls {
-			display: flex;
-			flex-direction: row;
-			align-items: center;
-			justify-content: flex-end;
-			padding-right: 1rem;
-		}
-	}
-
-	.scenario-item:hover {
-		background-color: $grey-hover;
-		.ico {
-			color: $blue;
         }
-	}
-	.scenario-item:last-child {
+        .controls {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 1rem;
+        }
+    }
+
+    .scenario-item:hover {
+        background-color: $grey-hover;
+        .ico {
+            color: $blue;
+        }
+    }
+    .scenario-item:last-child {
         border-top: 1px solid $grey2;
-		border-bottom: none;
+        border-bottom: none;
         font-size: 0.9rem;
     }
     .scenario-item:last-child:hover {
@@ -178,18 +225,18 @@ $red: #FF516D;
         font-size: 0.9rem;
     }
 
-	.scenario-item.activeScenario {
-		background-color: $grey-hover;
-		border-left: 2px solid $blue;
-		.ico {
-			color: $blue;
-		}
-	}
+    .scenario-item.activeScenario {
+        background-color: $grey-hover;
+        border-left: 2px solid $blue;
+        .ico {
+            color: $blue;
+        }
+    }
 }
 
 .scenario.open {
     max-height: 100rem;
-	transition: max-height $open-time $open-curve;
+    transition: max-height $open-time $open-curve;
 }
 
 .scenario.close {

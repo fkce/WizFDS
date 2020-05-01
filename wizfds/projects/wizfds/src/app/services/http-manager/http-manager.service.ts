@@ -37,7 +37,8 @@ export class HttpManagerService {
           (result: Result) => { // Success
 
             if (isDevMode()) console.log(result);
-            this.progress = false;
+            if (result.meta.from != 'getSettings()')
+              this.progress = false;
 
             if (result.meta.status == 'success') {
               resolve(result);
@@ -76,21 +77,21 @@ export class HttpManagerService {
             this.progress = false;
 
             if (result.meta.status == 'success') {
-              if(isDevMode()) console.log('Notification success');
+              if (isDevMode()) console.log('Notification success');
               resolve(result);
             } else if (result.meta.status == 'info') {
-              if(isDevMode()) console.log('Notification info');
+              if (isDevMode()) console.log('Notification info');
               resolve(result);
             } else if (result.meta.status == 'warning') {
-              if(isDevMode()) console.log('Notification warning');
+              if (isDevMode()) console.log('Notification warning');
               reject(result);
             } else if (result.meta.status == 'error') {
-              if(isDevMode()) console.log('Notification error');
+              if (isDevMode()) console.log('Notification error');
               reject(result);
             } else {
               reject(result);
             }
-            if(isDevMode()) console.log(result);
+            if (isDevMode()) console.log(result);
 
           },
           error => { // Error
@@ -114,25 +115,25 @@ export class HttpManagerService {
         .then(
           (result: Result) => { // Success
 
-            if(isDevMode()) console.log(result);
+            if (isDevMode()) console.log(result);
             this.progress = false;
 
             if (result.meta.status == 'success') {
-              if(isDevMode()) console.log('Notification success');
+              if (isDevMode()) console.log('Notification success');
               resolve(result);
             } else if (result.meta.status == 'info') {
-              if(isDevMode()) console.log('Notification info');
+              if (isDevMode()) console.log('Notification info');
               resolve(result);
             } else if (result.meta.status == 'warning') {
-              if(isDevMode()) console.log('Notification warning');
+              if (isDevMode()) console.log('Notification warning');
               reject(result);
             } else if (result.meta.status == 'error') {
-              if(isDevMode()) console.log('Notification error');
+              if (isDevMode()) console.log('Notification error');
               reject(result);
             } else {
               reject(result);
             }
-            if(isDevMode()) console.log(result);
+            if (isDevMode()) console.log(result);
 
           },
           error => { // Error
@@ -156,25 +157,25 @@ export class HttpManagerService {
         .then(
           (result: Result) => { // Success
 
-            if(isDevMode()) console.log(result);
+            if (isDevMode()) console.log(result);
             this.progress = false;
 
             if (result.meta.status == 'success') {
-              if(isDevMode()) console.log('Notification success');
+              if (isDevMode()) console.log('Notification success');
               resolve(result);
             } else if (result.meta.status == 'info') {
-              if(isDevMode()) console.log('Notification info');
+              if (isDevMode()) console.log('Notification info');
               resolve(result);
             } else if (result.meta.status == 'warning') {
-              if(isDevMode()) console.log('Notification warning');
+              if (isDevMode()) console.log('Notification warning');
               reject(result);
             } else if (result.meta.status == 'error') {
-              if(isDevMode()) console.log('Notification error');
+              if (isDevMode()) console.log('Notification error');
               reject(result);
             } else {
               reject(result);
             }
-            if(isDevMode()) console.log(result);
+            if (isDevMode()) console.log(result);
 
           },
           error => { // Error

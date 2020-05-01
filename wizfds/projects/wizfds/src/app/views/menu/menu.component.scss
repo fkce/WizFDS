@@ -1,18 +1,18 @@
-@import '../../app.component.scss';
+@import "../../app.component.scss";
 
-$open-time: .5s;
-$close-time: .5s;
-$close-time-lib: 1.0s;
+$open-time: 0.5s;
+$close-time: 0.5s;
+$close-time-lib: 1s;
 $open-curve: ease-out;
 $close-curve: ease-in;
 
 .n0 {
 	display: flex;
 	align-items: center;
-    background-color: $grey1;
+	background-color: $grey1;
 	height: 1.5rem;
 	padding: 0.5rem;
-    border: none;
+	border: none;
 	cursor: pointer;
 	@include no-select;
 }
@@ -35,12 +35,18 @@ $close-curve: ease-in;
 	box-shadow: 0 -1px 0 $shadow-dark inset;
 	cursor: pointer;
 	@include no-select;
+
+	sup {
+		vertical-align: super;
+		font-size: 0.6rem;
+		padding-bottom: 0.6rem;
+	}
 }
 .n1:hover {
 	color: $blue;
 }
 .n1:last-child {
-    border-bottom: none;
+	border-bottom: none;
 }
 
 .n2 {
@@ -48,7 +54,7 @@ $close-curve: ease-in;
 	align-items: center;
 	background-color: $grey4;
 	height: 1.4rem;
-	padding-top: .3rem;
+	padding-top: 0.3rem;
 	padding-left: 1.4rem;
 	width: 100%;
 	cursor: pointer;
@@ -58,7 +64,7 @@ $close-curve: ease-in;
 	color: $blue;
 }
 .n2:last-child {
-	padding-bottom: .3rem;
+	padding-bottom: 0.3rem;
 }
 
 .ng2 {

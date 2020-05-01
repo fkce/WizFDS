@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BabylonService } from '../../babylon/babylon.service';
 import { HelpersService } from '../../helpers/helpers.service';
-import { forEach, max, cloneDeep } from 'lodash';
+import { forEach, max, cloneDeep, toNumber } from 'lodash';
 import { IMesh } from '../interfaces';
 import * as BABYLON from 'babylonjs';
 
@@ -10,7 +10,7 @@ import * as BABYLON from 'babylonjs';
 })
 export class MeshService {
 
-  meshes: any = [];
+  meshes: IMesh[] = [];
 
   vertices: number[] = [];
   normals: number[] = [];
@@ -51,46 +51,52 @@ export class MeshService {
     // Firstly, find minimum and maximum values for each direction x, y, z
     let xMin = this.meshes[0].xb.x1, yMin = this.meshes[0].xb.y1, zMin = this.meshes[0].xb.z1;
     let xMax = this.meshes[0].xb.x2, yMax = this.meshes[0].xb.y2, zMax = this.meshes[0].xb.z2;
-    forEach(this.meshes, (mesh: IMesh) => {
-      xMin = mesh.xb.x1 < xMin ? mesh.xb.x1 : xMin;
-      xMax = mesh.xb.x2 > xMax ? mesh.xb.x2 : xMax;
+    if (this.meshes.length > 1) {
+      forEach(this.meshes, (mesh: IMesh) => {
+        xMin = mesh.xb.x1 < xMin ? mesh.xb.x1 : xMin;
+        xMax = mesh.xb.x2 > xMax ? mesh.xb.x2 : xMax;
 
-      yMin = mesh.xb.y1 < yMin ? mesh.xb.y1 : yMin;
-      yMax = mesh.xb.y2 > yMax ? mesh.xb.y2 : yMax;
+        yMin = mesh.xb.y1 < yMin ? mesh.xb.y1 : yMin;
+        yMax = mesh.xb.y2 > yMax ? mesh.xb.y2 : yMax;
 
-      zMin = mesh.xb.z1 < zMin ? mesh.xb.z1 : zMin;
-      zMax = mesh.xb.z2 > zMax ? mesh.xb.z2 : zMax;
-    });
+        zMin = mesh.xb.z1 < zMin ? mesh.xb.z1 : zMin;
+        zMax = mesh.xb.z2 > zMax ? mesh.xb.z2 : zMax;
+      });
+    }
+
+    this.helperService.normXMin = xMin;
+    this.helperService.normYMin = yMin;
+    this.helperService.normZMin = zMin;
 
     // Get deltas per each direction ...
     let deltaX = xMax - xMin;
     let deltaY = yMax - yMin;
     let deltaZ = zMax - zMin;
-    let delta = max([deltaX, deltaY, deltaZ]);
-
-    let color = [1, 1, 1, 1];
+    this.helperService.normDelta = max([deltaX, deltaY, deltaZ]);
 
     // Normalize ...
     forEach(this.meshes, (mesh: IMesh) => {
 
       // Normalize xb
       let xb = cloneDeep(mesh.xb);
+      forEach(xb, (o, key) => {
+        xb[key] = toNumber(o);
+      });
 
       xb.x1 += (xMin < 0) ? -xMin : xMin;
-      mesh.vis.xbNorm.x1 = xb.x1 / delta;
-
+      mesh.vis.xbNorm.x1 = xb.x1 / this.helperService.normDelta;
       xb.x2 += (xMin < 0) ? -xMin : xMin;
-      mesh.vis.xbNorm.x2 = xb.x2 / delta;
+      mesh.vis.xbNorm.x2 = xb.x2 / this.helperService.normDelta;
 
       xb.y1 += (yMin < 0) ? -yMin : yMin;
-      mesh.vis.xbNorm.y1 = xb.y1 / delta;
+      mesh.vis.xbNorm.y1 = xb.y1 / this.helperService.normDelta;
       xb.y2 += (yMin < 0) ? -yMin : yMin;
-      mesh.vis.xbNorm.y2 = xb.y2 / delta;
+      mesh.vis.xbNorm.y2 = xb.y2 / this.helperService.normDelta;
 
       xb.z1 += (zMin < 0) ? -zMin : zMin;
-      mesh.vis.xbNorm.z1 = xb.z1 / delta;
+      mesh.vis.xbNorm.z1 = xb.z1 / this.helperService.normDelta;
       xb.z2 += (zMin < 0) ? -zMin : zMin;
-      mesh.vis.xbNorm.z2 = xb.z2 / delta;
+      mesh.vis.xbNorm.z2 = xb.z2 / this.helperService.normDelta;
 
       mesh.vis.colorNorm = [1, 0.815, 0, 0];
     });
@@ -132,19 +138,24 @@ export class MeshService {
     this.vertexData.applyToMesh(this.mesh);
 
     // Create material with shaders
-    this.material = new BABYLON.ShaderMaterial("shader", this.babylonService.scene, '/assets/shaders/mesh',
+    this.material = new BABYLON.ShaderMaterial("shader", this.babylonService.scene, './assets/shaders/mesh',
       {
         needAlphaBlending: true,
         attributes: ["position", "color", "normal"],
         uniforms: ["world", "worldView", "worldViewProjection", "view", "projection"],
       });
-    this.material.setFloat("transparent", 0);
-    this.material.zOffset = 0.4;
+    this.material.setFloat("transparent", 0.0);
+    this.material.zOffset = 0.04;
+    this.material.freeze();
 
     this.mesh.material = this.material;
     this.mesh.enableEdgesRendering();
     this.mesh.edgesWidth = 0.1;
     this.mesh.edgesColor = new BABYLON.Color4(1, 0.815, 0, 1);
+
+    // Preformance optimization
+    this.mesh.convertToUnIndexedMesh();
+    this.mesh.freezeWorldMatrix();
   }
 
   /**

@@ -1,12 +1,7 @@
 import { IdGeneratorService } from '@services/id-generator/id-generator.service'
 import { FdsEntities } from '@enums/fds/entities/fds-entities'
-import { Xb, Color } from '../primitives';
+import { Xb, Color, IVis } from '../primitives';
 import { get, round, toNumber, toString } from 'lodash';
-
-export interface IVis {
-	xbNorm?: Xb,
-	colorNorm?: number[]
-}
 
 export interface IMesh {
     id: string,

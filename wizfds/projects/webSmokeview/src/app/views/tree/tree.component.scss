@@ -1,0 +1,48 @@
+@mixin menu {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  cursor: pointer;
+}
+
+$open-time: 0.5s;
+$close-time: 0.5s;
+$close-time-lib: 1s;
+$open-curve: ease-out;
+$close-curve: ease-in;
+
+.open {
+  display: flex;
+  flex-direction: column;
+  //max-height: 10rem;
+  //transition: max-height $open-time $open-curve;
+  p {
+      display: flex;
+  }
+  //border-right: 1px solid $border-dark;
+}
+
+.close {
+  display: none;
+  //max-height: 0;
+  //transition: max-height $close-time cubic-bezier(0, 1, 0, 1);
+  p {
+      display: none;
+  }
+}
+
+.menu-l1 {
+  @include menu;
+  padding-left: 1rem;
+  background-color: darkgray;
+}
+.menu-l2 {
+  @include menu;
+  padding-left: 2rem;
+  background-color: lightgray;
+}
+.menu-l3 {
+  @include menu;
+  padding-left: 3rem;
+  background-color: #eee;
+}

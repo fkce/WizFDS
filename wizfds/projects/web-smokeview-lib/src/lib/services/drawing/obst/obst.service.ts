@@ -1,7 +1,7 @@
 import { Injectable, isDevMode } from '@angular/core';
 import { BabylonService } from '../../babylon/babylon.service';
 import * as BABYLON from 'babylonjs';
-import { forEach, max, find, cloneDeep, sortBy } from 'lodash';
+import { forEach, max, find, cloneDeep, sortBy, toNumber } from 'lodash';
 import { HelpersService } from '../../helpers/helpers.service';
 import { IObst, ISurf } from '../interfaces';
 
@@ -32,9 +32,9 @@ export class ObstService {
   clipX: number = 0.0;
   clipY: number = 0.0;
   clipZ: number = 100.0;
-  clipXNorm: number = -1.0;
-  clipYNorm: number = -1.0;
-  clipZNorm: number = 1.0;
+  clipXNorm: number = -0.001;
+  clipYNorm: number = -0.001;
+  clipZNorm: number = 1.001;
 
   constructor(
     private babylonService: BabylonService,
@@ -78,6 +78,41 @@ export class ObstService {
   }
 
   /**
+   * Render geometry from json data
+   * @param data 
+   */
+  public renderJson(data: any) {
+
+    // Clear arrays
+    this.vertices.length = 0;
+    this.colors.length = 0;
+    this.indices.length = 0;
+    this.positions.length = 0;
+
+    // Assign data
+    this.vertices = data.vertices;
+    this.colors = data.colors;
+    this.indices = data.indices;
+
+    // Generate positions
+    for (let i = 0; i < this.vertices.length; i += 3) {
+      this.positions.push(new BABYLON.Vector3(this.vertices[i], this.vertices[i + 1], this.vertices[i + 2]));
+    }
+
+    // Render geometry
+    this.render();
+  }
+
+  public renderWiz() {
+
+  }
+
+  public renderFds() {
+    // upload fds file ... 
+
+  }
+
+  /**
    * Reder obsts
    */
   public renderObsts() {
@@ -102,25 +137,10 @@ export class ObstService {
    */
   private normalizeObsts(): void {
 
-    // Firstly, find minimum and maximum values for each direction x, y, z
-    let xMin = this.obsts[0].xb.x1, yMin = this.obsts[0].xb.y1, zMin = this.obsts[0].xb.z1;
-    let xMax = this.obsts[0].xb.x2, yMax = this.obsts[0].xb.y2, zMax = this.obsts[0].xb.z2;
-    forEach(this.obsts, (obst) => {
-      xMin = obst.xb.x1 < xMin ? obst.xb.x1 : xMin;
-      xMax = obst.xb.x2 > xMax ? obst.xb.x2 : xMax;
-
-      yMin = obst.xb.y1 < yMin ? obst.xb.y1 : yMin;
-      yMax = obst.xb.y2 > yMax ? obst.xb.y2 : yMax;
-
-      zMin = obst.xb.z1 < zMin ? obst.xb.z1 : zMin;
-      zMax = obst.xb.z2 > zMax ? obst.xb.z2 : zMax;
-    });
-
-    // Get deltas per each direction ...
-    let deltaX = xMax - xMin;
-    let deltaY = yMax - yMin;
-    let deltaZ = zMax - zMin;
-    let delta = max([deltaX, deltaY, deltaZ]);
+    let delta = this.helperService.normDelta;
+    let xMin = this.helperService.normXMin;
+    let yMin = this.helperService.normYMin;
+    let zMin = this.helperService.normZMin;
 
     let color = [1, 1, 1, 1];
 
@@ -129,6 +149,9 @@ export class ObstService {
 
       // Normalize xb
       let xb = cloneDeep(obst.xb);
+      forEach(xb, (o, key) => {
+        xb[key] = toNumber(o);
+      });
 
       xb.x1 += (xMin < 0) ? -xMin : xMin;
       obst.vis.xbNorm.x1 = xb.x1 / delta;
@@ -185,6 +208,7 @@ export class ObstService {
   public render() {
 
     // Create new custom mesh and vertex data
+    if (this.mesh) { this.mesh.dispose(); }
     this.mesh = new BABYLON.Mesh("custom", this.babylonService.scene);
 
     // Compute normals
@@ -201,16 +225,17 @@ export class ObstService {
     //this.vertexData.applyToMesh(this.mesh, true);
 
     // Create material with shaders
-    this.material = new BABYLON.ShaderMaterial("shader", this.babylonService.scene, '/assets/shaders/obst',
+    this.material = new BABYLON.ShaderMaterial("shader", this.babylonService.scene, './assets/shaders/obst',
       {
         //needAlphaBlending: true, // set when opacity
         attributes: ["position", "color", "normal"],
         uniforms: ["world", "worldView", "worldViewProjection", "view", "projection"],
       });
-    this.material.setFloat("clipX", -0.001);
-    this.material.setFloat("clipY", -0.001);
-    this.material.setFloat("clipZ", 1.001);
+    this.material.setFloat("clipX", this.clipXNorm);
+    this.material.setFloat("clipY", this.clipYNorm);
+    this.material.setFloat("clipZ", this.clipZNorm);
     this.material.backFaceCulling = false;
+    this.material.freeze();
     //this.material.zOffset = -1;
     //this.material.useLogarithmicDepth = true;
 
@@ -219,22 +244,34 @@ export class ObstService {
     this.mesh.edgesWidth = 0.05;
     this.mesh.edgesColor = new BABYLON.Color4(0.4, 0.4, 0.4, 1);
 
+    // Preformance optimization
+    this.mesh.freezeWorldMatrix();
+
     // Crate back cap mesh
+    if (this.meshBackCap) { this.meshBackCap.dispose(); }
     this.meshBackCap = new BABYLON.Mesh("custom", this.babylonService.scene);
     this.vertexData.applyToMesh(this.meshBackCap);
 
     // Create material with shaders
-    this.materialBackCap = new BABYLON.ShaderMaterial("shader", this.babylonService.scene, '/assets/shaders/obstBackCap',
+    this.materialBackCap = new BABYLON.ShaderMaterial("shader", this.babylonService.scene, './assets/shaders/obstBackCap',
       {
         //needAlphaBlending: true, // set when opacity
         attributes: ["position", "color", "normal"],
         uniforms: ["world", "worldView", "worldViewProjection", "view", "projection"],
       });
-    this.materialBackCap.setFloat("clipX", -1.001);
-    this.materialBackCap.setFloat("clipY", -1.001);
-    this.materialBackCap.setFloat("clipZ", 1.001);
+    this.materialBackCap.setFloat("clipX", this.clipXNorm);
+    this.materialBackCap.setFloat("clipY", this.clipYNorm);
+    this.materialBackCap.setFloat("clipZ", this.clipZNorm);
     this.materialBackCap.zOffset = -0.01;
+    this.materialBackCap.freeze();
+
     this.meshBackCap.material = this.materialBackCap;
+    this.meshBackCap.freezeWorldMatrix();
+
+    // Put somewhere else ...
+    this.babylonService.scene.freeActiveMeshes();
+    this.babylonService.scene.autoClear = false; // Color buffer
+    this.babylonService.scene.autoClearDepthAndStencil = false; // Depth and stencil, obviously
 
     // Uncomment when opacity - not working properly
     //this.mesh.material.needDepthPrePass = true;
@@ -303,7 +340,7 @@ export class ObstService {
       this.pickedObstMaterial = new BABYLON.StandardMaterial("myMaterial", this.babylonService.scene);
       this.pickedObstMaterial.ambientColor = new BABYLON.Color3(1, 1, 1);
       this.pickedObstMaterial.alpha = 0.4;
-      this.pickedObstMaterial.zOffset = -0.03;
+      this.pickedObstMaterial.zOffset = -0.05;
       this.pickedObstMesh.material = this.pickedObstMaterial;
       this.pickedObstMesh.enableEdgesRendering();
       this.pickedObstMesh.edgesWidth = 0.1;

@@ -17,7 +17,6 @@
     ],
     "paths": {
       "web-smokeview-lib": [
-        "dist/web-smokeview-lib/web-smokeview-lib",
         "dist/web-smokeview-lib"
       ]
     }

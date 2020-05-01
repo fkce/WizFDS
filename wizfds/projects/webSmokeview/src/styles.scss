@@ -1,0 +1,11 @@
+/* You can add global styles to this file, and also import other style files */
+@font-face {
+  font-family: 'Play';
+  src: url(/assets/fonts/Play-Regular.ttf) format("truetype");
+  font-weight:300;
+}
+
+html {
+  font-size: 1rem;
+  font-family: "Play";
+}

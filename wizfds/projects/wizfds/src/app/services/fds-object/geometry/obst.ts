@@ -1,15 +1,10 @@
 import { Surf } from './surf';
 import { IdGeneratorService } from '@services/id-generator/id-generator.service';
-import { Xb } from "../primitives";
+import { Xb, IVis } from "../primitives";
 import { Devc } from '../output/devc';
 import { find, get, set, toArray } from 'lodash';
 import { Ctrl } from '../output/ctrl';
 import { FdsEntities } from '@enums/fds/entities/fds-entities';
-
-export interface IVis {
-	xbNorm?: Xb,
-	colorNorm?: number[]
-}
 
 export interface ISurf {
 	type?: string,

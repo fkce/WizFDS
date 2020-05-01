@@ -29,7 +29,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   uiSub: Subscription;
 
   constructor(
-    private mainService: MainService,
+    public mainService: MainService,
     private projectService: ProjectService,
     private fdsScenarioService: FdsScenarioService,
     public uiStateService: UiStateService,
@@ -46,26 +46,16 @@ export class ProjectsComponent implements OnInit, OnDestroy {
       this.updateProjectsList();
     }
 
+    console.log(this.main.init.isProjectsInited);
+
     // Wait for projects and categories if first loading page
-    // If there is slow internet connection wait another 2 sec 
-    if (this.projects.length < 1) {
-      setTimeout(() => {
+    if (this.projects.length < 1 && !this.main.init.isProjectsInited) {
+      let projectsInterval = setInterval(() => {
         if (this.main.categories.length > 0 && this.main.projects.length > 0) {
           this.updateProjectsList();
+          clearInterval(projectsInterval);
         }
-        else {
-          setTimeout(() => {
-            if (this.main.categories.length > 0 && this.main.projects.length > 0) {
-              this.updateProjectsList();
-            }
-            else {
-              setTimeout(() => {
-                this.updateProjectsList();
-              }, 2000);
-            }
-          }, 2000)
-        }
-      }, 2500);
+      }, 500);
     }
 
   }

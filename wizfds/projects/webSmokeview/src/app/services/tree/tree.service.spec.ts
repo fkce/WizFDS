@@ -1,13 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 
-import { FdsObjectService } from './fds-object.service';
+import { TreeService } from './tree.service';
 
-describe('FdsObjectService', () => {
-  let service: FdsObjectService;
+describe('TreeService', () => {
+  let service: TreeService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({});
-    service = TestBed.inject(FdsObjectService);
+    service = TestBed.inject(TreeService);
   });
 
   it('should be created', () => {

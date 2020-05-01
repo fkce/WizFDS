@@ -1,0 +1,4 @@
+# run server with monitoring changes
+nodemon app.js &
+# run server
+node app.js &

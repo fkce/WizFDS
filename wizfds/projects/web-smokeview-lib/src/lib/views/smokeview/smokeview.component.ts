@@ -10,6 +10,7 @@ import { ViewCubeService } from '../../services/babylon/viewCube/view-cube.servi
 import * as BABYLON from 'babylonjs';
 import { IObst } from '../../services/drawing/interfaces';
 import { MeshService } from '../../services/drawing/mesh/mesh.service';
+import { OpenService } from '../../services/drawing/open/open.service';
 
 @Component({
   selector: 'lib-smokeview',
@@ -45,9 +46,12 @@ export class SmokeviewComponent implements OnInit {
     }
   }
 
+  showHelp: boolean = false;
+
   constructor(
     public obstService: ObstService,
     public meshService: MeshService,
+    public openService: OpenService,
     public sliceGeomService: SliceGeomService,
     private babylonService: BabylonService,
     public sliceService: SliceService,
@@ -57,14 +61,14 @@ export class SmokeviewComponent implements OnInit {
   ) { }
 
 
-  ngOnInit() {
-  }
+  ngOnInit() { }
 
   ngAfterViewInit() {
 
     this.babylonService.createScene(this.rendererCanvas);
     this.viewCubeService.init();
     this.babylonService.animate();
+
   }
 
   /**

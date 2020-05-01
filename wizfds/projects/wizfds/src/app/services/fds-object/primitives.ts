@@ -542,3 +542,8 @@ export class Color {
         return color;
     }
 }
+
+export interface IVis {
+	xbNorm?: Xb,
+	colorNorm?: number[]
+}

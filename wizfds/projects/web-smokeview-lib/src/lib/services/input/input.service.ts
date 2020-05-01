@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { toNumber, find, lowerCase } from 'lodash';
 import { colors } from '../../consts/colors';
 
+// TODO!!! Move to parsers fdsFile !!!
 @Injectable({
   providedIn: 'root'
 })

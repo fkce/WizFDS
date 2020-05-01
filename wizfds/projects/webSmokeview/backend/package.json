@@ -1,0 +1,21 @@
+{
+  "name": "smokeweb",
+  "version": "1.0.0",
+  "description": "Web-browser smokeview version",
+  "main": "index.js",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "directory-tree": "^2.2.4",
+    "express": "^4.17.0",
+    "lodash": "^4.17.15",
+    "pako": "^1.0.11"
+  },
+  "devDependencies": {
+    "nodemon": "^1.19.4"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}

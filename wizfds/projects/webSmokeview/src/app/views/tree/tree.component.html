@@ -1,0 +1,34 @@
+<div class="tree" #tree>
+  <!-- First level -->
+  <div *ngFor="let level1 of simpleTree['children']">
+    
+    <p matRipple class="menu-l1" *ngIf="level1.type == 'directory'" (click)="setLevel1(level1.name)">
+      <mat-icon *ngIf="l1!=level1.name" svgIcon="folder-outline"></mat-icon>
+      <mat-icon *ngIf="l1==level1.name" svgIcon="folder-open-outline"></mat-icon>
+      {{level1.name}}
+    </p>
+    <p matRipple class="menu-l1" *ngIf="level1.type == 'file'">
+      {{level1.name}}
+    </p>
+
+    <!-- Second level -->
+    <div *ngFor="let level2 of level1.children" [ngClass]="l1==level1.name ? 'open' : 'close'">
+      <p matRipple class="menu-l2" *ngIf="level2.type == 'directory'" (click)="setLevel2(level2.name)">
+        <mat-icon *ngIf="l2!=level2.name" svgIcon="folder-outline"></mat-icon>
+        <mat-icon *ngIf="l2==level2.name" svgIcon="folder-open-outline"></mat-icon>
+        {{level2.name}}
+      </p>
+      <p matRipple class="menu-l2" *ngIf="level2.type == 'file'">
+        {{level2.name}}
+      </p>
+
+      <!-- Third level -->
+      <div *ngFor="let level3 of level2.children" [ngClass]="l2==level2.name ? 'open' : 'close'">
+        <p matRipple class="menu-l3" *ngIf="level3.type == 'directory'" (click)="setLevel3(level3.name)"><mat-icon *ngIf="l3!=level3.name">folder</mat-icon><mat-icon *ngIf="l3==level3.name">folder_open</mat-icon>{{level3.name}}</p>
+        <p matRipple class="menu-l3" *ngIf="level3.type == 'file'" (click)="loadSim(level3)">{{level3.name}}</p>
+      </div>
+
+    </div>
+
+  </div>
+</div>

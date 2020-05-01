@@ -88,14 +88,14 @@ export class AppComponent {
     this.router.navigate(['']);
 
     // For developing purpose
-    if (isDevMode()) {
-      setTimeout(() => {
-        this.setCurrentFdsScenario(32, 71);
-      }, 4000);
-      setTimeout(() => {
-        this.router.navigate(['/fds/visualize']);
-      }, 6000);
-    }
+    //if (isDevMode()) {
+    //  setTimeout(() => {
+    //    this.setCurrentFdsScenario(32, 71);
+    //  }, 4000);
+    //  setTimeout(() => {
+    //    this.router.navigate(['/fds/visualize']);
+    //  }, 6000);
+    //}
 
     // Subscribe websocket requests status for websocket CAD sync
     this.wsSub = this.websocketService.requestStatus.subscribe(

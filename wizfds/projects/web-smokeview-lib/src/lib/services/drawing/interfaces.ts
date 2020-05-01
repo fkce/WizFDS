@@ -70,6 +70,16 @@ export interface IMesh {
     xb: IXb,
     cells: number,
     mpi_process: string,
-    n_threads: string
+    n_threads: string,
+	vis: IVis
+}
+
+export interface IOpen {
+    id: string,
+    uuid: string,
+    idAC: number,
+    color: IColor,
+    xb: IXb,
+    surf_id: string,
 	vis: IVis
 }

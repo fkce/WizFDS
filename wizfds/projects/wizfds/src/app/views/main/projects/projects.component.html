@@ -28,6 +28,16 @@
         </div>
     </div>
 </div>
+
+<div class="loading-projects" *ngIf="!main.init.isProjectsInited">
+    <div>
+        <svg class="spinner" viewBox="25 25 50 50">
+            <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="1" stroke-miterlimit="10" />
+        </svg>
+        <div>Loading projects ...</div>
+    </div>
+</div>
+
 <div
     *ngFor="let project of projects | slice: uiStateService.projects.begin:(uiStateService.projects.begin + uiStateService.projects.listRange); index as projectIndex">
     <div class="project" *ngIf="checkProjectCategory(project.category)">

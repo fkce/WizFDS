@@ -1,5 +1,6 @@
-import { Xb, Color } from '../primitives';
+import { Xb, Color, IVis } from '../primitives';
 import { IdGeneratorService } from '@services/id-generator/id-generator.service'
+import { get } from 'lodash';
 
 export interface IOpen {
     id: string,
@@ -7,7 +8,8 @@ export interface IOpen {
     idAC: number,
     color: Color,
     xb: Xb,
-    surf_id: string
+    surf_id: string,
+	vis?: IVis
 }
 
 export class Open {
@@ -17,6 +19,7 @@ export class Open {
     private _color: Color;
     private _xb: Xb;
     private _surf_id: string;
+	private _vis: IVis;
 
     constructor(jsonString: string) {
 
@@ -31,6 +34,10 @@ export class Open {
         this.color = base.color != undefined && typeof base.color === 'object' ? new Color(JSON.stringify(base.color)) : new Color(JSON.stringify('{}'), 'GREEN');
 		this.xb = new Xb(JSON.stringify(base.xb), 'open') || new Xb(JSON.stringify({}), 'open');
         this.surf_id = base.surf_id || 'OPEN';
+
+		this.vis = {};
+		this.vis.xbNorm = (base.vis) ? new Xb(JSON.stringify(base.vis.xbNorm)) : new Xb(JSON.stringify({}));
+		this.vis.colorNorm = (base.vis) ? get(base, 'vis.colorNorm', [1, 1, 1, 1]) : [1, 1, 1, 1];
     }
 
     /**
@@ -128,7 +135,24 @@ export class Open {
      */
 	public set surf_id(value: string) {
 		this._surf_id = value;
+    }
+
+    /**
+     * Getter vis
+     * @return {IVis}
+     */
+	public get vis(): IVis {
+		return this._vis;
 	}
+
+    /**
+     * Setter vis
+     * @param {IVis} value
+     */
+	public set vis(value: IVis) {
+		this._vis = value;
+	}
+
     toJSON(): object {
         let open: object = {
             id: this.id,

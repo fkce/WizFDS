@@ -8,11 +8,25 @@
             surf_id: {{ obstService.pickedObst.surf.surf_id.id }}
         </p>
     </div>
-
+    <div class="help">
+        <mat-icon *ngIf="!showHelp" svgIcon="help-box" aria-label="Help" (click)="showHelp = showHelp ? false : true;">
+        </mat-icon>
+        <mat-icon *ngIf="showHelp" svgIcon="eye-off" aria-label="Hide help"
+            (click)="showHelp = showHelp ? false : true;"></mat-icon>
+        <table *ngIf="showHelp">
+            <tr>Rotate:<td></td> <td>hold left click + move</td> </tr>
+            <tr>Pan:<td></td> <td>hold right click + move</td> </tr>
+            <tr>Zoom:<td></td> <td>mouse scroll</td> </tr>
+            <tr>Select:<td></td> <td>ctrl + left click</td> </tr>
+        </table>
+    </div>
 
     <div class="menu">
-        <button (click)="meshService.toogleVisibility()">Meshes</button>
-        <button (click)="obstService.material.wireframe = obstService.material.wireframe ? false : true; obstService.meshBackCap.isVisible = obstService.meshBackCap.isVisible ? false : true;">Trinagles</button>
+        <button (click)="openService.toogleVisibility()">Open</button>
+        <button (click)="meshService.toogleVisibility()">Mesh</button>
+        <hr>
+        <button
+            (click)="obstService.material.wireframe = obstService.material.wireframe ? false : true; obstService.meshBackCap.isVisible = obstService.meshBackCap.isVisible ? false : true;">Trinagles</button>
         <button (click)="obstService.mesh.edgesWidth = obstService.mesh.edgesWidth == 0.0 ? 0.1 : 0.0;">Outline</button>
     </div>
 
@@ -22,7 +36,7 @@
         <p>y:&nbsp;<input type="range" [ngModel]="obstService.clipY" (ngModelChange)="obstService.clip($event, 'y')"
                 min="0" max="100" />&nbsp;{{obstService.clipY}}%</p>
         <p>z:&nbsp;<input type="range" [ngModel]="obstService.clipZ" (ngModelChange)="obstService.clip($event, 'z')"
-                min="0" max="100" />&nbsp;{{obstService.clipZ}}%</p><br>
+                min="0" max="100" />&nbsp;{{obstService.clipZ}}%</p>
     </div>
     <div class="player" *ngIf="playerService.frameNo > 0">
         <div class="time">Frame: {{playerService.frameCur}}</div>
