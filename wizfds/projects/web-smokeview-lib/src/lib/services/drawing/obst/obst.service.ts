@@ -3,7 +3,7 @@ import { BabylonService } from '../../babylon/babylon.service';
 import * as BABYLON from 'babylonjs';
 import { forEach, max, find, cloneDeep, sortBy, toNumber } from 'lodash';
 import { HelpersService } from '../../helpers/helpers.service';
-import { IObst, ISurf } from '../interfaces';
+import { IObst } from '../interfaces';
 
 @Injectable({
   providedIn: 'root'

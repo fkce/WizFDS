@@ -2,7 +2,6 @@ import { Component, OnInit, ViewChild, ElementRef, Input, OnChanges, SimpleChang
 import { HttpManagerService, Result } from '../../services/http-manager/http-manager.service';
 import { environment } from '../../../environments/environment';
 import { SmokeviewApiService } from 'projects/web-smokeview-lib/src/lib/services/smokeview-api/smokeview-api.service';
-import { split, includes } from 'lodash';
 import { TreeService } from '../../services/tree/tree.service';
 import { GeometryLoaderService } from '../../services/loaders/geometryLoader/geometry-loader.service';
 
