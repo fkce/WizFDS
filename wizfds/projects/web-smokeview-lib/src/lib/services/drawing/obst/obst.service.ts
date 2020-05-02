@@ -32,9 +32,9 @@ export class ObstService {
   clipX: number = 0.0;
   clipY: number = 0.0;
   clipZ: number = 100.0;
-  clipXNorm: number = -0.001;
-  clipYNorm: number = -0.001;
-  clipZNorm: number = 1.001;
+  clipXNorm: number = -1.1;
+  clipYNorm: number = -1.1;
+  clipZNorm: number = 1.1;
 
   constructor(
     private babylonService: BabylonService,
@@ -53,7 +53,7 @@ export class ObstService {
     if (direction == 'x') {
       this.clipX = value;
       let clip = (value == 100) ? 1.1 : boundingMax.x * (value / 100);
-      clip = (value == 0) ? -0.1 : clip;
+      clip = (value == 0) ? -1.1 : clip;
       this.mesh.material.setFloat("clipX", clip);
       this.meshBackCap.material.setFloat("clipX", clip);
       this.clipXNorm = clip;
@@ -62,7 +62,7 @@ export class ObstService {
     else if (direction == 'y') {
       this.clipY = value;
       let clip = (value == 100) ? 1.1 : boundingMax.y * (value / 100);
-      clip = (value == 0) ? -0.1 : clip;
+      clip = (value == 0) ? -1.1 : clip;
       this.mesh.material.setFloat("clipY", clip);
       this.meshBackCap.material.setFloat("clipY", clip);
       this.clipYNorm = clip;
@@ -70,7 +70,7 @@ export class ObstService {
     else if (direction == 'z') {
       this.clipZ = value;
       let clip = (value == 100) ? 1.1 : boundingMax.z * (value / 100);
-      clip = (value == 0) ? -0.1 : clip;
+      clip = (value == 0) ? -1.1 : clip;
       this.mesh.material.setFloat("clipZ", clip);
       this.meshBackCap.material.setFloat("clipZ", clip);
       this.clipZNorm = clip;

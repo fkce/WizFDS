@@ -1,7 +1,6 @@
 import { Injectable, isDevMode } from '@angular/core';
 import { HttpManagerService, Result } from '../http-manager/http-manager.service';
 import { environment } from '../../../environments/environment';
-import { ungzip } from 'pako';
 
 @Injectable({
   providedIn: 'root'
