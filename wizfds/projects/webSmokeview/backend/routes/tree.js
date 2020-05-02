@@ -5,7 +5,7 @@ module.exports = function (app) {
 	// Get directories structure
 	app.get('/api/tree', (req, res) => {
 
-		const tree = dirTree('d:/smokeweb', { extensions: /\.smv/ });
+		const tree = dirTree(global.gConfig.pathToSimulations, { extensions: /\.smv/ });
 
 		result = {
 			meta: {

@@ -1,0 +1,16 @@
+{
+    "development": {
+        "configId": "development",
+        "nodePort": 3000,
+        "protocol": "http",
+        "pathToSimulations": "local/path/to/simulations"
+    },
+    "production": {
+        "configId": "production",
+        "nodePort": 4000,
+        "protocol": "https",
+        "pathToSimulations": "server/path/to/simulations",
+        "key": "path/to/privatekey.pem",
+        "cert": "path/to/cert/fullchain.pem"
+    }
+}

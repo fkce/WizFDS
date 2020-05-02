@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  host: 'https://localhost:4000'
+  host: 'https://cloud.fkce.pl:4000'
 };

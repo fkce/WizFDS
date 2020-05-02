@@ -60,6 +60,4 @@ export class TreeService {
     return promise;
   }
 
-
-
 }
