@@ -26,6 +26,10 @@ export class BabylonService {
     this.scene.clearColor = new BABYLON.Color4(0.9, 0.9, 0.9, 1);
     this.scene.useRightHandedSystem = true;
 
+    // Preformance features
+    this.scene.autoClear = false; // Color buffer
+    this.scene.autoClearDepthAndStencil = false; // Depth and stencil, obviously
+
     // Colors for viewcube
     this.scene.ambientColor = BABYLON.Color3.White();
 

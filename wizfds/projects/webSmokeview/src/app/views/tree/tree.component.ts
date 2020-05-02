@@ -4,6 +4,7 @@ import { environment } from '../../../environments/environment';
 import { SmokeviewApiService } from 'projects/web-smokeview-lib/src/lib/services/smokeview-api/smokeview-api.service';
 import { split, includes } from 'lodash';
 import { TreeService } from '../../services/tree/tree.service';
+import { GeometryLoaderService } from '../../services/loaders/geometryLoader/geometry-loader.service';
 
 @Component({
   selector: 'app-tree',
@@ -24,34 +25,46 @@ export class TreeComponent implements OnInit {
   constructor(
     private httpManager: HttpManagerService,
     private smvApiService: SmokeviewApiService,
-    private treeService: TreeService
+    private treeService: TreeService,
+    private geomLoaderService: GeometryLoaderService
   ) { }
 
   ngOnInit(): void {
 
     // Sync tree structure
     this.treeService.getTreeStructure().then(
-      (val: any) => {
-        this.simpleTree = val;
-      },
-      (err) => {
-        console.log(err);
-      }
+      (val: any) => { this.simpleTree = val; },
+      (err) => { console.log(err); }
     );
-
     //this.getJsonObject();
   }
 
-  
-  public loadSim(simulation: any) {
-    this.treeService.loadSim(simulation).then(
+  /**
+   * Load / generate smokeview geometry
+   * @param simulation tree node
+   */
+  public loadSmv(simulation: any) {
+    this.geomLoaderService.loadSmv(simulation).then(
       (result: Result) => {
-
         if (result.meta.status == 'success') {
           this.smvApiService.renderJsonObsts(result.data);
         }
       });
   }
+
+  /**
+   * Load already generated json geometry
+   * @param simulation tree node
+   */
+  public loadJson(simulation: any) {
+    this.geomLoaderService.loadJson(simulation).then(
+      (result: Result) => {
+        if (result.meta.status == 'success') {
+          this.smvApiService.renderJsonObsts(result.data);
+        }
+      });
+  }
+
 
 
   public getJsonObject() {

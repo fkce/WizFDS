@@ -3,7 +3,7 @@
         "configId": "development",
         "nodePort": 3000,
         "protocol": "http",
-        "pathToSimulations": "local/path/to/simulations"
+        "pathToSimulations": "d:/smokeweb/"
     },
     "production": {
         "configId": "production",

@@ -1,8 +1,26 @@
+$white: #eee;
+$grey1: #303030;
+$grey2: #404040;
+$grey3: #505050;
+$grey4: #606060;
+$grey5: #707070;
+$grey6: #808080;
+
+.header {
+  background-color: $grey1;
+  color: $white;
+  padding: 0.7rem 0 0.7rem 1rem;
+  border-bottom: 1px solid $grey2;
+}
+
 @mixin menu {
   display: flex;
   align-items: center;
   margin: 0;
   cursor: pointer;
+  color: $white;
+  padding: 0.3rem 0 0.3rem 0;
+  font-size: 0.9rem;
 }
 
 $open-time: 0.5s;
@@ -31,18 +49,22 @@ $close-curve: ease-in;
   }
 }
 
+mat-icon {
+  margin-right: 0.5rem;
+}
+
 .menu-l1 {
   @include menu;
   padding-left: 1rem;
-  background-color: darkgray;
+  background-color: $grey1;
 }
 .menu-l2 {
   @include menu;
   padding-left: 2rem;
-  background-color: lightgray;
+  background-color: $grey2;
 }
 .menu-l3 {
   @include menu;
   padding-left: 3rem;
-  background-color: #eee;
+  background-color: $grey4;
 }

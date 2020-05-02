@@ -1,0 +1,57 @@
+/* You can add global styles to this file, and also import other style files */
+$red: #ff516d;
+$white: #eee;
+$grey: #888;
+$blue: #29b6f6;
+$blue-dark: #1e88e5;
+$green: #9ccc65;
+$orange: #ff9800;
+$orange-light: #fff3e0;
+$help: #b0bec5;
+
+$grey-hover: #606060;
+
+$grey1: #303030;
+$grey2: #404040;
+$grey3: #505050;
+$grey4: #606060;
+$grey5: #707070;
+$grey6: #808080;
+
+$border-light: #565656;
+$border-dark: #303030;
+
+$shadow-light: #363636;
+$shadow-dark: #323232;
+
+$active: #aaa;
+$active1: #1e88e5;
+$passive: #565555;
+$body: #383838;
+
+.header {
+    color: $white;
+    margin: 0 1rem 1rem 1rem;
+    background-color: $grey1;
+    padding: 1rem;
+}
+
+.main {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+
+    .file-explorer {
+        width: 20%;
+        margin-left: 1rem;
+        margin-right: 1rem;
+        background-color: $grey3;
+    }
+
+    .smokeview-lib {
+        width: 80%;
+        margin-right: 1rem;
+        background-color: $grey3;
+    }
+    
+}

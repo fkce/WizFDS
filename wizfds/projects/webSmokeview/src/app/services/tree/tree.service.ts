@@ -15,7 +15,7 @@ export class TreeService {
   ) { }
 
   /**
-   * Get tree structure
+   * Get tree structure with directories on remote host
    */
   public getTreeStructure() {
     let promise = new Promise((resolve, reject) => {
@@ -28,34 +28,6 @@ export class TreeService {
             reject();
           }
         });
-    });
-    return promise;
-  }
-
-  public loadSim(simulation: any) {
-
-    let promise = new Promise((resolve, reject) => {
-      // Get directories structure from server
-      if (simulation.extension == '.smv') {
-
-        this.httpManager.get(environment.host + `/api/loadSim/${simulation.path}`).then(
-          (result: Result) => {
-
-            if (result.meta.status == 'success') {
-              // Decode 
-              let data = ungzip(result.data, { to: 'string' });
-              result.data = JSON.parse(data);
-
-              resolve(result);
-            }
-            else {
-              reject();
-            }
-          },
-          (error) => {
-            if (isDevMode()) console.log(error);
-          });
-      }
     });
     return promise;
   }

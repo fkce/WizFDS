@@ -5,7 +5,10 @@
   font-weight:300;
 }
 
-html {
+html, body {
   font-size: 1rem;
   font-family: "Play";
+  margin: 0;
+  padding: 0;
+  background-color: #383838;
 }

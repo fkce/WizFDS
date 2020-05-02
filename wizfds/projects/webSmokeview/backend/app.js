@@ -15,7 +15,7 @@ app.use(cors());
 
 // Routes
 require('./routes/routes')(app);
-require('./routes/load')(app);
+require('./routes/loaders')(app);
 require('./routes/tree')(app);
 
 // Get index.html from public/ directory
@@ -34,7 +34,7 @@ if (global.gConfig.protocol == 'https') {
     var httpsServer = https.createServer(options, app);
     httpsServer.listen(port);
 }
-else if (global.gConfig.process == 'http') {
+else if (global.gConfig.protocol == 'http') {
     const http = require('http');
     var httpServer = http.createServer(app);
     httpServer.listen(port);

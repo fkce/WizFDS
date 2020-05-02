@@ -270,8 +270,6 @@ export class ObstService {
 
     // Put somewhere else ...
     this.babylonService.scene.freeActiveMeshes();
-    this.babylonService.scene.autoClear = false; // Color buffer
-    this.babylonService.scene.autoClearDepthAndStencil = false; // Depth and stencil, obviously
 
     // Uncomment when opacity - not working properly
     //this.mesh.material.needDepthPrePass = true;
