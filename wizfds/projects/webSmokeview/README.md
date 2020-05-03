@@ -23,5 +23,3 @@ $ npm install
 - if you set up smokeview on remote server put ``http://your_server_name:4000`` or ``https://your_server_name:4000`` (depending on your server config file in step 5)
 7. Run your server: ``node app.js &``
 8. Open in web-browser address which you set up in step 5: ``http://localhost:4000`` or ``https://your_server_name:4000``
-
-## Development server
