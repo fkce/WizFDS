@@ -11,7 +11,7 @@
 4. Run in terminal:
 ```
 $ cd webSmokeview
-$ npm install # install required packages
+$ npm install
 ```
 5. Set up server config file: ``vim ./config/config.js``
 - change only production variables
