@@ -13,7 +13,7 @@
 $ cd webSmokeview
 $ npm install
 ```
-5. Set up server config file: ``vim ./config/config.js`` (change only production variables)
+5. Set up server config file: ``vim ./config/config.json`` (change only production variables)
 - ``nodePort`` - port number you deploy server (remember to open this port on your firewall): default 4000
 - ``pathToSimulations`` - path where you storage your simulations results
 - ``protocol`` - use http or https, if you use https you have to set up paths to: ``privatekey.pem`` and ``fullchain.pem``
