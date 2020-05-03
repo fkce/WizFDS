@@ -18,7 +18,7 @@ $ npm install
 - ``pathToSimulations`` - path where you storage your simulations results
 - ``protocol`` - use http or https, if you use https you have to set up paths to: ``privatekey.pem`` and ``fullchain.pem``
 
-6. Set up your server host: ``vim ./public/assets/config/config.prod/json``
+6. Set up your server host: ``vim ./public/assets/config/config.prod.json``
 - if you set up smokeview on your personal computer put ``http://localhost:4000`` (remember to change port number regarding to step 5)
 - if you set up smokeview on remote server put ``http://your_server_name:4000`` or ``https://your_server_name:4000`` depending on your backend config file (step 5)
 
