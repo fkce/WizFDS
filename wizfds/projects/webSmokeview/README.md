@@ -5,7 +5,8 @@
 ## Installing webSmokeview
 1. Update smokeview to latest realease: [google drive](https://drive.google.com/drive/folders/0B_wB1pJL2bFQc1F4cjJWY2duWTA)
 1. Get Node.js: https://nodejs.org/en/download/ or install it using package manager:
-- for exmaple: ``sudo apt-get install nodejs``
+- Ubuntu: ``sudo apt-get install nodejs``
+- CentOS: ``sudo yum install nodejs``
 2. Download webSmokeview release: [download](https://cloud.fkce.pl/webSmokeviewReleases/webSmokeview_v0.0.1.zip)
 3. Unzip all files into ``webSmokeview`` directory
 4. Run in terminal:
