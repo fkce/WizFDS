@@ -1,0 +1,4 @@
+{
+    "name": "prod",
+    "host": "https://your_host_or_localhost:4000"
+}

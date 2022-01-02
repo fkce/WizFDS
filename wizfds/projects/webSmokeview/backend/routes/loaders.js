@@ -1,8 +1,8 @@
 const fs = require('fs');
-const zlib = require('zlib');
 const { execFileSync } = require('child_process');
-const { pipeline } = require('stream');
 const { gzip } = require('pako');
+
+var _ = require('lodash');
 
 module.exports = function (app) {
 
@@ -19,8 +19,8 @@ module.exports = function (app) {
         fs.writeFile(path + ssf, script, (err) => {
             if (err) return console.log(err);
 
-            console.log('smokeview', '-runhtmlscript', ssf, chid, { cwd: path });
-            execFileSync('smokeview', ['-runhtmlscript', ssf, chid], { cwd: path });
+            console.log('smokeview', '-runhtmlscript', chid, { cwd: path });
+            execFileSync('smokeview', ['-runhtmlscript', chid], { cwd: path });
 
             // After smv script finish read json file and send it back
             fs.readFile(path + chid + '_obst.json', (err, data) => {
@@ -60,4 +60,48 @@ module.exports = function (app) {
             res.send(result);
         });
     });
+
+
+    let record = false;
+    // Get simulation geometry data from already generated json files
+    app.get('/api/loadSmvInfo/:path(*)', (req, res) => {
+
+        try {
+            var smv = fs.readFileSync(req.params.path).toString().split("\n");
+        } catch (err) {
+            console.error(err)
+        }
+
+        let trnx = [];
+
+        _.forEach(smv, (line, index) => {
+
+            if (/^TRNX/.test(line)) {
+                let helpIndex = index;
+                let helpLine = ''
+                while (helpLine != '\r') {
+                    console.log(smv[helpIndex]);
+                    let re = /\d+\.\d+/.exec(smv[helpIndex]);
+                    console.log(re);
+                    trnx.push(re);
+                    helpLine = smv[helpIndex + 1];
+                    helpIndex = helpIndex + 1;
+                }
+            }
+
+            if (/^SLCF/.test(line)) {
+                console.log(smv[index]);
+                console.log(smv[index + 1]);
+                console.log(smv[index + 2]);
+                console.log(smv[index + 3]);
+                console.log(smv[index + 4]);
+            }
+
+        });
+
+        console.log(trnx);
+
+
+    });
+
 }

@@ -39,7 +39,9 @@ $body: #383838;
 .main {
     display: flex;
     flex-direction: row;
+    align-items: flex-start;
     width: 100%;
+    height: calc(100vh - 6rem);
 
     .file-explorer {
         width: 20%;
@@ -52,5 +54,6 @@ $body: #383838;
         width: 80%;
         margin-right: 1rem;
         background-color: $grey3;
+        height: calc(100vh - 6rem);
     }
 }

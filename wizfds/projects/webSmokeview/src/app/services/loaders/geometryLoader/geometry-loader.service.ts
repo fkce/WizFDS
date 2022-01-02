@@ -1,7 +1,7 @@
 import { Injectable, isDevMode } from '@angular/core';
 import { HttpManagerService, Result } from '../../http-manager/http-manager.service';
-import { environment } from '../../../../environments/environment';
 import { ungzip } from 'pako';
+import { ConfigService } from '../../config/config.service';
 
 @Injectable({
   providedIn: 'root'
@@ -21,7 +21,7 @@ export class GeometryLoaderService {
     let promise = new Promise((resolve, reject) => {
       if (simulation.extension == '.smv') {
 
-        this.httpManager.get(environment.host + `/api/loadSmv/${simulation.path}`).then(
+        this.httpManager.get(ConfigService.settings.host + `/api/loadSmv/${simulation.path}`).then(
           (result: Result) => {
 
             if (result.meta.status == 'success') {
@@ -51,7 +51,7 @@ export class GeometryLoaderService {
     let promise = new Promise((resolve, reject) => {
       if (simulation.extension == '.json') {
 
-        this.httpManager.get(environment.host + `/api/loadJson/${simulation.path}`).then(
+        this.httpManager.get(ConfigService.settings.host + `/api/loadJson/${simulation.path}`).then(
           (result: Result) => {
 
             if (result.meta.status == 'success') {

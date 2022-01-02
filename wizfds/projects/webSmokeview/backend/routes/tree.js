@@ -1,4 +1,5 @@
 const dirTree = require('directory-tree');
+const { gzip } = require('pako');
 
 module.exports = function (app) {
 
@@ -13,10 +14,8 @@ module.exports = function (app) {
 				from: 'getTreeStructure()',
 				details: ['Get directories structure from local storage']
 			},
-			data: {
-				tree: tree
-			}
+			data: gzip(JSON.stringify(tree), { to: 'string' })
 		}
-		res.send(result)
+		res.send(result);
     });
 }
