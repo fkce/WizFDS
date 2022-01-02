@@ -7,8 +7,10 @@ function getProjects() {
 	$res = new Message("getProjects()");
 	$data = array();
 
+	$db->pg_start();
+
 	try {
-		$result = $db->pg_read("select id, name, description, category_id from projects where user_id=$1 order by name, id", array($_SESSION['user_id']));
+		$result = $db->pg_read_mult("select id, name, description, category_id from projects where user_id=$1 order by name, id", array($_SESSION['user_id']));
 		
 		foreach($result as $project) {
 
@@ -16,7 +18,7 @@ function getProjects() {
 			if(isset($scenarios)) unset($scenarios);
 			$scenarios = array();
 
-			$resultScenario = $db->pg_read("select id, project_id, name, fds_file, ac_file, ac_hash from scenarios where project_id=$1 order by name", array($project['id']));
+			$resultScenario = $db->pg_read_mult("select id, project_id, name, fds_file, ac_file, ac_hash from scenarios where project_id=$1 order by name", array($project['id']));
 
 			if(!empty($resultScenario)) {
 				foreach($resultScenario as $scenario){
@@ -43,11 +45,17 @@ function getProjects() {
 			);
 		}
 
+		$fp = fopen('results.json', 'w');
+		fwrite($fp, json_encode($res->createResponse("success", array("Projects loaded"), $data)));
+		fclose($fp);
+
 		echo json_encode($res->createResponse("success", array("Projects loaded"), $data));
 
 	} catch(Exception $e) {
 		echo json_encode($res->createResponse("error", array("Server error! Projects not loaded"), $data));
 	}
+
+	$db->pg_stop();
 }
 
 function createProject() {
