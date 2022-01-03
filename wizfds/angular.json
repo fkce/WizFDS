@@ -22,7 +22,6 @@
             "main": "projects/wizfds/src/main.ts",
             "polyfills": "projects/wizfds/src/polyfills.ts",
             "tsConfig": "projects/wizfds/tsconfig.app.json",
-            "aot": true,
             "assets": [
               "projects/wizfds/src/favicon.png",
               "projects/wizfds/src/assets"
@@ -30,7 +29,13 @@
             "styles": [
               "projects/wizfds/src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [],
+            "vendorChunk": true,
+            "extractLicenses": false,
+            "buildOptimizer": false,
+            "sourceMap": true,
+            "optimization": false,
+            "namedChunks": true
           },
           "configurations": {
             "production": {
@@ -60,7 +65,8 @@
                 }
               ]
             }
-          }
+          },
+          "defaultConfiguration": ""
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
@@ -182,7 +188,6 @@
             "main": "projects/wizWelcome/src/main.ts",
             "polyfills": "projects/wizWelcome/src/polyfills.ts",
             "tsConfig": "projects/wizWelcome/tsconfig.app.json",
-            "aot": true,
             "assets": [
               "projects/wizWelcome/src/favicon.png",
               "projects/wizWelcome/src/assets"
@@ -190,7 +195,13 @@
             "styles": [
               "projects/wizWelcome/src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [],
+            "vendorChunk": true,
+            "extractLicenses": false,
+            "buildOptimizer": false,
+            "sourceMap": true,
+            "optimization": false,
+            "namedChunks": true
           },
           "configurations": {
             "production": {
@@ -220,7 +231,8 @@
                 }
               ]
             }
-          }
+          },
+          "defaultConfiguration": ""
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
@@ -302,7 +314,6 @@
             "main": "projects/webSmokeview/src/main.ts",
             "polyfills": "projects/webSmokeview/src/polyfills.ts",
             "tsConfig": "projects/webSmokeview/tsconfig.app.json",
-            "aot": true,
             "assets": [
               "projects/webSmokeview/src/favicon.ico",
               "projects/webSmokeview/src/assets"
@@ -310,7 +321,13 @@
             "styles": [
               "projects/webSmokeview/src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [],
+            "vendorChunk": true,
+            "extractLicenses": false,
+            "buildOptimizer": false,
+            "sourceMap": true,
+            "optimization": false,
+            "namedChunks": true
           },
           "configurations": {
             "production": {
@@ -340,7 +357,8 @@
                 }
               ]
             }
-          }
+          },
+          "defaultConfiguration": ""
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
