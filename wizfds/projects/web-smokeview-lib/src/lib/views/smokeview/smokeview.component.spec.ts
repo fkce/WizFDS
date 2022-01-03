@@ -1,4 +1,4 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, waitForAsync as  } from '@angular/core/testing';
 
 import { SmokeviewComponent } from './smokeview.component';
 
@@ -6,7 +6,7 @@ describe('SmokeviewComponent', () => {
   let component: SmokeviewComponent;
   let fixture: ComponentFixture<SmokeviewComponent>;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       declarations: [ SmokeviewComponent ]
     })

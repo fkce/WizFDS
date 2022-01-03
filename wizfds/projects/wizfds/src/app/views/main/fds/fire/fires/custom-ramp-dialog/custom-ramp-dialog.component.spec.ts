@@ -1,4 +1,4 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, waitForAsync as  } from '@angular/core/testing';
 
 import { CustomRampDialogComponent } from './custom-ramp-dialog.component';
 
@@ -6,7 +6,7 @@ describe('CustomRampComponent', () => {
   let component: CustomRampDialogComponent;
   let fixture: ComponentFixture<CustomRampDialogComponent>;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       declarations: [ CustomRampDialogComponent ]
     })
