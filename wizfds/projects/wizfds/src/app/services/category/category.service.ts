@@ -24,7 +24,7 @@ export class CategoryService {
 
   /** Get categories from DB */
   public getCategories() {
-    let promise = new Promise((resolve, reject) => {
+    let promise = new Promise<void>((resolve, reject) => {
       this.httpManager.get(this.main.settings.hostAddress + '/api/categories').then((result: Result) => {
         // Iterate through all projects
         forEach(result.data, (category: CategoryInterface) => {
