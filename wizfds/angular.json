@@ -102,19 +102,6 @@
             "scripts": []
           }
         },
-        "lint": {
-          "builder": "@angular-devkit/build-angular:tslint",
-          "options": {
-            "tsConfig": [
-              "projects/wizfds/tsconfig.app.json",
-              "projects/wizfds/tsconfig.spec.json",
-              "projects/wizfds/e2e/tsconfig.json"
-            ],
-            "exclude": [
-              "**/node_modules/**"
-            ]
-          }
-        },
         "e2e": {
           "builder": "@angular-devkit/build-angular:protractor",
           "options": {
@@ -153,18 +140,6 @@
             "main": "projects/web-smokeview-lib/src/test.ts",
             "tsConfig": "projects/web-smokeview-lib/tsconfig.spec.json",
             "karmaConfig": "projects/web-smokeview-lib/karma.conf.js"
-          }
-        },
-        "lint": {
-          "builder": "@angular-devkit/build-angular:tslint",
-          "options": {
-            "tsConfig": [
-              "projects/web-smokeview-lib/tsconfig.lib.json",
-              "projects/web-smokeview-lib/tsconfig.spec.json"
-            ],
-            "exclude": [
-              "**/node_modules/**"
-            ]
           }
         }
       }
@@ -266,19 +241,6 @@
               "projects/wizWelcome/src/styles.scss"
             ],
             "scripts": []
-          }
-        },
-        "lint": {
-          "builder": "@angular-devkit/build-angular:tslint",
-          "options": {
-            "tsConfig": [
-              "projects/wizWelcome/tsconfig.app.json",
-              "projects/wizWelcome/tsconfig.spec.json",
-              "projects/wizWelcome/e2e/tsconfig.json"
-            ],
-            "exclude": [
-              "**/node_modules/**"
-            ]
           }
         },
         "e2e": {
@@ -392,19 +354,6 @@
               "projects/webSmokeview/src/styles.scss"
             ],
             "scripts": []
-          }
-        },
-        "lint": {
-          "builder": "@angular-devkit/build-angular:tslint",
-          "options": {
-            "tsConfig": [
-              "projects/webSmokeview/tsconfig.app.json",
-              "projects/webSmokeview/tsconfig.spec.json",
-              "projects/webSmokeview/e2e/tsconfig.json"
-            ],
-            "exclude": [
-              "**/node_modules/**"
-            ]
           }
         },
         "e2e": {
