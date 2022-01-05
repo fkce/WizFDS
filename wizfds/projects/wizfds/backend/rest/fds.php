@@ -199,7 +199,7 @@ function updateLibrary($args) {
 	$data = array();
 
 	try {
-		$postData = json_decode(file_get_contents('php://input'));
+		$postData = file_get_contents('php://input');
 		$data = array(
 			nullToEmpty($_SESSION['user_id']), 
 			nullToEmpty($postData)
