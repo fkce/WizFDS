@@ -1,7 +1,7 @@
 {
     "development": {
         "configId": "development",
-        "nodePort": 3000,
+        "nodePort": 4000,
         "protocol": "http",
         "pathToSimulations": "d:/smokeweb/"
     },

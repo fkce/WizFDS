@@ -1,4 +1,4 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, waitForAsync as  } from '@angular/core/testing';
 
 import { IsosurfaceComponent } from './isosurface.component';
 
@@ -6,7 +6,7 @@ describe('IsosurfaceComponent', () => {
   let component: IsosurfaceComponent;
   let fixture: ComponentFixture<IsosurfaceComponent>;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       declarations: [ IsosurfaceComponent ]
     })

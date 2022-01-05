@@ -5,6 +5,6 @@
 
 export const environment = {
   production: false,
-  host: 'https://wizfds.ayz.pl',
+  host: 'http://fliszer.vdl.pl',
   version: '0.7.0'
 };

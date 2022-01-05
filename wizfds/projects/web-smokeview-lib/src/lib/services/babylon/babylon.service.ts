@@ -92,21 +92,21 @@ export class BabylonService {
         BABYLON.Vector3.Zero(),
         new BABYLON.Vector3(size, 0, 0), new BABYLON.Vector3(size * 0.95, 0.05 * size, 0),
         new BABYLON.Vector3(size, 0, 0), new BABYLON.Vector3(size * 0.95, -0.05 * size, 0)
-      ], this.scene);
+      ], this.scene, false);
     axisX.color = new BABYLON.Color3(1, 0, 0);
 
     const axisY = BABYLON.Mesh.CreateLines('axisY',
       [
         BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, size, 0), new BABYLON.Vector3(-0.05 * size, size * 0.95, 0),
         new BABYLON.Vector3(0, size, 0), new BABYLON.Vector3(0.05 * size, size * 0.95, 0)
-      ], this.scene);
+      ], this.scene, false);
     axisY.color = new BABYLON.Color3(0, 1, 0);
 
     const axisZ = BABYLON.Mesh.CreateLines('axisZ',
       [
         BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, 0, size), new BABYLON.Vector3(0, -0.05 * size, size * 0.95),
         new BABYLON.Vector3(0, 0, size), new BABYLON.Vector3(0, 0.05 * size, size * 0.95)
-      ], this.scene);
+      ], this.scene, false);
     axisZ.color = new BABYLON.Color3(0, 0, 1);
   }
 

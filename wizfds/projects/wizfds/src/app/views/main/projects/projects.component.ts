@@ -46,14 +46,13 @@ export class ProjectsComponent implements OnInit, OnDestroy {
       this.updateProjectsList();
     }
 
-    console.log(this.main.init.isProjectsInited);
-
     // Wait for projects and categories if first loading page
     if (this.projects.length < 1 && !this.main.init.isProjectsInited) {
       let projectsInterval = setInterval(() => {
         if (this.main.categories.length > 0 && this.main.projects.length > 0) {
           this.updateProjectsList();
           clearInterval(projectsInterval);
+          this.main.init.isProjectsInited = true;
         }
       }, 500);
     }

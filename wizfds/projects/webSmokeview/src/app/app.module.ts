@@ -1,6 +1,6 @@
 import { BrowserModule, DomSanitizer } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { NgModule } from '@angular/core';
+import { NgModule, APP_INITIALIZER } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
@@ -17,7 +17,12 @@ import { HttpManagerInterceptor } from './services/http-manager/http-manager.int
 import { SmokeviewModule } from '../../../web-smokeview-lib/src/lib/views/smokeview/smokeview.module';
 import { SmokeviewApiModule } from '../../../web-smokeview-lib/src/lib/services/smokeview-api/smokeview-api.module';
 import { TreeComponent } from './views/tree/tree.component';
+import { ConfigService } from './services/config/config.service';
 
+// Load external config file
+export function initializeApp(configService: ConfigService) {
+  return () => configService.load();
+}
 
 @NgModule({
   declarations: [
@@ -42,6 +47,12 @@ import { TreeComponent } from './views/tree/tree.component';
       provide: HTTP_INTERCEPTORS,
       useClass: HttpManagerInterceptor,
       multi: true,
+    },
+    ConfigService,
+    {
+      provide: APP_INITIALIZER,
+      useFactory: initializeApp,
+      deps: [ConfigService], multi: true
     }
   ],
   bootstrap: [AppComponent]

@@ -1,6 +1,7 @@
-import { Injectable, isDevMode } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { HttpManagerService, Result } from '../http-manager/http-manager.service';
-import { environment } from '../../../environments/environment';
+import { ConfigService } from '../config/config.service';
+import { ungzip } from 'pako';
 
 @Injectable({
   providedIn: 'root'
@@ -18,10 +19,12 @@ export class TreeService {
    */
   public getTreeStructure() {
     let promise = new Promise((resolve, reject) => {
-      this.httpManager.get(environment.host + '/api/tree').then(
+      this.httpManager.get(ConfigService.settings.host + '/api/tree').then(
         (result: Result) => {
           if (result.meta.status == 'success') {
-            resolve(result.data.tree);
+            let data = ungzip(result.data, { to: 'string' });
+            result.data = JSON.parse(data);
+            resolve(result.data);
           }
           else {
             reject();

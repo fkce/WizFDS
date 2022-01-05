@@ -22,7 +22,6 @@
             "main": "projects/wizfds/src/main.ts",
             "polyfills": "projects/wizfds/src/polyfills.ts",
             "tsConfig": "projects/wizfds/tsconfig.app.json",
-            "aot": true,
             "assets": [
               "projects/wizfds/src/favicon.png",
               "projects/wizfds/src/assets"
@@ -30,7 +29,13 @@
             "styles": [
               "projects/wizfds/src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [],
+            "vendorChunk": true,
+            "extractLicenses": false,
+            "buildOptimizer": false,
+            "sourceMap": true,
+            "optimization": false,
+            "namedChunks": true
           },
           "configurations": {
             "production": {
@@ -43,7 +48,6 @@
               "optimization": true,
               "outputHashing": "all",
               "sourceMap": false,
-              "extractCss": true,
               "namedChunks": false,
               "extractLicenses": true,
               "vendorChunk": false,
@@ -61,7 +65,8 @@
                 }
               ]
             }
-          }
+          },
+          "defaultConfiguration": ""
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
@@ -97,19 +102,6 @@
             "scripts": []
           }
         },
-        "lint": {
-          "builder": "@angular-devkit/build-angular:tslint",
-          "options": {
-            "tsConfig": [
-              "projects/wizfds/tsconfig.app.json",
-              "projects/wizfds/tsconfig.spec.json",
-              "projects/wizfds/e2e/tsconfig.json"
-            ],
-            "exclude": [
-              "**/node_modules/**"
-            ]
-          }
-        },
         "e2e": {
           "builder": "@angular-devkit/build-angular:protractor",
           "options": {
@@ -131,7 +123,7 @@
       "prefix": "lib",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-ng-packagr:build",
+          "builder": "@angular-devkit/build-angular:ng-packagr",
           "options": {
             "tsConfig": "projects/web-smokeview-lib/tsconfig.lib.json",
             "project": "projects/web-smokeview-lib/ng-package.json"
@@ -148,18 +140,6 @@
             "main": "projects/web-smokeview-lib/src/test.ts",
             "tsConfig": "projects/web-smokeview-lib/tsconfig.spec.json",
             "karmaConfig": "projects/web-smokeview-lib/karma.conf.js"
-          }
-        },
-        "lint": {
-          "builder": "@angular-devkit/build-angular:tslint",
-          "options": {
-            "tsConfig": [
-              "projects/web-smokeview-lib/tsconfig.lib.json",
-              "projects/web-smokeview-lib/tsconfig.spec.json"
-            ],
-            "exclude": [
-              "**/node_modules/**"
-            ]
           }
         }
       }
@@ -183,7 +163,6 @@
             "main": "projects/wizWelcome/src/main.ts",
             "polyfills": "projects/wizWelcome/src/polyfills.ts",
             "tsConfig": "projects/wizWelcome/tsconfig.app.json",
-            "aot": true,
             "assets": [
               "projects/wizWelcome/src/favicon.png",
               "projects/wizWelcome/src/assets"
@@ -191,7 +170,13 @@
             "styles": [
               "projects/wizWelcome/src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [],
+            "vendorChunk": true,
+            "extractLicenses": false,
+            "buildOptimizer": false,
+            "sourceMap": true,
+            "optimization": false,
+            "namedChunks": true
           },
           "configurations": {
             "production": {
@@ -204,7 +189,6 @@
               "optimization": true,
               "outputHashing": "all",
               "sourceMap": false,
-              "extractCss": true,
               "namedChunks": false,
               "extractLicenses": true,
               "vendorChunk": false,
@@ -222,7 +206,8 @@
                 }
               ]
             }
-          }
+          },
+          "defaultConfiguration": ""
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
@@ -258,19 +243,6 @@
             "scripts": []
           }
         },
-        "lint": {
-          "builder": "@angular-devkit/build-angular:tslint",
-          "options": {
-            "tsConfig": [
-              "projects/wizWelcome/tsconfig.app.json",
-              "projects/wizWelcome/tsconfig.spec.json",
-              "projects/wizWelcome/e2e/tsconfig.json"
-            ],
-            "exclude": [
-              "**/node_modules/**"
-            ]
-          }
-        },
         "e2e": {
           "builder": "@angular-devkit/build-angular:protractor",
           "options": {
@@ -304,7 +276,6 @@
             "main": "projects/webSmokeview/src/main.ts",
             "polyfills": "projects/webSmokeview/src/polyfills.ts",
             "tsConfig": "projects/webSmokeview/tsconfig.app.json",
-            "aot": true,
             "assets": [
               "projects/webSmokeview/src/favicon.ico",
               "projects/webSmokeview/src/assets"
@@ -312,7 +283,13 @@
             "styles": [
               "projects/webSmokeview/src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [],
+            "vendorChunk": true,
+            "extractLicenses": false,
+            "buildOptimizer": false,
+            "sourceMap": true,
+            "optimization": false,
+            "namedChunks": true
           },
           "configurations": {
             "production": {
@@ -325,7 +302,6 @@
               "optimization": true,
               "outputHashing": "all",
               "sourceMap": false,
-              "extractCss": true,
               "namedChunks": false,
               "extractLicenses": true,
               "vendorChunk": false,
@@ -343,7 +319,8 @@
                 }
               ]
             }
-          }
+          },
+          "defaultConfiguration": ""
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
@@ -377,19 +354,6 @@
               "projects/webSmokeview/src/styles.scss"
             ],
             "scripts": []
-          }
-        },
-        "lint": {
-          "builder": "@angular-devkit/build-angular:tslint",
-          "options": {
-            "tsConfig": [
-              "projects/webSmokeview/tsconfig.app.json",
-              "projects/webSmokeview/tsconfig.spec.json",
-              "projects/webSmokeview/e2e/tsconfig.json"
-            ],
-            "exclude": [
-              "**/node_modules/**"
-            ]
           }
         },
         "e2e": {

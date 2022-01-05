@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ElementRef, Input, OnChanges, SimpleChanges, isDevMode } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { HttpManagerService, Result } from '../../services/http-manager/http-manager.service';
 import { environment } from '../../../environments/environment';
 import { SmokeviewApiService } from 'projects/web-smokeview-lib/src/lib/services/smokeview-api/smokeview-api.service';
@@ -10,16 +10,14 @@ import { GeometryLoaderService } from '../../services/loaders/geometryLoader/geo
   templateUrl: './tree.component.html',
   styleUrls: ['./tree.component.scss']
 })
-export class TreeComponent implements OnInit {
+export class TreeComponent implements OnInit, AfterViewInit {
 
-  @ViewChild('tree') private treeContainer: ElementRef;
-  @Input() tree: any;
 
   l1: string = '';
   l2: string = '';
   l3: string = '';
 
-  simpleTree: object = {};
+  tree: object = {};
 
   constructor(
     private httpManager: HttpManagerService,
@@ -30,12 +28,16 @@ export class TreeComponent implements OnInit {
 
   ngOnInit(): void {
 
+  }
+
+  ngAfterViewInit() {
+
     // Sync tree structure
     this.treeService.getTreeStructure().then(
-      (val: any) => { this.simpleTree = val; },
+      (data: any) => { this.tree = data; },
       (err) => { console.log(err); }
     );
-    //this.getJsonObject();
+
   }
 
   /**
