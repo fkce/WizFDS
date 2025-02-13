@@ -16,6 +16,13 @@ using Bricscad.Windows;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Runtime;
+#elif GRX_APP
+using acApp = Gssoft.Gscad.ApplicationServices.Application;
+using Gssoft.Gscad.ApplicationServices;
+using Gssoft.Gscad.DatabaseServices;
+using Gssoft.Gscad.EditorInput;
+using Gssoft.Gscad.Runtime;
+using Gssoft.Gscad.Geometry;
 #endif
 
 

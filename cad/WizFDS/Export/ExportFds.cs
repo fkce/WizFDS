@@ -14,6 +14,14 @@ using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.Interop.Common;
+#elif GRX_APP
+using acApp = Gssoft.Gscad.ApplicationServices.Application;
+using Gssoft.Gscad.ApplicationServices;
+using Gssoft.Gscad.DatabaseServices;
+using Gssoft.Gscad.EditorInput;
+using Gssoft.Gscad.Geometry;
+using Gssoft.Gscad.Runtime;
+using GrxCAD.Interop;
 #endif
 
 using System;
@@ -574,6 +582,8 @@ namespace WizFDS.Export
                                     Teigha.DatabaseServices.Polyline polyEnt = acTrans.GetObject(acSSObj.ObjectId, OpenMode.ForRead) as Teigha.DatabaseServices.Polyline;
 #elif ARX_APP
                                     Autodesk.AutoCAD.DatabaseServices.Polyline polyEnt = acTrans.GetObject(acSSObj.ObjectId, OpenMode.ForRead) as Autodesk.AutoCAD.DatabaseServices.Polyline;
+#elif GRX_APP
+                                    Gssoft.Gscad.DatabaseServices.Polyline polyEnt = acTrans.GetObject(acSSObj.ObjectId, OpenMode.ForRead) as Gssoft.Gscad.DatabaseServices.Polyline;
 #endif
 
                                     // Check if poly is in obst
@@ -847,7 +857,8 @@ namespace WizFDS.Export
                 else if (acEnt is Solid3d)
                 {
                     Solid3d sol = acEnt as Solid3d;
-                    Acad3DSolid solid = (Acad3DSolid)sol.AcadObject;
+                    Gcad3DSolid solid = (Gcad3DSolid)sol.AcadObject;
+                    
                     try
                     {
                         type = solid.SolidType.ToString();
@@ -859,7 +870,7 @@ namespace WizFDS.Export
                         type = "point";
                     }
                 }
-#if ARX_APP
+#if ARX_APP || GRX_APP
                 else if(acEnt is Line || acEnt is Polyline)
 #elif BRX_APP
                 else if(acEnt is Line || acEnt is Teigha.DatabaseServices.Polyline)

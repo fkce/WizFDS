@@ -20,6 +20,14 @@ using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.Colors;
+#elif GRX_APP
+using acApp = Gssoft.Gscad.ApplicationServices.Application;
+using Gssoft.Gscad.ApplicationServices;
+using Gssoft.Gscad.DatabaseServices;
+using Gssoft.Gscad.EditorInput;
+using Gssoft.Gscad.Geometry;
+using Gssoft.Gscad.Runtime;
+using Gssoft.Gscad.Colors;
 #endif
 
 using System;
@@ -222,7 +230,7 @@ namespace WizFDS.Utils
         {
             
             Utils.Init();
-#if ARX_APP
+#if ARX_APP || GRX_APP
             OpenFileDialog theDialog = new OpenFileDialog();
             theDialog.Title = "Open FDS file";
             theDialog.Filter = "FDS files (*.fds)|*.fds|All files (*.*)|*.*";
@@ -233,7 +241,7 @@ namespace WizFDS.Utils
 
             if (theDialog.ShowDialog() == DialogResult.OK)
             {
-#if ARX_APP
+#if ARX_APP || GRX_APP
                 string filename = theDialog.FileName;
 #elif BRX_APP
                 string filename = theDialog.Filename;

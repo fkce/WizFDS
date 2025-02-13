@@ -18,6 +18,16 @@ using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
 using BrFace = Autodesk.AutoCAD.BoundaryRepresentation.Face;
 using BrException = Autodesk.AutoCAD.BoundaryRepresentation.Exception;
+#elif GRX_APP
+using acApp = Gssoft.Gscad.ApplicationServices.Application;
+using Gssoft.Gscad.ApplicationServices;
+using Gssoft.Gscad.BoundaryRepresentation;
+using Gssoft.Gscad.DatabaseServices;
+using Gssoft.Gscad.EditorInput;
+using Gssoft.Gscad.Geometry;
+using Gssoft.Gscad.Runtime;
+using BrFace = Gssoft.Gscad.BoundaryRepresentation.Face;
+using BrException = Gssoft.Gscad.BoundaryRepresentation.Exception;
 #endif
 
 using System.Collections.Generic;
@@ -343,7 +353,7 @@ namespace WizFDS.Modelling.Geometry
                             //faceBoundary.Add(face.BoundBlock.GetMinimumPoint());
                             //faceBoundary.Add(face.BoundBlock.GetMaximumPoint());
                             res = true;
-#elif ARX_APP
+#elif ARX_APP || GRX_APP
                             faceBoundary.Add(face.BoundBlock.GetMinimumPoint());
                             faceBoundary.Add(face.BoundBlock.GetMaximumPoint());
                             res = true;

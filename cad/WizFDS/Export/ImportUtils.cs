@@ -19,6 +19,15 @@ using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
+#elif GRX_APP
+using acApp = Gssoft.Gscad.ApplicationServices.Application;
+using Gssoft.Gscad.ApplicationServices;
+using Gssoft.Gscad.Colors;
+using Gssoft.Gscad.DatabaseServices;
+using Gssoft.Gscad.EditorInput;
+using Gssoft.Gscad.Geometry;
+using Gssoft.Gscad.Runtime;
+using GrxCAD.Interop;
 #endif
 
 
@@ -109,6 +118,8 @@ namespace WizFDS.Export
                 ExtrudedSurface extrSurf = (Teigha.DatabaseServices.ExtrudedSurface)acTrans.GetObject(objectId, OpenMode.ForWrite);
 #elif ARX_APP
                 ExtrudedSurface extrSurf = (Autodesk.AutoCAD.DatabaseServices.ExtrudedSurface)acTrans.GetObject(objectId, OpenMode.ForWrite);
+#elif GRX_APP
+                ExtrudedSurface extrSurf = (Gssoft.Gscad.DatabaseServices.ExtrudedSurface)acTrans.GetObject(objectId, OpenMode.ForWrite);
 #endif
                 extrSurf.SetDatabaseDefaults();
                 SweepOptions sweepOpts = new SweepOptions();
@@ -134,6 +145,8 @@ namespace WizFDS.Export
                 Bricscad.Internal.Utils.SelectObjects(ids);
 #elif ARX_APP
                 Autodesk.AutoCAD.Internal.Utils.SelectObjects(ids);
+#elif GRX_APP
+                Gssoft.Gscad.Internal.Utils.SelectObjects(ids);
 #endif
             }
             ed.UpdateScreen();

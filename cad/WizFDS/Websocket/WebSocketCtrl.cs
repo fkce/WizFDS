@@ -10,8 +10,13 @@ using Bricscad.Windows;
 using acApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Runtime;
-using Autodesk.Windows;
 using Autodesk.AutoCAD.ApplicationServices;
+#elif GRX_APP
+using acApp = Gssoft.Gscad.ApplicationServices.Application;
+using Gssoft.Gscad.EditorInput;
+using Gssoft.Gscad.Runtime;
+using Gssoft.Gscad.ApplicationServices;
+using Autodesk.Windows;
 #endif
 
 using System;
@@ -150,7 +155,7 @@ namespace WizFDS.Websocket
                 syncCtrl.server = new acWebSocketServer(syncCtrl);
                 syncCtrl.router = new acWebSocketRouter();
 
-#if ARX_APP
+#if ARX_APP || GRX_APP
                 acDoc.SendStringToExecute("TASKBAR\n0\n", true, false, true);
 #endif
 
@@ -164,7 +169,7 @@ namespace WizFDS.Websocket
                     //load the custom Ribbon on startup, but at this point
                     //the Ribbon control is not available, so register for
                     //an event and wait
-#if ARX_APP
+#if ARX_APP || GRX_APP
                     ComponentManager.ItemInitialized +=
                         new EventHandler<RibbonItemEventArgs>(ComponentManager_ItemInitialized);
 #elif BRX_APP
@@ -198,7 +203,7 @@ namespace WizFDS.Websocket
                 {
                     Ribbon.Ribbon rb = new Ribbon.Ribbon();
                     //and remove the event handler
-#if ARX_APP
+#if ARX_APP || GRX_APP
                     Autodesk.Windows.ComponentManager.ItemInitialized -=
                         new EventHandler<RibbonItemEventArgs>(ComponentManager_ItemInitialized);
 #elif BRX_APP

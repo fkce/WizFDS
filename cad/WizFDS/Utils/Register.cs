@@ -4,6 +4,9 @@ using Teigha.Runtime;
 #elif ARX_APP
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Runtime;
+#elif GRX_APP
+using Gssoft.Gscad.DatabaseServices;
+using Gssoft.Gscad.Runtime;
 #endif
 
 using System;

@@ -12,6 +12,16 @@ using Autodesk.AutoCAD.DatabaseServices;
 using acDb = Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
+#elif GRX_APP
+using acApp = Gssoft.Gscad.ApplicationServices.Application;
+using Gssoft.Gscad.ApplicationServices;
+using Gssoft.Gscad.DatabaseServices;
+using Gssoft.Gscad.Colors;
+using acDb = Gssoft.Gscad.DatabaseServices;
+using Gssoft.Gscad.EditorInput;
+using Gssoft.Gscad.Geometry;
+using Gssoft.Gscad.Runtime;
+using GrxCAD.Interop;
 #endif
 
 using System;
@@ -32,7 +42,7 @@ namespace WizFDS.Utils
         public static Object oldSnapUnit;
 #if BRX_APP
         public static Point3d snapUnit;
-#elif ARX_APP
+#elif ARX_APP || GRX_APP
         public static Point2d snapUnit;
 #endif
         public static Point2d GetSnapUnit()
@@ -62,7 +72,7 @@ namespace WizFDS.Utils
             oldLayer = acApp.GetSystemVariable("clayer");
 #if BRX_APP
             snapUnit = (Point3d)acApp.GetSystemVariable("snapunit");
-#elif ARX_APP
+#elif ARX_APP || GRX_APP
             snapUnit = (Point2d)acApp.GetSystemVariable("snapunit");
 #endif
 
@@ -72,7 +82,7 @@ namespace WizFDS.Utils
             {
 #if BRX_APP
                 Point3d snap = new Point3d(0.2, 0.2, 0.2);
-#elif ARX_APP
+#elif ARX_APP || GRX_APP
                 Point2d snap = new Point2d(0.2, 0.2);
 #endif
                 acApp.SetSystemVariable("snapunit", snap);
@@ -97,7 +107,7 @@ namespace WizFDS.Utils
             oldLayer = acApp.GetSystemVariable("clayer");
 #if BRX_APP
             snapUnit = (Point3d)acApp.GetSystemVariable("snapunit");
-#elif ARX_APP
+#elif ARX_APP || GRX_APP
             snapUnit = (Point2d)acApp.GetSystemVariable("snapunit");
 #endif
 
@@ -107,7 +117,7 @@ namespace WizFDS.Utils
             {
 #if BRX_APP
                 Point3d snap = new Point3d(0.2, 0.2, 0.2);
-#elif ARX_APP
+#elif ARX_APP || GRX_APP
                 Point2d snap = new Point2d(0.2, 0.2);
 #endif
                 acApp.SetSystemVariable("snapunit", snap);
@@ -879,7 +889,7 @@ namespace WizFDS.Utils
                 // Create a 3D polyline (closed)
 #if BRX_APP
                 Teigha.DatabaseServices.Face face = null;
-#elif ARX_APP
+#elif ARX_APP || GRX_APP
                 Face face = null;
 #endif
                 if (coordinate == "Z")
@@ -895,7 +905,7 @@ namespace WizFDS.Utils
                                 true,
                                 true
                             );
-#elif ARX_APP
+#elif ARX_APP || GRX_APP
                     face = new Face(
                                 new Point3d(minPoint.X, minPoint.Y, coordinateValue),
                                 new Point3d(minPoint.X, maxPoint.Y, coordinateValue),
@@ -921,7 +931,7 @@ namespace WizFDS.Utils
                                 true,
                                 true
                             );
-#elif ARX_APP
+#elif ARX_APP || GRX_APP
                     face = new Face(
                                 new Point3d(coordinateValue, minPoint.Y, minPoint.Z),
                                 new Point3d(coordinateValue, minPoint.Y, maxPoint.Z),
@@ -947,7 +957,7 @@ namespace WizFDS.Utils
                                 true,
                                 true
                             );
-#elif ARX_APP
+#elif ARX_APP || GRX_APP
                     face = new Face(
                                 new Point3d(minPoint.X, coordinateValue, minPoint.Z),
                                 new Point3d(minPoint.X, coordinateValue, maxPoint.Z),
@@ -965,10 +975,14 @@ namespace WizFDS.Utils
                 Teigha.DatabaseServices.Surface surface = new Teigha.DatabaseServices.Surface();
                 surface.SetDatabaseDefaults();
                 surface = Teigha.DatabaseServices.Surface.CreateFrom(face);
-#elif ARX_APP
+#elif ARX_APP 
                 Autodesk.AutoCAD.DatabaseServices.Surface surface = new Autodesk.AutoCAD.DatabaseServices.Surface();
                 surface.SetDatabaseDefaults();
                 surface = Autodesk.AutoCAD.DatabaseServices.Surface.CreateFrom(face);
+#elif GRX_APP 
+                Gssoft.Gscad.DatabaseServices.Surface surface = new Gssoft.Gscad.DatabaseServices.Surface();
+                surface.SetDatabaseDefaults();
+                surface = Gssoft.Gscad.DatabaseServices.Surface.CreateFrom(face);
 #endif
                 surface.UIsoLineDensity = 0;
                 surface.VIsoLineDensity = 0;
@@ -1496,6 +1510,8 @@ namespace WizFDS.Utils
             Object acadObject = Bricscad.ApplicationServices.Application.AcadApplication;
 #elif ARX_APP
             Object acadObject = Autodesk.AutoCAD.ApplicationServices.Application.AcadApplication;
+#elif GRX_APP
+            Object acadObject = Gssoft.Gscad.ApplicationServices.Application.AcadApplication;
 #endif
             acadObject.GetType().InvokeMember("ZoomExtents", BindingFlags.InvokeMethod, null, acadObject, null);
         }
@@ -1674,6 +1690,125 @@ namespace Bricscad.EditorInput
 }
 #elif ARX_APP
 namespace Autodesk.AutoCAD.EditorInput
+{
+    public static class EditorExtensions
+    {
+
+        public static PromptUcsCornerResult GetUcsCorner(this Editor ed, string message, Point3d basePoint)
+        {
+            var ucs = ed.CurrentUserCoordinateSystem;
+            var normal = ucs.CoordinateSystem3d.Zaxis;
+            var ocsPlane = new Plane(Point3d.Origin, normal);
+            using (var pline = new Polyline(4))
+            {
+                var p2d = basePoint.TransformBy(ucs).Convert2d(ocsPlane);
+                pline.AddVertexAt(0, p2d, 0.0, 0.0, 0.0);
+                pline.AddVertexAt(1, p2d, 0.0, 0.0, 0.0);
+                pline.AddVertexAt(2, p2d, 0.0, 0.0, 0.0);
+                pline.AddVertexAt(3, p2d, 0.0, 0.0, 0.0);
+                pline.Closed = true;
+                pline.Normal = normal;
+                pline.Elevation = basePoint.TransformBy(ucs).TransformBy(Matrix3d.WorldToPlane(ocsPlane)).Z;
+                var jig = new RectangleJig(pline, message, ocsPlane);
+                return new PromptUcsCornerResult((PromptPointResult)ed.Drag(jig));
+            }
+        }
+
+        public class PromptUcsCornerResult
+        {
+            PromptPointResult result;
+
+            internal PromptUcsCornerResult(PromptPointResult result)
+            {
+                this.result = result;
+                var ed = acApp.DocumentManager.MdiActiveDocument.Editor;
+                Value = this.result.Value.TransformBy(ed.CurrentUserCoordinateSystem.Inverse());
+            }
+
+            public PromptStatus Status => result.Status;
+
+            public string StringResult => result.StringResult;
+
+            public Point3d Value { get; }
+        }
+
+        class RectangleJig : EntityJig
+        {
+            Matrix3d ucs, wcs;
+            Plane plane;
+            Polyline pline;
+            Point3d ucsBasePoint, dragPoint;
+            string message;
+
+            public RectangleJig(Polyline pline, string message, Plane plane) : base(pline)
+            {
+                this.pline = pline;
+                this.message = message;
+                this.plane = plane;
+                var ed = acApp.DocumentManager.MdiActiveDocument.Editor;
+                ucs = ed.CurrentUserCoordinateSystem;
+                wcs = ucs.Inverse();
+                ucsBasePoint = pline.GetPoint3dAt(0).TransformBy(wcs);
+            }
+
+            protected override SamplerStatus Sampler(JigPrompts prompts)
+            {
+                var options = new JigPromptPointOptions(message);
+                options.BasePoint = pline.GetPoint3dAt(0);
+                options.UseBasePoint = true;
+                options.UserInputControls =
+                    UserInputControls.Accept3dCoordinates |
+                    UserInputControls.UseBasePointElevation;
+                var result = prompts.AcquirePoint(options);
+                if (dragPoint.IsEqualTo(result.Value))
+                    return SamplerStatus.NoChange;
+                dragPoint = result.Value;
+                return SamplerStatus.OK;
+            }
+
+            protected override bool Update()
+            {
+                var tmp = dragPoint.TransformBy(wcs);
+                var pt1 = new Point3d(tmp.X, ucsBasePoint.Y, ucsBasePoint.Z).TransformBy(ucs);
+                var pt3 = new Point3d(ucsBasePoint.X, tmp.Y, ucsBasePoint.Z).TransformBy(ucs);
+                var pt2 = tmp.TransformBy(ucs);
+                pline.SetPointAt(1, pt1.Convert2d(plane));
+                pline.SetPointAt(2, pt2.Convert2d(plane));
+                pline.SetPointAt(3, pt3.Convert2d(plane));
+                return true;
+            }
+        }
+    }
+
+    // Dodanie mozliwosci komend  
+    // Document doc = Application.DocumentManager.MdiActiveDocument;
+    // Editor editor = doc.Editor;
+    // editor.Command( "._EXPORTLAYOUT", "filename-goes-here" );
+    public static class EditorInputExtensionMethods
+    {
+        public static PromptStatus Command(this Editor editor, params object[] args)
+        {
+            if (editor == null)
+                throw new ArgumentNullException("editor");
+            return runCommand(editor, args);
+        }
+
+        static Func<Editor, object[], PromptStatus> runCommand = GenerateRunCommand();
+
+        static Func<Editor, object[], PromptStatus> GenerateRunCommand()
+        {
+            MethodInfo method = typeof(Editor).GetMethod("RunCommand",
+               BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+            var instance = Expression.Parameter(typeof(Editor), "instance");
+            var args = Expression.Parameter(typeof(object[]), "args");
+            return Expression.Lambda<Func<Editor, object[], PromptStatus>>(
+               Expression.Call(instance, method, args), instance, args)
+                  .Compile();
+        }
+    }
+}
+#elif GRX_APP
+namespace Gssoft.Gscad.EditorInput
 {
     public static class EditorExtensions
     {

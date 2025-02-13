@@ -7,6 +7,10 @@ using Bricscad.EditorInput;
 using acApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.Windows;
+#elif GRX_APP
+using acApp = Gssoft.Gscad.ApplicationServices.Application;
+using Gssoft.Gscad.ApplicationServices;
+using Autodesk.Windows;
 #endif
 
 using System;
@@ -14,7 +18,6 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Windows.Media.Imaging;
-using System.Windows.Controls;
 
 namespace WizFDS.Ribbon
 {
@@ -23,7 +26,7 @@ namespace WizFDS.Ribbon
 
     public class Ribbon
     {
-        public static RibbonButton sWebsocketBtn = new RibbonButton();
+        public static  RibbonButton sWebsocketBtn = new RibbonButton();
         public static RibbonButton lHideFdsBtn = new RibbonButton();
         public static RibbonButton lHideOtherBtn = new RibbonButton();
 
@@ -32,7 +35,7 @@ namespace WizFDS.Ribbon
         public Ribbon()
         {
             if (RibbonInit.isRibbonInited == false)
-#if ARX_APP
+#if ARX_APP || GRX_APP
                 InitArxRibbon();
 #elif BRX_APP
                 InitBrxRibbon();
@@ -41,7 +44,7 @@ namespace WizFDS.Ribbon
 
         public static void WebSocketOpened()
         {
-#if ARX_APP
+#if ARX_APP || GRX_APP
             sWebsocketBtn.LargeImage = Images.getBitmap(Properties.Resources.websocOpenLarge);
 #elif BRX_APP
             sWebsocketBtn.LargeImage = Images.getBitmapPath(Properties.Resources.websocOpenLarge, "websocOpenLarge");
@@ -51,7 +54,7 @@ namespace WizFDS.Ribbon
         }
         public static void WebSockedClosed()
         {
-#if ARX_APP
+#if ARX_APP || GRX_APP
             sWebsocketBtn.LargeImage = Images.getBitmap(Properties.Resources.websocCloseLarge);
 #elif BRX_APP
             sWebsocketBtn.LargeImage = Images.getBitmapPath(Properties.Resources.websocCloseLarge, "websocCloseLarge");
@@ -60,7 +63,7 @@ namespace WizFDS.Ribbon
             syncPanel.IsEnabled = false;
         }
 
-#if ARX_APP
+#if ARX_APP || GRX_APP
         // AutoCAD Ribbon
         public static void InitArxRibbon()
         {

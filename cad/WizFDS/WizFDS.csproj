@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>WizFDS</RootNamespace>
     <AssemblyName>WizFDS</AssemblyName>
-    <TargetFrameworkVersion>v4.7</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
   </PropertyGroup>
@@ -127,52 +127,88 @@
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'GStarCAD_Debug|AnyCPU'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\GStarCAD_Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;GRX_APP, WIZFDS, DEBUG</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'GStarCAD_Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\GStarCAD_Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;ARX_APP</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="accoremgd">
-      <HintPath>..\..\..\..\..\..\Program Files\Autodesk\AutoCAD 2020\accoremgd.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\..\Program Files\Autodesk\AutoCAD 2024\accoremgd.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="AcCui">
-      <HintPath>..\..\..\..\..\..\Program Files\Autodesk\AutoCAD 2020\AcCui.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\..\Program Files\Autodesk\AutoCAD 2024\AcCui.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="acdbmgd">
-      <HintPath>..\..\..\..\..\..\Program Files\Autodesk\AutoCAD 2020\acdbmgd.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\..\Program Files\Autodesk\AutoCAD 2024\acdbmgd.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="acdbmgdbrep">
-      <HintPath>..\..\..\..\..\..\Program Files\Autodesk\AutoCAD 2020\acdbmgdbrep.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\..\Program Files\Autodesk\AutoCAD 2024\acdbmgdbrep.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="acmgd">
-      <HintPath>..\..\..\..\..\..\Program Files\Autodesk\AutoCAD 2020\acmgd.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\..\Program Files\Autodesk\AutoCAD 2024\acmgd.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="AcMPolygonMGD">
-      <HintPath>..\..\..\..\..\..\Program Files\Autodesk\AutoCAD 2020\AcMPolygonMGD.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\..\Program Files\Autodesk\AutoCAD 2024\AcMPolygonMGD.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="AcWindows">
-      <HintPath>..\reference\AcWindows.dll</HintPath>
-      <Private>False</Private>
+      <HintPath>..\..\..\..\..\..\..\Program Files\Autodesk\AutoCAD 2024\AcWindows.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="AdWindows, Version=4.0.24.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\reference\AdWindows.dll</HintPath>
-      <Private>False</Private>
+      <HintPath>..\..\..\..\..\..\..\Program Files\Autodesk\AutoCAD 2024\AdWindows.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Autodesk.AutoCAD.Interop">
-      <HintPath>..\..\..\..\..\..\Program Files\Autodesk\AutoCAD 2020\Autodesk.AutoCAD.Interop.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\..\Program Files\Autodesk\AutoCAD 2024\Autodesk.AutoCAD.Interop.dll</HintPath>
       <EmbedInteropTypes>True</EmbedInteropTypes>
     </Reference>
     <Reference Include="Autodesk.AutoCAD.Interop.Common">
-      <HintPath>..\..\..\..\..\..\Program Files\Autodesk\AutoCAD 2020\Autodesk.AutoCAD.Interop.Common.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\..\Program Files\Autodesk\AutoCAD 2024\Autodesk.AutoCAD.Interop.Common.dll</HintPath>
       <EmbedInteropTypes>True</EmbedInteropTypes>
     </Reference>
     <Reference Include="BrxMgd, Version=21.0.6788.27883, Culture=neutral, processorArchitecture=AMD64">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\Program Files\Bricsys\BricsCAD V19 pl_PL\BrxMgd.dll</HintPath>
       <Private>False</Private>
+    </Reference>
+    <Reference Include="GcCoreMgd">
+      <HintPath>..\..\..\..\grxsdk\arx\inc\GcCoreMgd.dll</HintPath>
+    </Reference>
+    <Reference Include="GcDbMgd">
+      <HintPath>..\..\..\..\grxsdk\arx\inc\GcDbMgd.dll</HintPath>
+    </Reference>
+    <Reference Include="GcDbMgdBrep">
+      <HintPath>..\..\..\..\grxsdk\arx\inc\GcDbMgdBrep.dll</HintPath>
+    </Reference>
+    <Reference Include="GcMgd">
+      <HintPath>..\..\..\..\grxsdk\arx\inc\GcMgd.dll</HintPath>
+    </Reference>
+    <Reference Include="GrxCAD.Interop">
+      <HintPath>..\..\..\..\grxsdk\arx\inc-x64\GrxCAD.Interop.dll</HintPath>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
     </Reference>
     <Reference Include="Interop.BricscadApp, Version=18.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\BricsCAD_Net_v18_Interop.1.0.0\lib\Interop.BricscadApp.dll</HintPath>
@@ -356,6 +392,15 @@
     <EmbeddedResource Include="Library\log4net.dll" />
   </ItemGroup>
   <ItemGroup>
+    <COMReference Include="GcadVbaLib">
+      <Guid>{ECE4AFFD-F9DE-4762-9954-4A624676CD8C}</Guid>
+      <VersionMajor>1</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
     <COMReference Include="stdole">
       <Guid>{00020430-0000-0000-C000-000000000046}</Guid>
       <VersionMajor>2</VersionMajor>

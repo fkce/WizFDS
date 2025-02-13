@@ -8,6 +8,9 @@ using Teigha.Runtime;
 #elif ARX_APP
 using acApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using Autodesk.AutoCAD.EditorInput;
+#elif GRX_APP
+using acApp = Gssoft.Gscad.ApplicationServices.Application;
+using Gssoft.Gscad.EditorInput;
 #endif
 
 using System;
