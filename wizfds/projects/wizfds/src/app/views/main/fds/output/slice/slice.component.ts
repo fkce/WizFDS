@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, OnDestroy } from '@angular/core';
+import { Component, OnInit, ViewChild, OnDestroy, isDevMode } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
 import { Main } from '@services/main/main';
@@ -16,16 +16,17 @@ import { FdsEnums } from '@enums/fds/enums/fds-enums';
 import { Quantity } from '@services/fds-object/primitives';
 import { Spec } from '@services/fds-object/specie/spec';
 
-import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
+import { NgScrollbar } from 'ngx-scrollbar';
 import { filter, map, includes, cloneDeep, find, findIndex, set, remove, merge } from 'lodash';
 import { WebsocketMessageObject } from '@services/websocket/websocket-message';
 import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-slice',
-  templateUrl: './slice.component.html',
-  styleUrls: ['./slice.component.scss']
+    selector: 'app-slice',
+    templateUrl: './slice.component.html',
+    styleUrls: ['./slice.component.scss'],
+    standalone: false
 })
 export class SliceComponent implements OnInit, OnDestroy {
 
@@ -50,8 +51,8 @@ export class SliceComponent implements OnInit, OnDestroy {
   rouSub: Subscription;
 
   // Scrolbars containers
-  @ViewChild('slcfScrollbar', {static: false}) slcfScrollbar: PerfectScrollbarComponent;
-  @ViewChild('libSlcfScrollbar', {static: false}) libSlcfScrollbar: PerfectScrollbarComponent;
+  @ViewChild('slcfScrollbar', {static: false}) slcfScrollbar: NgScrollbar;
+  @ViewChild('libSlcfScrollbar', {static: false}) libSlcfScrollbar: NgScrollbar;
 
   // Enums
   QUANTITIES = map(filter(quantities, function (o) { return includes(o.type, 's') }), function (o) { return new Quantity(JSON.stringify(o)) });
@@ -67,7 +68,7 @@ export class SliceComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit() {
-    console.clear();
+    if (isDevMode()) console.clear();
     // Subscribe main object
     this.mainSub = this.mainService.getMain().subscribe(main => this.main = main);
     this.uiSub = this.uiStateService.uiObservable.subscribe(uiObservable => this.ui = uiObservable);
@@ -84,7 +85,7 @@ export class SliceComponent implements OnInit, OnDestroy {
       (message) => {
         if (message.status == 'error') {
           this.slcf = cloneDeep(this.slcfOld);
-          console.log('Cannot sync slcf ...');
+          if (isDevMode()) console.log('Cannot sync slcf ...');
         }
         else if (message.status == 'success') {
           this.slcfOld = cloneDeep(this.slcf);
@@ -95,7 +96,7 @@ export class SliceComponent implements OnInit, OnDestroy {
       },
       (error) => {
         this.slcf = cloneDeep(this.slcfOld);
-        console.log('Cannot sync slcf ...');
+        if (isDevMode()) console.log('Cannot sync slcf ...');
       }
     );
 
@@ -117,7 +118,9 @@ export class SliceComponent implements OnInit, OnDestroy {
 
   ngAfterViewInit() {
     // Set scrollbars position y after view rendering and set last selected element
-    this.slcfScrollbar.directiveRef.scrollToY(this.ui.output['slcf'].scrollPosition);
+    setTimeout(() => {
+      try { this.slcfScrollbar?.viewport?.scrollYTo(this.ui.output['slcf'].scrollPosition); } catch {}
+    });
   }
 
   ngOnDestroy() {
@@ -185,7 +188,7 @@ export class SliceComponent implements OnInit, OnDestroy {
 
   /** Update scroll position */
   public scrollbarUpdate(element: string) {
-    set(this.ui.output, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.geometry().y);
+    set(this.ui.output, element + '.scrollPosition', (this[element + 'Scrollbar'] as NgScrollbar).viewport.scrollTop);
   }
 
   /** Toggle library */

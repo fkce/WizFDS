@@ -8,9 +8,10 @@ import { Combustion } from '@services/fds-object/fire/combustion';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-combustion',
-  templateUrl: './combustion.component.html',
-  styleUrls: ['./combustion.component.scss']
+    selector: 'app-combustion',
+    templateUrl: './combustion.component.html',
+    styleUrls: ['./combustion.component.scss'],
+    standalone: false
 })
 export class CombustionComponent implements OnInit, OnDestroy {
 

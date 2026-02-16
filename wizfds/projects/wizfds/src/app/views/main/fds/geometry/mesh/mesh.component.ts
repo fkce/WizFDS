@@ -11,16 +11,17 @@ import { Main } from '@services/main/main';
 import { WebsocketService } from '@services/websocket/websocket.service';
 import { WebsocketMessageObject } from '@services/websocket/websocket-message';
 
-import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
+import { NgScrollbar } from 'ngx-scrollbar';
 import { set, cloneDeep, find, forEach, findIndex } from 'lodash';
 import { colors } from '@enums/fds/enums/fds-enums-colors';
 import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-mesh',
-  templateUrl: './mesh.component.html',
-  styleUrls: ['./mesh.component.scss']
+    selector: 'app-mesh',
+    templateUrl: './mesh.component.html',
+    styleUrls: ['./mesh.component.scss'],
+    standalone: false
 })
 export class MeshComponent implements OnInit, OnDestroy {
 
@@ -44,8 +45,8 @@ export class MeshComponent implements OnInit, OnDestroy {
   rouSub: Subscription;
 
   // Scrolbars containers
-  @ViewChild('meshScrollbar', {static: false}) meshScrollbar: PerfectScrollbarComponent;
-  @ViewChild('openScrollbar', {static: false}) openScrollbar: PerfectScrollbarComponent;
+  @ViewChild('meshScrollbar', {static: false}) meshScrollbar: NgScrollbar;
+  @ViewChild('openScrollbar', {static: false}) openScrollbar: NgScrollbar;
 
   // Enums
   COLORS = colors;
@@ -88,8 +89,12 @@ export class MeshComponent implements OnInit, OnDestroy {
             // Set scrool y position, timeout needed to wait for view init
             setTimeout(() => {
               let elementNumber = this.meshes.length - (index + 1) > this.ui.listRange ? this.ui.listRange : this.meshes.length % this.ui.listRange;
-              let elementHeight = this.meshScrollbar.directiveRef.geometry().h / elementNumber;
-              this.meshScrollbar.directiveRef.scrollToY(elementHeight * (index - elementBegin));
+              const viewport = this.meshScrollbar?.viewport;
+              if (viewport) {
+                const vh = viewport.offsetHeight || 0;
+                let elementHeight = elementNumber > 0 ? vh / elementNumber : 0;
+                try { viewport.scrollYTo(elementHeight * (index - elementBegin)); } catch {}
+              }
             }, 100);
 
             // Activate element from second list
@@ -116,14 +121,19 @@ export class MeshComponent implements OnInit, OnDestroy {
 
   ngAfterViewInit() {
     // Set scrollbars position y after view rendering
-    //this.meshScrollbar.directiveRef.scrollToY(this.ui.geometry['mesh'].scrollPosition);
-    let index = this.ui.geometry['mesh'].elementIndex;
-    let elementBegin = Math.floor((index + 1) / this.ui.listRange) * this.ui.listRange;
-    let elementNumber = this.meshes.length - (index + 1) > this.ui.listRange ? this.ui.listRange : this.meshes.length % this.ui.listRange;
-    let elementHeight = this.meshScrollbar.directiveRef.geometry().h / elementNumber;
-    this.meshScrollbar.directiveRef.scrollToY(elementHeight * (index - elementBegin));
-
-    this.openScrollbar.directiveRef.scrollToY(this.ui.geometry['open'].scrollPosition);
+    // Set scroll position to last selected element (defer to ensure viewport is ready)
+    setTimeout(() => {
+      let index = this.ui.geometry['mesh'].elementIndex;
+      let elementBegin = Math.floor((index + 1) / this.ui.listRange) * this.ui.listRange;
+      let elementNumber = this.meshes.length - (index + 1) > this.ui.listRange ? this.ui.listRange : this.meshes.length % this.ui.listRange;
+      const viewport = this.meshScrollbar?.viewport;
+      if (viewport) {
+        const vh = viewport.offsetHeight || 0;
+        let elementHeight = elementNumber > 0 ? vh / elementNumber : 0;
+        try { viewport.scrollYTo(elementHeight * (index - elementBegin)); } catch {}
+      }
+      try { this.openScrollbar?.viewport?.scrollYTo(this.ui.geometry['open'].scrollPosition); } catch {}
+    });
   }
 
   ngOnDestroy() {
@@ -187,7 +197,7 @@ export class MeshComponent implements OnInit, OnDestroy {
 
   /** Update scroll position */
   public scrollbarUpdate(element: string) {
-    set(this.ui.geometry, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.geometry().y);
+    set(this.ui.geometry, element + '.scrollPosition', (this[element + 'Scrollbar'] as NgScrollbar).viewport.scrollTop);
   }
 
   /** Create CAD element */

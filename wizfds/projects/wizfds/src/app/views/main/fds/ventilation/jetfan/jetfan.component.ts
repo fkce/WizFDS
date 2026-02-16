@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, OnDestroy } from '@angular/core';
+import { Component, OnInit, ViewChild, OnDestroy, isDevMode } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
 import { FdsEnums } from '@enums/fds/enums/fds-enums';
@@ -14,7 +14,7 @@ import { LibraryService } from '@services/library/library.service';
 import { Library } from '@services/library/library';
 import { IdGeneratorService } from '@services/id-generator/id-generator.service';
 
-import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
+import { NgScrollbar } from 'ngx-scrollbar';
 import { set, cloneDeep, find, forEach, findIndex, filter } from 'lodash';
 import { WebsocketMessageObject } from '@services/websocket/websocket-message';
 import { colors } from '@enums/fds/enums/fds-enums-colors';
@@ -22,9 +22,10 @@ import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-jetfan',
-  templateUrl: './jetfan.component.html',
-  styleUrls: ['./jetfan.component.scss']
+    selector: 'app-jetfan',
+    templateUrl: './jetfan.component.html',
+    styleUrls: ['./jetfan.component.scss'],
+    standalone: false
 })
 export class JetfanComponent implements OnInit, OnDestroy {
 
@@ -51,8 +52,8 @@ export class JetfanComponent implements OnInit, OnDestroy {
   rouSub: Subscription;
 
   // Scrolbars containers
-  @ViewChild('jetfanScrollbar', {static: false}) jetfanScrollbar: PerfectScrollbarComponent;
-  @ViewChild('libJetfanScrollbar', {static: false}) libJetfanScrollbar: PerfectScrollbarComponent;
+  @ViewChild('jetfanScrollbar', {static: false}) jetfanScrollbar: NgScrollbar;
+  @ViewChild('libJetfanScrollbar', {static: false}) libJetfanScrollbar: NgScrollbar;
 
   // Enums
   ENUMS_JETFAN = FdsEnums.JETFAN;
@@ -68,7 +69,7 @@ export class JetfanComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit() {
-    console.clear();
+    if (isDevMode()) console.clear();
     // Subscribe main object
     this.mainSub = this.mainService.getMain().subscribe(main => this.main = main);
     this.uiSub = this.uiStateService.uiObservable.subscribe(uiObservable => this.ui = uiObservable);
@@ -87,7 +88,7 @@ export class JetfanComponent implements OnInit, OnDestroy {
       (message) => {
         if (message.status == 'error') {
           this.jetfan = cloneDeep(this.jetfanOld);
-          console.log('Cannot sync jetfan ...');
+          if (isDevMode()) console.log('Cannot sync jetfan ...');
         }
         else if (message.status == 'success') {
           this.jetfanOld = cloneDeep(this.jetfan);
@@ -98,7 +99,7 @@ export class JetfanComponent implements OnInit, OnDestroy {
       },
       (error) => {
         this.jetfan = cloneDeep(this.jetfanOld);
-        console.log('Cannot sync jetfan ...');
+        if (isDevMode()) console.log('Cannot sync jetfan ...');
       }
     );
 
@@ -120,7 +121,7 @@ export class JetfanComponent implements OnInit, OnDestroy {
 
   ngAfterViewInit() {
     // Set scrollbars position y after view rendering and set last selected element
-    this.jetfanScrollbar.directiveRef.scrollToY(this.ui.ventilation['jetfan'].scrollPosition);
+  this.jetfanScrollbar.scrollTo({ top: this.ui.ventilation['jetfan'].scrollPosition, duration: 0 });
   }
 
   ngOnDestroy() {
@@ -188,7 +189,9 @@ export class JetfanComponent implements OnInit, OnDestroy {
 
   /** Update scroll position */
   public scrollbarUpdate(element: string) {
-    set(this.ui.ventilation, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.geometry().y);
+  const sc: NgScrollbar = this[element + 'Scrollbar'];
+  const y = sc?.viewport?.scrollTop || 0;
+  set(this.ui.ventilation, element + '.scrollPosition', y);
   }
 
   /** Toggle library */

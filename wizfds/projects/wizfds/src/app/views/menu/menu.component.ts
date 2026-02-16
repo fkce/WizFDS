@@ -8,9 +8,10 @@ import { FdsScenarioService } from '@services/fds-scenario/fds-scenario.service'
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-menu',
-  templateUrl: './menu.component.html',
-  styleUrls: ['./menu.component.scss']
+    selector: 'app-menu',
+    templateUrl: './menu.component.html',
+    styleUrls: ['./menu.component.scss'],
+    standalone: false
 })
 export class MenuComponent implements OnInit, OnDestroy {
 

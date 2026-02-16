@@ -12,15 +12,16 @@ import { Spec } from '@services/fds-object/specie/spec';
 import { IdGeneratorService } from '@services/id-generator/id-generator.service';
 import { FdsEnums } from '@enums/fds/enums/fds-enums';
 
-import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
+import { NgScrollbar } from 'ngx-scrollbar';
 import { findIndex, find, cloneDeep, set, remove } from 'lodash';
 import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-fuel',
-  templateUrl: './fuel.component.html',
-  styleUrls: ['./fuel.component.scss']
+    selector: 'app-fuel',
+    templateUrl: './fuel.component.html',
+    styleUrls: ['./fuel.component.scss'],
+    standalone: false
 })
 export class FuelComponent implements OnInit, OnDestroy {
 
@@ -47,8 +48,8 @@ export class FuelComponent implements OnInit, OnDestroy {
   libSub: Subscription;
 
   // Scrolbars containers
-  @ViewChild('fuelScrollbar', {static: false}) fuelScrollbar: PerfectScrollbarComponent;
-  @ViewChild('libFuelScrollbar', {static: false}) libFuelScrollbar: PerfectScrollbarComponent;
+  @ViewChild('fuelScrollbar', {static: false}) fuelScrollbar: NgScrollbar;
+  @ViewChild('libFuelScrollbar', {static: false}) libFuelScrollbar: NgScrollbar;
 
   constructor(
     private mainService: MainService,
@@ -78,7 +79,9 @@ export class FuelComponent implements OnInit, OnDestroy {
 
   ngAfterViewInit() {
     // Set scrollbars position y after view rendering and set last selected element
-    this.fuelScrollbar.directiveRef.scrollToY(this.ui.fires['fuel'].scrollPosition);
+    setTimeout(() => {
+      try { this.fuelScrollbar?.viewport?.scrollYTo(this.ui.fires['fuel'].scrollPosition); } catch {}
+    });
     this.fuels.length > 0 && this.activate(this.fuels[this.ui.fires['fuel'].elementIndex].id);
   }
 
@@ -150,7 +153,7 @@ export class FuelComponent implements OnInit, OnDestroy {
 
   /** Update scroll position */
   public scrollbarUpdate(element: string) {
-    set(this.ui.fires, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.geometry().y);
+    set(this.ui.fires, element + '.scrollPosition', (this[element + 'Scrollbar'] as NgScrollbar).viewport.scrollTop);
   }
 
   /** Toggle library */

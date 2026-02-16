@@ -4,7 +4,8 @@ import { SliceService } from '../../services/drawing/slice/slice.service';
 import { toInteger } from 'lodash';
 
 @Directive({
-  selector: '[slider]'
+    selector: '[slider]',
+    standalone: false
 })
 export class SliderDirective implements AfterViewInit {
 

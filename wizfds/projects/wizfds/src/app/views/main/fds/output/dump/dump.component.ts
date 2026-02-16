@@ -6,9 +6,10 @@ import { WebsocketService } from '@services/websocket/websocket.service';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-dump',
-  templateUrl: './dump.component.html',
-  styleUrls: ['./dump.component.scss']
+    selector: 'app-dump',
+    templateUrl: './dump.component.html',
+    styleUrls: ['./dump.component.scss'],
+    standalone: false
 })
 export class DumpComponent implements OnInit, OnDestroy {
 

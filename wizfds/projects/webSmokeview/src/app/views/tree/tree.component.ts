@@ -6,9 +6,10 @@ import { TreeService } from '../../services/tree/tree.service';
 import { GeometryLoaderService } from '../../services/loaders/geometryLoader/geometry-loader.service';
 
 @Component({
-  selector: 'app-tree',
-  templateUrl: './tree.component.html',
-  styleUrls: ['./tree.component.scss']
+    selector: 'app-tree',
+    templateUrl: './tree.component.html',
+    styleUrls: ['./tree.component.scss'],
+    standalone: false
 })
 export class TreeComponent implements OnInit, AfterViewInit {
 

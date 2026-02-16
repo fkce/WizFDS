@@ -5,14 +5,14 @@
       <div class="list-title" (click)="add()">
         <mat-icon>add_box</mat-icon> Add FIRE
       </div>
-      <perfect-scrollbar #fireScrollbar (psScrollY)="scrollbarUpdate('fire')">
+  <ng-scrollbar #fireScrollbar (scrolled)="scrollbarUpdate('fire')">
         <div class="list-items">
           <div class="list-item" *ngFor="let fireItem of fires | slice: ui.fires.fire.begin:(ui.fires.fire.begin + ui.listRange)">
             <a (click)="activate(fireItem.id); websocketService.selectCad(fireItem.idAC)" [ngClass]="{active: fireItem === fire}">{{fireItem.id}}</a>
             <mat-icon class="red-hover" (click)="delete(fireItem.id)">delete_forever</mat-icon>
           </div>
         </div>
-      </perfect-scrollbar>
+  </ng-scrollbar>
       <div class="list-bottom" *ngIf="fires.length > ui.listRange">
         <mat-icon class="material-icons" *ngIf="ui.fires.fire.begin > 0" (click)="uiStateService.decreaseRange('fires.fire')">chevron_left</mat-icon>
         <div>{{ui.fires.fire.begin}} - {{ui.fires.fire.begin + ui.listRange > fires.length ? fires.length :
@@ -319,7 +319,7 @@
           <div class="list-title" (click)="add(true)">
             <mat-icon>add_box</mat-icon> Add FIRE
           </div>
-          <perfect-scrollbar #libFireScrollbar (psScrollY)="scrollbarUpdate('libFire')">
+          <ng-scrollbar #libFireScrollbar (scrolled)="scrollbarUpdate('libFire')">
             <div class="list-items">
               <div class="list-item " *ngFor="let fireItem of lib.fires | slice: ui.fires.libFire.begin:(ui.fires.libFire.begin
                   + ui.listRange) ">
@@ -330,7 +330,7 @@
                 <mat-icon class="material-icons red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(fireItem.id, true)">delete_forever</mat-icon>
               </div>
             </div>
-          </perfect-scrollbar>
+          </ng-scrollbar>
           <div class="list-bottom " *ngIf="libFires.length> ui.listRange">
             <mat-icon *ngIf="ui.fires.libFire.begin > 0" (click)="uiStateService.decreaseRange('fires.libFire')">chevron_left</mat-icon>
             <div>{{ui.fires.libFire.begin}} - {{ui.fires.libFire.begin + ui.listRange > libFires.length ?

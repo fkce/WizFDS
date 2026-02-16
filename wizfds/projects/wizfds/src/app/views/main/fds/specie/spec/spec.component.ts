@@ -11,15 +11,16 @@ import { LibraryService } from '@services/library/library.service';
 import { IdGeneratorService } from '@services/id-generator/id-generator.service';
 import { species } from '@enums/fds/enums/fds-enums-species';
 
-import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
+import { NgScrollbar } from 'ngx-scrollbar';
 import { find, findIndex, cloneDeep, set, map, filter } from 'lodash';
 import { FdsEnums } from '@enums/fds/enums/fds-enums';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-spec',
-  templateUrl: './spec.component.html',
-  styleUrls: ['./spec.component.scss']
+    selector: 'app-spec',
+    templateUrl: './spec.component.html',
+    styleUrls: ['./spec.component.scss'],
+    standalone: false
 })
 export class SpecComponent implements OnInit, OnDestroy {
 
@@ -46,8 +47,8 @@ export class SpecComponent implements OnInit, OnDestroy {
   libSub: Subscription;
 
   // Scrolbars containers
-  @ViewChild('specScrollbar', {static: false}) specScrollbar: PerfectScrollbarComponent;
-  @ViewChild('libSpecScrollbar', {static: false}) libSpecScrollbar: PerfectScrollbarComponent;
+  @ViewChild('specScrollbar', {static: false}) specScrollbar: NgScrollbar;
+  @ViewChild('libSpecScrollbar', {static: false}) libSpecScrollbar: NgScrollbar;
 
   constructor(
     private mainService: MainService,
@@ -76,7 +77,7 @@ export class SpecComponent implements OnInit, OnDestroy {
 
   ngAfterViewInit() {
     // Set scrollbars position y after view rendering and set last selected element
-    this.specScrollbar.directiveRef.scrollToY(this.ui.specie['spec'].scrollPosition);
+  this.specScrollbar.scrollTo({ top: this.ui.specie['spec'].scrollPosition, duration: 0 });
     this.specs.length > 0 && this.activate(this.specs[this.ui.specie['spec'].elementIndex].id);
   }
 
@@ -144,7 +145,9 @@ export class SpecComponent implements OnInit, OnDestroy {
 
   /** Update scroll position */
   public scrollbarUpdate(element: string) {
-    set(this.ui.specie, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.geometry().y);
+  const sc: NgScrollbar = this[element + 'Scrollbar'];
+  const y = sc?.viewport?.scrollTop || 0;
+  set(this.ui.specie, element + '.scrollPosition', y);
   }
 
   /** Toggle library */

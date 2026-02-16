@@ -1,5 +1,6 @@
 import { Injectable, isDevMode } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 
 import { Main } from '../main/main';
 import { MainService } from '../main/main.service';
@@ -31,8 +32,7 @@ export class HttpManagerService {
   public get(apiURL) {
     this.progress = true;
     let promise = new Promise((resolve, reject) => {
-      this.http.get(apiURL)
-        .toPromise()
+      firstValueFrom(this.http.get(apiURL, { responseType: 'json' }))
         .then(
           (result: Result) => { // Success
 
@@ -52,7 +52,18 @@ export class HttpManagerService {
               reject(result);
             }
           },
-          error => { // Error
+          (error: HttpErrorResponse) => { // Error
+            // If backend responded with HTML (e.g., login page or warning) while expecting JSON
+            const contentType = error.headers && error.headers.get ? error.headers.get('Content-Type') : undefined;
+            const isHtml = typeof contentType === 'string' && contentType.indexOf('text/html') !== -1;
+            const statusOkButParseError = error.status === 200 && (error.error instanceof ProgressEvent || typeof error.error === 'string');
+            if (isHtml || statusOkButParseError) {
+              if (isDevMode()) console.warn('Received non-JSON response, redirecting to login...');
+              try {
+                // Redirect through dev proxy to ensure cookies and origin
+                window.location.href = '/login';
+              } catch (_) { /* noop */ }
+            }
             reject(error);
           }
         );
@@ -68,8 +79,7 @@ export class HttpManagerService {
   public put(apiURL: string, object: any) {
     this.progress = true;
     let promise = new Promise((resolve, reject) => {
-      this.http.put(apiURL, object)
-        .toPromise()
+      firstValueFrom(this.http.put(apiURL, object, { responseType: 'json' }))
         .then(
           (result: Result) => { // Success
 
@@ -94,7 +104,14 @@ export class HttpManagerService {
             if (isDevMode()) console.log(result);
 
           },
-          error => { // Error
+          (error: HttpErrorResponse) => { // Error
+            const contentType = error.headers && error.headers.get ? error.headers.get('Content-Type') : undefined;
+            const isHtml = typeof contentType === 'string' && contentType.indexOf('text/html') !== -1;
+            const statusOkButParseError = error.status === 200 && (error.error instanceof ProgressEvent || typeof error.error === 'string');
+            if (isHtml || statusOkButParseError) {
+              if (isDevMode()) console.warn('Received non-JSON response, redirecting to login...');
+              try { window.location.href = '/login'; } catch (_) { /* noop */ }
+            }
             reject(error);
           }
         );
@@ -110,8 +127,7 @@ export class HttpManagerService {
   public post(apiURL: string, object: any) {
     this.progress = true;
     let promise = new Promise((resolve, reject) => {
-      this.http.post(apiURL, object)
-        .toPromise()
+      firstValueFrom(this.http.post(apiURL, object, { responseType: 'json' }))
         .then(
           (result: Result) => { // Success
 
@@ -136,7 +152,14 @@ export class HttpManagerService {
             if (isDevMode()) console.log(result);
 
           },
-          error => { // Error
+          (error: HttpErrorResponse) => { // Error
+            const contentType = error.headers && error.headers.get ? error.headers.get('Content-Type') : undefined;
+            const isHtml = typeof contentType === 'string' && contentType.indexOf('text/html') !== -1;
+            const statusOkButParseError = error.status === 200 && (error.error instanceof ProgressEvent || typeof error.error === 'string');
+            if (isHtml || statusOkButParseError) {
+              if (isDevMode()) console.warn('Received non-JSON response, redirecting to login...');
+              try { window.location.href = '/login'; } catch (_) { /* noop */ }
+            }
             reject(error);
           }
         );
@@ -152,8 +175,7 @@ export class HttpManagerService {
   public delete(apiURL: string) {
     this.progress = true;
     let promise = new Promise((resolve, reject) => {
-      this.http.delete(apiURL)
-        .toPromise()
+      firstValueFrom(this.http.delete(apiURL, { responseType: 'json' }))
         .then(
           (result: Result) => { // Success
 
@@ -178,7 +200,14 @@ export class HttpManagerService {
             if (isDevMode()) console.log(result);
 
           },
-          error => { // Error
+          (error: HttpErrorResponse) => { // Error
+            const contentType = error.headers && error.headers.get ? error.headers.get('Content-Type') : undefined;
+            const isHtml = typeof contentType === 'string' && contentType.indexOf('text/html') !== -1;
+            const statusOkButParseError = error.status === 200 && (error.error instanceof ProgressEvent || typeof error.error === 'string');
+            if (isHtml || statusOkButParseError) {
+              if (isDevMode()) console.warn('Received non-JSON response, redirecting to login...');
+              try { window.location.href = '/login'; } catch (_) { /* noop */ }
+            }
             reject(error);
           }
         );

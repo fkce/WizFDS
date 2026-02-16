@@ -5,14 +5,14 @@
       <div class="list-title" (click)="add()">
         <mat-icon>add_box</mat-icon> Add SPEC
       </div>
-      <perfect-scrollbar #specScrollbar (psScrollY)="scrollbarUpdate('spec')">
+  <ng-scrollbar #specScrollbar (scrolled)="scrollbarUpdate('spec')">
         <div class="list-items">
           <div class="list-item" *ngFor="let specItem of specs | slice: ui.specie.spec.begin:(ui.specie.spec.begin + ui.listRange)">
             <a (click)="activate(specItem.id)" [ngClass]="{active: specItem === spec}">{{specItem.id}}</a>
             <mat-icon class="red-hover" (click)="delete(specItem.id)">delete_forever</mat-icon>
           </div>
         </div>
-      </perfect-scrollbar>
+  </ng-scrollbar>
       <div class="list-bottom" *ngIf="specs.length > ui.listRange">
         <mat-icon *ngIf="ui.specie.spec.begin > 0" (click)="uiStateService.decreaseRange('specs.spec')">chevron_left</mat-icon>
         <div>{{ui.specie.spec.begin}} - {{ui.specie.spec.begin + ui.listRange > specs.length ? specs.length :
@@ -142,7 +142,7 @@
           <div class="list-title" (click)="add(true)">
             <mat-icon>add_box</mat-icon> Add SPEC
           </div>
-          <perfect-scrollbar #libSpecScrollbar (psScrollY)="scrollbarUpdate('libSpec')">
+          <ng-scrollbar #libSpecScrollbar (scrolled)="scrollbarUpdate('libSpec')">
             <div class="list-items">
               <div class="list-item" *ngFor="let specItem of lib.specs | slice: ui.specie.libSpec.begin:(ui.specie.libSpec.begin
                   + ui.listRange)">
@@ -152,7 +152,7 @@
                 <mat-icon class="red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(specItem.id, true)">delete_forever</mat-icon>
               </div>
             </div>
-          </perfect-scrollbar>
+          </ng-scrollbar>
           <div class="list-bottom" *ngIf="libSpecs.length> ui.listRange">
             <mat-icon *ngIf="ui.specie.libSpec.begin > 0" (click)="uiStateService.decreaseRange('specs.libSpec')">chevron_left</mat-icon>
             <div>{{ui.specie.libSpec.begin}} - {{ui.specie.libSpec.begin + ui.listRange > libSpecs.length ?

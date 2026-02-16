@@ -1,4 +1,4 @@
-@import "../../../../../../app.component.scss";
+@use "../../../../../../app.component.scss" as *;
 
 h1 {
     font-family: "Play";

@@ -30,7 +30,9 @@ export class ProjectService {
         });
         this.snackBarService.notify(result.meta.status, result.meta.details[0]);
         this.mainService.resetIdle();
-        result.meta.status == 'success' ? resolve : reject;
+        result.meta.status == 'success' ? resolve(result) : reject(result);
+      }).catch((err) => {
+        reject(err);
       });
     });
     return promise;

@@ -1,6 +1,7 @@
 import { Injectable, isDevMode } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { tap } from 'rxjs/operators';
+import { firstValueFrom } from 'rxjs';
 
 export interface Result {
   meta: {
@@ -27,8 +28,7 @@ export class HttpManagerService {
   public get(apiURL) {
     let promise = new Promise((resolve, reject) => {
 
-      this.http.get(apiURL)
-        .toPromise()
+  firstValueFrom(this.http.get(apiURL))
         .then(
           (result: Result) => { // Success
             if (isDevMode()) console.log(result);
@@ -60,8 +60,7 @@ export class HttpManagerService {
    */
   public put(apiURL: string, object: any) {
     let promise = new Promise((resolve, reject) => {
-      this.http.put(apiURL, object)
-        .toPromise()
+      firstValueFrom(this.http.put(apiURL, object))
         .then(
           (result: Result) => { // Success
 
@@ -98,8 +97,7 @@ export class HttpManagerService {
    */
   public post(apiURL: string, object: any) {
     let promise = new Promise((resolve, reject) => {
-      this.http.post(apiURL, object)
-        .toPromise()
+      firstValueFrom(this.http.post(apiURL, object))
         .then(
           (result: Result) => { // Success
 
@@ -136,8 +134,7 @@ export class HttpManagerService {
    */
   public delete(apiURL: string) {
     let promise = new Promise((resolve, reject) => {
-      this.http.delete(apiURL)
-        .toPromise()
+      firstValueFrom(this.http.delete(apiURL))
         .then(
           (result: Result) => { // Success
 

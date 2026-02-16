@@ -1,4 +1,5 @@
-@import '../../../main.component.scss';
+@use '../../../main.component.scss' as *;
+@use '../../../../../app.component.scss' as *;
 
 .layers-list {
     background-color: $grey4;

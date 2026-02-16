@@ -424,7 +424,6 @@ export class JsonFdsService {
       // OBST
       let obst: any = cloneDeep(jetfan.toJSON());
       obst['color'] = jetfan.color;
-      if (jetfan.devc['active']) obst['devc_id'] = jetfan.id + '_devc';
       let parsedObst = this.parseAmper(obst, 'obst');
       if (parsedObst) jetfanString.push(sprintf("&OBST %s /", parsedObst));
 
@@ -498,6 +497,9 @@ export class JsonFdsService {
       hvacDuct['id'] = jetfan.id + '_hvac_duct';
       hvacDuct['type_id'] = "DUCT";
       hvacDuct['node_id'] = [hvacIn['id'], hvacOut['id']];
+  // Attach device control to DUCT and enable damper
+  if (jetfan.devc['active']) hvacDuct['devc_id'] = jetfan.id + '_devc';
+  hvacDuct['damper'] = true;
 
       jetfan.flow.type == 'volumeFlow' ? hvacDuct['volume_flow'] = jetfan.flow.volume_flow : hvacDuct['mass_flow'] = jetfan.flow.mass_flow;
 

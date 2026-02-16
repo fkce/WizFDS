@@ -5,14 +5,14 @@
       <div class="list-title" (click)="add()">
         <mat-icon>add_box</mat-icon> Add JETFAN
       </div>
-      <perfect-scrollbar #jetfanScrollbar (psScrollY)="scrollbarUpdate('jetfan')">
+  <ng-scrollbar #jetfanScrollbar (scrolled)="scrollbarUpdate('jetfan')">
         <div class="list-items">
           <div class="list-item" *ngFor="let jetfanItem of ventilation.jetfans | slice: ui.ventilation.jetfan.begin:(ui.ventilation.jetfan.begin + ui.listRange)">
             <a (click)="activate(jetfanItem.id); websocketService.selectCad(jetfanItem.idAC)" [ngClass]="{active: jetfanItem === jetfan}">{{jetfanItem.id}}</a>
             <mat-icon class="red-hover" (click)="delete(jetfanItem.id)">delete_forever</mat-icon>
           </div>
         </div>
-      </perfect-scrollbar>
+  </ng-scrollbar>
       <div class="list-bottom" *ngIf="ventilation.jetfans.length > ui.listRange">
         <mat-icon *ngIf="ui.ventilation.jetfan.begin > 0" (click)="uiStateService.decreaseRange('ventilation.jetfan')">chevron_left</mat-icon>
         <div>{{ui.ventilation.jetfan.begin}} - {{ui.ventilation.jetfan.begin + ui.listRange > ventilation.jetfans.length
@@ -257,7 +257,7 @@
           <div class="list-title" (click)="add(true)">
             <mat-icon>add_box</mat-icon> Add JETFAN
           </div>
-          <perfect-scrollbar #libJetfanScrollbar (psScrollY)="scrollbarUpdate('libJetfan')">
+          <ng-scrollbar #libJetfanScrollbar (scrolled)="scrollbarUpdate('libJetfan')">
             <div class="list-items">
               <div class="list-item" *ngFor="let jetfanItem of lib.jetfans | slice: ui.ventilation.libJetfan.begin:(ui.ventilation.libJetfan.begin + ui.listRange)">
                 <a (click)="activate(jetfanItem.id, true)" [ngClass]="{activeLib: jetfanItem === jetfan}">{{jetfanItem.id}}</a>
@@ -269,7 +269,7 @@
                 <mat-icon class="red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(jetfanItem.id, true)">delete_forever</mat-icon>
               </div>
             </div>
-          </perfect-scrollbar>
+          </ng-scrollbar>
           <div class="list-bottom" *ngIf="libJetfans.length > ui.listRange">
             <mat-icon *ngIf="ui.ventilation.libJetfan.begin > 0" (click)="uiStateService.decreaseRange('ventilation.libJetfan')">chevron_left</mat-icon>
             <div>{{ui.ventilation.libJetfan.begin}} - {{ui.ventilation.libJetfan.begin + ui.listRange >

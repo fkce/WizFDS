@@ -5,14 +5,14 @@
       <div class="list-title" (click)="add()">
         <mat-icon>add_box</mat-icon> Add MATL
       </div>
-      <perfect-scrollbar #matlScrollbar (psScrollY)="scrollbarUpdate('matl')">
+  <ng-scrollbar #matlScrollbar (scrolled)="scrollbarUpdate('matl')">
         <div class="list-items">
           <div class="list-item" *ngFor="let matlItem of geometry.matls | slice: ui.geometry.matl.begin:(ui.geometry.matl.begin + ui.listRange)">
             <a (click)="activate(matlItem.id)" [ngClass]="{active: matlItem === matl}">{{matlItem.id}}</a>
             <mat-icon class="red-hover" (click)="delete(matlItem.id)">delete_forever</mat-icon>
           </div>
         </div>
-      </perfect-scrollbar>
+  </ng-scrollbar>
       <div class="list-bottom" *ngIf="geometry.matls.length > ui.listRange">
         <mat-icon *ngIf="ui.geometry.matl.begin > 0" (click)="uiStateService.decreaseRange('geometry.matl')">chevron_left</mat-icon>
         <div>{{ui.geometry.matl.begin}} - {{ui.geometry.matl.begin + ui.listRange > geometry.matls.length ? geometry.matls.length
@@ -112,7 +112,7 @@
           <div class="list-title" (click)="add(true)">
             <mat-icon>add_box</mat-icon> Add MATL
           </div>
-          <perfect-scrollbar #libMatlScrollbar (psScrollY)="scrollbarUpdate('libMatl')">
+          <ng-scrollbar #libMatlScrollbar (scrolled)="scrollbarUpdate('libMatl')">
             <div class="list-items">
               <div class="list-item" *ngFor="let matlItem of lib.matls | slice: ui.geometry.libMatl.begin:(ui.geometry.libMatl.begin + ui.listRange)">
                 <a (click)="activate(matlItem.id, true)" [ngClass]="{activeLib: matlItem === matl}">{{matlItem.id}}</a>
@@ -120,7 +120,7 @@
                 <mat-icon class="red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(matlItem.id, true)">delete_forever</mat-icon>
               </div>
             </div>
-          </perfect-scrollbar>
+          </ng-scrollbar>
           <div class="list-bottom" *ngIf="libMatls.length > ui.listRange">
             <mat-icon *ngIf="ui.geometry.libMatl.begin > 0" (click)="uiStateService.decreaseRange('geometry.libMatl')">chevron_left</mat-icon>
             <div>{{ui.geometry.libMatl.begin}} - {{ui.geometry.libMatl.begin + ui.listRange > libMatls.length ? libMatls.length

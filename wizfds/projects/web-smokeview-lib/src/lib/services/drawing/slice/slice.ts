@@ -56,12 +56,42 @@ export class Slice {
         // Add colors to vertices
         this.mesh.setVerticesData('blank', blank, true, 1);
 
-        // Create material with shaders
-        this.material = new BABYLON.ShaderMaterial('shader', scene, '/assets/slice',
-            {
-                attributes: ['position', 'color', 'normal', 'texture_coordinate', 'blank'],
-                uniforms: ['world', 'worldView', 'worldViewProjection', 'view', 'projection']
-            });
+                // Create material with shaders (explicit subfolder)
+        const svc = (scene as any).babylonService as any;
+        if (svc?.loadShaderSources) {
+            svc.loadShaderSources('slice')
+                .then((sources: any) => {
+                    try { console.debug('[Slice] shaders', sources.urls); } catch {}
+                    this.material = new (BABYLON as any).ShaderMaterial(
+                        'shader',
+                        scene,
+                        { vertexSource: sources.vertexSource, fragmentSource: sources.fragmentSource },
+                        {
+                            attributes: ['position', 'normal', 'color', 'texture_coordinate', 'blank'],
+                            uniforms: ['is_blank'],
+                            uniformBuffers: sources.shaderLanguage === ((BABYLON as any).ShaderLanguage?.WGSL ?? 1) ? ["Scene", "Mesh"] : [],
+                            shaderLanguage: sources.shaderLanguage,
+                            entryPoint: { vertex: 'main', fragment: 'main' }
+                        }
+                    );
+                    this.material.setInt('is_blank', this.isBlank);
+                    this.material.backFaceCulling = false;
+                    this.material.zOffset = 0.2;
+                    this.mesh.material = this.material;
+                })
+                .catch((e: any) => { try { console.error('[Slice] Failed to load shader sources', e); } catch {} });
+        } else {
+            // Fallback: keep previous behavior (should not happen in normal flow)
+            const useWGSL = ((scene as any).babylonService?.useWGSL || (scene.getEngine() as any).useWGSL);
+            const folder = useWGSL ? 'wgsl' : 'glsl';
+            const base = ((scene as any).babylonService?.resolveAssetPath?.(`assets/shaders/${folder}/slice`)) || `assets/shaders/${folder}/slice`;
+            const shaderLanguageVal = useWGSL ? ((BABYLON as any).ShaderLanguage?.WGSL ?? 1) : ((BABYLON as any).ShaderLanguage?.GLSL ?? 0);
+            this.material = new (BABYLON as any).ShaderMaterial('shader', scene, { vertex: base, fragment: base }, { attributes: ['position', 'normal', 'color', 'texture_coordinate', 'blank'], uniforms: ['world', 'worldView', 'worldViewProjection', 'view', 'projection', 'is_blank'], shaderLanguage: shaderLanguageVal, entryPoint: { vertex: 'main', fragment: 'main' } });
+            this.material.setInt('is_blank', this.isBlank);
+            this.material.backFaceCulling = false;
+            this.material.zOffset = 0.2;
+            this.mesh.material = this.material;
+        }
 
         this.material.setInt('is_blank', this.isBlank);
         this.material.backFaceCulling = false;
@@ -73,8 +103,8 @@ export class Slice {
         texture_colorbar.wrapR = BABYLON.Texture.CLAMP_ADDRESSMODE;
         texture_colorbar.wrapU = BABYLON.Texture.CLAMP_ADDRESSMODE;
 
-        this.material.setTexture('texture_colorbar_sampler', texture_colorbar);
-        this.mesh.material = this.material;
+    if (this.material) this.material.setTexture('texture_colorbar_sampler_tex', texture_colorbar);
+        if (this.material) this.mesh.material = this.material;
     }
 
     /**

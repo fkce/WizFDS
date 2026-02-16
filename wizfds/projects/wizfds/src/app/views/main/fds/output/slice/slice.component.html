@@ -5,14 +5,14 @@
       <div class="list-title" (click)="add()">
         <mat-icon>add_box</mat-icon> Add SLCF
       </div>
-      <perfect-scrollbar #slcfScrollbar (psScrollY)="scrollbarUpdate('slcf')">
+  <ng-scrollbar #slcfScrollbar (scrolled)="scrollbarUpdate('slcf')">
         <div class="list-items">
           <div class="list-item" *ngFor="let slcfItem of slcfs | slice: ui.output.slcf.begin:(ui.output.slcf.begin + ui.listRange)">
             <a (click)="activate(slcfItem.id); websocketService.selectCad(slcfItem.idAC)" [ngClass]="{active: slcfItem === slcf}">{{slcfItem.id}}</a>
             <mat-icon class="red-hover" (click)="delete(slcfItem.id)">delete_forever</mat-icon>
           </div>
         </div>
-      </perfect-scrollbar>
+  </ng-scrollbar>
       <div class="list-bottom" *ngIf="slcfs.length > ui.listRange">
         <mat-icon *ngIf="ui.output.slcf.begin > 0" (click)="uiStateService.decreaseRange('output.slcf')">chevron_left</mat-icon>
         <div>{{ui.output.slcf.begin}} - {{ui.output.slcf.begin + ui.listRange > slcfs.length ? slcfs.length : ui.output.slcf.begin
@@ -167,7 +167,7 @@
           <div class="list-title" (click)="add(true)">
             <mat-icon>add_box</mat-icon> Add SLCF
           </div>
-          <perfect-scrollbar #libSlcfScrollbar (psScrollY)="scrollbarUpdate('libSlcf')">
+          <ng-scrollbar #libSlcfScrollbar (scrolled)="scrollbarUpdate('libSlcf')">
             <div class="list-items">
               <div class="list-item" *ngFor="let slcfItem of lib.slcfs | slice: ui.output.libSlcf.begin:(ui.output.libSlcf.begin + ui.listRange)">
                 <a (click)="activate(slcfItem.id, true)" [ngClass]="{activeLib: slcfItem===slcf}">{{slcfItem.id}}</a>
@@ -178,7 +178,7 @@
                 <mat-icon class="red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(slcfItem.id, true)">delete_forever</mat-icon>
               </div>
             </div>
-          </perfect-scrollbar>
+          </ng-scrollbar>
           <div class="list-bottom" *ngIf="libSlcfs.length> ui.listRange">
             <mat-icon *ngIf="ui.output.libSlcf.begin > 0" (click)="uiStateService.decreaseRange('slcfs.libSlcf')">chevron_left</mat-icon>
             <div>{{ui.output.libSlcf.begin}} - {{ui.output.libSlcf.begin + ui.listRange > libSlcfs.length ? libSlcfs.length :

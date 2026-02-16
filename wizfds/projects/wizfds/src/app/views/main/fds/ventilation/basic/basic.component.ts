@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, OnDestroy } from '@angular/core';
+import { Component, OnInit, ViewChild, OnDestroy, isDevMode } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
 import { LibraryService } from '@services/library/library.service';
@@ -16,16 +16,17 @@ import { SurfVent } from '@services/fds-object/ventilation/surf-vent';
 import { IdGeneratorService } from '@services/id-generator/id-generator.service';
 import { colors } from '@enums/fds/enums/fds-enums-colors';
 
-import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
+import { NgScrollbar } from 'ngx-scrollbar';
 import { find, findIndex, cloneDeep, set, filter } from 'lodash';
 import { WebsocketMessageObject } from '@services/websocket/websocket-message';
 import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-basic',
-  templateUrl: './basic.component.html',
-  styleUrls: ['./basic.component.scss']
+    selector: 'app-basic',
+    templateUrl: './basic.component.html',
+    styleUrls: ['./basic.component.scss'],
+    standalone: false
 })
 export class BasicComponent implements OnInit, OnDestroy {
 
@@ -55,9 +56,9 @@ export class BasicComponent implements OnInit, OnDestroy {
   rouSub: Subscription;
 
   // Scrolbars containers
-  @ViewChild('ventScrollbar', {static: false}) ventScrollbar: PerfectScrollbarComponent;
-  @ViewChild('surfScrollbar', {static: false}) surfScrollbar: PerfectScrollbarComponent;
-  @ViewChild('libSurfScrollbar', {static: false}) libSurfScrollbar: PerfectScrollbarComponent;
+  @ViewChild('ventScrollbar', {static: false}) ventScrollbar: NgScrollbar;
+  @ViewChild('surfScrollbar', {static: false}) surfScrollbar: NgScrollbar;
+  @ViewChild('libSurfScrollbar', {static: false}) libSurfScrollbar: NgScrollbar;
 
   // Enums
   ENUMS_SURF = FdsEnums.SURF;
@@ -73,7 +74,7 @@ export class BasicComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit() {
-    console.clear();
+    if (isDevMode()) console.clear();
     // Subscribe main object
     this.mainSub = this.mainService.getMain().subscribe(main => this.main = main);
     this.uiSub = this.uiStateService.uiObservable.subscribe(uiObservable => this.ui = uiObservable);
@@ -93,7 +94,7 @@ export class BasicComponent implements OnInit, OnDestroy {
       (message) => {
         if (message.status == 'error') {
           //this.mesh = cloneDeep(this.meshOld);
-          console.log('Cannot sync vent ...');
+          if (isDevMode()) console.log('Cannot sync vent ...');
         }
         else if (message.status == 'success') {
           this.surfOld = cloneDeep(this.surf);
@@ -104,7 +105,7 @@ export class BasicComponent implements OnInit, OnDestroy {
       },
       (error) => {
         //this.mesh = cloneDeep(this.meshOld);
-        console.log('Cannot sync vent ...');
+        if (isDevMode()) console.log('Cannot sync vent ...');
       }
     );
 
@@ -128,8 +129,8 @@ export class BasicComponent implements OnInit, OnDestroy {
 
   ngAfterViewInit() {
     // Set scrollbars position y after view rendering and set last selected element
-    this.ventScrollbar.directiveRef.scrollToY(this.ui.ventilation['vent'].scrollPosition);
-    this.surfScrollbar.directiveRef.scrollToY(this.ui.ventilation['surf'].scrollPosition);
+  this.ventScrollbar.scrollTo({ top: this.ui.ventilation['vent'].scrollPosition, duration: 0 });
+  this.surfScrollbar.scrollTo({ top: this.ui.ventilation['surf'].scrollPosition, duration: 0 });
   }
 
   ngOnDestroy() {
@@ -224,7 +225,9 @@ export class BasicComponent implements OnInit, OnDestroy {
 
   /** Update scroll position */
   public scrollbarUpdate(element: string) {
-    set(this.ui.ventilation, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.geometry().y);
+  const sc: NgScrollbar = this[element + 'Scrollbar'];
+  const y = sc?.viewport?.scrollTop || 0;
+  set(this.ui.ventilation, element + '.scrollPosition', y);
   }
 
   /** Toggle library */

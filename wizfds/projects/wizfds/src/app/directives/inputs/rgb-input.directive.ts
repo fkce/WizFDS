@@ -2,7 +2,8 @@ import { Directive, ElementRef, HostListener } from '@angular/core';
 import { isNumber, toNumber, isNaN, isArray, isArrayLikeObject, toArray, ary, map, remove } from 'lodash';
 
 @Directive({
-  selector: '[rgbInput]'
+    selector: '[rgbInput]',
+    standalone: false
 })
 export class RgbInputDirective {
   private el: HTMLInputElement;

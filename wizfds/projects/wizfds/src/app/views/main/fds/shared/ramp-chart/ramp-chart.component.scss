@@ -1,4 +1,4 @@
-@import "../../../../../app.component.scss";
+@use "../../../../../app.component.scss" as *;
 
 .ramp-container {
   display: flex;

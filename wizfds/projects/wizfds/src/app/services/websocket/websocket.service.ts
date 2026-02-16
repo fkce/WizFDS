@@ -174,12 +174,7 @@ export class WebsocketService {
         }
       }
     } catch (e) {
-      if (e instanceof EvalError) {
-        console.log(e.name + ': ' + e.message);
-      } else if (e instanceof RangeError) {
-        console.log(e.name + ': ' + e.message);
-      }
-      else {
+      if (isDevMode()) {
         console.log(e.name + ': ' + e.message);
       }
     }
@@ -187,7 +182,7 @@ export class WebsocketService {
     return;
   }
 
-  /** 
+  /**
    * Method processes message from CAD software.
    * Creates new fds object with new geometry.
    */
@@ -246,12 +241,7 @@ export class WebsocketService {
         }
       }
     } catch (e) {
-      if (e instanceof EvalError) {
-        console.log(e.name + ': ' + e.message);
-      } else if (e instanceof RangeError) {
-        console.log(e.name + ': ' + e.message);
-      }
-      else {
+      if (isDevMode()) {
         console.log(e.name + ': ' + e.message);
       }
       answer.status = "error";

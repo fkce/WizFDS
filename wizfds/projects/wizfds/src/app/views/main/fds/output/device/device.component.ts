@@ -16,16 +16,17 @@ import { IdGeneratorService } from '@services/id-generator/id-generator.service'
 import { FdsEnums } from '@enums/fds/enums/fds-enums';
 import { WebsocketService } from '@services/websocket/websocket.service';
 
-import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
+import { NgScrollbar } from 'ngx-scrollbar';
 import { map, filter, includes, find, findIndex, cloneDeep, set } from 'lodash';
 import { WebsocketMessageObject } from '@services/websocket/websocket-message';
 import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-device',
-  templateUrl: './device.component.html',
-  styleUrls: ['./device.component.scss']
+    selector: 'app-device',
+    templateUrl: './device.component.html',
+    styleUrls: ['./device.component.scss'],
+    standalone: false
 })
 export class DeviceComponent implements OnInit, OnDestroy {
 
@@ -49,8 +50,8 @@ export class DeviceComponent implements OnInit, OnDestroy {
   rouSub: Subscription;
 
   // Scrolbars containers
-  @ViewChild('devcScrollbar', {static: false}) devcScrollbar: PerfectScrollbarComponent;
-  @ViewChild('libDevcScrollbar', {static: false}) libDevcScrollbar: PerfectScrollbarComponent;
+  @ViewChild('devcScrollbar', {static: false}) devcScrollbar: NgScrollbar;
+  @ViewChild('libDevcScrollbar', {static: false}) libDevcScrollbar: NgScrollbar;
 
   // Enums
   QUANTITIES = map(filter(quantities, function (o) { return includes(o.type, 'd') }), function (o) { return new Quantity(JSON.stringify(o)) });
@@ -117,7 +118,9 @@ export class DeviceComponent implements OnInit, OnDestroy {
 
   ngAfterViewInit() {
     // Set scrollbars position y after view rendering and set last selected element
-    this.devcScrollbar.directiveRef.scrollToY(this.ui.output['devc'].scrollPosition);
+    setTimeout(() => {
+      try { this.devcScrollbar?.viewport?.scrollYTo(this.ui.output['devc'].scrollPosition); } catch {}
+    });
   }
 
   ngOnDestroy() {
@@ -185,7 +188,7 @@ export class DeviceComponent implements OnInit, OnDestroy {
 
   /** Update scroll position */
   public scrollbarUpdate(element: string) {
-    set(this.ui.output, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.geometry().y);
+    set(this.ui.output, element + '.scrollPosition', (this[element + 'Scrollbar'] as NgScrollbar).viewport.scrollTop);
   }
 
   /** Toggle library */

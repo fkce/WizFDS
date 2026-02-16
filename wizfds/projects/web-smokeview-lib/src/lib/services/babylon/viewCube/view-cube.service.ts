@@ -51,6 +51,108 @@ export class ViewCubeService {
   ) { }
 
   /**
+   * Create procedural texture for ViewCube with text labels
+   */
+  private createViewCubeProceduralTexture(): BABYLON.DynamicTexture {
+    // This method now creates a simple texture - we'll use MultiMaterial approach
+    const textureSize = 512;
+    const dynamicTexture = new BABYLON.DynamicTexture("viewCubeTexture", {width: textureSize, height: textureSize}, this.babylonService.scene);
+    
+    const ctx = dynamicTexture.getContext() as any;
+    ctx.fillStyle = "#F5F5F5";
+    ctx.fillRect(0, 0, textureSize, textureSize);
+    
+    dynamicTexture.update();
+    return dynamicTexture;
+  }
+
+  /**
+   * Create individual face texture with proper orientation
+   */
+  private createFaceTexture(label: string, rotation: number = 0): BABYLON.DynamicTexture {
+    const textureSize = 512;
+    const dynamicTexture = new BABYLON.DynamicTexture(`viewCube_${label}`, {width: textureSize, height: textureSize}, this.babylonService.scene);
+    
+    const ctx = dynamicTexture.getContext() as any;
+    
+    // Clear with light background
+    ctx.fillStyle = "#F5F5F5";
+    ctx.fillRect(0, 0, textureSize, textureSize);
+    
+    // Draw text with proper orientation
+    const fontSize = 92;
+    const font = `bold ${fontSize}px Arial`;
+    ctx.font = font;
+    ctx.fillStyle = "#222222";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    
+    // Save context for transformations
+    ctx.save();
+    
+    // Move to center for transformations
+    ctx.translate(textureSize / 2, textureSize / 2);
+    
+    // Apply horizontal flip to fix mirrored text
+    ctx.scale(-1, 1);
+    
+    // Apply specific rotation for this face
+    if (rotation !== 0) {
+      ctx.rotate(rotation);
+    }
+    
+    // Draw text at origin
+    ctx.fillText(label, 0, 0);
+    
+    // Restore context
+    ctx.restore();
+    
+    // Add border for debugging
+    ctx.strokeStyle = "#CCCCCC";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(0, 0, textureSize, textureSize);
+    
+    dynamicTexture.update();
+    return dynamicTexture;
+  }
+
+  /**
+   * Create procedural texture for ViewCube ground with circular pattern
+   */
+  private createViewCubeGroundProceduralTexture(): BABYLON.DynamicTexture {
+    // Create a dynamic texture for the ground
+    const textureSize = 256;
+    const dynamicTexture = new BABYLON.DynamicTexture("viewCubeGroundTexture", {width: textureSize, height: textureSize}, this.babylonService.scene);
+    
+    // Get canvas context for custom drawing
+    const canvas = dynamicTexture.getContext() as any;
+    
+    // Clear with transparent background
+    canvas.clearRect(0, 0, textureSize, textureSize);
+    
+    // Create smoother radial gradient pattern
+    const centerX = textureSize / 2;
+    const centerY = textureSize / 2;
+    const gradient = canvas.createRadialGradient(centerX, centerY, 0, centerX, centerY, textureSize / 2);
+    
+    // More gradual transition from center to edge
+    gradient.addColorStop(0, 'rgba(80, 80, 80, 0.6)');     // Dark center
+    gradient.addColorStop(0.3, 'rgba(120, 120, 120, 0.4)'); // Mid-dark
+    gradient.addColorStop(0.6, 'rgba(160, 160, 160, 0.2)'); // Light
+    gradient.addColorStop(0.8, 'rgba(180, 180, 180, 0.1)'); // Very light
+    gradient.addColorStop(1, 'rgba(200, 200, 200, 0.0)');   // Fully transparent edge
+    
+    // Fill with gradient
+    canvas.fillStyle = gradient;
+    canvas.fillRect(0, 0, textureSize, textureSize);
+    
+    // Update the texture
+    dynamicTexture.update();
+    
+    return dynamicTexture;
+  }
+
+  /**
    * Main method creating viewcube
    */
   public init() {
@@ -93,39 +195,70 @@ export class ViewCubeService {
    */
   private createViewCube() {
 
-    // Create material with texture
-    this.materialViewCube = new BABYLON.StandardMaterial("materialViewCube", this.babylonService.scene);
-    var texture = new BABYLON.Texture("assets/images/viewcube.svg", this.babylonService.scene);
-    this.materialViewCube.ambientColor = BABYLON.Color3.White();
-    this.materialViewCube.ambientTexture = texture;
+    // Create MultiMaterial for different faces
+    const multiMaterial = new BABYLON.MultiMaterial("viewCubeMultiMaterial", this.babylonService.scene);
+    
+    // Create individual materials for each face with proper labels and orientations
+    // Actual BabylonJS box face order with corrected rotations:
+    const faceData = [
+      { label: "TOP", rotation: Math.PI },            // Face 0: Top (+180°)
+      { label: "BOTTOM", rotation: -Math.PI },        // Face 1: Bottom (-180°)
+      { label: "RIGHT", rotation: Math.PI },          // Face 2: Right (+180°)
+      { label: "LEFT", rotation: 0 },                 // Face 3: Left (no rotation)
+      { label: "BACK", rotation: -Math.PI / 2 },      // Face 4: Back (-90°)
+      { label: "FRONT", rotation: -Math.PI / 2 }      // Face 5: Front (-90°)
+    ];
 
-    let columns = 6, rows = 1;
-    let faceUV = new Array(6);
-
-    for (var i = 0; i < 6; i++) {
-      faceUV[i] = new BABYLON.Vector4(i / columns, 0, (i + 1) / columns, 1 / rows);
+    // Create materials for each face
+    for (let i = 0; i < 6; i++) {
+      const material = new BABYLON.StandardMaterial(`viewCubeFace_${i}`, this.babylonService.scene);
+      const texture = this.createFaceTexture(faceData[i].label, faceData[i].rotation);
+      
+      material.diffuseTexture = texture;
+      material.emissiveTexture = texture;
+      material.emissiveColor = new BABYLON.Color3(0.3, 0.3, 0.3);
+      material.specularColor = BABYLON.Color3.Black();
+      
+      multiMaterial.subMaterials.push(material);
     }
 
+    // Create mesh with MultiMaterial
     let options = {
       width: 1,
       height: 1,
-      depth: 1,
-      faceUV: faceUV
+      depth: 1
     };
 
-    // Create mesh
     this.viewCube = BABYLON.MeshBuilder.CreateBox("viewBox", options, this.babylonService.scene);
     this.viewCube.position.y = -1000;
-    this.viewCube.material = this.materialViewCube;
+    this.viewCube.material = multiMaterial;
+    
+    // Manually set up subMeshes for each face
+    this.viewCube.subMeshes = [];
+    const verticesCount = this.viewCube.getTotalVertices();
+    
+    // Each face of a box has 4 vertices, 2 triangles = 6 indices
+    // Total: 6 faces * 6 indices = 36 indices
+    for (let i = 0; i < 6; i++) {
+      new BABYLON.SubMesh(i, 0, verticesCount, i * 6, 6, this.viewCube);
+    }
+    
     this.viewCube.enableEdgesRendering();
     this.viewCube.edgesWidth = 3;
     this.viewCube.edgesColor = BABYLON.Color4.FromInts(10, 10, 10, 255);
 
-    // Ground
+    // Ground - using StandardMaterial with procedural texture
     this.materialViewCubeGround = new BABYLON.StandardMaterial("materialViewCubeGround", this.babylonService.scene);
-    var textureGround = new BABYLON.Texture("assets/images/viewcubeground.svg", this.babylonService.scene);
-    this.materialViewCubeGround.diffuseTexture = this.materialViewCubeGround.opacityTexture = textureGround;
-    this.materialViewCubeGround.diffuseTexture.hasAlpha = true;
+    
+    if (isDevMode()) console.log("Creating procedural ViewCube ground texture for WebGPU compatibility");
+    var textureGround = this.createViewCubeGroundProceduralTexture();
+    
+    this.materialViewCubeGround.diffuseTexture = textureGround;
+    this.materialViewCubeGround.opacityTexture = textureGround;
+    this.materialViewCubeGround.emissiveTexture = textureGround;
+    this.materialViewCubeGround.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+    this.materialViewCubeGround.specularColor = BABYLON.Color3.Black();
+    this.materialViewCubeGround.specularColor = BABYLON.Color3.Black();
 
     var frontUV = new BABYLON.Vector4(0, 0, 1, 1);
 

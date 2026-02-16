@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, OnDestroy } from '@angular/core';
+import { Component, OnInit, ViewChild, OnDestroy, isDevMode } from '@angular/core';
 
 import { Main } from '@services/main/main';
 import { Fds } from '@services/fds-object/fds-object';
@@ -11,14 +11,15 @@ import { LibraryService } from '@services/library/library.service';
 import { IdGeneratorService } from '@services/id-generator/id-generator.service';
 import { FdsEnums } from '@enums/fds/enums/fds-enums';
 
-import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
+import { NgScrollbar } from 'ngx-scrollbar';
 import { cloneDeep, find, findIndex, set } from 'lodash';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-ramp',
-  templateUrl: './ramp.component.html',
-  styleUrls: ['./ramp.component.scss']
+    selector: 'app-ramp',
+    templateUrl: './ramp.component.html',
+    styleUrls: ['./ramp.component.scss'],
+    standalone: false
 })
 export class RampComponent implements OnInit, OnDestroy {
 
@@ -39,7 +40,7 @@ export class RampComponent implements OnInit, OnDestroy {
 
   info() {
     this.isPure = !this.isPure;
-    console.log(this.isPure);
+    if (isDevMode()) console.log(this.isPure);
   }
 
   // Enums
@@ -50,8 +51,8 @@ export class RampComponent implements OnInit, OnDestroy {
   libSub: Subscription;
 
   // Scrolbars containers
-  @ViewChild('rampScrollbar', {static: false}) rampScrollbar: PerfectScrollbarComponent;
-  @ViewChild('libRampScrollbar', {static: false}) libRampScrollbar: PerfectScrollbarComponent;
+  @ViewChild('rampScrollbar', {static: false}) rampScrollbar: NgScrollbar;
+  @ViewChild('libRampScrollbar', {static: false}) libRampScrollbar: NgScrollbar;
 
   constructor(
     private mainService: MainService,
@@ -60,7 +61,7 @@ export class RampComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit() {
-    console.clear();
+    if (isDevMode()) console.clear();
     // Subscribe main object
     this.mainSub = this.mainService.getMain().subscribe(main => this.main = main);
     this.uiSub = this.uiStateService.uiObservable.subscribe(uiObservable => this.ui = uiObservable);
@@ -78,7 +79,9 @@ export class RampComponent implements OnInit, OnDestroy {
 
   ngAfterViewInit() {
     // Set scrollbars position y after view rendering and set last selected element
-    this.rampScrollbar.directiveRef.scrollToY(this.ui.ramps['ramp'].scrollPosition);
+    setTimeout(() => {
+      try { this.rampScrollbar?.viewport?.scrollYTo(this.ui.ramps['ramp'].scrollPosition); } catch {}
+    });
     this.ramps.length > 0 && this.activate(this.ramps[this.ui.ramps['ramp'].elementIndex].id);
   }
 
@@ -145,7 +148,7 @@ export class RampComponent implements OnInit, OnDestroy {
 
   /** Update scroll position */
   public scrollbarUpdate(element: string) {
-    set(this.ui.ramps, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.geometry().y);
+    set(this.ui.ramps, element + '.scrollPosition', (this[element + 'Scrollbar'] as NgScrollbar).viewport.scrollTop);
   }
 
   /** Toggle library */
@@ -155,19 +158,19 @@ export class RampComponent implements OnInit, OnDestroy {
 
   /** Import from library */
   public importLibraryItem(id: string) {
-    console.log(id);
+    if (isDevMode()) console.log(id);
     let idGeneratorService = new IdGeneratorService;
     let libRamp = find(this.lib.ramps, function (o) { return o.id == id; });
-    console.log(libRamp);
+    if (isDevMode()) console.log(libRamp);
     if (libRamp != undefined && libRamp.id) {
       // Check if ramp already exists
       let currentRamp = find(this.ramps, function (o) { return o.id == libRamp.id });
-      console.log(currentRamp);
+      if (isDevMode()) console.log(currentRamp);
       // If ramp do not exists import from library
       if (currentRamp == undefined) {
         let ramp = cloneDeep(libRamp);
         ramp.uuid = idGeneratorService.genUUID();
-        console.log(ramp);
+        if (isDevMode()) console.log(ramp);
         this.ramps.push(ramp);
       }
     }

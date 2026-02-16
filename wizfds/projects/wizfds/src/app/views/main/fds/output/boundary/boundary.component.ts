@@ -11,9 +11,10 @@ import { filter, includes, map } from 'lodash';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-boundary',
-  templateUrl: './boundary.component.html',
-  styleUrls: ['./boundary.component.scss']
+    selector: 'app-boundary',
+    templateUrl: './boundary.component.html',
+    styleUrls: ['./boundary.component.scss'],
+    standalone: false
 })
 export class BoundaryComponent implements OnInit, OnDestroy {
 

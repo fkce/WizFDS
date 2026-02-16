@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, OnDestroy } from '@angular/core';
+import { Component, OnInit, ViewChild, OnDestroy, isDevMode } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
 import { WebsocketService } from '@services/websocket/websocket.service';
@@ -8,15 +8,16 @@ import { MainService } from '@services/main/main.service';
 import { UiStateService } from '@services/ui-state/ui-state.service';
 import { UiState } from '@services/ui-state/ui-state';
 
-import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
+import { NgScrollbar } from 'ngx-scrollbar';
 import { set, find, cloneDeep, findIndex, concat } from 'lodash';
 import { Geom } from '@services/fds-object/geometry/geom';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-complex',
-  templateUrl: './complex.component.html',
-  styleUrls: ['./complex.component.scss']
+    selector: 'app-complex',
+    templateUrl: './complex.component.html',
+    styleUrls: ['./complex.component.scss'],
+    standalone: false
 })
 export class ComplexComponent implements OnInit, OnDestroy {
 
@@ -39,7 +40,7 @@ export class ComplexComponent implements OnInit, OnDestroy {
   rouSub: Subscription;
 
   // Scrolbars containers
-  @ViewChild('geomScrollbar', {static: false}) geomScrollbar: PerfectScrollbarComponent;
+  @ViewChild('geomScrollbar', {static: false}) geomScrollbar: NgScrollbar;
 
   // Enums
   //ENUMS_GEOM = FdsEnums.GEOM;
@@ -52,7 +53,7 @@ export class ComplexComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit() {
-    console.clear();
+    if (isDevMode()) console.clear();
     // Subscribe main object
     this.mainSub = this.mainService.getMain().subscribe(main => this.main = main);
     this.uiSub = this.uiStateService.uiObservable.subscribe(uiObservable => this.ui = uiObservable);
@@ -71,16 +72,16 @@ export class ComplexComponent implements OnInit, OnDestroy {
       (message) => {
         if (message.status == 'error') {
           //this.mesh = cloneDeep(this.meshOld);
-          console.log('Cannot sync geom ...');
+          if (isDevMode()) console.log('Cannot sync geom ...');
         }
         else if (message.status == 'success') {
           //this.meshOld = cloneDeep(this.mesh);
-          console.log('Geom updated ...')
+          if (isDevMode()) console.log('Geom updated ...')
         }
       },
       (error) => {
         //this.mesh = cloneDeep(this.meshOld);
-        console.log('Cannot sync geom ...');
+        if (isDevMode()) console.log('Cannot sync geom ...');
       }
     );
 
@@ -102,7 +103,9 @@ export class ComplexComponent implements OnInit, OnDestroy {
 
   ngAfterViewInit() {
     // Set scrollbars position y after view rendering and set last selected element
-    this.geomScrollbar.directiveRef.scrollToY(this.ui.geometry['geom'].scrollPosition);
+    setTimeout(() => {
+      try { this.geomScrollbar?.viewport?.scrollYTo(this.ui.geometry['geom'].scrollPosition); } catch {}
+    });
   }
 
   ngOnDestroy() {
@@ -140,7 +143,7 @@ export class ComplexComponent implements OnInit, OnDestroy {
 
   /** Update scroll position */
   public scrollbarUpdate(element: string) {
-    set(this.ui.geometry, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.geometry().y);
+    set(this.ui.geometry, element + '.scrollPosition', (this[element + 'Scrollbar'] as NgScrollbar).viewport.scrollTop);
   }
 
   // COMPONENT METHODS

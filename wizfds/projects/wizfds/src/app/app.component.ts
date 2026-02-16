@@ -1,6 +1,6 @@
 import { Router, NavigationEnd } from '@angular/router';
 import { Component, isDevMode } from '@angular/core';
-import 'rxjs/add/operator/filter';
+import { filter } from 'rxjs/operators';
 import { googleAnalytics } from '../assets/analytics';
 import { includes, isEqual, cloneDeep } from 'lodash';
 
@@ -19,9 +19,10 @@ import { timer, Subscription } from 'rxjs';
 import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 
 @Component({
-  selector: 'app-root',
-  templateUrl: './app.component.html',
-  styleUrls: ['./app.component.scss']
+    selector: 'app-root',
+    templateUrl: './app.component.html',
+    styleUrls: ['./app.component.scss'],
+    standalone: false
 })
 export class AppComponent {
   main: Main;
@@ -44,26 +45,22 @@ export class AppComponent {
     private websocketService: WebsocketService,
     private snackBarService: SnackBarService
   ) {
-    this.router.events.subscribe(event => {
-      this.router.events.filter(event => event instanceof NavigationEnd).subscribe(event => {
-        const url = event['url'];
+    this.router.events
+      .pipe(filter(event => event instanceof NavigationEnd))
+      .subscribe((event: NavigationEnd) => {
+        const url = event.url;
         if (url !== null && url !== undefined && url !== '' && url.indexOf('null') < 0 && this.lastUrl != url) {
           googleAnalytics(url);
           this.lastUrl = url;
         }
       });
-    });
 
   }
 
   ngOnInit() {
-    console.clear();
-
     if (isDevMode()) {
+      console.clear();
       console.log('Development mode');
-    }
-    else {
-      console.log('Production mode');
     }
 
     this.mainSub = this.mainService.getMain().subscribe(main => this.main = main);
@@ -76,9 +73,7 @@ export class AppComponent {
     });
 
     this.libraryService.loadLibrary();
-    setTimeout(() => {
-      this.libraryService.getLibrary().subscribe(library => this.lib = library);
-    }, 1500);
+    this.libraryService.libraryObservable.subscribe(library => this.lib = library);
 
     setTimeout(() => {
       this.websocket.initializeWebSocket();
@@ -90,7 +85,7 @@ export class AppComponent {
     // For developing purpose
     //if (isDevMode()) {
     //  setTimeout(() => {
-    //    this.setCurrentFdsScenario(32, 71);
+    //    this.setCurrentFdsScenario(3455, 17283);
     //  }, 4000);
     //  setTimeout(() => {
     //    this.router.navigate(['/fds/visualize']);

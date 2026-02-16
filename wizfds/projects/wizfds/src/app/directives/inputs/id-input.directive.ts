@@ -1,7 +1,8 @@
 import { Directive, ElementRef, HostListener } from '@angular/core';
 
 @Directive({
-  selector: '[idInput]'
+    selector: '[idInput]',
+    standalone: false
 })
 export class IdInputDirective {
 

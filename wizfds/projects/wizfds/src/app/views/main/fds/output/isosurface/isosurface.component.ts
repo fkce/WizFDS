@@ -13,15 +13,16 @@ import { UiStateService } from '@services/ui-state/ui-state.service';
 import { LibraryService } from '@services/library/library.service';
 import { IdGeneratorService } from '@services/id-generator/id-generator.service';
 
-import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
+import { NgScrollbar } from 'ngx-scrollbar';
 import { map, filter, includes, find, findIndex, cloneDeep, set } from 'lodash';
 import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-isosurface',
-  templateUrl: './isosurface.component.html',
-  styleUrls: ['./isosurface.component.scss']
+    selector: 'app-isosurface',
+    templateUrl: './isosurface.component.html',
+    styleUrls: ['./isosurface.component.scss'],
+    standalone: false
 })
 export class IsosurfaceComponent implements OnInit, OnDestroy {
 
@@ -43,8 +44,8 @@ export class IsosurfaceComponent implements OnInit, OnDestroy {
   libSub: Subscription;
 
   // Scrolbars containers
-  @ViewChild('isofScrollbar', {static: false}) isofScrollbar: PerfectScrollbarComponent;
-  @ViewChild('isofLibScrollbar', {static: false}) isofLibScrollbar: PerfectScrollbarComponent;
+  @ViewChild('isofScrollbar', {static: false}) isofScrollbar: NgScrollbar;
+  @ViewChild('isofLibScrollbar', {static: false}) isofLibScrollbar: NgScrollbar;
 
   // Enums
   QUANTITIES = map(filter(quantities, function (o) { return includes(o.type, 'i') }), function (o) { return new Quantity(JSON.stringify(o)) });
@@ -76,7 +77,9 @@ export class IsosurfaceComponent implements OnInit, OnDestroy {
 
   ngAfterViewInit() {
     // Set scrollbars position y after view rendering and set last selected element
-    this.isofScrollbar.directiveRef.scrollToY(this.ui.output['isof'].scrollPosition);
+    setTimeout(() => {
+      try { this.isofScrollbar?.viewport?.scrollYTo(this.ui.output['isof'].scrollPosition); } catch {}
+    });
     this.isofs.length > 0 && this.activate(this.isofs[this.ui.output['isof'].elementIndex].id);
   }
 
@@ -143,7 +146,7 @@ export class IsosurfaceComponent implements OnInit, OnDestroy {
 
   /** Update scroll position */
   public scrollbarUpdate(element: string) {
-    set(this.ui.output, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.isofs().y);
+    set(this.ui.output, element + '.scrollPosition', (this[element + 'Scrollbar'] as NgScrollbar).viewport.scrollTop);
   }
 
   /** Toggle library */

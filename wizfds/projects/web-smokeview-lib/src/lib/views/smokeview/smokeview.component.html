@@ -1,6 +1,6 @@
 <div class="main" #mainContainer>
 
-    <canvas class="renderer" #rendererCanvas if="renderCanvas"></canvas>
+    <canvas class="renderer" #rendererCanvas></canvas>
 
     <div class="info" *ngIf="obstService.pickedObst">
         <p>
@@ -27,15 +27,18 @@
         <hr>
         <button
             (click)="obstService.material.wireframe = obstService.material.wireframe ? false : true; obstService.meshBackCap.isVisible = obstService.meshBackCap.isVisible ? false : true;">Trinagles</button>
-        <button (click)="obstService.mesh.edgesWidth = obstService.mesh.edgesWidth == 0.0 ? 0.1 : 0.0;">Outline</button>
+        <button (click)="obstService.setEdgesRendering(obstService.mesh.edgesWidth == 0);">Obst Outline</button>
+        <button (click)="jetfanService.setEdgesRendering(jetfanService.mesh?.edgesWidth == 0);">Jetfan Outline</button>
+        <button (click)="fireService.toogleVisibility()">Fire</button>
+        <button (click)="ventService.toogleBasicVisibility()">Vent</button>
     </div>
 
     <div class="clip">
-        <p>x:&nbsp;<input type="range" [ngModel]="obstService.clipX" (ngModelChange)="obstService.clip($event, 'x')"
+        <p>x:&nbsp;<input type="range" [ngModel]="obstService.clipX" (ngModelChange)="obstService.clip($event, 'x'); fireService.clip($event, 'x'); ventService.clipBasic($event, 'x')"
                 min="0" max="100" />&nbsp;{{obstService.clipX}}%</p>
-        <p>y:&nbsp;<input type="range" [ngModel]="obstService.clipY" (ngModelChange)="obstService.clip($event, 'y')"
+        <p>y:&nbsp;<input type="range" [ngModel]="obstService.clipY" (ngModelChange)="obstService.clip($event, 'y'); fireService.clip($event, 'y'); ventService.clipBasic($event, 'y')"
                 min="0" max="100" />&nbsp;{{obstService.clipY}}%</p>
-        <p>z:&nbsp;<input type="range" [ngModel]="obstService.clipZ" (ngModelChange)="obstService.clip($event, 'z')"
+        <p>z:&nbsp;<input type="range" [ngModel]="obstService.clipZ" (ngModelChange)="obstService.clip($event, 'z'); fireService.clip($event, 'z'); ventService.clipBasic($event, 'z')"
                 min="0" max="100" />&nbsp;{{obstService.clipZ}}%</p>
     </div>
     <div class="player" *ngIf="playerService.frameNo > 0">

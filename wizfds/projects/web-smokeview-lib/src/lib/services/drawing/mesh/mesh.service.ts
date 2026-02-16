@@ -32,12 +32,21 @@ export class MeshService {
    * Reder meshes
    */
   public renderMeshes() {
-
     // Prepare normalized geometry and colors
     this.normalizeMeshes();
 
+    // If nothing valid to render, exit early
+    if (!this.meshes || this.meshes.length === 0) {
+      return;
+    }
+
     // Update obsts vertex data
     this.updateMeshesVertexData();
+
+    // If no geometry, skip render
+    if (!this.vertices.length || !this.indices.length) {
+      return;
+    }
 
     // Render data
     this.render();
@@ -47,12 +56,24 @@ export class MeshService {
    * Normalize meshes
    */
   private normalizeMeshes(): void {
+    // Sanitize input list
+    const validMeshes = (this.meshes || []).filter((m: IMesh) => m && (m as any).xb);
+    if (validMeshes.length === 0) {
+      this.meshes = [];
+      return;
+    }
+
+    // Ensure vis/xbNorm exists on each mesh
+    forEach(validMeshes, (mesh: IMesh) => {
+      (mesh as any).vis = (mesh as any).vis || { xbNorm: { x1: 0, x2: 0, y1: 0, y2: 0, z1: 0, z2: 0 }, colorNorm: [1, 0.815, 0, 0] };
+      (mesh as any).vis.xbNorm = (mesh as any).vis.xbNorm || { x1: 0, x2: 0, y1: 0, y2: 0, z1: 0, z2: 0 };
+    });
 
     // Firstly, find minimum and maximum values for each direction x, y, z
-    let xMin = this.meshes[0].xb.x1, yMin = this.meshes[0].xb.y1, zMin = this.meshes[0].xb.z1;
-    let xMax = this.meshes[0].xb.x2, yMax = this.meshes[0].xb.y2, zMax = this.meshes[0].xb.z2;
-    if (this.meshes.length > 1) {
-      forEach(this.meshes, (mesh: IMesh) => {
+    let xMin = validMeshes[0].xb.x1, yMin = validMeshes[0].xb.y1, zMin = validMeshes[0].xb.z1;
+    let xMax = validMeshes[0].xb.x2, yMax = validMeshes[0].xb.y2, zMax = validMeshes[0].xb.z2;
+    if (validMeshes.length > 1) {
+      forEach(validMeshes, (mesh: IMesh) => {
         xMin = mesh.xb.x1 < xMin ? mesh.xb.x1 : xMin;
         xMax = mesh.xb.x2 > xMax ? mesh.xb.x2 : xMax;
 
@@ -74,8 +95,18 @@ export class MeshService {
     let deltaZ = zMax - zMin;
     this.helperService.normDelta = max([deltaX, deltaY, deltaZ]);
 
+    // Calculate normalized maximum values after transformation and scaling
+    let normXMax = ((xMax + (xMin < 0 ? -xMin : xMin)) / this.helperService.normDelta);
+    let normYMax = ((yMax + (yMin < 0 ? -yMin : yMin)) / this.helperService.normDelta);
+    let normZMax = ((zMax + (zMin < 0 ? -zMin : zMin)) / this.helperService.normDelta);
+
+    // Store the normalized maximum values for clip calculation
+    this.helperService.normXMax = normXMax;
+    this.helperService.normYMax = normYMax;
+    this.helperService.normZMax = normZMax;
+
     // Normalize ...
-    forEach(this.meshes, (mesh: IMesh) => {
+  forEach(validMeshes, (mesh: IMesh) => {
 
       // Normalize xb
       let xb = cloneDeep(mesh.xb);
@@ -100,6 +131,9 @@ export class MeshService {
 
       mesh.vis.colorNorm = [1, 0.815, 0, 0];
     });
+
+  // Keep only valid meshes for subsequent steps
+  this.meshes = validMeshes as any;
   }
 
   /**
@@ -109,6 +143,7 @@ export class MeshService {
 
     // Clear arrays
     this.vertices.length = 0;
+  this.normals.length = 0;
     this.colors.length = 0;
     this.indices.length = 0;
 
@@ -124,6 +159,10 @@ export class MeshService {
    */
   private render() {
 
+    // Dispose existing mesh and material
+    if (this.mesh) { this.mesh.dispose(); }
+    if (this.material) { this.material.dispose(); }
+
     // Create new custom mesh and vertex data
     this.mesh = new BABYLON.Mesh("custom", this.babylonService.scene);
 
@@ -137,19 +176,34 @@ export class MeshService {
     this.vertexData.normals = this.normals;
     this.vertexData.applyToMesh(this.mesh);
 
-    // Create material with shaders
-    this.material = new BABYLON.ShaderMaterial("shader", this.babylonService.scene, './assets/shaders/mesh',
-      {
-        needAlphaBlending: true,
-        attributes: ["position", "color", "normal"],
-        uniforms: ["world", "worldView", "worldViewProjection", "view", "projection"],
+    // Load shader sources explicitly to avoid any extension inference
+    this.babylonService.loadShaderSources('mesh')
+      .then((sources) => {
+        try { console.debug('[MeshService] shaders', sources.urls); } catch {}
+    const isWGSL = sources.shaderLanguage === ((BABYLON as any).ShaderLanguage?.WGSL ?? 1);
+    const uniformsList = isWGSL ? ["transparent"] : ["world", "worldView", "worldViewProjection", "view", "projection", "transparent"];
+    this.material = new (BABYLON as any).ShaderMaterial(
+          "shader",
+          this.babylonService.scene,
+          { vertexSource: sources.vertexSource, fragmentSource: sources.fragmentSource },
+          {
+            needAlphaBlending: true,
+            attributes: ["position", "normal", "color"],
+            uniforms: uniformsList,
+            uniformBuffers: isWGSL ? ["Scene", "Mesh"] : [],
+            shaderLanguage: sources.shaderLanguage,
+            entryPoint: { vertex: 'main', fragment: 'main' }
+          }
+        );
+        this.material.setFloat("transparent", 0.0);
+        this.material.zOffset = 0.04;
+        this.material.freeze();
+        this.mesh.material = this.material;
+      })
+      .catch((e) => {
+        try { console.error('[MeshService] Failed to load shader sources', e); } catch {}
       });
-    this.material.setFloat("transparent", 0.0);
-    this.material.zOffset = 0.04;
-    this.material.freeze();
-
-    this.mesh.material = this.material;
-    this.mesh.enableEdgesRendering();
+  this.mesh.enableEdgesRendering();
     this.mesh.edgesWidth = 0.1;
     this.mesh.edgesColor = new BABYLON.Color4(1, 0.815, 0, 1);
 

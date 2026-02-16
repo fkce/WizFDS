@@ -5,14 +5,14 @@
       <div class="list-title" (click)="add()">
         <mat-icon>add_box</mat-icon> Add DEVC
       </div>
-      <perfect-scrollbar #devcScrollbar (psScrollY)="scrollbarUpdate('devc')">
+  <ng-scrollbar #devcScrollbar (scrolled)="scrollbarUpdate('devc')">
         <div class="list-items">
           <div class="list-item" *ngFor="let devcItem of devcs | slice: ui.output.devc.begin:(ui.output.devc.begin + ui.listRange)">
             <a (click)="activate(devcItem.id); websocketService.selectCad(devcItem.idAC)" [ngClass]="{active: devcItem === devc}">{{devcItem.id}}</a>
             <mat-icon class="red-hover" (click)="delete(devcItem.id)">delete_forever</mat-icon>
           </div>
         </div>
-      </perfect-scrollbar>
+  </ng-scrollbar>
       <div class="list-bottom" *ngIf="devcs.length > ui.listRange">
         <mat-icon *ngIf="ui.output.devc.begin > 0" (click)="uiStateService.decreaseRange('output.devc')">chevron_left</mat-icon>
         <div>{{ui.output.devc.begin}} - {{ui.output.devc.begin + ui.listRange > devcs.length ? devcs.length : ui.output.devc.begin
@@ -237,7 +237,7 @@
           <div class="list-title" (click)="add(true)">
             <mat-icon>add_box</mat-icon> Add DEVC
           </div>
-          <perfect-scrollbar #libDevcScrollbar (psScrollY)="scrollbarUpdate('libDevc')">
+          <ng-scrollbar #libDevcScrollbar (scrolled)="scrollbarUpdate('libDevc')">
             <div class="list-items">
               <div class="list-item" *ngFor="let devcItem of lib.devcs | slice: ui.output.libDevc.begin:(ui.output.libDevc.begin + ui.listRange)">
                 <a (click)="activate(devcItem.id, true)" [ngClass]="{activeLib: devcItem===devc}">{{devcItem.id}}</a>
@@ -247,7 +247,7 @@
                 <mat-icon class="red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(devcItem.id, true)">delete_forever</mat-icon>
               </div>
             </div>
-          </perfect-scrollbar>
+          </ng-scrollbar>
           <div class="list-bottom" *ngIf="libDevcs.length> ui.listRange">
             <mat-icon *ngIf="ui.output.libDevc.begin > 0" (click)="uiStateService.decreaseRange('devcs.libDevc')">chevron_left</mat-icon>
             <div>{{ui.output.libDevc.begin}} - {{ui.output.libDevc.begin + ui.listRange > libDevcs.length ? libDevcs.length :

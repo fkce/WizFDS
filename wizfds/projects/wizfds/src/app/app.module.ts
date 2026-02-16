@@ -20,17 +20,11 @@ import { DomSanitizer } from '@angular/platform-browser';
 // Ng-select
 import { NgSelectModule } from '@ng-select/ng-select';
 
-// KaTex
-import { KatexModule } from 'ng-katex';
+// KaTex shim (local)
+import { NgKatexShimComponent } from './shared/katex/katex.component';
 
 // Perfect Scrollbar
-import { PerfectScrollbarModule } from 'ngx-perfect-scrollbar';
-import { PERFECT_SCROLLBAR_CONFIG } from 'ngx-perfect-scrollbar';
-import { PerfectScrollbarConfigInterface } from 'ngx-perfect-scrollbar';
-// Perfect Scrollbar settings
-const DEFAULT_PERFECT_SCROLLBAR_CONFIG: PerfectScrollbarConfigInterface = {
-  suppressScrollX: true
-};
+import { NgScrollbarModule } from 'ngx-scrollbar';
 
 // Http interceptor
 import { HTTP_INTERCEPTORS } from '@angular/common/http';
@@ -148,8 +142,9 @@ import { VisualizeComponent } from './views/main/fds/visualize/visualize.compone
         MinSecPipe,
         LargeNumberPipe,
         PositiveNumberPipe,
-        StepsDialogComponent,
-        VisualizeComponent
+    StepsDialogComponent,
+    VisualizeComponent,
+    NgKatexShimComponent
     ],
     imports: [
         BrowserModule,
@@ -157,8 +152,7 @@ import { VisualizeComponent } from './views/main/fds/visualize/visualize.compone
         HttpClientModule,
         FormsModule,
         CommonModule,
-        KatexModule,
-        PerfectScrollbarModule,
+    NgScrollbarModule,
         NgSelectModule,
         BrowserAnimationsModule,
         MatTooltipModule,
@@ -186,10 +180,6 @@ import { VisualizeComponent } from './views/main/fds/visualize/visualize.compone
             provide: HTTP_INTERCEPTORS,
             useClass: HttpManagerInterceptor,
             multi: true,
-        },
-        {
-            provide: PERFECT_SCROLLBAR_CONFIG,
-            useValue: DEFAULT_PERFECT_SCROLLBAR_CONFIG
         },
         {
             provide: MAT_SNACK_BAR_DEFAULT_OPTIONS,

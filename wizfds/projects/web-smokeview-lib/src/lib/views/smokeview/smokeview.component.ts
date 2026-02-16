@@ -1,23 +1,28 @@
-import { Component, OnInit, ViewChild, ElementRef, HostListener } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, HostListener, isDevMode } from '@angular/core';
 import { ObstService } from '../../services/drawing/obst/obst.service';
 import { SliceGeomService } from '../../services/drawing/slice/slice-geom.service';
 import { BabylonService } from '../../services/babylon/babylon.service';
 import { SliceService } from '../../services/drawing/slice/slice.service';
 import { PlayerService } from '../../services/player/player.service';
 import { InputService } from '../../services/input/input.service';
+import { SmokeviewApiService } from '../../services/smokeview-api/smokeview-api.service';
 import { forEach, startsWith, toLower, trim, toNumber, minBy, min, maxBy, max, sortBy } from 'lodash';
 import { ViewCubeService } from '../../services/babylon/viewCube/view-cube.service';
 import * as BABYLON from 'babylonjs';
 import { IObst } from '../../services/drawing/interfaces';
 import { MeshService } from '../../services/drawing/mesh/mesh.service';
 import { OpenService } from '../../services/drawing/open/open.service';
+import { VentService } from '../../services/drawing/vent/vent.service';
+import { JetfanService } from '../../services/drawing/jetfan/jetfan.service';
+import { FireService } from '../../services/drawing/fire/fire.service';
 
 @Component({
-  selector: 'lib-smokeview',
-  templateUrl: './smokeview.component.html',
-  styleUrls: ['./smokeview.component.scss']
+    selector: 'lib-smokeview',
+    templateUrl: './smokeview.component.html',
+    styleUrls: ['./smokeview.component.scss'],
+    standalone: false
 })
-export class SmokeviewComponent implements OnInit {
+export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @ViewChild('rendererCanvas', { static: true }) rendererCanvas: ElementRef<HTMLCanvasElement>;
   @ViewChild('mainContainer', { static: true }) mainContainer: ElementRef<HTMLCanvasElement>;
@@ -52,23 +57,34 @@ export class SmokeviewComponent implements OnInit {
     public obstService: ObstService,
     public meshService: MeshService,
     public openService: OpenService,
+    public ventService: VentService,
+    public jetfanService: JetfanService,
+    public fireService: FireService,
     public sliceGeomService: SliceGeomService,
     private babylonService: BabylonService,
     public sliceService: SliceService,
     public playerService: PlayerService,
     public inputService: InputService,
-    public viewCubeService: ViewCubeService
+    public viewCubeService: ViewCubeService,
+    private smokeviewApiService: SmokeviewApiService
   ) { }
 
 
   ngOnInit() { }
 
-  ngAfterViewInit() {
-
-    this.babylonService.createScene(this.rendererCanvas);
-    this.viewCubeService.init();
-    this.babylonService.animate();
-
+  async ngAfterViewInit() {
+    await this.babylonService.createScene(this.rendererCanvas);
+    this.babylonService.ready$.subscribe(() => {
+      this.babylonService.animate();
+      
+      // Initialize ViewCube after scene is ready
+      try {
+        this.viewCubeService.init();
+        if (isDevMode()) { try { console.debug('[SmokeviewComponent] ViewCube initialized'); } catch {} }
+      } catch (e) {
+        if (isDevMode()) { try { console.error('[SmokeviewComponent] Failed to initialize ViewCube', e); } catch {} }
+      }
+    });
   }
 
   /**
@@ -87,6 +103,18 @@ export class SmokeviewComponent implements OnInit {
   //    reader.readAsText(inputNode.files[0], 'UTF-8');
   //  }
   //}
+
+  ngOnDestroy() {
+    if (this.babylonService.engine) {
+      this.babylonService.engine.stopRenderLoop();
+    }
+    if (this.babylonService.scene) {
+      this.babylonService.scene.dispose();
+    }
+    if (this.babylonService.engine) {
+      this.babylonService.engine.dispose();
+    }
+  }
 
   /**
    * On slice file upload
@@ -170,7 +198,7 @@ export class SmokeviewComponent implements OnInit {
 
         });
 
-        console.log(surfs);
+        if (isDevMode()) console.log(surfs);
 
         let xMin = minBy(obsts, function (obst) { return min(obst.xb.slice(0, 2)); }).xb[0];
         let xMax = maxBy(obsts, function (obst) { return max(obst.xb.slice(0, 2)); }).xb[1];
@@ -203,7 +231,7 @@ export class SmokeviewComponent implements OnInit {
           obst.xb[5] /= delta;
         });
 
-        console.log(obsts);
+        if (isDevMode()) console.log(obsts);
         //this.obstService.updateObsts(obsts);
 
       };
@@ -219,8 +247,6 @@ export class SmokeviewComponent implements OnInit {
       this.playerService.start();
       this.sliceService.playSlice();
     }
-
   }
-
 
 }

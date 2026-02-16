@@ -6,7 +6,7 @@
         <div class="list-title" (click)="add('vent')">
           <mat-icon>add_box</mat-icon> Add VENT
         </div>
-        <perfect-scrollbar #ventScrollbar (psScrollY)="scrollbarUpdate('vent')">
+  <ng-scrollbar #ventScrollbar (scrolled)="scrollbarUpdate('vent')">
           <div class="list-items">
             <div class="list-item"
               *ngFor="let ventItem of specie.vents | slice:ui.specie.vent.begin:(ui.specie.vent.begin + ui.listRange)">
@@ -15,7 +15,7 @@
               <mat-icon class="red-hover" (click)="delete(ventItem.id, 'vent')">delete_forever</mat-icon>
             </div>
           </div>
-        </perfect-scrollbar>
+  </ng-scrollbar>
         <div class="list-bottom" *ngIf="specie.vents.length > ui.listRange">
           <mat-icon *ngIf="ui.specie.vent.begin > 0"
             (click)="uiStateService.decreaseRange('specie.vent')">chevron_left</mat-icon>
@@ -114,7 +114,7 @@
         <div class="list-title" (click)="add('surf')">
           <mat-icon>add_box</mat-icon> Add SURF
         </div>
-        <perfect-scrollbar #surfScrollbar (psScrollY)="scrollbarUpdate('surf')">
+  <ng-scrollbar #surfScrollbar (scrolled)="scrollbarUpdate('surf')">
           <div class="list-items">
             <div class="list-item"
               *ngFor="let surfItem of surfs | slice:ui.specie.surf.begin:(ui.specie.surf.begin + ui.listRange)">
@@ -122,7 +122,7 @@
               <mat-icon class="red-hover" (click)="delete(surfItem.id, 'surf')">delete_forever</mat-icon>
             </div>
           </div>
-        </perfect-scrollbar>
+  </ng-scrollbar>
         <div class="list-bottom" *ngIf="surfs.length > ui.listRange">
           <mat-icon *ngIf="ui.specie.surf.begin > 0"
             (click)="uiStateService.decreaseRange('specie.surf')">chevron_left</mat-icon>
@@ -313,7 +313,7 @@
             <div class="list-title" (click)="add('surf', true)">
               <mat-icon>add_box</mat-icon> Add SURF
             </div>
-            <perfect-scrollbar #libSurfScrollbar (psScrollY)="scrollbarUpdate('libSurf')">
+            <ng-scrollbar #libSurfScrollbar (scrolled)="scrollbarUpdate('libSurf')">
               <div class="list-items">
                 <div class="list-item"
                   *ngFor="let surfItem of libSurfs | slice: ui.specie.libSurf.begin:(ui.specie.libSurf.begin + ui.listRange)">
@@ -328,7 +328,7 @@
                     (click)="delete(surfItem.id, 'surf', true)">delete_forever</mat-icon>
                 </div>
               </div>
-            </perfect-scrollbar>
+            </ng-scrollbar>
             <div class="list-bottom" *ngIf="libSurfs.length > ui.listRange">
               <mat-icon *ngIf="ui.specie.libSurf.begin > 0"
                 (click)="uiStateService.decreaseRange('specie.libSurf')">chevron_left</mat-icon>

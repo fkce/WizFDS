@@ -19,10 +19,12 @@ import { StepsDialogComponent } from './steps-dialog/steps-dialog.component';
 import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 
 @Component({
-  selector: 'ramp-chart',
-  templateUrl: './ramp-chart.component.html',
-  styleUrls: ['./ramp-chart.component.scss']
-  //encapsulation: ViewEncapsulation.None
+    selector: 'ramp-chart',
+    templateUrl: './ramp-chart.component.html',
+    styleUrls: ['./ramp-chart.component.scss']
+    //encapsulation: ViewEncapsulation.None
+    ,
+    standalone: false
 })
 export class RampChartComponent implements OnInit, OnChanges, AfterViewInit {
 

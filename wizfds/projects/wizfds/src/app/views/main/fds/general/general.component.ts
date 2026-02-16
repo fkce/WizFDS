@@ -7,9 +7,10 @@ import { General } from '@services/fds-object/general/general';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-general',
-  templateUrl: './general.component.html',
-  styleUrls: ['./general.component.scss']
+    selector: 'app-general',
+    templateUrl: './general.component.html',
+    styleUrls: ['./general.component.scss'],
+    standalone: false
 })
 export class GeneralComponent implements OnInit, OnDestroy {
   main: Main;

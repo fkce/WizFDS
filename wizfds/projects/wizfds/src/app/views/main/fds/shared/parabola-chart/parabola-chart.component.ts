@@ -16,10 +16,11 @@ import { Library } from '@services/library/library';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'parabola-chart',
-  templateUrl: './parabola-chart.component.html',
-  styleUrls: ['./parabola-chart.component.scss'],
-  encapsulation: ViewEncapsulation.None
+    selector: 'parabola-chart',
+    templateUrl: './parabola-chart.component.html',
+    styleUrls: ['./parabola-chart.component.scss'],
+    encapsulation: ViewEncapsulation.None,
+    standalone: false
 })
 export class ParabolaChartComponent implements OnInit, OnChanges, AfterViewInit {
 

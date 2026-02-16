@@ -3,9 +3,10 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { toNumber } from 'lodash';
 
 @Component({
-  selector: 'custom-ramp-dialog',
-  templateUrl: './custom-ramp-dialog.component.html',
-  styleUrls: ['./custom-ramp-dialog.component.scss']
+    selector: 'custom-ramp-dialog',
+    templateUrl: './custom-ramp-dialog.component.html',
+    styleUrls: ['./custom-ramp-dialog.component.scss'],
+    standalone: false
 })
 export class CustomRampDialogComponent implements OnInit {
 

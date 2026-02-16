@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
+import { firstValueFrom } from 'rxjs';
 
 export interface IAppConfig {
   name: string;
@@ -19,7 +20,7 @@ export class ConfigService {
   public load() {
     const jsonFile = `assets/config/config.${environment.name}.json`;
     return new Promise<void>((resolve, reject) => {
-      this.http.get(jsonFile).toPromise().then((response: IAppConfig) => {
+      firstValueFrom(this.http.get<IAppConfig>(jsonFile)).then((response: IAppConfig) => {
         ConfigService.settings = <IAppConfig>response;
         resolve();
       }).catch((response: any) => {

@@ -4,9 +4,10 @@ import { toNumber, round } from 'lodash';
 import { Ramp } from '@services/fds-object/ramp/ramp';
 
 @Component({
-  selector: 'app-steps-dialog',
-  templateUrl: './steps-dialog.component.html',
-  styleUrls: ['./steps-dialog.component.scss']
+    selector: 'app-steps-dialog',
+    templateUrl: './steps-dialog.component.html',
+    styleUrls: ['./steps-dialog.component.scss'],
+    standalone: false
 })
 export class StepsDialogComponent implements OnInit {
 

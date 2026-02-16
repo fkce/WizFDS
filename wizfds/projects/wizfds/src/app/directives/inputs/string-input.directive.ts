@@ -1,7 +1,8 @@
 import { Directive, ElementRef, HostListener } from '@angular/core';
 
 @Directive({
-  selector: '[stringInput]'
+    selector: '[stringInput]',
+    standalone: false
 })
 export class StringInputDirective {
 

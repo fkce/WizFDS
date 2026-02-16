@@ -5,7 +5,7 @@
       <div class="list-title" (click)="add()">
         <mat-icon>add_box</mat-icon> Add GEOM
       </div>
-      <perfect-scrollbar #geomScrollbar (psScrollY)="scrollbarUpdate('geom')">
+  <ng-scrollbar #geomScrollbar (scrolled)="scrollbarUpdate('geom')">
         <div class="list-items">
           <div class="list-item"
             *ngFor="let geomItem of geometry.geoms | slice: ui.geometry.geom.begin:(ui.geometry.geom.begin + ui.listRange)">
@@ -13,7 +13,7 @@
             <mat-icon class="red-hover" (click)="delete(geomItem.id)">delete_forever</mat-icon>
           </div>
         </div>
-      </perfect-scrollbar>
+  </ng-scrollbar>
       <div class="list-bottom" *ngIf="geometry.geoms.length > ui.listRange">
         <mat-icon *ngIf="ui.geometry.geom.begin > 0"
           (click)="uiStateService.decreaseRange('geometry.geom')">chevron_left</mat-icon>

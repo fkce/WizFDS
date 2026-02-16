@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, OnDestroy } from '@angular/core';
+import { Component, OnInit, ViewChild, OnDestroy, isDevMode } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
 import { WebsocketService } from '@services/websocket/websocket.service';
@@ -12,14 +12,15 @@ import { UiState } from '@services/ui-state/ui-state';
 import { FdsEnums } from '@enums/fds/enums/fds-enums';
 import { WebsocketMessageObject } from '@services/websocket/websocket-message';
 
-import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
+import { NgScrollbar } from 'ngx-scrollbar';
 import { set, find, cloneDeep, findIndex, concat } from 'lodash';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-obstruction',
-  templateUrl: './obstruction.component.html',
-  styleUrls: ['./obstruction.component.scss']
+    selector: 'app-obstruction',
+    templateUrl: './obstruction.component.html',
+    styleUrls: ['./obstruction.component.scss'],
+    standalone: false
 })
 export class ObstructionComponent implements OnInit, OnDestroy {
 
@@ -45,8 +46,8 @@ export class ObstructionComponent implements OnInit, OnDestroy {
   rouSub: Subscription;
 
   // Scrolbars containers
-  @ViewChild('obstScrollbar', {static: false}) obstScrollbar: PerfectScrollbarComponent;
-  @ViewChild('holeScrollbar', {static: false}) holeScrollbar: PerfectScrollbarComponent;
+  @ViewChild('obstScrollbar', {static: false}) obstScrollbar: NgScrollbar;
+  @ViewChild('holeScrollbar', {static: false}) holeScrollbar: NgScrollbar;
 
   // Enums
   ENUMS_OBST = FdsEnums.OBST;
@@ -59,7 +60,7 @@ export class ObstructionComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit() {
-    console.clear();
+    if (isDevMode()) console.clear();
     // Subscribe main object
     this.mainSub = this.mainService.getMain().subscribe(main => this.main = main);
     this.uiSub = this.uiStateService.uiObservable.subscribe(uiObservable => this.ui = uiObservable);
@@ -79,16 +80,16 @@ export class ObstructionComponent implements OnInit, OnDestroy {
       (message) => {
         if (message.status == 'error') {
           //this.mesh = cloneDeep(this.meshOld);
-          console.log('Cannot sync obst ...');
+          if (isDevMode()) console.log('Cannot sync obst ...');
         }
         else if (message.status == 'success') {
           //this.meshOld = cloneDeep(this.mesh);
-          console.log('Obst updated ...')
+          if (isDevMode()) console.log('Obst updated ...')
         }
       },
       (error) => {
         //this.mesh = cloneDeep(this.meshOld);
-        console.log('Cannot sync obst ...');
+        if (isDevMode()) console.log('Cannot sync obst ...');
       }
     );
 
@@ -125,8 +126,10 @@ export class ObstructionComponent implements OnInit, OnDestroy {
 
   ngAfterViewInit() {
     // Set scrollbars position y after view rendering and set last selected element
-    this.obstScrollbar.directiveRef.scrollToY(this.ui.geometry['obst'].scrollPosition);
-    this.holeScrollbar.directiveRef.scrollToY(this.ui.geometry['hole'].scrollPosition);
+    setTimeout(() => {
+      try { this.obstScrollbar?.viewport?.scrollYTo(this.ui.geometry['obst'].scrollPosition); } catch {}
+      try { this.holeScrollbar?.viewport?.scrollYTo(this.ui.geometry['hole'].scrollPosition); } catch {}
+    });
   }
 
   ngOnDestroy() {
@@ -190,7 +193,7 @@ export class ObstructionComponent implements OnInit, OnDestroy {
 
   /** Update scroll position */
   public scrollbarUpdate(element: string) {
-    set(this.ui.geometry, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.geometry().y);
+    set(this.ui.geometry, element + '.scrollPosition', (this[element + 'Scrollbar'] as NgScrollbar).viewport.scrollTop);
   }
 
   /** Create CAD element */
@@ -321,13 +324,13 @@ export class ObstructionComponent implements OnInit, OnDestroy {
    */
   public updateObstSurface(type: string = '') {
     if (type == 'surfId') {
-      console.log(this.obst.surf.surf_id);
+      if (isDevMode()) console.log(this.obst.surf.surf_id);
     }
     else if (type == 'surfIdx') {
-      console.log(this.obst.surf.surf_idx);
+      if (isDevMode()) console.log(this.obst.surf.surf_idx);
     }
     else if (type == 'surfId1') {
-      console.log(this.obst.surf.surf_id1);
+      if (isDevMode()) console.log(this.obst.surf.surf_id1);
     }
   }
 

@@ -15,27 +15,54 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:browser",
+          "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/wizfds",
+            "outputPath": {
+              "base": "dist/wizfds"
+            },
             "index": "projects/wizfds/src/index.html",
-            "main": "projects/wizfds/src/main.ts",
-            "polyfills": "projects/wizfds/src/polyfills.ts",
+            "polyfills": [
+              "projects/wizfds/src/polyfills.ts"
+            ],
             "tsConfig": "projects/wizfds/tsconfig.app.json",
             "assets": [
               "projects/wizfds/src/favicon.png",
-              "projects/wizfds/src/assets"
+              "projects/wizfds/src/assets",
+              {
+                "glob": "**/*",
+                "input": "projects/web-smokeview-lib/src/assets",
+                "output": "assets"
+              }
             ],
             "styles": [
               "projects/wizfds/src/styles.scss"
             ],
             "scripts": [],
-            "vendorChunk": true,
+            "allowedCommonJsDependencies": [
+              "katex",
+              "lodash",
+              "file-saver",
+              "sprintf-js",
+              "codemirror",
+              "codemirror/keymap/vim",
+              "codemirror/mode/fds/fds",
+              "codemirror/addon/dialog/dialog",
+              "codemirror/addon/scroll/simplescrollbars",
+              "codemirror/addon/hint/show-hint",
+              "codemirror/addon/hint/fds-hint",
+              "codemirror/addon/display/fullscreen",
+              "codemirror/addon/fold/foldcode",
+              "codemirror/addon/fold/foldgutter",
+              "codemirror/addon/fold/fds-fold",
+              "babylonjs",
+              "babylonjs-materials",
+              "pako"
+            ],
             "extractLicenses": false,
-            "buildOptimizer": false,
             "sourceMap": true,
             "optimization": false,
-            "namedChunks": true
+            "namedChunks": true,
+            "browser": "projects/wizfds/src/main.ts"
           },
           "configurations": {
             "production": {
@@ -50,13 +77,11 @@
               "sourceMap": false,
               "namedChunks": false,
               "extractLicenses": true,
-              "vendorChunk": false,
-              "buildOptimizer": true,
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "5mb",
-                  "maximumError": "10mb"
+                  "maximumWarning": "6mb",
+                  "maximumError": "12mb"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -71,18 +96,19 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "browserTarget": "wizfds:build"
+            "proxyConfig": "projects/wizfds/proxy.conf.js",
+            "buildTarget": "wizfds:build"
           },
           "configurations": {
             "production": {
-              "browserTarget": "wizfds:build:production"
+              "buildTarget": "wizfds:build:production"
             }
           }
         },
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "wizfds:build"
+            "buildTarget": "wizfds:build"
           }
         },
         "test": {
@@ -156,12 +182,15 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:browser",
+          "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/wizWelcome",
+            "outputPath": {
+              "base": "dist/wizWelcome"
+            },
             "index": "projects/wizWelcome/src/index.html",
-            "main": "projects/wizWelcome/src/main.ts",
-            "polyfills": "projects/wizWelcome/src/polyfills.ts",
+            "polyfills": [
+              "projects/wizWelcome/src/polyfills.ts"
+            ],
             "tsConfig": "projects/wizWelcome/tsconfig.app.json",
             "assets": [
               "projects/wizWelcome/src/favicon.png",
@@ -171,12 +200,16 @@
               "projects/wizWelcome/src/styles.scss"
             ],
             "scripts": [],
-            "vendorChunk": true,
+            "allowedCommonJsDependencies": [
+              "lodash",
+              "babylonjs",
+              "babylonjs-materials"
+            ],
             "extractLicenses": false,
-            "buildOptimizer": false,
             "sourceMap": true,
             "optimization": false,
-            "namedChunks": true
+            "namedChunks": true,
+            "browser": "projects/wizWelcome/src/main.ts"
           },
           "configurations": {
             "production": {
@@ -191,13 +224,11 @@
               "sourceMap": false,
               "namedChunks": false,
               "extractLicenses": true,
-              "vendorChunk": false,
-              "buildOptimizer": true,
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "2mb",
-                  "maximumError": "5mb"
+                  "maximumWarning": "5mb",
+                  "maximumError": "10mb"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -212,18 +243,18 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "browserTarget": "wizWelcome:build"
+            "buildTarget": "wizWelcome:build"
           },
           "configurations": {
             "production": {
-              "browserTarget": "wizWelcome:build:production"
+              "buildTarget": "wizWelcome:build:production"
             }
           }
         },
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "wizWelcome:build"
+            "buildTarget": "wizWelcome:build"
           }
         },
         "test": {
@@ -269,27 +300,40 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:browser",
+          "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/webSmokeview",
+            "outputPath": {
+              "base": "dist/webSmokeview"
+            },
             "index": "projects/webSmokeview/src/index.html",
-            "main": "projects/webSmokeview/src/main.ts",
-            "polyfills": "projects/webSmokeview/src/polyfills.ts",
+            "polyfills": [
+              "projects/webSmokeview/src/polyfills.ts"
+            ],
             "tsConfig": "projects/webSmokeview/tsconfig.app.json",
             "assets": [
               "projects/webSmokeview/src/favicon.ico",
-              "projects/webSmokeview/src/assets"
+              "projects/webSmokeview/src/assets",
+              {
+                "glob": "**/*",
+                "input": "projects/web-smokeview-lib/src/assets",
+                "output": "assets"
+              }
             ],
             "styles": [
               "projects/webSmokeview/src/styles.scss"
             ],
             "scripts": [],
-            "vendorChunk": true,
+            "allowedCommonJsDependencies": [
+              "lodash",
+              "pako",
+              "babylonjs",
+              "babylonjs-materials"
+            ],
             "extractLicenses": false,
-            "buildOptimizer": false,
             "sourceMap": true,
             "optimization": false,
-            "namedChunks": true
+            "namedChunks": true,
+            "browser": "projects/webSmokeview/src/main.ts"
           },
           "configurations": {
             "production": {
@@ -304,13 +348,11 @@
               "sourceMap": false,
               "namedChunks": false,
               "extractLicenses": true,
-              "vendorChunk": false,
-              "buildOptimizer": true,
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "2mb",
-                  "maximumError": "5mb"
+                  "maximumWarning": "5mb",
+                  "maximumError": "10mb"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -325,18 +367,18 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "browserTarget": "webSmokeview:build"
+            "buildTarget": "webSmokeview:build"
           },
           "configurations": {
             "production": {
-              "browserTarget": "webSmokeview:build:production"
+              "buildTarget": "webSmokeview:build:production"
             }
           }
         },
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "webSmokeview:build"
+            "buildTarget": "webSmokeview:build"
           }
         },
         "test": {
@@ -371,5 +413,8 @@
       }
     }
   },
-  "defaultProject": "wizfds"
+  
+  "cli": {
+    "analytics": "10bc89be-ee80-4df8-a644-b6d3b915254b"
+  }
 }

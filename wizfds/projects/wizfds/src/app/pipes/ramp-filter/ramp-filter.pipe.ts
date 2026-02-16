@@ -1,8 +1,9 @@
 import { Pipe, PipeTransform } from '@angular/core';
 
 @Pipe({
-  name: 'rampFilter',
-  pure: false
+    name: 'rampFilter',
+    pure: false,
+    standalone: false
 })
 export class RampFilterPipe implements PipeTransform {
 

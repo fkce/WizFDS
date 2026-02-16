@@ -17,9 +17,10 @@ import { HttpManagerService, Result } from '@services/http-manager/http-manager.
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-header',
-  templateUrl: './header.component.html',
-  styleUrls: ['./header.component.scss']
+    selector: 'app-header',
+    templateUrl: './header.component.html',
+    styleUrls: ['./header.component.scss'],
+    standalone: false
 })
 export class HeaderComponent implements OnInit, OnDestroy {
 
@@ -49,11 +50,12 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.mainSub = this.mainService.getMain().subscribe(main => this.main = main);
     this.uiSub = this.uiStateService.uiObservable.subscribe(uiObservable => this.uiState = uiObservable);
 
-    setTimeout(() => {
-      this.libSub = this.libraryService.getLibrary().subscribe(lib => this.lib = lib);
-      this.connectCad();
-    }, 1000)
+    this.libSub = this.libraryService.libraryObservable.subscribe(lib => this.lib = lib);
     this.websocket = this.websocketService;
+    // Delay connectCad to wait for WebSocket initialization in AppComponent
+    setTimeout(() => {
+      this.connectCad();
+    }, 1000);
     if (isDevMode()) {
       this.diagnostic = true;
     }
@@ -102,8 +104,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
     if (!this.websocketService.isConnected) {
       this.websocketService.dataStream.subscribe(
         (data) => { },
-        (err) => { console.log(err); },
-        () => { console.log("Websocket disconnected ..."); }
+        (err) => { if (isDevMode()) console.log(err); },
+        () => { if (isDevMode()) console.log("Websocket disconnected ..."); }
       );
     }
     else {

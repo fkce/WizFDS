@@ -21,9 +21,10 @@ import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-library-editor',
-  templateUrl: './library-editor.component.html',
-  styleUrls: ['./library-editor.component.scss']
+    selector: 'app-library-editor',
+    templateUrl: './library-editor.component.html',
+    styleUrls: ['./library-editor.component.scss'],
+    standalone: false
 })
 export class LibraryEditorComponent implements OnInit, OnDestroy {
 

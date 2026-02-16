@@ -11,14 +11,15 @@ import { LibraryService } from '@services/library/library.service';
 import { Library } from '@services/library/library';
 import { IdGeneratorService } from '@services/id-generator/id-generator.service';
 
-import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
+import { NgScrollbar } from 'ngx-scrollbar';
 import { set, cloneDeep, find, findIndex, filter } from 'lodash';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-material',
-  templateUrl: './material.component.html',
-  styleUrls: ['./material.component.scss']
+    selector: 'app-material',
+    templateUrl: './material.component.html',
+    styleUrls: ['./material.component.scss'],
+    standalone: false
 })
 export class MaterialComponent implements OnInit, OnDestroy {
 
@@ -43,8 +44,8 @@ export class MaterialComponent implements OnInit, OnDestroy {
   libSub: Subscription;
 
   // Scrolbars containers
-  @ViewChild('matlScrollbar', {static: false}) matlScrollbar: PerfectScrollbarComponent;
-  @ViewChild('libMatlScrollbar', {static: false}) libMatlScrollbar: PerfectScrollbarComponent;
+  @ViewChild('matlScrollbar', {static: false}) matlScrollbar: NgScrollbar;
+  @ViewChild('libMatlScrollbar', {static: false}) libMatlScrollbar: NgScrollbar;
 
   constructor(
     private mainService: MainService,
@@ -73,7 +74,7 @@ export class MaterialComponent implements OnInit, OnDestroy {
 
   ngAfterViewInit() {
     // Set scrollbars position y after view rendering and set last selected element
-    this.matlScrollbar.directiveRef.scrollToY(this.ui.geometry['matl'].scrollPosition);
+  this.matlScrollbar.viewport.scrollYTo(this.ui.geometry['matl'].scrollPosition);
     this.matls.length > 0 && this.activate(this.matls[this.ui.geometry['matl'].elementIndex].id);
   }
 
@@ -140,7 +141,7 @@ export class MaterialComponent implements OnInit, OnDestroy {
 
   /** Update scroll position */
   public scrollbarUpdate(element: string) {
-    set(this.ui.geometry, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.geometry().y);
+    set(this.ui.geometry, element + '.scrollPosition', (this[element + 'Scrollbar'] as NgScrollbar).viewport.scrollTop);
   }
 
   /** Update CAD element */

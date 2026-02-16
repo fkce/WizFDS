@@ -15,15 +15,16 @@ import { IdGeneratorService } from '@services/id-generator/id-generator.service'
 import { colors } from '@enums/fds/enums/fds-enums-colors';
 import { WebsocketMessageObject } from '@services/websocket/websocket-message';
 
-import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
+import { NgScrollbar } from 'ngx-scrollbar';
 import { cloneDeep, find, set, findIndex, each } from 'lodash';
 import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-surface',
-  templateUrl: './surface.component.html',
-  styleUrls: ['./surface.component.scss']
+    selector: 'app-surface',
+    templateUrl: './surface.component.html',
+    styleUrls: ['./surface.component.scss'],
+    standalone: false
 })
 export class SurfaceComponent implements OnInit, OnDestroy {
 
@@ -49,8 +50,8 @@ export class SurfaceComponent implements OnInit, OnDestroy {
   libSub: Subscription;
 
   // Scrolbars containers
-  @ViewChild('surfScrollbar', {static: false}) surfScrollbar: PerfectScrollbarComponent;
-  @ViewChild('libSurfScrollbar', {static: false}) libSurfScrollbar: PerfectScrollbarComponent;
+  @ViewChild('surfScrollbar', {static: false}) surfScrollbar: NgScrollbar;
+  @ViewChild('libSurfScrollbar', {static: false}) libSurfScrollbar: NgScrollbar;
 
   // Enums
   COLORS = colors;
@@ -115,8 +116,16 @@ export class SurfaceComponent implements OnInit, OnDestroy {
 
   ngAfterViewInit() {
     // Set scrollbars position y after view rendering and set last selected element
-    this.surfScrollbar.directiveRef.scrollToY(this.ui.geometry['surf'].scrollPosition);
-    this.surfs.length > 0 && this.activate(this.surfs[this.ui.geometry['surf'].elementIndex].id);
+    setTimeout(() => {
+      const pos = this.ui.geometry['surf'].scrollPosition;
+      if (this.surfScrollbar?.viewport) {
+        try { this.surfScrollbar.viewport.scrollYTo(pos); } catch {}
+      }
+      // Ensure last selected element is activated after view init
+      if (this.surfs.length > 0) {
+        this.activate(this.surfs[this.ui.geometry['surf'].elementIndex].id);
+      }
+    });
   }
 
   ngOnDestroy() {
@@ -183,7 +192,7 @@ export class SurfaceComponent implements OnInit, OnDestroy {
 
   /** Update scroll position */
   public scrollbarUpdate(element: string) {
-    set(this.ui.geometry, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.geometry().y);
+    set(this.ui.geometry, element + '.scrollPosition', (this[element + 'Scrollbar'] as NgScrollbar).viewport.scrollTop);
   }
 
   /** Toggle library */

@@ -1,7 +1,8 @@
 import { Pipe, PipeTransform } from '@angular/core';
 
 @Pipe({
-  name: 'positiveNumber'
+    name: 'positiveNumber',
+    standalone: false
 })
 export class PositiveNumberPipe implements PipeTransform {
 

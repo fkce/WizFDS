@@ -3,7 +3,8 @@ import { BabylonService } from '../../babylon/babylon.service';
 import * as BABYLON from 'babylonjs';
 import { forEach, max, find, cloneDeep, sortBy, toNumber } from 'lodash';
 import { HelpersService } from '../../helpers/helpers.service';
-import { IObst } from '../interfaces';
+import { HoleService } from '../hole/hole.service';
+import { IObst, IHole } from '../interfaces';
 
 @Injectable({
   providedIn: 'root'
@@ -12,6 +13,7 @@ export class ObstService {
 
   obsts: any = [];
   surfs: any = [];
+  holes: any = [];
 
   pickedObst: IObst;
   pickedObstMesh;
@@ -22,6 +24,9 @@ export class ObstService {
   colors: number[] = [];
   indices: number[] = [];
   positions: BABYLON.Vector3[] = [];
+  
+  // Track ranges of standard obsts that need normal computation
+  standardObstRanges: {start: number, end: number, vertexStart: number, vertexEnd: number}[] = [];
 
   mesh;
   meshBackCap;
@@ -38,7 +43,8 @@ export class ObstService {
 
   constructor(
     private babylonService: BabylonService,
-    private helperService: HelpersService
+    private helperService: HelpersService,
+    private holeService: HoleService
   ) {
   }
 
@@ -49,30 +55,49 @@ export class ObstService {
    */
   public clip(value: number, direction: string) {
 
-    let boundingMax = this.mesh.getBoundingInfo().maximum;
+    // Use global mesh bounds instead of obst mesh bounds for clipping calibration
+    // This ensures that clip sliders are calibrated against all geometry (meshes) in the scene
+    const globalBounds = {
+      x: this.helperService.normXMax || 1,
+      y: this.helperService.normYMax || 1,
+      z: this.helperService.normZMax || 1
+    };
+    
     if (direction == 'x') {
       this.clipX = value;
-      let clip = (value == 100) ? 1.1 : boundingMax.x * (value / 100);
+      let clip = (value == 100) ? 1.1 : globalBounds.x * (value / 100);
       clip = (value == 0) ? -1.1 : clip;
       this.mesh.material.setFloat("clipX", clip);
       this.meshBackCap.material.setFloat("clipX", clip);
+      // Update transparent mesh material if it exists
+      if ((this as any).materialTransparent) {
+        (this as any).materialTransparent.setFloat("clipX", clip);
+      }
       this.clipXNorm = clip;
 
     }
     else if (direction == 'y') {
       this.clipY = value;
-      let clip = (value == 100) ? 1.1 : boundingMax.y * (value / 100);
+      let clip = (value == 100) ? 1.1 : globalBounds.y * (value / 100);
       clip = (value == 0) ? -1.1 : clip;
       this.mesh.material.setFloat("clipY", clip);
       this.meshBackCap.material.setFloat("clipY", clip);
+      // Update transparent mesh material if it exists
+      if ((this as any).materialTransparent) {
+        (this as any).materialTransparent.setFloat("clipY", clip);
+      }
       this.clipYNorm = clip;
     }
     else if (direction == 'z') {
       this.clipZ = value;
-      let clip = (value == 100) ? 1.1 : boundingMax.z * (value / 100);
+      let clip = (value == 100) ? 1.1 : globalBounds.z * (value / 100);
       clip = (value == 0) ? -1.1 : clip;
       this.mesh.material.setFloat("clipZ", clip);
       this.meshBackCap.material.setFloat("clipZ", clip);
+      // Update transparent mesh material if it exists
+      if ((this as any).materialTransparent) {
+        (this as any).materialTransparent.setFloat("clipZ", clip);
+      }
       this.clipZNorm = clip;
     }
   }
@@ -117,6 +142,12 @@ export class ObstService {
    */
   public renderObsts() {
 
+    // Normalize holes first (before assigning to obsts)
+    this.normalizeHoles();
+
+    // Assign holes to obsts
+    this.assignHolesToObsts();
+
     // Prepare normalized geometry and colors
     this.normalizeObsts();
 
@@ -136,6 +167,49 @@ export class ObstService {
    * Normalize obsts
    */
   private normalizeObsts(): void {
+
+    // Check if we need to calculate our own bounds (if meshes haven't been processed)
+    let shouldCalculateBounds = (this.helperService.normDelta === 1 && 
+                                this.helperService.normXMin === 0 && 
+                                this.helperService.normYMin === 0 && 
+                                this.helperService.normZMin === 0);
+
+    if (shouldCalculateBounds && this.obsts && this.obsts.length > 0) {
+      // Calculate bounds from obsts only
+      let xMin = this.obsts[0].xb.x1, yMin = this.obsts[0].xb.y1, zMin = this.obsts[0].xb.z1;
+      let xMax = this.obsts[0].xb.x2, yMax = this.obsts[0].xb.y2, zMax = this.obsts[0].xb.z2;
+      
+      if (this.obsts.length > 1) {
+        forEach(this.obsts, (obst: IObst) => {
+          const xb = obst.xb;
+          xMin = xb.x1 < xMin ? xb.x1 : xMin;
+          xMax = xb.x2 > xMax ? xb.x2 : xMax;
+          yMin = xb.y1 < yMin ? xb.y1 : yMin;
+          yMax = xb.y2 > yMax ? xb.y2 : yMax;
+          zMin = xb.z1 < zMin ? xb.z1 : zMin;
+          zMax = xb.z2 > zMax ? xb.z2 : zMax;
+        });
+      }
+
+      // Update helper service with obst bounds
+      this.helperService.normXMin = xMin;
+      this.helperService.normYMin = yMin;
+      this.helperService.normZMin = zMin;
+
+      let deltaX = xMax - xMin;
+      let deltaY = yMax - yMin;
+      let deltaZ = zMax - zMin;
+      this.helperService.normDelta = max([deltaX, deltaY, deltaZ]);
+
+      // Calculate normalized maximum values
+      let normXMax = ((xMax + (xMin < 0 ? -xMin : xMin)) / this.helperService.normDelta);
+      let normYMax = ((yMax + (yMin < 0 ? -yMin : yMin)) / this.helperService.normDelta);
+      let normZMax = ((zMax + (zMin < 0 ? -zMin : zMin)) / this.helperService.normDelta);
+
+      this.helperService.normXMax = normXMax;
+      this.helperService.normYMax = normYMax;
+      this.helperService.normZMax = normZMax;
+    }
 
     let delta = this.helperService.normDelta;
     let xMin = this.helperService.normXMin;
@@ -170,104 +244,416 @@ export class ObstService {
       obst.vis.xbNorm.z2 = xb.z2 / delta;
 
       // Normalize color
-      let surf = find(this.surfs, (surf: any) => {
-        return surf.id == obst.surf.surf_id.id;
-      });
-      color = [surf.color.rgb[0] / 255, surf.color.rgb[1] / 255, surf.color.rgb[2] / 255].concat([surf.transparency]);
+      const surfId = (obst as any)?.surf?.surf_id?.id;
+      let surf = surfId !== undefined ? find(this.surfs, (s: any) => s && s.id === surfId) : undefined;
+      if (!surf) {
+        // Fallback color if surf is missing or malformed
+        surf = { color: { rgb: [255, 208, 0] }, transparency: 0 } as any;
+        if (isDevMode()) { try { console.warn('[ObstService] Missing surf for obst, using fallback color', obst); } catch {} }
+      }
+      // Convert FDS transparency to BabylonJS alpha (direct mapping)
+      // FDS: transparency=1 means visible (opaque), transparency=0 means invisible (transparent)
+      // BabylonJS: alpha=1 means opaque, alpha=0 means transparent
+      const alpha = surf.transparency;
+      color = [surf.color.rgb[0] / 255, surf.color.rgb[1] / 255, surf.color.rgb[2] / 255].concat([alpha]);
       obst.vis.colorNorm = color;
+
+      // Normalize holes if they exist
+      if (obst.holes && obst.holes.length > 0) {
+        obst.holes.forEach((hole) => {
+          if (!hole.vis) {
+            hole.vis = { 
+              xbNorm: { x1: 0, x2: 0, y1: 0, y2: 0, z1: 0, z2: 0 },
+              colorNorm: [1, 1, 1, 1] // Default white color for holes
+            };
+          }
+          
+          // Normalize hole xb coordinates using the same transformation as parent obst
+          let holeXb = cloneDeep(hole.xb);
+          forEach(holeXb, (o, key) => {
+            holeXb[key] = toNumber(o);
+          });
+
+          holeXb.x1 += (xMin < 0) ? -xMin : xMin;
+          hole.vis.xbNorm.x1 = holeXb.x1 / delta;
+
+          holeXb.x2 += (xMin < 0) ? -xMin : xMin;
+          hole.vis.xbNorm.x2 = holeXb.x2 / delta;
+
+          holeXb.y1 += (yMin < 0) ? -yMin : yMin;
+          hole.vis.xbNorm.y1 = holeXb.y1 / delta;
+          holeXb.y2 += (yMin < 0) ? -yMin : yMin;
+          hole.vis.xbNorm.y2 = holeXb.y2 / delta;
+
+          holeXb.z1 += (zMin < 0) ? -zMin : zMin;
+          hole.vis.xbNorm.z1 = holeXb.z1 / delta;
+          holeXb.z2 += (zMin < 0) ? -zMin : zMin;
+          hole.vis.xbNorm.z2 = holeXb.z2 / delta;
+        });
+      }
 
     });
   }
 
   /**
-   * Update obsts vertex data
+   * Update obsts vertex data - separate opaque and transparent obsts
    */
   public updateObstsVertexData(): void {
 
-    // Clear arrays
+    // Clear arrays for opaque obsts
     this.vertices.length = 0;
     this.colors.length = 0;
     this.indices.length = 0;
     this.positions.length = 0;
+    this.normals.length = 0;
+    this.standardObstRanges.length = 0;
 
-    forEach(this.obsts, (obst: IObst, index: number) => {
-      this.vertices.push(...this.helperService.getVerticesFromXb(obst.vis.xbNorm));
-      this.colors.push(...this.helperService.getColors(obst.vis.colorNorm));
-      this.indices.push(...this.helperService.getIndices(index));
+    // Arrays for transparent obsts
+    const transparentVertices = [];
+    const transparentColors = [];
+    const transparentIndices = [];
+
+    let opaqueIndex = 0;
+    let transparentIndex = 0;
+    
+    // Track if we have any CSG meshes (for backCap compatibility)
+    let hasCSGMeshes = false;
+
+    forEach(this.obsts, (obst: IObst) => {
+      const surfId = (obst as any)?.surf?.surf_id?.id;
+      const surf = surfId !== undefined ? find(this.surfs, (s: any) => s && s.id === surfId) : undefined;
+      const isTransparent = surf && surf.transparency < 1;
+      let processedWithHoles = false;
+
+      // Check if obst has holes and can have holes
+      if (obst.holes && obst.holes.length > 0 && this.holeService.canHaveHoles(obst)) {
+        try {
+          // Process obst with holes using CSG
+          const meshWithHoles = this.holeService.processObstWithHoles(obst, this.babylonService.scene);
+          
+          if (meshWithHoles) {
+            
+            // Extract vertices and indices from CSG mesh
+            const positions = meshWithHoles.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+            const indices = meshWithHoles.getIndices();
+            const normals = meshWithHoles.getVerticesData(BABYLON.VertexBuffer.NormalKind);
+            
+            if (isDevMode()) console.log('[ObstService] Extracted data:', {
+              positionsLength: positions?.length,
+              indicesLength: indices?.length,
+              normalsLength: normals?.length,
+              vertices: positions?.length ? positions.length / 3 : 0
+            });
+            
+            if (positions && indices && normals) {
+              // Generate colors for each vertex (same color for all vertices of this obst)
+              const colorArray: number[] = [];
+              for (let i = 0; i < positions.length / 3; i++) {
+                colorArray.push(...obst.vis.colorNorm);
+              }
+              
+              // Convert indices to proper format - fix the indexing
+              const adjustedIndices: number[] = [];
+              const currentVertexCount = isTransparent ? transparentVertices.length / 3 : this.vertices.length / 3;
+              if (isDevMode()) console.log('[ObstService] Index adjustment:', {
+                originalIndices: indices.length,
+                currentVertexCount: currentVertexCount,
+                firstFewIndices: indices.slice(0, 6),
+                obstId: obst.id
+              });
+              
+              for (let i = 0; i < indices.length; i++) {
+                adjustedIndices.push(indices[i] + currentVertexCount);
+              }
+              
+              if (isDevMode()) console.log('[ObstService] Adjusted indices:', {
+                firstFewAdjusted: adjustedIndices.slice(0, 6),
+                totalAdjusted: adjustedIndices.length
+              });
+              
+              if (isTransparent) {
+                transparentVertices.push(...positions);
+                transparentColors.push(...colorArray);
+                transparentIndices.push(...adjustedIndices);
+                // Note: We'd need separate normals array for transparent, but skipping for now
+                transparentIndex++;
+              } else {
+                this.vertices.push(...positions);
+                this.colors.push(...colorArray);
+                this.indices.push(...adjustedIndices);
+                this.normals.push(...normals); // Add normals from CSG mesh
+                // Don't increment opaqueIndex for CSG meshes since they have variable vertex count
+                // opaqueIndex is used for standard box calculation which assumes 24 vertices per obst
+              }
+              
+              processedWithHoles = true;
+              hasCSGMeshes = true; // Mark that we have CSG meshes
+            } else {
+              if (isDevMode()) console.warn('[ObstService] No positions or indices extracted from CSG mesh');
+            }
+            
+            // Clean up the temporary mesh
+            meshWithHoles.dispose();
+          } else {
+            if (isDevMode()) console.warn('[ObstService] CSG processing returned null, falling back to standard rendering');
+          }
+        } catch (error) {
+          if (isDevMode()) console.error('[ObstService] Error processing obst with holes, falling back to standard rendering:', error);
+          // Fall through to standard processing
+        }
+      } else {
+        if (obst.holes && obst.holes.length > 0) {
+          if (isDevMode()) console.log('[ObstService] Obst has holes but permit_hole is false:', obst.id, 'permit_hole:', obst.permit_hole);
+        }
+      }
+
+      // Standard obst processing (no holes or holes processing failed)
+      if (!processedWithHoles) {
+        if (isTransparent) {
+          // Add to transparent mesh
+          transparentVertices.push(...this.helperService.getVerticesFromXb(obst.vis.xbNorm));
+          transparentColors.push(...this.helperService.getColors(obst.vis.colorNorm));
+          transparentIndices.push(...this.helperService.getIndices(transparentIndex));
+          transparentIndex++;
+        } else {
+          // Add to opaque mesh
+          const currentVertexCount = this.vertices.length / 3;
+          const currentVertexStart = this.vertices.length;
+          this.vertices.push(...this.helperService.getVerticesFromXb(obst.vis.xbNorm));
+          const currentVertexEnd = this.vertices.length;
+          this.colors.push(...this.helperService.getColors(obst.vis.colorNorm));
+          
+          // For standard obsts, we need to adjust indices based on current vertex count, not opaqueIndex
+          // getIndices() returns indices for a single box (24 vertices), but we need to offset them
+          const standardIndices = this.helperService.getIndices(0); // Get base indices for a single box
+          const adjustedStandardIndices = standardIndices.map(index => index + currentVertexCount);
+          this.indices.push(...adjustedStandardIndices);
+          
+          // Track this range for normal computation later
+          this.standardObstRanges.push({
+            start: currentVertexStart,
+            end: currentVertexEnd,
+            vertexStart: currentVertexCount,
+            vertexEnd: currentVertexCount + 24 // Standard obst has 24 vertices
+          });
+          
+          // Add placeholder normals for this standard obst (will be computed later)
+          const placeholderNormals = new Array(72).fill(0); // 24 vertices * 3 components = 72
+          this.normals.push(...placeholderNormals);
+          
+          opaqueIndex++;
+        }
+      }
     });
 
-    // Generate positions
+    // Generate positions for opaque mesh
     for (let i = 0; i < this.vertices.length; i += 3) {
       this.positions.push(new BABYLON.Vector3(this.vertices[i], this.vertices[i + 1], this.vertices[i + 2]));
     }
+
+    // Store transparent data for later use
+    (this as any).transparentVertices = transparentVertices;
+    (this as any).transparentColors = transparentColors;
+    (this as any).transparentIndices = transparentIndices;
+    
+    // Store CSG flag for render method
+    (this as any).hasCSGMeshes = hasCSGMeshes;
+    
+    // Debug info
+    if (isDevMode()) { try {
+      console.debug('[ObstService] Vertex data split:', {
+        opaqueCount: opaqueIndex,
+        transparentCount: transparentIndex,
+        opaqueVertices: this.vertices.length,
+        transparentVertices: transparentVertices.length,
+        opaqueIndices: this.indices.length,
+        transparentIndices: transparentIndices.length,
+        opaqueColors: this.colors.length,
+        transparentColors: transparentColors.length,
+        hasCSGMeshes: hasCSGMeshes
+      });
+    } catch {} }
   }
 
   /**
-   * Render current obst geometry
+   * Render current obst geometry - separate opaque and transparent meshes
    */
   public render() {
 
-    // Create new custom mesh and vertex data
+    // Create opaque mesh
     if (this.mesh) { this.mesh.dispose(); }
-    this.mesh = new BABYLON.Mesh("custom", this.babylonService.scene);
+    this.mesh = new BABYLON.Mesh("obstOpaque", this.babylonService.scene);
 
-    // Compute normals
-    BABYLON.VertexData.ComputeNormals(this.vertices, this.indices, this.normals);
-    // Assign data
-    this.vertexData = new BABYLON.VertexData();
-    this.vertexData.positions = this.vertices;
-    this.vertexData.indices = this.indices;
-    this.vertexData.colors = this.colors;
-    this.vertexData.normals = this.normals;
-    this.vertexData.applyToMesh(this.mesh);
+    if (this.vertices.length > 0) {
+      // Compute normals only for standard obsts, preserve CSG mesh normals
+      for (const range of this.standardObstRanges) {
+        // Extract vertices and indices for this standard obst
+        const obstVertices = this.vertices.slice(range.start, range.end);
+        const obstIndices = [];
+        
+        // Find indices that belong to this vertex range
+        for (let i = 0; i < this.indices.length; i++) {
+          const index = this.indices[i];
+          if (index >= range.vertexStart && index < range.vertexEnd) {
+            obstIndices.push(index - range.vertexStart); // Make indices relative to this obst
+          }
+        }
+        
+        // Compute normals for this standard obst
+        const obstNormals = new Array(obstVertices.length).fill(0);
+        BABYLON.VertexData.ComputeNormals(obstVertices, obstIndices, obstNormals);
+        
+        // Copy computed normals back to the main normals array
+        for (let i = 0; i < obstNormals.length; i++) {
+          this.normals[range.start + i] = obstNormals[i];
+        }
+      }
+      
+      // Assign data to opaque mesh
+      this.vertexData = new BABYLON.VertexData();
+      this.vertexData.positions = this.vertices;
+      this.vertexData.indices = this.indices;
+      this.vertexData.colors = this.colors;
+      this.vertexData.normals = this.normals;
+      this.vertexData.applyToMesh(this.mesh);
 
-    // Set flag updatable to true for opacity
-    //this.vertexData.applyToMesh(this.mesh, true);
+      // Load shader sources for opaque mesh
+      this.babylonService.loadShaderSources('obst')
+        .then((sources) => {
+          if (isDevMode()) { try { console.debug('[ObstService] opaque shaders', sources.urls); } catch {} }
+      const isWGSL = sources.shaderLanguage === ((BABYLON as any).ShaderLanguage?.WGSL ?? 1);
+    const uniformsList = isWGSL ? ["clipX", "clipY", "clipZ"] : ["world", "worldView", "worldViewProjection", "view", "projection", "clipX", "clipY", "clipZ"];
+      
+      this.material = new (BABYLON as any).ShaderMaterial(
+            "opaqueShader",
+            this.babylonService.scene,
+            { vertexSource: sources.vertexSource, fragmentSource: sources.fragmentSource },
+            {
+              needAlphaBlending: false, // Opaque mesh never needs alpha blending
+              attributes: ["position", "normal", "color"],
+              uniforms: uniformsList,
+              uniformBuffers: isWGSL ? ["Scene", "Mesh"] : [],
+              shaderLanguage: sources.shaderLanguage,
+              entryPoint: { vertex: 'main', fragment: 'main' }
+            }
+          );
+          this.material.setFloat("clipX", this.clipXNorm);
+          this.material.setFloat("clipY", this.clipYNorm);
+          this.material.setFloat("clipZ", this.clipZNorm);
+          this.material.backFaceCulling = false;
+          this.material.freeze();
+          this.mesh.material = this.material;
+        })
+        .catch((e) => { if (isDevMode()) { try { console.error('[ObstService] Failed to load opaque obst shader sources', e); } catch {} } });
 
-    // Create material with shaders
-    this.material = new BABYLON.ShaderMaterial("shader", this.babylonService.scene, './assets/shaders/obst',
-      {
-        //needAlphaBlending: true, // set when opacity
-        attributes: ["position", "color", "normal"],
-        uniforms: ["world", "worldView", "worldViewProjection", "view", "projection"],
-      });
-    this.material.setFloat("clipX", this.clipXNorm);
-    this.material.setFloat("clipY", this.clipYNorm);
-    this.material.setFloat("clipZ", this.clipZNorm);
-    this.material.backFaceCulling = false;
-    this.material.freeze();
-    //this.material.zOffset = -1;
-    //this.material.useLogarithmicDepth = true;
+      this.mesh.enableEdgesRendering();
+      this.mesh.edgesWidth = 0.05;
+      this.mesh.edgesColor = new BABYLON.Color4(0.4, 0.4, 0.4, 1);
+      this.mesh.freezeWorldMatrix();
+    }
 
-    this.mesh.material = this.material;
-    this.mesh.enableEdgesRendering();
-    this.mesh.edgesWidth = 0.05;
-    this.mesh.edgesColor = new BABYLON.Color4(0.4, 0.4, 0.4, 1);
+    // Create transparent mesh if needed
+    const transparentVertices = (this as any).transparentVertices || [];
+    const transparentColors = (this as any).transparentColors || [];
+    const transparentIndices = (this as any).transparentIndices || [];
 
-    // Preformance optimization
-    this.mesh.freezeWorldMatrix();
+    if ((this as any)._meshTransparent) { (this as any)._meshTransparent.dispose(); }
+    
+    if (transparentVertices.length > 0) {
+      (this as any)._meshTransparent = new BABYLON.Mesh("obstTransparent", this.babylonService.scene);
+      
+      if (isDevMode()) { try {
+        console.debug('[ObstService] Creating transparent mesh with vertices:', transparentVertices.length);
+      } catch {} }
+      
+      const transparentNormals = [];
+      BABYLON.VertexData.ComputeNormals(transparentVertices, transparentIndices, transparentNormals);
+      
+      const transparentVertexData = new BABYLON.VertexData();
+      transparentVertexData.positions = transparentVertices;
+      transparentVertexData.indices = transparentIndices;
+      transparentVertexData.colors = transparentColors;
+      transparentVertexData.normals = transparentNormals;
+      transparentVertexData.applyToMesh((this as any)._meshTransparent);
 
-    // Crate back cap mesh
+      // Load shader sources for transparent mesh
+      this.babylonService.loadShaderSources('obst')
+        .then((sources) => {
+          if (isDevMode()) { try { console.debug('[ObstService] transparent shaders', sources.urls); } catch {} }
+      const isWGSL_trans = sources.shaderLanguage === ((BABYLON as any).ShaderLanguage?.WGSL ?? 1);
+    const uniformsList_trans = isWGSL_trans ? ["clipX", "clipY", "clipZ"] : ["world", "worldView", "worldViewProjection", "view", "projection", "clipX", "clipY", "clipZ"];
+      
+      (this as any).materialTransparent = new (BABYLON as any).ShaderMaterial(
+            "transparentShader",
+            this.babylonService.scene,
+            { vertexSource: sources.vertexSource, fragmentSource: sources.fragmentSource },
+            {
+              needAlphaBlending: true, // Transparent mesh always needs alpha blending
+              attributes: ["position", "normal", "color"],
+              uniforms: uniformsList_trans,
+              uniformBuffers: isWGSL_trans ? ["Scene", "Mesh"] : [],
+              shaderLanguage: sources.shaderLanguage,
+              entryPoint: { vertex: 'main', fragment: 'main' }
+            }
+          );
+          (this as any).materialTransparent.setFloat("clipX", this.clipXNorm);
+          (this as any).materialTransparent.setFloat("clipY", this.clipYNorm);
+          (this as any).materialTransparent.setFloat("clipZ", this.clipZNorm);
+          (this as any).materialTransparent.backFaceCulling = false;
+          (this as any).materialTransparent.freeze();
+          (this as any)._meshTransparent.material = (this as any).materialTransparent;
+        })
+        .catch((e) => { if (isDevMode()) { try { console.error('[ObstService] Failed to load transparent obst shader sources', e); } catch {} } });
+
+      (this as any)._meshTransparent.enableEdgesRendering();
+      (this as any)._meshTransparent.edgesWidth = 0.05;
+      (this as any)._meshTransparent.edgesColor = new BABYLON.Color4(0.4, 0.4, 0.4, 1);
+      (this as any)._meshTransparent.freezeWorldMatrix();
+    }
+
+    // Create back cap mesh only for opaque obsts (clipping visualization)
+    // Skip backCap for CSG meshes as they have incompatible vertex data
     if (this.meshBackCap) { this.meshBackCap.dispose(); }
-    this.meshBackCap = new BABYLON.Mesh("custom", this.babylonService.scene);
-    this.vertexData.applyToMesh(this.meshBackCap);
+    const hasCSGMeshes = (this as any).hasCSGMeshes || false;
+    
+    if (this.vertices.length > 0 && !hasCSGMeshes) {
+      if (isDevMode()) console.log('[ObstService] Creating meshBackCap for standard obsts');
+      this.meshBackCap = new BABYLON.Mesh("obstBackCapOpaque", this.babylonService.scene);
+      this.vertexData.applyToMesh(this.meshBackCap);
 
-    // Create material with shaders
-    this.materialBackCap = new BABYLON.ShaderMaterial("shader", this.babylonService.scene, './assets/shaders/obstBackCap',
-      {
-        //needAlphaBlending: true, // set when opacity
-        attributes: ["position", "color", "normal"],
-        uniforms: ["world", "worldView", "worldViewProjection", "view", "projection"],
-      });
-    this.materialBackCap.setFloat("clipX", this.clipXNorm);
-    this.materialBackCap.setFloat("clipY", this.clipYNorm);
-    this.materialBackCap.setFloat("clipZ", this.clipZNorm);
-    this.materialBackCap.zOffset = -0.01;
-    this.materialBackCap.freeze();
-
-    this.meshBackCap.material = this.materialBackCap;
-    this.meshBackCap.freezeWorldMatrix();
-
+      // Back-cap material for opaque mesh only
+      this.babylonService.loadShaderSources('obstBackCap')
+        .then((sources) => {
+          if (isDevMode()) { try { console.debug('[ObstService] opaque backCap shaders', sources.urls); } catch {} }
+      const isWGSL_back = sources.shaderLanguage === ((BABYLON as any).ShaderLanguage?.WGSL ?? 1);
+    const uniformsList_back = isWGSL_back ? ["clipX", "clipY", "clipZ"] : ["world", "worldView", "worldViewProjection", "view", "projection", "clipX", "clipY", "clipZ"];
+      
+      this.materialBackCap = new (BABYLON as any).ShaderMaterial(
+            "opaqueBackCapShader",
+            this.babylonService.scene,
+            { vertexSource: sources.vertexSource, fragmentSource: sources.fragmentSource },
+            {
+              needAlphaBlending: false, // Opaque back cap never needs alpha blending
+              attributes: ["position", "normal", "color"],
+              uniforms: uniformsList_back,
+              uniformBuffers: isWGSL_back ? ["Scene", "Mesh"] : [],
+              shaderLanguage: sources.shaderLanguage,
+              entryPoint: { vertex: 'main', fragment: 'main' }
+            }
+          );
+          this.materialBackCap.setFloat("clipX", this.clipXNorm);
+          this.materialBackCap.setFloat("clipY", this.clipYNorm);
+          this.materialBackCap.setFloat("clipZ", this.clipZNorm);
+          this.materialBackCap.zOffset = -0.01; // Always bring to front for clipping visualization
+          this.materialBackCap.freeze();
+          this.meshBackCap.material = this.materialBackCap;
+        })
+        .catch((e) => { if (isDevMode()) { try { console.error('[ObstService] Failed to load opaque obstBackCap shader sources', e); } catch {} } });
+      this.meshBackCap.freezeWorldMatrix();
+    } else if (hasCSGMeshes) {
+      if (isDevMode()) console.log('[ObstService] Skipping meshBackCap creation for CSG meshes');
+    }
+    
     // Put somewhere else ...
     this.babylonService.scene.freeActiveMeshes();
 
@@ -277,6 +663,42 @@ export class ObstService {
     //this.babylonService.scene.registerBeforeRender(() => {
     //  this.mesh.updateFacetData();
     //});
+  }
+
+  /**
+   * Enable or disable edges rendering for all obst meshes
+   */
+  public setEdgesRendering(enabled: boolean): void {
+    // Control edges for opaque mesh
+    if (this.mesh) {
+      if (enabled) {
+        this.mesh.enableEdgesRendering();
+        this.mesh.edgesWidth = 0.05;
+        this.mesh.edgesColor = new BABYLON.Color4(0.4, 0.4, 0.4, 1);
+      } else {
+        this.mesh.disableEdgesRendering();
+        this.mesh.edgesWidth = 0; // Set to 0 for button logic
+      }
+    }
+
+    // Control edges for transparent mesh
+    if ((this as any)._meshTransparent) {
+      if (enabled) {
+        (this as any)._meshTransparent.enableEdgesRendering();
+        (this as any)._meshTransparent.edgesWidth = 0.05;
+        (this as any)._meshTransparent.edgesColor = new BABYLON.Color4(0.4, 0.4, 0.4, 1);
+      } else {
+        (this as any)._meshTransparent.disableEdgesRendering();
+        (this as any)._meshTransparent.edgesWidth = 0; // Set to 0 for button logic
+      }
+    }
+  }
+
+  /**
+   * Get transparent mesh for external access (e.g., for outline control)
+   */
+  public get meshTransparent(): BABYLON.Mesh | undefined {
+    return (this as any)._meshTransparent;
   }
 
   /**
@@ -347,6 +769,141 @@ export class ObstService {
 
       if (isDevMode()) console.log(this.pickedObstMesh);
     }
+  }
+
+  /**
+   * Assign holes to obsts based on spatial intersection
+   */
+  private assignHolesToObsts(): void {
+    if (!this.holes || this.holes.length === 0) {
+      return;
+    }
+
+    // Clear existing holes from all obsts
+    this.obsts.forEach(obst => {
+      obst.holes = [];
+    });
+
+    // Assign holes to obsts based on intersection
+    this.holes.forEach(hole => {
+      this.obsts.forEach(obst => {
+        if (this.holeIntersectsObst(hole, obst)) {
+          if (!obst.holes) {
+            obst.holes = [];
+          }
+          obst.holes.push(hole);
+        }
+      });
+    });
+  }
+
+  /**
+   * Normalize holes before assigning to obsts
+   */
+  private normalizeHoles(): void {
+    if (!this.holes || this.holes.length === 0) {
+      return;
+    }
+
+    // Check if we need to calculate our own bounds (if meshes haven't been processed)
+    let shouldCalculateBounds = (this.helperService.normDelta === 1 && 
+                                this.helperService.normXMin === 0 && 
+                                this.helperService.normYMin === 0 && 
+                                this.helperService.normZMin === 0);
+
+    if (shouldCalculateBounds && this.obsts && this.obsts.length > 0) {
+      // Calculate bounds from obsts only (holes should be within obsts)
+      let xMin = this.obsts[0].xb.x1, yMin = this.obsts[0].xb.y1, zMin = this.obsts[0].xb.z1;
+      let xMax = this.obsts[0].xb.x2, yMax = this.obsts[0].xb.y2, zMax = this.obsts[0].xb.z2;
+      
+      if (this.obsts.length > 1) {
+        forEach(this.obsts, (obst: IObst) => {
+          const xb = obst.xb;
+          xMin = xb.x1 < xMin ? xb.x1 : xMin;
+          xMax = xb.x2 > xMax ? xb.x2 : xMax;
+          yMin = xb.y1 < yMin ? xb.y1 : yMin;
+          yMax = xb.y2 > yMax ? xb.y2 : yMax;
+          zMin = xb.z1 < zMin ? xb.z1 : zMin;
+          zMax = xb.z2 > zMax ? xb.z2 : zMax;
+        });
+      }
+
+      // Update helper service with bounds
+      this.helperService.normXMin = xMin;
+      this.helperService.normYMin = yMin;
+      this.helperService.normZMin = zMin;
+
+      let deltaX = xMax - xMin;
+      let deltaY = yMax - yMin;
+      let deltaZ = zMax - zMin;
+      this.helperService.normDelta = max([deltaX, deltaY, deltaZ]);
+
+      // Calculate normalized maximum values
+      let normXMax = ((xMax + (xMin < 0 ? -xMin : xMin)) / this.helperService.normDelta);
+      let normYMax = ((yMax + (yMin < 0 ? -yMin : yMin)) / this.helperService.normDelta);
+      let normZMax = ((zMax + (zMin < 0 ? -zMin : zMin)) / this.helperService.normDelta);
+
+      this.helperService.normXMax = normXMax;
+      this.helperService.normYMax = normYMax;
+      this.helperService.normZMax = normZMax;
+    }
+
+    let delta = this.helperService.normDelta;
+    let xMin = this.helperService.normXMin;
+    let yMin = this.helperService.normYMin;
+    let zMin = this.helperService.normZMin;
+
+    // Normalize holes
+    forEach(this.holes, (hole: IHole) => {
+      if (!hole.vis) {
+        hole.vis = { 
+          xbNorm: { x1: 0, x2: 0, y1: 0, y2: 0, z1: 0, z2: 0 },
+          colorNorm: [1, 1, 1, 1] // Default white color for holes
+        };
+      }
+      
+      // Normalize hole xb coordinates
+      let holeXb = cloneDeep(hole.xb);
+      forEach(holeXb, (o, key) => {
+        holeXb[key] = toNumber(o);
+      });
+
+      holeXb.x1 += (xMin < 0) ? -xMin : xMin;
+      hole.vis.xbNorm.x1 = holeXb.x1 / delta;
+
+      holeXb.x2 += (xMin < 0) ? -xMin : xMin;
+      hole.vis.xbNorm.x2 = holeXb.x2 / delta;
+
+      holeXb.y1 += (yMin < 0) ? -yMin : yMin;
+      hole.vis.xbNorm.y1 = holeXb.y1 / delta;
+      holeXb.y2 += (yMin < 0) ? -yMin : yMin;
+      hole.vis.xbNorm.y2 = holeXb.y2 / delta;
+
+      holeXb.z1 += (zMin < 0) ? -zMin : zMin;
+      hole.vis.xbNorm.z1 = holeXb.z1 / delta;
+      holeXb.z2 += (zMin < 0) ? -zMin : zMin;
+      hole.vis.xbNorm.z2 = holeXb.z2 / delta;
+    });
+  }
+
+  /**
+   * Check if a hole intersects with an obst
+   */
+  private holeIntersectsObst(hole: any, obst: any): boolean {
+    if (!hole.xb || !obst.xb) {
+      return false;
+    }
+
+    // Convert hole and obst coordinates to arrays for easier comparison
+    const holeXb = [hole.xb.x1, hole.xb.x2, hole.xb.y1, hole.xb.y2, hole.xb.z1, hole.xb.z2];
+    const obstXb = [obst.xb.x1, obst.xb.x2, obst.xb.y1, obst.xb.y2, obst.xb.z1, obst.xb.z2];
+
+    // Check if hole is within obst bounds
+    return (
+      holeXb[0] >= obstXb[0] && holeXb[1] <= obstXb[1] && // X bounds
+      holeXb[2] >= obstXb[2] && holeXb[3] <= obstXb[3] && // Y bounds
+      holeXb[4] >= obstXb[4] && holeXb[5] <= obstXb[5]    // Z bounds
+    );
   }
 
 }

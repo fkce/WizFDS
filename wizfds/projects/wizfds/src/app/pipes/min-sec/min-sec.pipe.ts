@@ -1,7 +1,8 @@
 import { Pipe, PipeTransform } from '@angular/core';
 
 @Pipe({
-  name: 'minSec'
+    name: 'minSec',
+    standalone: false
 })
 export class MinSecPipe implements PipeTransform {
 

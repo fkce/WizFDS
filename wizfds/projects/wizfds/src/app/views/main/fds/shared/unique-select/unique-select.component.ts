@@ -2,10 +2,11 @@ import { Component, OnInit, ViewEncapsulation, ViewChild, ElementRef, Input, Out
 import { find, each } from 'lodash';
 
 @Component({
-  selector: 'unique-select',
-  templateUrl: './unique-select.component.html',
-  styleUrls: ['./unique-select.component.scss'],
-  encapsulation: ViewEncapsulation.None
+    selector: 'unique-select',
+    templateUrl: './unique-select.component.html',
+    styleUrls: ['./unique-select.component.scss'],
+    encapsulation: ViewEncapsulation.None,
+    standalone: false
 })
 export class UniqueSelectComponent implements OnInit, OnChanges {
 

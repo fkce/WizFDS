@@ -5,7 +5,7 @@ import { AppRoutingModule } from './app-routing.module';
 
 import { AppComponent } from './app.component';
 import { FrontComponent } from './view/front/front.component';
-import { NgxCookieBannerModule } from 'ngx-cookie-banner';
+// Cookie banner removed due to Angular 16 incompatibility of ngx-cookie-banner@0.0.4
 import { RouterModule } from '@angular/router';
 
 // WebSmokeviewLib
@@ -21,9 +21,6 @@ import { SmokeviewApiModule } from '../../../web-smokeview-lib/src/lib/services/
     BrowserModule,
     AppRoutingModule,
     BrowserAnimationsModule,
-    NgxCookieBannerModule.forRoot({
-      cookieName: 'WizFDS'
-    }),
     RouterModule,
     SmokeviewModule,
     SmokeviewApiModule

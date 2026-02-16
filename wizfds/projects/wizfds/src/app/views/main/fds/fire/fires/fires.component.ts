@@ -15,7 +15,7 @@ import { IdGeneratorService } from '@services/id-generator/id-generator.service'
 import { colors } from '@enums/fds/enums/fds-enums-colors';
 import { FdsEnums } from '@enums/fds/enums/fds-enums';
 
-import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
+import { NgScrollbar } from 'ngx-scrollbar';
 import { set, cloneDeep, find, findIndex, filter, isObject, toNumber, round } from 'lodash';
 import { WebsocketMessageObject } from '@services/websocket/websocket-message';
 
@@ -26,9 +26,10 @@ import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-fires',
-  templateUrl: './fires.component.html',
-  styleUrls: ['./fires.component.scss']
+    selector: 'app-fires',
+    templateUrl: './fires.component.html',
+    styleUrls: ['./fires.component.scss'],
+    standalone: false
 })
 export class FiresComponent implements OnInit, OnDestroy {
 
@@ -58,8 +59,8 @@ export class FiresComponent implements OnInit, OnDestroy {
   rouSub: Subscription;
 
   // Scrolbars containers
-  @ViewChild('fireScrollbar', {static: false}) fireScrollbar: PerfectScrollbarComponent;
-  @ViewChild('libFireScrollbar', {static: false}) libFireScrollbar: PerfectScrollbarComponent;
+  @ViewChild('fireScrollbar', {static: false}) fireScrollbar: NgScrollbar;
+  @ViewChild('libFireScrollbar', {static: false}) libFireScrollbar: NgScrollbar;
 
   // Ramp child
   @ViewChild('rampChart', {static: false}) rampChart: RampChartComponent;
@@ -79,7 +80,7 @@ export class FiresComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit() {
-    console.clear();
+    if (isDevMode()) console.clear();
     // Subscribe main object
     this.mainSub = this.mainService.getMain().subscribe(main => this.main = main);
     this.uiSub = this.uiStateService.uiObservable.subscribe(uiObservable => this.ui = uiObservable);
@@ -97,7 +98,7 @@ export class FiresComponent implements OnInit, OnDestroy {
       (message) => {
         if (message.status == 'error') {
           this.fire = cloneDeep(this.fireOld);
-          console.log('Cannot sync fire ...');
+          if (isDevMode()) console.log('Cannot sync fire ...');
         }
         else if (message.status == 'success') {
           this.fireOld = cloneDeep(this.fire);
@@ -108,7 +109,7 @@ export class FiresComponent implements OnInit, OnDestroy {
       },
       (error) => {
         this.fire = cloneDeep(this.fireOld);
-        console.log('Cannot sync fire ...');
+        if (isDevMode()) console.log('Cannot sync fire ...');
       }
     );
 
@@ -130,7 +131,9 @@ export class FiresComponent implements OnInit, OnDestroy {
 
   ngAfterViewInit() {
     // Set scrollbars position y after view rendering and set last selected element
-    this.fireScrollbar.directiveRef.scrollToY(this.ui.fires['fire'].scrollPosition);
+    setTimeout(() => {
+      try { this.fireScrollbar?.viewport?.scrollYTo(this.ui.fires['fire'].scrollPosition); } catch {}
+    });
   }
 
   ngOnDestroy() {
@@ -198,7 +201,7 @@ export class FiresComponent implements OnInit, OnDestroy {
 
   /** Update scroll position */
   public scrollbarUpdate(element: string) {
-    set(this.ui.fires, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.geometry().y);
+    set(this.ui.fires, element + '.scrollPosition', (this[element + 'Scrollbar'] as NgScrollbar).viewport.scrollTop);
   }
 
   /** Toggle library */

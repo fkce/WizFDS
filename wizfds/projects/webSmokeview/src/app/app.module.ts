@@ -1,6 +1,6 @@
 import { BrowserModule, DomSanitizer } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { NgModule, APP_INITIALIZER } from '@angular/core';
+import { NgModule, inject, provideAppInitializer } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
@@ -49,11 +49,10 @@ export function initializeApp(configService: ConfigService) {
       multi: true,
     },
     ConfigService,
-    {
-      provide: APP_INITIALIZER,
-      useFactory: initializeApp,
-      deps: [ConfigService], multi: true
-    }
+    provideAppInitializer(() => {
+        const initializerFn = (initializeApp)(inject(ConfigService));
+        return initializerFn();
+      })
   ],
   bootstrap: [AppComponent]
 })

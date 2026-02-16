@@ -26,9 +26,10 @@ import { UiState } from '@services/ui-state/ui-state';
 import { UiStateService } from '@services/ui-state/ui-state.service';
 
 @Component({
-  selector: 'app-input-file',
-  templateUrl: './input-file.component.html',
-  styleUrls: ['./input-file.component.scss']
+    selector: 'app-input-file',
+    templateUrl: './input-file.component.html',
+    styleUrls: ['./input-file.component.scss'],
+    standalone: false
 })
 export class InputFileComponent implements OnInit, OnDestroy {
 
@@ -120,7 +121,7 @@ export class InputFileComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit() {
-    console.clear();
+    if (isDevMode()) console.clear();
     this.mainSub = this.mainService.getMain().subscribe(main => this.main = main);
     this.libSub = this.libraryService.getLibrary().subscribe(lib => this.lib = lib);
     this.uiSub = this.uiStateService.uiObservable.subscribe(uiObservable => this.uiState = uiObservable);

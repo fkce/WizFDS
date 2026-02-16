@@ -2,7 +2,7 @@ precision highp float;
 
 attribute vec3 position; 
 attribute vec3 normal;
-attribute vec3 color;
+attribute vec4 color;
 // Uniforms
 uniform mat4 view;
 uniform mat4 projection;
@@ -19,6 +19,6 @@ void main(void) {
     vec4 vertPos4 = worldView * vec4(position, 1.0);
     vertPos = vec3(vertPos4) / vertPos4.w;
     normalInterp = vec3(view * vec4(normal, 0.0));
-    vcolor = color;
+    vcolor = color.rgb;
     gl_Position = projection * vertPos4;
 }

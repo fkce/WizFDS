@@ -243,7 +243,7 @@ namespace WizFDS.Ribbon
                 {
                     Command = "FHOLE",
                     Title = "HOLE",
-                    Content = "Create OBST",
+                    Content = "Create HOLE",
                     //ExpandedContent = "Create OPEN boundary on the part of the MESH side. Layer is changed automatically to !FDS_MESH[open]."
                 };
                 fHoleBtn.ToolTip = fHoleTT;

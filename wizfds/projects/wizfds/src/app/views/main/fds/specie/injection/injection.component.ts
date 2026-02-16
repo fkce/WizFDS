@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, OnDestroy } from '@angular/core';
+import { Component, OnInit, ViewChild, OnDestroy, isDevMode } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
 import { LibraryService } from '@services/library/library.service';
@@ -14,7 +14,7 @@ import { Main } from '@services/main/main';
 import { IdGeneratorService } from '@services/id-generator/id-generator.service';
 import { colors } from '@enums/fds/enums/fds-enums-colors';
 
-import { PerfectScrollbarComponent } from 'ngx-perfect-scrollbar';
+import { NgScrollbar } from 'ngx-scrollbar';
 import { find, findIndex, cloneDeep, set, filter, forEach } from 'lodash';
 import { WebsocketMessageObject } from '@services/websocket/websocket-message';
 import { VentSpec } from '@services/fds-object/specie/vent';
@@ -24,9 +24,10 @@ import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-injection',
-  templateUrl: './injection.component.html',
-  styleUrls: ['./injection.component.scss']
+    selector: 'app-injection',
+    templateUrl: './injection.component.html',
+    styleUrls: ['./injection.component.scss'],
+    standalone: false
 })
 export class InjectionComponent implements OnInit, OnDestroy {
 
@@ -58,9 +59,9 @@ export class InjectionComponent implements OnInit, OnDestroy {
   rouSub: Subscription;
 
   // Scrolbars containers
-  @ViewChild('ventScrollbar', {static: false}) ventScrollbar: PerfectScrollbarComponent;
-  @ViewChild('surfScrollbar', {static: false}) surfScrollbar: PerfectScrollbarComponent;
-  @ViewChild('libSurfScrollbar', {static: false}) libSurfScrollbar: PerfectScrollbarComponent;
+  @ViewChild('ventScrollbar', {static: false}) ventScrollbar: NgScrollbar;
+  @ViewChild('surfScrollbar', {static: false}) surfScrollbar: NgScrollbar;
+  @ViewChild('libSurfScrollbar', {static: false}) libSurfScrollbar: NgScrollbar;
 
   // Enums
   ENUMS_SURF = FdsEnums.SURF;
@@ -77,7 +78,7 @@ export class InjectionComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit() {
-    console.clear();
+    if (isDevMode()) console.clear();
     // Subscribe main object
     this.mainSub = this.mainService.getMain().subscribe(main => this.main = main);
     this.uiSub = this.uiStateService.uiObservable.subscribe(uiObservable => this.ui = uiObservable);
@@ -99,7 +100,7 @@ export class InjectionComponent implements OnInit, OnDestroy {
       (message) => {
         if (message.status == 'error') {
           //this.mesh = cloneDeep(this.meshOld);
-          console.log('Cannot sync vent ...');
+          if (isDevMode()) console.log('Cannot sync vent ...');
         }
         else if (message.status == 'success') {
           this.surfOld = cloneDeep(this.surf);
@@ -110,7 +111,7 @@ export class InjectionComponent implements OnInit, OnDestroy {
       },
       (error) => {
         //this.mesh = cloneDeep(this.meshOld);
-        console.log('Cannot sync vent ...');
+        if (isDevMode()) console.log('Cannot sync vent ...');
       }
     );
 
@@ -134,8 +135,10 @@ export class InjectionComponent implements OnInit, OnDestroy {
 
   ngAfterViewInit() {
     // Set scrollbars position y after view rendering and set last selected element
-    this.ventScrollbar.directiveRef.scrollToY(this.ui.specie['vent'].scrollPosition);
-    this.surfScrollbar.directiveRef.scrollToY(this.ui.specie['surf'].scrollPosition);
+    setTimeout(() => {
+      try { this.ventScrollbar?.viewport?.scrollYTo(this.ui.specie['vent'].scrollPosition); } catch {}
+      try { this.surfScrollbar?.viewport?.scrollYTo(this.ui.specie['surf'].scrollPosition); } catch {}
+    });
   }
 
   ngOnDestroy() {
@@ -230,7 +233,7 @@ export class InjectionComponent implements OnInit, OnDestroy {
 
   /** Update scroll position */
   public scrollbarUpdate(element: string) {
-    set(this.ui.specie, element + '.scrollPosition', this[element + 'Scrollbar'].directiveRef.geometry().y);
+    set(this.ui.specie, element + '.scrollPosition', (this[element + 'Scrollbar'] as NgScrollbar).viewport.scrollTop);
   }
 
   /** Toggle library */
@@ -261,7 +264,7 @@ export class InjectionComponent implements OnInit, OnDestroy {
     }
 
     // Import species from library
-    console.log(libSurf);
+    if (isDevMode()) console.log(libSurf);
     if (libSurf.specieFlowType == 'massFlux' && libSurf.massFlux.length > 0) {
 
       forEach(libSurf.massFlux, (massFluxSpec) => {

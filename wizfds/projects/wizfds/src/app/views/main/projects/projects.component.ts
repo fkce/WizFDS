@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, isDevMode } from '@angular/core';
 
 import { Project } from '@services/project/project';
 import { MainService } from '@services/main/main.service';
@@ -15,9 +15,10 @@ import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-projects',
-  templateUrl: './projects.component.html',
-  styleUrls: ['./projects.component.scss']
+    selector: 'app-projects',
+    templateUrl: './projects.component.html',
+    styleUrls: ['./projects.component.scss'],
+    standalone: false
 })
 export class ProjectsComponent implements OnInit, OnDestroy {
   main: Main;
@@ -194,7 +195,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
 
   /** Download fds file */
   public downloadFdsScenario(projectId: number, fdsScenarioId: number) {
-    console.log("download fds scenario");
+    if (isDevMode()) console.log("download fds scenario");
   }
 
   /** Delete fds scenario */

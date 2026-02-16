@@ -1,4 +1,4 @@
-@import "../../app.component.scss";
+@use "../../app.component.scss" as *;
 
 $open-time: 0.5s;
 $close-time: 0.5s;

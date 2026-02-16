@@ -14,6 +14,9 @@ export class HelpersService {
   normXMin: number = 0;
   normYMin: number = 0;
   normZMin: number = 0;
+  normXMax: number = 1;
+  normYMax: number = 1;
+  normZMax: number = 1;
 
   constructor() { }
 
@@ -71,8 +74,100 @@ export class HelpersService {
     ];
   }
 
+  /**
+   * Generate vent geometry (plane) from XB coordinates
+   * @param xb 
+   */
+  public generateVentGeometry(xb: IXb) {
+    let vertices: number[] = [];
+    let normals: number[] = [];
+    let indices: number[] = [];
+
+    // Determine which plane the vent represents by checking which coordinate is constant
+    if (xb.x1 === xb.x2) {
+      // X-plane (YZ plane)
+      const x = xb.x1;
+      vertices = [
+        x, xb.y1, xb.z1,  // Bottom left
+        x, xb.y2, xb.z1,  // Bottom right
+        x, xb.y2, xb.z2,  // Top right
+        x, xb.y1, xb.z2   // Top left
+      ];
+      normals = [
+        1, 0, 0,
+        1, 0, 0,
+        1, 0, 0,
+        1, 0, 0
+      ];
+    } else if (xb.y1 === xb.y2) {
+      // Y-plane (XZ plane)
+      const y = xb.y1;
+      vertices = [
+        xb.x1, y, xb.z1,  // Bottom left
+        xb.x2, y, xb.z1,  // Bottom right
+        xb.x2, y, xb.z2,  // Top right
+        xb.x1, y, xb.z2   // Top left
+      ];
+      normals = [
+        0, 1, 0,
+        0, 1, 0,
+        0, 1, 0,
+        0, 1, 0
+      ];
+    } else if (xb.z1 === xb.z2) {
+      // Z-plane (XY plane)
+      const z = xb.z1;
+      vertices = [
+        xb.x1, xb.y1, z,  // Bottom left
+        xb.x2, xb.y1, z,  // Bottom right
+        xb.x2, xb.y2, z,  // Top right
+        xb.x1, xb.y2, z   // Top left
+      ];
+      normals = [
+        0, 0, 1,
+        0, 0, 1,
+        0, 0, 1,
+        0, 0, 1
+      ];
+    }
+
+    // Two triangles forming a rectangle
+    indices = [
+      0, 1, 2,  // First triangle
+      0, 2, 3   // Second triangle
+    ];
+
+    return {
+      vertices,
+      normals,
+      indices
+    };
+  }
+
   public getColors(color: number[]) {
     return flatten(times(24, constant(color)));
+  }
+
+  /**
+   * Get normals for a cube (24 vertices)
+   */
+  public getNormals() {
+    // 6 faces × 4 vertices each = 24 normals
+    // Each face has same normal for all 4 vertices
+    return [
+      // Bottom face (z1) - normal pointing down
+      0, 0, -1,  0, 0, -1,  0, 0, -1,  0, 0, -1,
+      // Top face (z2) - normal pointing up  
+      0, 0, 1,   0, 0, 1,   0, 0, 1,   0, 0, 1,
+      // Bottom face (z1) - duplicate (seems to be how getVerticesFromXb works)
+      0, 0, -1,  0, 0, -1,  0, 0, -1,  0, 0, -1,
+      // Top face (z2) - duplicate
+      0, 0, 1,   0, 0, 1,   0, 0, 1,   0, 0, 1,
+      // Bottom face (z1) - duplicate 
+      0, 0, -1,  0, 0, -1,  0, 0, -1,  0, 0, -1,
+      // Top face (z2) - duplicate
+      0, 0, 1,   0, 0, 1,   0, 0, 1,   0, 0, 1
+    ];
   }
 
   public getIndices(i: number) {

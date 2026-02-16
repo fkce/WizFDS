@@ -2,7 +2,8 @@ import { Directive, HostListener, ElementRef, OnInit, Input } from '@angular/cor
 import { isInteger, toNumber } from 'lodash';
 
 @Directive({
-  selector: '[integerInput]'
+    selector: '[integerInput]',
+    standalone: false
 })
 export class IntegerInputDirective {
 

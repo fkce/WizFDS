@@ -5,7 +5,7 @@
       <div class="list-title" (click)="add()">
         <mat-icon>add_box</mat-icon> Add RAMP
       </div>
-      <perfect-scrollbar #rampScrollbar (psScrollY)="scrollbarUpdate('ramp')">
+  <ng-scrollbar #rampScrollbar (scrolled)="scrollbarUpdate('ramp')">
         <div class="list-items">
           <div class="list-item"
             *ngFor="let rampItem of ramps | slice: ui.ramps.ramp.begin:(ui.ramps.ramp.begin + ui.listRange)">
@@ -13,7 +13,7 @@
             <mat-icon class="red-hover" (click)="delete(rampItem.id)">delete_forever</mat-icon>
           </div>
         </div>
-      </perfect-scrollbar>
+  </ng-scrollbar>
       <div class="list-bottom" *ngIf="ramps.length > ui.listRange">
         <mat-icon *ngIf="ui.ramps.ramp.begin > 0" (click)="uiStateService.decreaseRange('ramps.ramp')">chevron_left
         </mat-icon>
@@ -84,7 +84,7 @@
           <div class="list-title" (click)="add(true)">
             <mat-icon>add_box</mat-icon> Add RAMP
           </div>
-          <perfect-scrollbar #libRampScrollbar (psScrollY)="scrollbarUpdate('libRamp')">
+          <ng-scrollbar #libRampScrollbar (scrolled)="scrollbarUpdate('libRamp')">
             <div class="list-items">
               <div class="list-item"
                 *ngFor="let rampItem of lib.ramps | slice: ui.ramps.libRamp.begin:(ui.ramps.libRamp.begin + ui.listRange)">
@@ -95,7 +95,7 @@
                   (click)="delete(rampItem.id, true)">delete_forever</mat-icon>
               </div>
             </div>
-          </perfect-scrollbar>
+          </ng-scrollbar>
           <div class="list-bottom" *ngIf="libRamps.length > ui.listRange">
             <mat-icon *ngIf="ui.ramps.libRamp.begin > 0" (click)="uiStateService.decreaseRange('ramps.libRamp')">
               chevron_left</mat-icon>

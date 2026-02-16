@@ -4,9 +4,10 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-fds-menu',
-  templateUrl: './fds-menu.component.html',
-  styleUrls: ['./fds-menu.component.scss']
+    selector: 'app-fds-menu',
+    templateUrl: './fds-menu.component.html',
+    styleUrls: ['./fds-menu.component.scss'],
+    standalone: false
 })
 export class FdsMenuComponent implements OnInit, OnDestroy {
 

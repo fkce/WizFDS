@@ -1,4 +1,5 @@
-@import "../../app.component.scss";
+@use "../../app.component.scss" as *;
+@forward "../../app.component.scss";
 
 .double-amper-wrapper {
   display: grid;

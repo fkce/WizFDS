@@ -1,3 +1,6 @@
+@use "app/views/main/fds/input-file/css/codemirror-bundle.scss" as *;
+@use "@ng-select/ng-select/scss/default.theme" as *;
+
 // Reset sytles
 html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, big, cite, code, del, dfn, em, img, ins, kbd, q, s, samp, small, strike, strong, tt, b, u, i, center, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption, tbody, tfoot, thead, tr, th, td, article, aside, canvas, details, embed, figure, figcaption, footer, header, hgroup, menu, nav, output, ruby, section, summary, time, mark, audio, video {
   margin: 0;
@@ -238,17 +241,15 @@ select {
   cursor: pointer;
 }
 
-// Katex import & modifications
-@import "~katex/dist/katex.css";
+// KaTeX import & modifications
+@import "katex/dist/katex.css";
 ng-katex {
   font-size: 0.9rem;
 }
 
-// Codemirror editor import
-@import "app/views/main/fds/input-file/css/codemirror.scss";
+// Codemirror editor import (moved to top via @use)
 
-// ng-select import & modifications
-@import "~@ng-select/ng-select/themes/default.theme.css";
+// ng-select import & modifications (moved to top via @use)
 
 .ng-select {
   height: 1.8rem;
@@ -302,7 +303,7 @@ ng-katex {
 }
 
 // Angular theme
-@import "~@angular/material/prebuilt-themes/pink-bluegrey.css";
+@import "@angular/material/prebuilt-themes/pink-bluegrey.css";
 
 // Mdi icon settings
 button.mat-menu-item {

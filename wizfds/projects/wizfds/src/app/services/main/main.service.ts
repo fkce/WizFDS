@@ -4,6 +4,7 @@ import { Main } from './main';
 import { HttpManagerService, Result } from '@services/http-manager/http-manager.service';
 import { each } from 'lodash';
 import { SnackBarService } from '@services/snack-bar/snack-bar.service';
+import { environment } from '@env/environment';
 
 @Injectable()
 export class MainService {
@@ -34,7 +35,8 @@ export class MainService {
       this.main.userId = main.userId;
       this.main.settings.userName = main.settings.userName;
       this.main.settings.email = main.settings.email;
-      this.main.settings.hostAddress = main.settings.hostAddress;
+  // In dev serve, keep hostAddress empty to use Angular proxy (avoid absolute backend URLs)
+  this.main.settings.hostAddress = isDevMode() ? '' : main.settings.hostAddress;
       this.main.settings.tooltips = main.settings.tooltips;
       this.main.settings.editor = main.settings.editor;
       this.main.idle.timeout = main.idle.timeout;
@@ -82,8 +84,9 @@ export class MainService {
       this.subscribeIdle();
     }
     else if (this.main.idle.timeout <= 0) {
-      this.main.idle.subscription.unsubscribe();
-      window.location.href = 'https://wizfds.com/logout';
+  this.main.idle.subscription.unsubscribe();
+  // Redirect through proxy in dev, absolute in prod
+  window.location.href = isDevMode() ? '/logout' : environment.host + '/logout';
     }
   }
 

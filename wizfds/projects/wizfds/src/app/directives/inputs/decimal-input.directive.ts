@@ -2,7 +2,8 @@ import { Directive, HostListener, ElementRef, OnInit, Input } from '@angular/cor
 import { isNumber, toNumber, isNaN } from 'lodash';
 
 @Directive({
-  selector: '[decimalInput]'
+    selector: '[decimalInput]',
+    standalone: false
 })
 export class DecimalInputDirective {
   private el: HTMLInputElement;
