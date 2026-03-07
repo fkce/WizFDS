@@ -6,7 +6,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "directory-tree": "^2.2.4",
-    "express": "^4.17.0",
+    "express": "^4.17.3",
     "lodash": "^4.17.15",
     "pako": "^1.0.11"
   },
