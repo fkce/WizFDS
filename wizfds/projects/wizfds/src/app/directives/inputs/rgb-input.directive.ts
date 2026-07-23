@@ -35,15 +35,13 @@ export class RgbInputDirective {
     // Allow only digits and comma
     this.el.value = this.el.value.replace(/\D/g, '');
 
-    // Set background if invalid value
+    // Validation only: red border when outside 0–255; otherwise defer to the CSS
+    // form-control style (grey box, green on focus) — matches text inputs.
     if (toNumber(this.el.value) < 0 || toNumber(this.el.value) > 255) {
-      this.el.style.borderBottom = 'solid 2px red';
-    }
-    else if (this.focused == true) {
-      this.el.style.borderBottom = 'solid 2px #FF9800';
+      this.el.style.borderColor = 'var(--danger)';
     }
     else {
-      this.el.style.borderBottom = '2px solid rgba(255,255,255,.7)';
+      this.el.style.borderColor = '';
     }
 
 

@@ -36,12 +36,13 @@ export class IntegerInputDirective {
     this.el.style.width = 0.6 * this.el.value.length + 'rem';
     //}
 
-    // Set background if invalid value
+    // Validation only: red border when not an integer; otherwise defer to the CSS
+    // form-control style (grey box, green on focus) — matches text inputs.
     if (!isInteger(toNumber(this.el.value))) {
-      this.el.style.borderBottom = 'solid 2px red';
+      this.el.style.borderColor = 'var(--danger)';
     }
     else {
-      this.el.style.borderBottom = '2px solid rgba(255,255,255,.7)';
+      this.el.style.borderColor = '';
     }
 
   }
