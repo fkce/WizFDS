@@ -1,5 +1,9 @@
+@use "styles/tokens";
+@use "styles/fonts";
+@use "styles/theme";
 @use "app/views/main/fds/input-file/css/codemirror-bundle.scss" as *;
 @use "@ng-select/ng-select/scss/default.theme" as *;
+@use "styles/forms"; // must follow the ng-select default theme so our overrides win
 
 // Reset sytles
 html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, big, cite, code, del, dfn, em, img, ins, kbd, q, s, samp, small, strike, strong, tt, b, u, i, center, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption, tbody, tfoot, thead, tr, th, td, article, aside, canvas, details, embed, figure, figcaption, footer, header, hgroup, menu, nav, output, ruby, section, summary, time, mark, audio, video {
@@ -54,39 +58,45 @@ table {
 }
 
 /* You can add global styles to this file, and also import other style files */
-$red: #ff516d;
-$white: #eee;
-$grey: #888;
-$blue: #29b6f6;
-$blue-dark: #1e88e5;
-$green: #9ccc65;
-$orange: #ff9800;
-$orange-light: #fff3e0;
-$help: #b0bec5;
+// --- Legacy palette shim -----------------------------------------------------
+// These SCSS variables now point at the design tokens in styles/_tokens.scss, so
+// the ~10 component SCSS files that still reference $grey*/$blue/… adopt the new
+// grey+green palette without editing each one. New code should use var(--token)
+// directly. (Safe because no SCSS color functions — lighten/darken/rgba($…) — are
+// applied to these variables anywhere in the app.)
+$red: var(--danger);
+$white: var(--on-surface);
+$grey: var(--on-surface-muted);
+$blue: var(--info);
+$blue-dark: var(--info);
+$green: var(--accent);
+$orange: var(--warning);
+$orange-light: var(--surface-2);
+$help: var(--on-surface-muted);
 
-$grey-hover: #606060;
+$grey-hover: var(--grey-800);
 
-$grey1: #303030;
-$grey2: #404040;
-$grey3: #505050;
-$grey4: #606060;
-$grey5: #707070;
-$grey6: #808080;
+$grey1: var(--grey-900);
+$grey2: var(--grey-850);
+$grey3: var(--grey-800);
+$grey4: var(--grey-600);
+$grey5: var(--grey-500);
+$grey6: var(--grey-400);
 
-$border-light: #565656;
-$border-dark: #303030;
+$border-light: var(--border);
+$border-dark: var(--border-muted);
 
-$shadow-light: #363636;
-$shadow-dark: #323232;
+$shadow-light: var(--grey-850);
+$shadow-dark: var(--grey-900);
 
-$active: #aaa;
-$active1: #1e88e5;
-$passive: #565555;
-$body: #383838;
+$active: var(--grey-400);
+$active1: var(--info);
+$passive: var(--grey-600);
+$body: var(--surface);
 
 html {
   font-size: 1rem;
-  font-family: "Play";
+  font-family: var(--font-ui);
 }
 
 body {
@@ -134,38 +144,19 @@ mat-icon.red-hover:hover {
   color: $red;
 }
 
-input {
-  box-shadow: none;
-  border-radius: none;
-  border: none;
-  background: none;
-  font-size: 0.95rem;
-  padding-bottom: 0;
-  color: $orange;
-  font-family: Consolas, Lucida Console, monospace;
-}
-input {
-  border-bottom: 2px solid rgba(255, 255, 255, 0.7);
-  padding: 0 0.5rem 0 0.2rem;
-}
-input:focus,
-select:focus,
-textarea:focus,
+// Form controls (input / textarea / ng-select) are styled in styles/_forms.scss.
 button:focus {
   outline: none;
-}
-input:focus {
-  border-bottom: 2px solid $orange;
 }
 
 button {
   position: relative;
   background-color: transparent;
-  color: #ccc;
-  border-radius: 2px;
-  border: 2px solid #ccc;
+  color: var(--on-surface-muted);
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border);
   font-size: 0.9rem;
-  font-family: "Play";
+  font-family: var(--font-ui);
   height: 1.6rem;
   min-height: 1.6rem;
   padding: 2px 6px 2px 6px;
@@ -179,7 +170,7 @@ button {
 
 button:after {
   content: "";
-  background: $blue;
+  background: var(--accent);
   display: block;
   position: absolute;
   padding-top: 300%;
@@ -197,20 +188,21 @@ button:active:after {
   transition: 0s;
 }
 button:hover {
-  background: #b0bec5;
-  color: #000;
-  border: 2px solid #b0bec5;
+  background: var(--surface-3);
+  color: var(--on-surface);
+  border: 2px solid var(--accent);
 }
 
 select {
   appearance: none;
-  background-color: #fff;
-  border-radius: 4px;
-  border: 1px solid #ccc;
+  background-color: var(--surface-1);
+  color: var(--on-surface);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
   height: 1.6rem;
   min-height: 1.6rem;
   font-size: 0.9rem;
-  font-family: "Play";
+  font-family: var(--font-ui);
   padding-left: 6px;
   //background: url(http://cdn1.iconfinder.com/data/icons/cc_mono_icon_set/blacks/16x16/br_down.png) no-repeat right #ddd;
 }
@@ -251,59 +243,32 @@ ng-katex {
 
 // ng-select import & modifications (moved to top via @use)
 
-.ng-select {
-  height: 1.8rem;
-  min-height: 1.8rem;
-  width: auto;
-}
-.ng-select .ng-select-container {
-  height: 1.6rem;
-  min-height: 1.6rem;
-  font-size: 0.9rem;
-}
-.ng-select .ng-dropdown-panel {
-  font-size: 0.9rem;
-}
-.ng-select.ng-select-single .ng-select-container {
-  height: 1.6rem;
-  min-height: 1.6rem;
-  font-size: 0.9rem;
-}
-.custom.ng-select.ng-select-single .ng-select-container .ng-value-container {
-  min-width: 9rem;
-}
-.ng-dropdown-panel {
-  min-width: 100%;
-  width: auto !important;
-}
-.ng-select .ng-clear {
-  padding-left: 0.5rem;
-}
+// ng-select styling moved to styles/_forms.scss (modern filled look).
 
 // Angular snack-bar
 .info {
-  background: #5bc0de;
-  color: $white;
-  font-family: "Play" !important;
+  background: var(--info);
+  color: var(--surface);
+  font-family: var(--font-ui) !important;
 }
 .error {
-  background: #d9534f;
-  color: $white;
-  font-family: "Play" !important;
+  background: var(--danger);
+  color: #fff;
+  font-family: var(--font-ui) !important;
 }
 .success {
-  background: #5cb85c;
-  color: $white;
-  font-family: "Play" !important;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--font-ui) !important;
 }
 .warning {
-  background: #f0ad4e;
-  color: $white;
-  font-family: "Play" !important;
+  background: var(--warning);
+  color: var(--surface);
+  font-family: var(--font-ui) !important;
 }
 
-// Angular theme
-@import "@angular/material/prebuilt-themes/pink-bluegrey.css";
+// Angular Material theme is now provided by `@use "styles/theme"` at the top of
+// this file (M3, dark, green primary). The legacy prebuilt import was removed.
 
 // Mdi icon settings
 button.mat-menu-item {

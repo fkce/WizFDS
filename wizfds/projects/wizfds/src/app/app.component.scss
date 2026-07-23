@@ -1,33 +1,35 @@
-$red: #FF516D;
-$green: #009688;
-$white: #eee;
-$grey: #888;
-$blue: #29B6F6;
-$blue-dark: #1E88E5;
-$green: #9CCC65;
-$orange: #FF9800;
-$orange-light: #FFF3E0;
-$help: #B0BEC5;
+// Legacy palette shim → global design tokens (styles/_tokens.scss, loaded on :root).
+// SCSS variables are file-scoped, so each component that references them re-maps
+// here; the CSS custom properties they point at ARE global at runtime.
+$red: var(--danger);
+$white: var(--on-surface);
+$grey: var(--on-surface-muted);
+$blue: var(--info);
+$blue-dark: var(--info);
+$green: var(--accent);
+$orange: var(--warning);
+$orange-light: var(--surface-2);
+$help: var(--on-surface-muted);
 
-$grey-hover: #606060;
+$grey-hover: var(--grey-800);
 
-$grey1: #303030;
-$grey2: #404040;
-$grey3: #505050;
-$grey4: #606060;
-$grey5: #707070;
-$grey6: #808080;
+$grey1: var(--grey-900);
+$grey2: var(--grey-850);
+$grey3: var(--grey-800);
+$grey4: var(--grey-600);
+$grey5: var(--grey-500);
+$grey6: var(--grey-400);
 
-$border-light: #565656;
-$border-dark: #303030;
+$border-light: var(--border);
+$border-dark: var(--border-muted);
 
 $shadow-light: #363636;	
 $shadow-dark: #323232;
 
-$active: #aaa;
-$active1: #1E88E5;
-$passive: #565555;
-$body: #383838;
+$active: var(--grey-400);
+$active1: var(--info);
+$passive: var(--grey-600);
+$body: var(--surface);
 
 mat-progress-bar.progress {
     position: fixed;

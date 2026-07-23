@@ -1,0 +1,55 @@
+// Angular Material 20 M3 theme for WizFDS.
+// Replaces the legacy `@import '@angular/material/prebuilt-themes/pink-bluegrey.css'`.
+// Green (accent) drives Material's primary (filled buttons / active states); the
+// neutral-grey design tokens (_tokens.scss) are wired into Material's --mat-sys-* surfaces
+// so Material components match the app's own chrome. Dark theme only.
+
+@use "@angular/material" as mat;
+
+html {
+  color-scheme: dark;
+
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$green-palette,
+        tertiary: mat.$blue-palette,
+        theme-type: dark,
+      ),
+      typography: (
+        plain-family: "Fira Sans",
+        brand-family: "Fira Sans",
+        bold-weight: 700,
+        medium-weight: 500,
+        regular-weight: 400,
+      ),
+      density: 0,
+    )
+  );
+
+  // --- Map Material system tokens onto WizFDS semantic tokens ---------------
+  // Wrapped in `& {}` because these declarations follow mat.theme's nested rules
+  // (Sass "mixed-decls" deprecation). Action color: pin Material primary to green.
+  & {
+  --mat-sys-primary: var(--accent);
+  --mat-sys-on-primary: var(--on-accent);
+  --mat-sys-error: var(--danger);
+
+  // Surfaces (background → containers) → neutral grey scale.
+  --mat-sys-background: var(--surface);
+  --mat-sys-surface: var(--surface);
+  --mat-sys-surface-dim: var(--surface);
+  --mat-sys-surface-bright: var(--surface-2);
+  --mat-sys-surface-container-lowest: var(--surface);
+  --mat-sys-surface-container-low: var(--surface-1);
+  --mat-sys-surface-container: var(--surface-1);
+  --mat-sys-surface-container-high: var(--surface-2);
+  --mat-sys-surface-container-highest: var(--surface-3);
+
+  // Foreground + lines.
+  --mat-sys-on-surface: var(--on-surface);
+  --mat-sys-on-surface-variant: var(--on-surface-muted);
+  --mat-sys-outline: var(--border);
+  --mat-sys-outline-variant: var(--border-muted);
+  }
+}

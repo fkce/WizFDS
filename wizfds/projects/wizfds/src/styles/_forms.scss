@@ -1,0 +1,179 @@
+// =============================================================================
+// WizFDS form controls — modern "filled" style, driven by design tokens.
+// Covers native <input>, <textarea>, and @ng-select/ng-select dropdowns.
+// Checkboxes stay on the Angular Material M3 theme (green accent).
+// See docs/reference/ui-design-tokens.md → "Form controls".
+// =============================================================================
+
+// --- Native <input> + <textarea> --------------------------------------------
+input,
+textarea {
+  box-shadow: none;
+  color: var(--on-surface);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-sm);
+  padding: 0 8px;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+
+  &::placeholder {
+    color: var(--on-surface-muted);
+  }
+
+  &:hover {
+    border-color: var(--border);
+  }
+
+  &:focus,
+  &:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25); // --accent @ 25%
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  // Validation states (ngModel adds ng-invalid / ng-touched automatically)
+  &.ng-invalid.ng-touched {
+    border-color: var(--danger);
+
+    &:focus {
+      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25); // --danger @ 25%
+    }
+  }
+}
+
+input {
+  height: 1.5rem;
+}
+
+textarea {
+  padding: 4px 8px;
+  line-height: 1.4;
+  resize: vertical;
+}
+
+// NOTE: FDS form field labels are sized by main.component.scss's scoped rule
+// `.amper-container .form-box .form-row div label` (higher specificity), so the
+// label size is set there, not here.
+
+// The hidden file input keeps no box (its <label> is the visible control).
+input[type="file"] {
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+// --- Resets: inputs that must NOT get the filled box ------------------------
+// ng-select's internal search input, and CodeMirror's hidden capture textarea.
+.ng-select input,
+.CodeMirror input,
+.CodeMirror textarea {
+  background: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  height: auto;
+}
+// The typed search text inside ng-select must be clearly visible on the fill.
+.ng-select input {
+  color: var(--on-surface);
+}
+
+// --- ng-select (@ng-select/ng-select) ---------------------------------------
+.ng-select {
+  height: 1.8rem;
+  min-height: 1.8rem;
+  width: auto;
+  font-family: var(--font-ui);
+
+  .ng-select-container {
+    height: 1.6rem;
+    min-height: 1.6rem;
+    font-size: 0.9rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border-muted);
+    border-radius: var(--radius-sm);
+    color: var(--on-surface);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    .ng-value {
+      color: var(--on-surface);
+    }
+    .ng-placeholder {
+      color: var(--on-surface-muted);
+    }
+  }
+
+  &:hover .ng-select-container {
+    border-color: var(--border);
+  }
+
+  // Higher specificity + child combinator to beat ng-select's default-theme
+  // focus rule (`.ng-select-focused:not(.ng-select-opened) > .ng-select-container`),
+  // which otherwise paints a blue bottom border/underline on the active field.
+  &.ng-select-focused:not(.ng-select-opened) > .ng-select-container,
+  &.ng-select-opened > .ng-select-container {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
+  }
+
+  &.ng-select-single .ng-select-container {
+    height: 1.6rem;
+    min-height: 1.6rem;
+    font-size: 0.9rem;
+  }
+
+  &.ng-select-disabled .ng-select-container {
+    opacity: 0.55;
+  }
+
+  .ng-clear-wrapper,
+  .ng-arrow-wrapper {
+    color: var(--on-surface-muted);
+  }
+  .ng-clear {
+    padding-left: 0.5rem;
+  }
+}
+
+.custom.ng-select.ng-select-single .ng-select-container .ng-value-container {
+  min-width: 9rem;
+}
+
+// ng-select dropdown panel
+.ng-dropdown-panel {
+  min-width: 100%;
+  width: auto !important;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+
+  .ng-dropdown-panel-items .ng-option {
+    background: var(--surface-1);
+    color: var(--on-surface);
+    font-size: 0.9rem;
+    padding: 4px 8px;
+
+    &.ng-option-marked {
+      background: var(--surface-2);
+      color: var(--on-surface);
+    }
+    &.ng-option-selected,
+    &.ng-option-selected.ng-option-marked {
+      background: var(--surface-3);
+      color: var(--accent);
+    }
+    &.ng-option-disabled {
+      color: var(--on-surface-muted);
+    }
+  }
+}

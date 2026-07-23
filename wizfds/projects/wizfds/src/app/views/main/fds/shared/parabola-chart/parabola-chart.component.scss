@@ -9,24 +9,24 @@
 
   .axis path,
   .axis line {
-    stroke: #aaa;
+    stroke: var(--on-surface-muted);
     shape-rendering: crispEdges;
   }
 
   .axis text {
-    fill: #aaa;
+    fill: var(--on-surface-muted);
     font-size: 0.65rem;
   }
 
   text.label {
     font-size: 1rem;
-    font-family: "Play";
-    fill: #eee;
+    font-family: var(--font-ui);
+    fill: var(--on-surface);
   }
 
   g {
     text {
-      fill: #aaa;
+      fill: var(--on-surface-muted);
       font-size: 0.65rem;
     }
   }

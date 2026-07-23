@@ -5,7 +5,7 @@ $open-time: 0.1s;
 $close-time: 0.1s;
 $open-curve: ease-out;
 $close-curve: ease-in;
-$red: #ff516d;
+$red: var(--danger);
 
 .project-header {
     display: flex;
@@ -42,11 +42,11 @@ $red: #ff516d;
         .project-category {
             position: relative;
             background-color: transparent;
-            color: #ccc;
-            border-radius: 2px;
-            border: 2px solid #ccc;
+            color: var(--on-surface-muted);
+            border-radius: var(--radius-sm);
+            border: 2px solid var(--border);
             font-size: 0.9rem;
-            font-family: "Play";
+            font-family: var(--font-ui);
             padding: 3px 6px 3px 6px;
             text-align: center;
             transition-duration: 0.4s;
@@ -60,9 +60,9 @@ $red: #ff516d;
             border: 2px solid $blue;
         }
         .project-category.activeCategory {
-            background: #b0bec5;
-            color: #000;
-            border: 2px solid #b0bec5;
+            background: var(--surface-3);
+            color: var(--on-surface);
+            border: 2px solid var(--accent);
         }
     }
     i:last-child {
@@ -103,7 +103,7 @@ $red: #ff516d;
         stroke-dashoffset: 0;
         animation: dash 1.5s ease-in-out infinite;
         stroke-linecap: round;
-        stroke: #29b6f6;
+        stroke: var(--accent);
     }
     @keyframes rotate {
         100% {

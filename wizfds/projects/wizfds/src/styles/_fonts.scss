@@ -1,0 +1,25 @@
+// Self-hosted Fira Sans (UI) + Fira Code (mono).
+// woff2 (latin subset) live in ../assets/fonts/fira/ — self-hosted rather than
+// pulled from Google Fonts CDN for GDPR/privacy, offline support, and no FOUT.
+// Paths are relative to THIS partial so the Angular build resolves + rebases them
+// (incl. the /view/ base-href) and content-hashes each file.
+
+@each $weight in (300, 400, 500, 600, 700) {
+  @font-face {
+    font-family: "Fira Sans";
+    font-style: normal;
+    font-weight: $weight;
+    font-display: swap;
+    src: url("../assets/fonts/fira/fira-sans-latin-#{$weight}-normal.woff2") format("woff2");
+  }
+}
+
+@each $weight in (400, 500, 600, 700) {
+  @font-face {
+    font-family: "Fira Code";
+    font-style: normal;
+    font-weight: $weight;
+    font-display: swap;
+    src: url("../assets/fonts/fira/fira-code-latin-#{$weight}-normal.woff2") format("woff2");
+  }
+}
