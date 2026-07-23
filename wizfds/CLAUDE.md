@@ -109,3 +109,17 @@ Defined in `projects/wizfds/tsconfig.app.json`, baseUrl is `./src`:
 - **Charts**: D3.js v5 for ramp charts and parabola visualization.
 - **KaTeX**: Used for rendering mathematical formulas (e.g., fire equations).
 - **lodash**: Heavily used throughout the codebase for collection operations.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs are tracked as GitHub issues on `fkce/WizFDS` via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default canonical labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout — one `CONTEXT.md` + `docs/adr/` at the repo root (created lazily by `/domain-modeling`). See `docs/agents/domain.md`.
