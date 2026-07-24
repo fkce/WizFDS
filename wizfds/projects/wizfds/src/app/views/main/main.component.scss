@@ -69,12 +69,21 @@
     padding: 1rem;
 
     .form-title {
-      background-color: $grey2;
+      background: linear-gradient(180deg, var(--surface-3), var(--surface-2));
       text-align: left;
-      padding: 0.5rem 1rem 0.5rem 1rem;
+      padding: 0.45rem 1rem;
       width: calc(100% - 2rem);
-      border-bottom: 1px solid $border-light;
-      box-shadow: 0 -1px 0 $shadow-dark inset;
+      border-top: 1px solid var(--edge-highlight);
+      border-bottom: 1px solid var(--border-muted);
+      // Thin green section marker (inset → no layout shift) + seating shadow.
+      box-shadow: inset 2px 0 0 var(--accent), 0 1px 0 var(--edge-shadow);
+      label {
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--on-surface-muted);
+      }
     }
     .form-row {
       display: flex;

@@ -104,6 +104,16 @@ body {
   overflow-x: auto;
   color: $white;
   background-color: $body;
+  // Faint accent aura in the top-right so the deep near-black base isn't dead flat.
+  background-image: radial-gradient(1400px 720px at 82% -10%, var(--accent-soft), transparent 55%);
+  background-attachment: fixed;
+}
+
+// Blueprint dot-grid on the working canvas — the signature "engineering tool"
+// texture. Sits on top of .main's surface colour (global rule, adds image only).
+.main {
+  background-image: radial-gradient(circle at 1px 1px, var(--grid-dot) 1px, transparent 0);
+  background-size: 22px 22px;
 }
 
 :focus {

@@ -53,3 +53,7 @@ html {
   --mat-sys-outline-variant: var(--border-muted);
   }
 }
+
+// Compact the checkbox so its touch target stops inflating the row height and it
+// lines up with the dense text inputs (paired with the state-layer size in _forms).
+@include mat.checkbox-density(-3);
