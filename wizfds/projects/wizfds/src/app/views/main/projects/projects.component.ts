@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, isDevMode } from '@angular/core';
+import { Component, OnInit, OnDestroy, isDevMode, HostListener } from '@angular/core';
 
 import { Project } from '@services/project/project';
 import { MainService } from '@services/main/main.service';
@@ -14,6 +14,8 @@ import { find, forEach, remove, findIndex, sortBy } from 'lodash';
 import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 import { Subscription } from 'rxjs';
 
+type SortKey = 'name' | 'category' | 'scenarios';
+
 @Component({
     selector: 'app-projects',
     templateUrl: './projects.component.html',
@@ -22,9 +24,21 @@ import { Subscription } from 'rxjs';
 })
 export class ProjectsComponent implements OnInit, OnDestroy {
   main: Main;
-  projects: Project[] = [];
+  projects: Project[] = [];       // category-filtered + sorted (source of truth for the view)
+  filteredProjects: Project[] = []; // projects further narrowed by the search box (rendered)
   allProjects: Project[] = [];
   ui: UiState;
+
+  // View state
+  searchQuery: string = '';
+  sortKey: SortKey = 'category';
+  sortAsc: boolean = true;
+
+  // Two-step (inline) delete confirmation
+  confirmType: 'project' | 'scenario' | null = null;
+  confirmProjectId: number = null;
+  confirmScenarioId: number = null;
+  private confirmTimeout: any;
 
   mainSub: Subscription;
   uiSub: Subscription;
@@ -63,6 +77,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.mainSub.unsubscribe();
     this.uiSub.unsubscribe();
+    clearTimeout(this.confirmTimeout);
   }
 
   /**
@@ -77,12 +92,72 @@ export class ProjectsComponent implements OnInit, OnDestroy {
         }
       });
     });
-    this.sortProjectsByCategory();
+    this.applySort();
+    this.applyView();
+  }
+
+  // --- Search --------------------------------------------------------------
+  /** Live-filter the visible list by name/description. */
+  public onSearchChange(value: string) {
+    this.searchQuery = value;
+    this.uiStateService.projects.begin = 0; // jump back to the first page on a new query
+    this.applyView();
+  }
+
+  private applyView() {
+    const q = (this.searchQuery || '').trim().toLowerCase();
+    this.filteredProjects = q
+      ? this.projects.filter(p =>
+          (p.name || '').toLowerCase().indexOf(q) >= 0 ||
+          (p.description || '').toLowerCase().indexOf(q) >= 0)
+      : this.projects.slice();
+  }
+
+  // --- Sorting (column headers) --------------------------------------------
+  /** Toggle sort on a column; same key flips direction, new key resets to asc. */
+  public setSort(key: SortKey) {
+    if (this.sortKey === key) {
+      this.sortAsc = !this.sortAsc;
+    } else {
+      this.sortKey = key;
+      this.sortAsc = true;
+    }
+    this.applySort();
+    this.applyView();
+  }
+
+  private applySort() {
+    let arr = this.projects.slice();
+    if (this.sortKey === 'name') {
+      arr = sortBy(arr, (p) => (p.name || '').toLowerCase());
+    } else if (this.sortKey === 'scenarios') {
+      arr = sortBy(arr, (p) => (p.fdsScenarios || []).length);
+    } else {
+      arr = sortBy(arr, (p) => this.rankByCategory(p));
+    }
+    if (!this.sortAsc) arr.reverse();
+    this.projects = arr;
+  }
+
+  /** Rank current(1) < finished(2) < archive(3); unknown last. */
+  private rankByCategory(project: Project): number {
+    if (this.main == undefined || this.main.categories == undefined) return 99;
+    const uuidFor = (label: string) => {
+      const c = find(this.main.categories, (category) => category.label == label);
+      return c ? c.uuid : undefined;
+    };
+    const rank = {
+      [uuidFor('current')]: 1,
+      [uuidFor('finished')]: 2,
+      [uuidFor('archive')]: 3
+    };
+    const r = rank[project.category];
+    return r == undefined ? 99 : r;
   }
 
   /**
    * Set/unset project to current in main object
-   * @param index 
+   * @param index
    */
   public setCurrentProject(index: number) {
     if (this.main.currentProject != undefined && this.main.currentFdsScenario != undefined) {
@@ -99,8 +174,8 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     this.main.currentFdsScenario = undefined;
   }
 
-  /** 
-   * Add new project 
+  /**
+   * Add new project
    */
   public newProject() {
     this.projectService.createProject()
@@ -115,7 +190,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
 
   /**
    * Update project name/desc/category in DB
-   * @param projectId 
+   * @param projectId
    */
   public updateProject(projectId: number) {
     this.projectService.updateProject(projectId);
@@ -123,7 +198,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
 
   /**
    * Delete project from DB
-   * @param projectId 
+   * @param projectId
    */
   public deleteProject(projectId: number) {
     let project: Project = find(this.main.projects, function (o) { return o.id == projectId });
@@ -206,28 +281,52 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     this.fdsScenarioService.deleteFdsScenario(projectId, fdsScenarioId);
   }
 
-  /** Sort projects by name */
-  public sortProjectsByName() {
-    this.projects = sortBy(this.projects, (project) => {
-      return project.name;
-    });
+  // --- Two-step delete confirmation ----------------------------------------
+  public isConfirmingProject(projectId: number): boolean {
+    return this.confirmType === 'project' && this.confirmProjectId === projectId;
+  }
+  public isConfirmingScenario(projectId: number, fdsScenarioId: number): boolean {
+    return this.confirmType === 'scenario' && this.confirmProjectId === projectId && this.confirmScenarioId === fdsScenarioId;
   }
 
-  /** Sort projects by category */
-  public sortProjectsByCategory() {
-    if (this.main != undefined && this.main.categories != undefined) {
-      let current = find(this.main.categories, (category) => { return category.label == 'current'; }).uuid;
-      let finished = find(this.main.categories, (category) => { return category.label == 'finished'; }).uuid;
-      let archive = find(this.main.categories, (category) => { return category.label == 'archive'; }).uuid;
-      this.projects = sortBy(this.projects, (project) => {
-        let rank = {
-          [current]: 1,
-          [finished]: 2,
-          [archive]: 3
-        };
-        return rank[project.category];
-      });
+  /** First click arms the confirm; second click (within 3s) deletes. */
+  public requestDeleteProject(projectId: number, event?: MouseEvent) {
+    if (event) event.stopPropagation();
+    if (this.isConfirmingProject(projectId)) {
+      this.clearConfirm();
+      this.deleteProject(projectId);
+    } else {
+      this.armConfirm('project', projectId, null);
     }
+  }
+  public requestDeleteScenario(projectId: number, fdsScenarioId: number, event?: MouseEvent) {
+    if (event) event.stopPropagation();
+    if (this.isConfirmingScenario(projectId, fdsScenarioId)) {
+      this.clearConfirm();
+      this.deleteFdsScenario(projectId, fdsScenarioId);
+    } else {
+      this.armConfirm('scenario', projectId, fdsScenarioId);
+    }
+  }
+
+  private armConfirm(type: 'project' | 'scenario', projectId: number, fdsScenarioId: number) {
+    this.confirmType = type;
+    this.confirmProjectId = projectId;
+    this.confirmScenarioId = fdsScenarioId;
+    clearTimeout(this.confirmTimeout);
+    this.confirmTimeout = setTimeout(() => this.clearConfirm(), 3000);
+  }
+  public clearConfirm() {
+    clearTimeout(this.confirmTimeout);
+    this.confirmType = null;
+    this.confirmProjectId = null;
+    this.confirmScenarioId = null;
+  }
+
+  /** Any click outside an armed delete control cancels the pending confirm. */
+  @HostListener('document:click')
+  public onDocumentClick() {
+    if (this.confirmType != null) this.clearConfirm();
   }
 
 }

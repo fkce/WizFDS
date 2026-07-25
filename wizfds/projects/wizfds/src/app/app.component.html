@@ -1,17 +1,51 @@
-<!--The content below is only a placeholder and can be replaced.-->
 <mat-progress-bar class="progress" mode="indeterminate" *ngIf="httpManager.progress"></mat-progress-bar>
 
-<div class="header">
-  <app-header></app-header>
-</div>
-<div class="container">
-  <div class="menu">
+<div class="app-shell" [class.sidebar-collapsed]="layout.collapsed">
+
+  <!-- Left rail: brand · navigation · CAD/library footer (full height) -->
+  <aside class="shell-sidebar">
     <app-menu></app-menu>
-  </div>
-  <div class="main">
+  </aside>
+
+  <!-- Slim top bar: breadcrumb · document actions · account -->
+  <header class="shell-topbar">
+    <app-header></app-header>
+  </header>
+
+  <!-- Working canvas -->
+  <main class="shell-main main">
     <app-main></app-main>
-  </div>
-</div>
-<div class="footer">
-WizFDS ver. {{ version }}
+  </main>
+
+  <!-- Instrument status bar -->
+  <footer class="shell-statusbar" *ngIf="main">
+    <div class="status-left">
+      <span class="status-seg cad-file" *ngIf="main.currentFdsScenario != undefined && main.currentFdsScenario.acFile != '' && main.currentFdsScenario.acPath">
+        <mat-icon svgIcon="vector-square" aria-hidden="true"></mat-icon>
+        <span class="mono">{{ main.currentFdsScenario.acPath }}{{ main.currentFdsScenario.acFile }}</span>
+      </span>
+      <span class="status-seg muted" *ngIf="!(main.currentFdsScenario != undefined && main.currentFdsScenario.acFile != '' && main.currentFdsScenario.acPath)">
+        <mat-icon svgIcon="vector-square" aria-hidden="true"></mat-icon>
+        <span>No CAD file linked</span>
+      </span>
+    </div>
+
+    <div class="status-right">
+      <span class="status-seg save" [ngClass]="saveState"
+        *ngIf="main.currentFdsScenario != undefined">
+        <i class="dot"></i>
+        <span *ngIf="saveState === 'saved'">Saved</span>
+        <span *ngIf="saveState === 'unsaved'">Unsaved changes</span>
+        <span *ngIf="saveState === 'idle'">Autosave on</span>
+      </span>
+
+      <span class="status-seg cad-link" [class.connected]="websocketService.isConnected">
+        <i class="dot"></i>
+        <span>{{ websocketService.isConnected ? 'CAD connected' : 'CAD offline' }}</span>
+      </span>
+
+      <span class="status-seg version mono">WizFDS <span class="ver-num">v{{ version }}</span></span>
+    </div>
+  </footer>
+
 </div>

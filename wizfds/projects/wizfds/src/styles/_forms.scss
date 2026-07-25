@@ -1,0 +1,251 @@
+// =============================================================================
+// WizFDS form controls — modern "filled" style, driven by design tokens.
+// Covers native <input>, <textarea>, and @ng-select/ng-select dropdowns.
+// Checkboxes stay on the Angular Material M3 theme (green accent).
+// See docs/reference/ui-design-tokens.md → "Form controls".
+// =============================================================================
+
+// --- Native <input> + <textarea> --------------------------------------------
+input,
+textarea {
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18); // subtle machined depth
+  color: var(--on-surface);
+  font-family: var(--font-mono);
+  font-size: 0.82rem; // compact readout — value stays legible in the 1.5rem field
+  background: var(--surface-2);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-sm);
+  padding: 0 6px;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+
+  &::placeholder {
+    color: var(--on-surface-muted);
+  }
+
+  &:hover {
+    border-color: var(--border);
+  }
+
+  &:focus,
+  &:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12), 0 0 0 3px var(--accent-glow);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  // Validation states (ngModel adds ng-invalid / ng-touched automatically)
+  &.ng-invalid.ng-touched {
+    border-color: var(--danger);
+
+    &:focus {
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12), 0 0 0 3px rgba(239, 68, 68, 0.20);
+    }
+  }
+}
+
+input {
+  height: 1.5rem;
+}
+
+textarea {
+  padding: 4px 6px;
+  line-height: 1.4;
+  resize: vertical;
+}
+
+// Numeric fields read like an engineering readout: the value hugs the right edge
+// (next to its unit) instead of floating left with an awkward gap. Text fields
+// stay left-aligned. Attribute names are lowercased in the DOM.
+input[decimalinput],
+input[integerinput],
+input[rgbinput] {
+  text-align: right;
+  width: 4.75rem;
+  flex: 0 0 auto;
+}
+
+// Unit adornment — an <ng-katex> unit clips onto its input's right edge as a
+// suffix, matching the form fields. Global (not scoped to the form-box mixin) so
+// dialogs (steps-dialog, custom-ramp-dialog) get the same treatment. The
+// `!important` on the margin beats the dialogs' own `.field-container input` rule.
+.field-container {
+  input:has(+ ng-katex) {
+    margin-right: 0 !important;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  ng-katex {
+    display: inline-flex;
+    align-items: center;
+    height: 1.5rem;
+    padding: 0 0.45rem;
+    background: var(--surface-3);
+    border: 1px solid var(--border-muted);
+    border-left: none;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    color: var(--on-surface-muted);
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+}
+
+// NOTE: FDS form field labels are sized by main.component.scss's scoped rule
+// `.amper-container .form-box .form-row div label` (higher specificity), so the
+// label size is set there, not here.
+
+// --- Checkboxes (Angular Material M3) ---------------------------------------
+// Shrink the oversized 40px state layer (the big round green hover) so mat-checkbox
+// lines up with the ~24px text inputs instead of sitting low, and the hover reads
+// as a tidy, tight highlight rather than a large disc.
+.mat-mdc-checkbox {
+  --mdc-checkbox-state-layer-size: 24px;
+}
+
+// The hidden file input keeps no box (its <label> is the visible control).
+input[type="file"] {
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+// --- Resets: inputs that must NOT get the filled box ------------------------
+// ng-select's internal search input, and CodeMirror's hidden capture textarea.
+.ng-select input,
+.CodeMirror input,
+.CodeMirror textarea {
+  background: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  height: auto;
+}
+// The typed search text inside ng-select must be clearly visible on the fill.
+.ng-select input {
+  color: var(--on-surface);
+}
+
+// --- ng-select (@ng-select/ng-select) ---------------------------------------
+.ng-select {
+  height: 1.8rem;
+  min-height: 1.8rem;
+  width: auto;
+  font-family: var(--font-ui);
+
+  .ng-select-container {
+    height: 1.6rem;
+    min-height: 1.6rem;
+    font-size: 0.82rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border-muted);
+    border-radius: var(--radius-sm);
+    color: var(--on-surface);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+
+    .ng-value {
+      color: var(--on-surface);
+    }
+    .ng-placeholder {
+      color: var(--on-surface-muted);
+    }
+  }
+
+  &:hover .ng-select-container {
+    border-color: var(--border);
+  }
+
+  // Focused / opened: KEEP the dark fill (the default theme flips it to white on
+  // open/search), add the azure focus ring, and beat the default blue underline.
+  // The higher specificity + child combinator wins over the default-theme rules.
+  &.ng-select-focused:not(.ng-select-opened) > .ng-select-container,
+  &.ng-select-opened > .ng-select-container {
+    background: var(--surface-2);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  // The search input rendered inside an opened searchable select must not carry
+  // its own light fill either.
+  &.ng-select-opened .ng-select-container .ng-value-container,
+  &.ng-select-opened .ng-select-container .ng-input {
+    background: transparent;
+  }
+
+  &.ng-select-single .ng-select-container {
+    height: 1.6rem;
+    min-height: 1.6rem;
+    font-size: 0.82rem;
+  }
+
+  &.ng-select-disabled .ng-select-container {
+    opacity: 0.55;
+  }
+
+  .ng-clear-wrapper,
+  .ng-arrow-wrapper {
+    color: var(--on-surface-muted);
+  }
+  .ng-clear {
+    padding-left: 0.5rem;
+  }
+}
+
+.custom.ng-select.ng-select-single .ng-select-container .ng-value-container {
+  min-width: 9rem;
+}
+
+// ng-select dropdown panel — at least as wide as the select, but grows to fit the
+// widest option (so a narrow selected value like "Fire" doesn't clip longer
+// options), capped so it never runs away. The slim scrollbar below keeps a
+// content-wide panel looking tidy rather than protruding.
+.ng-dropdown-panel {
+  min-width: 100%;
+  width: max-content !important;
+  max-width: 24rem;
+  box-sizing: border-box;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+
+  .ng-dropdown-panel-items {
+    scrollbar-width: thin;
+    scrollbar-color: var(--grey-600) transparent;
+    &::-webkit-scrollbar { width: 8px; }
+    &::-webkit-scrollbar-track { background: transparent; }
+    &::-webkit-scrollbar-thumb {
+      background: var(--grey-600);
+      border-radius: 8px;
+      border: 2px solid var(--surface-1);
+    }
+    &::-webkit-scrollbar-thumb:hover { background: var(--grey-500); }
+
+    .ng-option {
+      background: var(--surface-1);
+      color: var(--on-surface);
+      font-size: 0.82rem;
+      padding: 4px 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+
+      &.ng-option-marked {
+        background: var(--surface-2);
+        color: var(--on-surface);
+      }
+      &.ng-option-selected,
+      &.ng-option-selected.ng-option-marked {
+        background: var(--surface-3);
+        color: var(--accent);
+      }
+      &.ng-option-disabled {
+        color: var(--on-surface-muted);
+      }
+    }
+  }
+}

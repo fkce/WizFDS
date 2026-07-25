@@ -1,38 +1,50 @@
 @use "../../../../../app.component.scss" as *;
 
+// Chart card — matches the form section cards: surface-1 body, azure left marker,
+// border + radius, and label/type sizes consistent with the forms.
 .ramp-container {
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  background: var(--surface-1);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-md);
+  box-shadow: inset 2px 0 0 var(--accent);
+  padding: 0.5rem 0.85rem 0.75rem;
+  margin-bottom: 0.85rem;
 
   .ramp-header {
     display: flex;
     flex-direction: row;
-    align-items: center;
-    div {
+    align-items: flex-end;
+    gap: 1.25rem;
+    margin-bottom: 0.5rem;
+
+    > div {
       display: flex;
       flex-direction: column;
-      align-items: left;
-      padding: 0.3rem;
+      align-items: flex-start;
+      gap: 0.14rem;
+      padding: 0.28rem 0;
+
       label {
-        font-size: 0.9rem;
+        font-size: 0.72rem;
+        color: var(--on-surface-muted);
       }
-      div.field-container {
+      .field-container {
         display: flex;
         flex-direction: row;
         align-items: center;
-        padding-left: 0rem;
-        input {
-          margin-right: 0.4rem;
-        }
+
         span {
-          font-size: 0.9rem;
+          margin-left: 0.4rem;
+          font-size: 0.75rem;
+          color: var(--on-surface-muted);
         }
       }
-      div.field-container.click {
+      .field-container.click {
         cursor: pointer;
       }
-      div.field-container.click:hover {
+      .field-container.click:hover {
         color: $blue;
       }
     }
@@ -40,17 +52,21 @@
 
   .ramp-chart {
     position: relative;
-    width: 80%;
-    height: 400px;
+    width: 100%;
+    height: 340px;
 
     .svg {
       width: 100%;
     }
-
     .save-image {
       position: absolute;
-      top: 0.5rem;
-      left: 0rem;
+      top: 0.25rem;
+      left: 0.25rem;
+      color: var(--on-surface-muted);
+      cursor: pointer;
+      &:hover {
+        color: var(--accent);
+      }
     }
   }
 }

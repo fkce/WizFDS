@@ -1,5 +1,9 @@
+@use "styles/tokens";
+@use "styles/fonts";
+@use "styles/theme";
 @use "app/views/main/fds/input-file/css/codemirror-bundle.scss" as *;
 @use "@ng-select/ng-select/scss/default.theme" as *;
+@use "styles/forms"; // must follow the ng-select default theme so our overrides win
 
 // Reset sytles
 html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, big, cite, code, del, dfn, em, img, ins, kbd, q, s, samp, small, strike, strong, tt, b, u, i, center, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption, tbody, tfoot, thead, tr, th, td, article, aside, canvas, details, embed, figure, figcaption, footer, header, hgroup, menu, nav, output, ruby, section, summary, time, mark, audio, video {
@@ -54,39 +58,54 @@ table {
 }
 
 /* You can add global styles to this file, and also import other style files */
-$red: #ff516d;
-$white: #eee;
-$grey: #888;
-$blue: #29b6f6;
-$blue-dark: #1e88e5;
-$green: #9ccc65;
-$orange: #ff9800;
-$orange-light: #fff3e0;
-$help: #b0bec5;
+// --- Legacy palette shim -----------------------------------------------------
+// These SCSS variables now point at the design tokens in styles/_tokens.scss, so
+// the ~10 component SCSS files that still reference $grey*/$blue/… adopt the new
+// grey+green palette without editing each one. New code should use var(--token)
+// directly. (Safe because no SCSS color functions — lighten/darken/rgba($…) — are
+// applied to these variables anywhere in the app.)
+$red: var(--danger);
+$white: var(--on-surface);
+$grey: var(--on-surface-muted);
+$blue: var(--accent);        // interactive / active / hover → azure accent
+$blue-dark: var(--accent-active);
+$green: var(--accent);       // legacy "accent" alias → azure (NOT success; use var(--success) for positive states)
+$orange: var(--warning);
+$orange-light: var(--surface-2);
+$help: var(--on-surface-muted);
 
-$grey-hover: #606060;
+$grey-hover: var(--grey-800);
 
-$grey1: #303030;
-$grey2: #404040;
-$grey3: #505050;
-$grey4: #606060;
-$grey5: #707070;
-$grey6: #808080;
+$grey1: var(--grey-900);
+$grey2: var(--grey-850);
+$grey3: var(--grey-800);
+$grey4: var(--grey-600);
+$grey5: var(--grey-500);
+$grey6: var(--grey-400);
 
-$border-light: #565656;
-$border-dark: #303030;
+$border-light: var(--border);
+$border-dark: var(--border-muted);
 
-$shadow-light: #363636;
-$shadow-dark: #323232;
+$shadow-light: var(--grey-850);
+$shadow-dark: var(--grey-900);
 
-$active: #aaa;
-$active1: #1e88e5;
-$passive: #565555;
-$body: #383838;
+$active: var(--grey-400);
+$active1: var(--info);
+$passive: var(--grey-600);
+$body: var(--surface);
 
 html {
   font-size: 1rem;
-  font-family: "Play";
+  font-family: var(--font-ui);
+}
+
+// App-root hosts the full-viewport shell grid (see app.component.scss). Kept
+// global (not in a component `:host`) because app.component.scss is @used by
+// other components and a `:host` rule there would leak onto their hosts.
+app-root {
+  display: block;
+  height: 100vh;
+  overflow: hidden;
 }
 
 body {
@@ -94,6 +113,16 @@ body {
   overflow-x: auto;
   color: $white;
   background-color: $body;
+  // Faint accent aura in the top-right so the deep near-black base isn't dead flat.
+  background-image: radial-gradient(1400px 720px at 82% -10%, var(--accent-soft), transparent 55%);
+  background-attachment: fixed;
+}
+
+// Blueprint dot-grid on the working canvas — the signature "engineering tool"
+// texture. Sits on top of .main's surface colour (global rule, adds image only).
+.main {
+  background-image: radial-gradient(circle at 1px 1px, var(--grid-dot) 1px, transparent 0);
+  background-size: 22px 22px;
 }
 
 :focus {
@@ -117,7 +146,7 @@ a.active {
   color: $blue;
 }
 a.activeLib {
-  color: $green;
+  color: var(--accent-hover); // selected library source item — a lighter azure, distinct from .active
 }
 
 mat-icon:hover {
@@ -128,44 +157,25 @@ mat-icon.red {
   color: $red;
 }
 mat-icon.green {
-  color: $green;
+  color: var(--success); // genuine positive semantics (kept green on purpose)
 }
 mat-icon.red-hover:hover {
   color: $red;
 }
 
-input {
-  box-shadow: none;
-  border-radius: none;
-  border: none;
-  background: none;
-  font-size: 0.95rem;
-  padding-bottom: 0;
-  color: $orange;
-  font-family: Consolas, Lucida Console, monospace;
-}
-input {
-  border-bottom: 2px solid rgba(255, 255, 255, 0.7);
-  padding: 0 0.5rem 0 0.2rem;
-}
-input:focus,
-select:focus,
-textarea:focus,
+// Form controls (input / textarea / ng-select) are styled in styles/_forms.scss.
 button:focus {
   outline: none;
-}
-input:focus {
-  border-bottom: 2px solid $orange;
 }
 
 button {
   position: relative;
   background-color: transparent;
-  color: #ccc;
-  border-radius: 2px;
-  border: 2px solid #ccc;
+  color: var(--on-surface-muted);
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border);
   font-size: 0.9rem;
-  font-family: "Play";
+  font-family: var(--font-ui);
   height: 1.6rem;
   min-height: 1.6rem;
   padding: 2px 6px 2px 6px;
@@ -179,7 +189,7 @@ button {
 
 button:after {
   content: "";
-  background: $blue;
+  background: var(--accent);
   display: block;
   position: absolute;
   padding-top: 300%;
@@ -197,20 +207,21 @@ button:active:after {
   transition: 0s;
 }
 button:hover {
-  background: #b0bec5;
-  color: #000;
-  border: 2px solid #b0bec5;
+  background: var(--surface-3);
+  color: var(--on-surface);
+  border: 2px solid var(--accent);
 }
 
 select {
   appearance: none;
-  background-color: #fff;
-  border-radius: 4px;
-  border: 1px solid #ccc;
+  background-color: var(--surface-1);
+  color: var(--on-surface);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
   height: 1.6rem;
   min-height: 1.6rem;
   font-size: 0.9rem;
-  font-family: "Play";
+  font-family: var(--font-ui);
   padding-left: 6px;
   //background: url(http://cdn1.iconfinder.com/data/icons/cc_mono_icon_set/blacks/16x16/br_down.png) no-repeat right #ddd;
 }
@@ -251,59 +262,108 @@ ng-katex {
 
 // ng-select import & modifications (moved to top via @use)
 
-.ng-select {
-  height: 1.8rem;
-  min-height: 1.8rem;
-  width: auto;
-}
-.ng-select .ng-select-container {
-  height: 1.6rem;
-  min-height: 1.6rem;
-  font-size: 0.9rem;
-}
-.ng-select .ng-dropdown-panel {
-  font-size: 0.9rem;
-}
-.ng-select.ng-select-single .ng-select-container {
-  height: 1.6rem;
-  min-height: 1.6rem;
-  font-size: 0.9rem;
-}
-.custom.ng-select.ng-select-single .ng-select-container .ng-value-container {
-  min-width: 9rem;
-}
-.ng-dropdown-panel {
-  min-width: 100%;
-  width: auto !important;
-}
-.ng-select .ng-clear {
-  padding-left: 0.5rem;
-}
+// ng-select styling moved to styles/_forms.scss (modern filled look).
 
 // Angular snack-bar
 .info {
-  background: #5bc0de;
-  color: $white;
-  font-family: "Play" !important;
+  background: var(--info);
+  color: var(--surface);
+  font-family: var(--font-ui) !important;
 }
 .error {
-  background: #d9534f;
-  color: $white;
-  font-family: "Play" !important;
+  background: var(--danger);
+  color: #fff;
+  font-family: var(--font-ui) !important;
 }
 .success {
-  background: #5cb85c;
-  color: $white;
-  font-family: "Play" !important;
+  background: var(--success);
+  color: var(--on-success);
+  font-family: var(--font-ui) !important;
 }
 .warning {
-  background: #f0ad4e;
-  color: $white;
-  font-family: "Play" !important;
+  background: var(--warning);
+  color: var(--surface);
+  font-family: var(--font-ui) !important;
 }
 
-// Angular theme
-@import "@angular/material/prebuilt-themes/pink-bluegrey.css";
+// --- Angular Material dialogs (steps-dialog, custom-ramp-dialog, …) ----------
+// The M3 theme in this app leaves the dialog surface colour unset, so the panel
+// renders transparent and content floats unreadably over the page. Give it an
+// explicit dark panel, a dimming backdrop, and themed title/content/actions.
+.cdk-overlay-dark-backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+.mat-mdc-dialog-container {
+  --mdc-dialog-container-color: var(--surface-1);
+  --mdc-dialog-subhead-color: var(--on-surface);
+  --mdc-dialog-supporting-text-color: var(--on-surface);
+  --mat-dialog-headline-padding: 1rem 1.25rem 0.5rem;
+  color: var(--on-surface);
+
+  .mat-mdc-dialog-surface {
+    background: var(--surface-1);
+    color: var(--on-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+  }
+
+  // Header — azure section marker + separator, like the form-card titles.
+  .mat-mdc-dialog-title,
+  .mdc-dialog__title {
+    color: var(--on-surface);
+    font-family: var(--font-ui);
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    padding: 0.75rem 1.25rem 0.65rem 1.15rem;
+    margin-bottom: 0.25rem;
+    border-bottom: 1px solid var(--border-muted);
+    box-shadow: inset 3px 0 0 var(--accent);
+    &::before { height: auto; content: none; }
+  }
+  .mat-mdc-dialog-content,
+  .mdc-dialog__content {
+    color: var(--on-surface);
+    font-family: var(--font-ui);
+    padding-top: 0.5rem;
+  }
+
+  // Actions — primary (submit) is an azure filled button; secondary
+  // ([mat-dialog-close]) is a subtle outline.
+  .mat-mdc-dialog-actions {
+    padding: 0.65rem 1.25rem 0.9rem;
+    gap: 0.5rem;
+    border-top: 1px solid var(--border-muted);
+
+    button {
+      height: 1.9rem;
+      min-height: 1.9rem;
+      padding: 0 0.95rem;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-ui);
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+      border: 1px solid var(--accent);
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+      &::after { display: none; } // kill the global button ripple
+      &:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #fff; }
+    }
+    button[mat-dialog-close] {
+      background: transparent;
+      color: var(--on-surface-muted);
+      border: 1px solid var(--border);
+      &:hover { background: var(--surface-2); color: var(--on-surface); border-color: var(--border); }
+    }
+  }
+}
+
+// Angular Material theme is now provided by `@use "styles/theme"` at the top of
+// this file (M3, dark, green primary). The legacy prebuilt import was removed.
 
 // Mdi icon settings
 button.mat-menu-item {
@@ -312,9 +372,15 @@ button.mat-menu-item {
 a.mat-menu-item > mat-icon {
   margin-bottom: 14px;
 }
+// The injected <svg> fills its mat-icon box rather than a hard-coded 24px. This
+// makes custom icon sizes (e.g. 1.2rem in the top bar / sidebar) actually apply —
+// component-scoped `mat-icon svg` rules can't reach the runtime-injected svg
+// (emulated encapsulation adds an attribute the svg never gets), so this global
+// rule is the single source of truth for svg sizing. Default 24px boxes stay 24px.
 .mat-icon svg {
-  height: 24px;
-  width: 24px;
+  height: 100%;
+  width: 100%;
+  display: block;
 }
 mat-icon {
   -webkit-touch-callout: none;

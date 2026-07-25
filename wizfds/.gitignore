@@ -7,6 +7,10 @@
 # Only exists if Bazel was run
 /bazel-out
 
+# ui-ux-pro-max generated design system (local scratch reference).
+# Source of truth for the applied tokens is docs/reference/ui-design-tokens.md.
+/design-system
+
 # dependencies
 /node_modules
 

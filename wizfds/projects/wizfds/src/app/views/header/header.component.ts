@@ -2,14 +2,12 @@ import { Component, OnInit, OnDestroy, isDevMode } from '@angular/core';
 
 import { Main } from '@services/main/main';
 import { MainService } from '@services/main/main.service';
-import { WebsocketService } from '@services/websocket/websocket.service';
 import { FdsScenarioService } from '@services/fds-scenario/fds-scenario.service';
 import { Library } from '@services/library/library';
 import { LibraryService } from '@services/library/library.service';
 import { UiState } from '@services/ui-state/ui-state';
 import { UiStateService } from '@services/ui-state/ui-state.service';
 import { JsonFdsService } from '@services/json-fds/json-fds.service';
-import { WebsocketMessageObject } from '@services/websocket/websocket-message';
 
 import { saveAs } from 'file-saver';
 import { join } from 'lodash';
@@ -27,7 +25,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
   main: Main;
   lib: Library;
   uiState: UiState;
-  websocket: WebsocketService;
 
   mainSub: Subscription;
   uiSub: Subscription;
@@ -38,7 +35,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   constructor(
     private mainService: MainService,
-    private websocketService: WebsocketService,
     private fdsScenarioService: FdsScenarioService,
     public uiStateService: UiStateService,
     private libraryService: LibraryService,
@@ -51,11 +47,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.uiSub = this.uiStateService.uiObservable.subscribe(uiObservable => this.uiState = uiObservable);
 
     this.libSub = this.libraryService.libraryObservable.subscribe(lib => this.lib = lib);
-    this.websocket = this.websocketService;
-    // Delay connectCad to wait for WebSocket initialization in AppComponent
-    setTimeout(() => {
-      this.connectCad();
-    }, 1000);
     if (isDevMode()) {
       this.diagnostic = true;
     }
@@ -94,26 +85,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.fdsScenarioService.updateFdsScenario(projectId, fdsScenarioId);
   }
 
-  /** Update FDS library */
-  public updateFdsLibrary() {
-    this.libraryService.updateLibrary();
-  }
-
-  /** Connect to CAD */
-  public connectCad() {
-    if (!this.websocketService.isConnected) {
-      this.websocketService.dataStream.subscribe(
-        (data) => { },
-        (err) => { if (isDevMode()) console.log(err); },
-        () => { if (isDevMode()) console.log("Websocket disconnected ..."); }
-      );
-    }
-    else {
-      this.websocketService.dataStream.unsubscribe();
-      this.websocketService.ws.close();
-    }
-  }
-
   /** Log-out from app */
   public logOut() {
     window.location.href = this.main.settings.hostAddress + '/logout';
@@ -134,20 +105,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
     let input = join(this.jsonFdsService.json2fds(this.main.currentFdsScenario.fdsObject), '\n');
     let blob = new Blob([input], { type: "text/plain;charset=utf-8" });
     saveAs(blob, this.main.currentFdsScenario.name + ".fds");
-  }
-
-  /**
-   * Get CAD geometry
-   */
-  public getCadGeometryWeb() {
-    let message: WebsocketMessageObject = {
-      method: 'getCadGeometryWeb',
-      data: {},
-      id: this.websocketService.idGenerator(),
-      requestID: '',
-      status: 'succes'
-    }
-    this.websocketService.sendMessage(message);
   }
 
   /**

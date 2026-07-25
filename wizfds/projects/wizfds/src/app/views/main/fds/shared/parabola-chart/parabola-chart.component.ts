@@ -224,7 +224,7 @@ export class ParabolaChartComponent implements OnInit, OnChanges, AfterViewInit 
     gdots.append("circle")
       .attr("class", "dot")
       .attr("r", 6)
-      .attr("fill", "rgb(0,168,243)")
+      .attr("fill", "#3b82f6")
       .attr("cx", (d) => { return this.x(d.x); })
       .attr("cy", (d) => { return this.y(d.y); })
       .attr('transform', `translate(${this.margin.left}, ${this.margin.top})`);

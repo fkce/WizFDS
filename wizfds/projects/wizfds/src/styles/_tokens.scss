@@ -1,0 +1,115 @@
+// =============================================================================
+// WizFDS design tokens  —  single source of truth for palette / type / spacing
+// Generated from the ui-ux-pro-max design system (2026-07-23), refined for WizFDS.
+// See docs/reference/ui-design-tokens.md for the rationale behind each choice.
+//
+// Two layers:
+//   1. PRIMITIVES  — raw values (neutral grey scale, green, red, …). Do not use
+//                    directly in components; reference the SEMANTIC tokens below.
+//   2. SEMANTIC    — role-based tokens (--surface, --accent, --border, …). These
+//                    are what components (and the legacy $grey* shim) consume.
+// =============================================================================
+
+:root {
+  // --- PRIMITIVES -----------------------------------------------------------
+  // Neutral grey scale (dark → light) — the chrome of the app. Values follow
+  // Google's Material Design 3 DARK-theme neutral tonal palette so surfaces lift
+  // with elevation the way Google recommends (base is #121212, NOT pure black;
+  // higher surfaces use lighter tones). Tone numbers noted per role.
+  --grey-950: #121212; // N6  — surface (Google dark baseline)
+  --grey-900: #1a1a1a; // N10 — surface-container-low (panels)
+  --grey-850: #1e1e1e; // N12 — surface-container (inputs, muted zones)
+  --grey-800: #282828; // N17 — surface-container-high (raised)
+  --grey-600: #474747; // NV30 — outline-variant (borders)
+  --grey-500: #767676; // N50
+  --grey-400: #b3b3b3; // ~N72 — muted / on-surface-variant text
+  --grey-200: #d4d4d4;
+  --grey-50:  #e3e3e3; // N90 — on-surface high-emphasis text (not pure white)
+
+  // Accent (azure — primary action + navigation). The single system colour:
+  // buttons, active nav, focus ring, brand. Reads crisp on the near-black base.
+  --blue-600:  #2563eb; // pressed / active fill (AA-safe with white text)
+  --blue-500:  #3b82f6; // base accent
+  --blue-400:  #60a5fa; // hover / lighter accent
+  --blue-300:  #93c5fd; // faint accent text on dark
+
+  // Success (green) — kept NARROWLY for positive states only (CAD connected,
+  // autosave "saved", success snack). No longer a brand / accent colour.
+  --green-600: #16a34a;
+  --green-500: #22c55e;
+  --green-400: #4ade80;
+
+  // Status hues
+  --red-500:   #ef4444;
+  --amber-500: #f59e0b;
+  --sky-400:   #29b6f6; // info / links (legacy sky blue, distinct from accent)
+
+  // Depth & atmosphere — machined edges, accent glow, blueprint texture
+  --edge-highlight: rgba(255, 255, 255, 0.05);  // 1px top highlight on raised surfaces
+  --edge-shadow:    rgba(0, 0, 0, 0.55);        // seating shadow under bars
+  --accent-glow:    rgba(59, 130, 246, 0.16);   // focus / active glow (soft azure)
+  --accent-soft:    rgba(59, 130, 246, 0.10);   // hover / selected wash
+  --accent-line:    rgba(59, 130, 246, 0.35);   // hairline dividers with a touch of accent
+  --success-soft:   rgba(34, 197, 94, 0.14);    // success wash (connected chip)
+  --grid-dot:       rgba(255, 255, 255, 0.045); // blueprint dot-grid on the canvas
+  --scanline:       rgba(255, 255, 255, 0.022); // faint instrument scanline on bars
+
+  // --- SEMANTIC -------------------------------------------------------------
+  // Surfaces (background → raised)
+  --surface:          var(--grey-950); // app background
+  --surface-1:        var(--grey-900); // panels, cards
+  --surface-2:        var(--grey-850); // muted zones, hover fills
+  --surface-3:        var(--grey-800); // raised elements, active rows
+
+  // Foreground
+  --on-surface:       var(--grey-50);  // primary text
+  --on-surface-muted: var(--grey-400); // secondary text, placeholders
+
+  // Lines
+  --border:           var(--grey-600);
+  --border-muted:     var(--grey-800);
+
+  // Action accent (azure). White text clears AA on the -active (blue-600) fill,
+  // so solid accent surfaces use --accent-active under white text.
+  --accent:           var(--blue-500);
+  --accent-hover:     var(--blue-400);
+  --accent-active:    var(--blue-600);
+  --on-accent:        #ffffff;
+
+  // Success (narrow positive semantics only — see primitives note)
+  --success:          var(--green-500);
+  --success-strong:   var(--green-400);
+  --on-success:       var(--grey-950);
+
+  // Status
+  --danger:           var(--red-500);
+  --warning:          var(--amber-500);
+  --info:             var(--sky-400);
+
+  // Interaction
+  --focus-ring:       var(--blue-500);
+
+  // --- SPACING (4px base) ---------------------------------------------------
+  --space-xs:  0.25rem; // 4px
+  --space-sm:  0.5rem;  // 8px
+  --space-md:  1rem;    // 16px
+  --space-lg:  1.5rem;  // 24px
+  --space-xl:  2rem;    // 32px
+  --space-2xl: 3rem;    // 48px
+  --space-3xl: 4rem;    // 64px
+
+  // --- RADII ----------------------------------------------------------------
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  // --- SHADOWS (dark UI) ----------------------------------------------------
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.30);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.40);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.45);
+
+  // --- TYPOGRAPHY -----------------------------------------------------------
+  --font-ui:   "Fira Sans", "Segoe UI", Roboto, system-ui, sans-serif;
+  --font-mono: "Fira Code", "Consolas", "Lucida Console", monospace;
+}

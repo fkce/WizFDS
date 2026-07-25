@@ -1,7 +1,7 @@
 @use "../../../../../../app.component.scss" as *;
 
 h1 {
-    font-family: "Play";
+    font-family: var(--font-ui);
 }
 
 .ramp-steps {

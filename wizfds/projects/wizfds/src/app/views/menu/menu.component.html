@@ -1,9 +1,65 @@
-<div>
+<div class="sidebar" [class.collapsed]="layout.collapsed">
 
-  <div class="n0">
-    <mat-icon [ngClass]="{'active': uiState.active == 'projects'}">view_list</mat-icon>&nbsp;
-    <a routerLink="/" (click)="activate('projects')" [ngClass]="{'active': uiState.active == 'projects'}">Projects</a>
+  <!-- Brand + collapse toggle -->
+  <div class="sidebar-brand">
+    <a class="brand" routerLink="" (click)="activate('projects')"
+      matTooltip="WizFDS — Projects" matTooltipPosition="right" [matTooltipDisabled]="!layout.collapsed">
+      <span class="brand-word"><span class="brand-wiz">Wiz</span><span class="brand-fds">FDS</span></span>
+      <span class="brand-mark" aria-hidden="true"><span class="brand-wiz">W</span><span class="brand-fds">F</span></span>
+    </a>
+    <span class="collapse-btn" (click)="toggleCollapse()"
+      [matTooltip]="'Expand sidebar'" matTooltipPosition="right" [matTooltipDisabled]="!layout.collapsed">
+      <mat-icon svgIcon="chevron-left" aria-label="Toggle sidebar"></mat-icon>
+    </span>
   </div>
 
-  <app-fds-menu *ngIf='main.currentFdsScenario != undefined'></app-fds-menu>
+  <!-- Navigation -->
+  <nav class="sidebar-nav">
+    <div class="nav-item n0" routerLink="/" (click)="activate('projects')"
+      [ngClass]="{'active': uiState.active == 'projects'}"
+      matTooltip="Projects" matTooltipPosition="right"
+      [matTooltipDisabled]="!layout.collapsed">
+      <mat-icon [ngClass]="{'active': uiState.active == 'projects'}">view_list</mat-icon>
+      <a class="nav-label" [ngClass]="{'active': uiState.active == 'projects'}">Projects</a>
+    </div>
+
+    <app-fds-menu *ngIf='main.currentFdsScenario != undefined'></app-fds-menu>
+  </nav>
+
+  <!-- Footer: CAD sync + library -->
+  <div class="sidebar-footer">
+    <div class="foot-item cad-toggle" [class.on]="websocketService.isConnected" (click)="connectCad()"
+      [matTooltip]="websocketService.isConnected ? 'CAD connected — click to disconnect' : 'Connect CAD'"
+      matTooltipPosition="right" [matTooltipDisabled]="!layout.collapsed">
+      <mat-icon [svgIcon]="websocketService.isConnected ? 'lan-connect' : 'lan-disconnect'"
+        aria-label="Connect CAD"></mat-icon>
+      <span class="foot-label">{{ websocketService.isConnected ? 'CAD connected' : 'Connect CAD' }}</span>
+      <i class="foot-dot" *ngIf="websocketService.isConnected"></i>
+    </div>
+
+    <ng-container *ngIf="main.currentProject != undefined && main.currentFdsScenario != undefined">
+      <div class="foot-item" *ngIf="websocketService.isConnected" (click)="getCadGeometryWeb()"
+        matTooltip="Get CAD geometry" matTooltipPosition="right"
+        [matTooltipDisabled]="!layout.collapsed">
+        <mat-icon svgIcon="rotate-3d-variant" aria-label="Get CAD geometry"></mat-icon>
+        <span class="foot-label">Get geometry</span>
+      </div>
+
+      <div class="foot-item" routerLink="library" (click)="activate('library')"
+        [ngClass]="{'active': uiState.active == 'library'}"
+        matTooltip="Library editor" matTooltipPosition="right"
+        [matTooltipDisabled]="!layout.collapsed">
+        <mat-icon [ngClass]="{'active': uiState.active == 'library'}" aria-label="Library editor">notes</mat-icon>
+        <span class="foot-label">Library editor</span>
+      </div>
+
+      <div class="foot-item" (click)="updateFdsLibrary()"
+        matTooltip="Save library" matTooltipPosition="right"
+        [matTooltipDisabled]="!layout.collapsed">
+        <mat-icon [class]="main.autoSave.libSaveFont" svgIcon="content-save" aria-label="Save library"></mat-icon>
+        <span class="foot-label">Save library</span>
+      </div>
+    </ng-container>
+  </div>
+
 </div>

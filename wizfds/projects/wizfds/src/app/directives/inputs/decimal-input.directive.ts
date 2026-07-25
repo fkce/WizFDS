@@ -40,15 +40,13 @@ export class DecimalInputDirective {
     // Replace comma to dot
     this.el.value = this.el.value.replace(/,/g, '.');
 
-    // Set background if invalid value
+    // Validation only: red border when the value is not a number; otherwise defer
+    // to the CSS form-control style (grey box, green on focus) — matches text inputs.
     if (isNaN(toNumber(this.el.value))) {
-      this.el.style.borderBottom = 'solid 2px red';
-    }
-    else if(this.focused == true) {
-      this.el.style.borderBottom = 'solid 2px #FF9800';
+      this.el.style.borderColor = 'var(--danger)';
     }
     else {
-      this.el.style.borderBottom = '2px solid rgba(255,255,255,.7)';
+      this.el.style.borderColor = '';
     }
   }
 
