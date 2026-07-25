@@ -1,5 +1,6 @@
 import { UiStateService } from '../../../services/ui-state/ui-state.service';
 import { UiState } from '../../../services/ui-state/ui-state';
+import { LayoutService } from '@services/layout/layout.service';
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
 
@@ -15,7 +16,10 @@ export class FdsMenuComponent implements OnInit, OnDestroy {
 
   uiSub: Subscription;
 
-  constructor(public uiStateService: UiStateService) { }
+  constructor(
+    public uiStateService: UiStateService,
+    public layout: LayoutService,
+  ) { }
 
   ngOnInit() {
     this.uiSub = this.uiStateService.uiObservable.subscribe(uiObservable => this.uiState = uiObservable);

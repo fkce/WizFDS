@@ -6,115 +6,264 @@
   grid-template-columns: 50% 50%;
 }
 
+// Shared list chrome — the "+ Add X" header, object rows, and pagination. Used
+// by BOTH the main object list (@mixin list) and the library drawer list
+// (@mixin lib) so the two look identical. Rows mirror the sidebar/projects
+// language: hover fill, azure accent-bar on the active object, reveal-on-hover
+// action icons. Global — edit once, every list component follows.
+@mixin list-chrome {
+  // "+ Add X" — accent add-bar at the top of the list.
+  .list-title {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    height: 2.5rem;
+    padding: 0 0.7rem;
+    cursor: pointer;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-bottom: 1px solid var(--border-muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+    @include no-select;
+    transition: background-color 0.15s ease, color 0.15s ease;
+
+    mat-icon {
+      width: 1.2rem;
+      height: 1.2rem;
+      font-size: 1.2rem;
+      flex: 0 0 auto;
+      color: var(--accent);
+    }
+    &:hover {
+      background: var(--accent);
+      color: #fff;
+      mat-icon { color: #fff; }
+    }
+  }
+
+  .list-items {
+    padding: 0.25rem 0.35rem;
+
+    .list-item {
+      display: flex;
+      align-items: center;
+      gap: 0.2rem;
+      height: 1.9rem;
+      padding: 0 0.35rem 0 0.55rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      position: relative;
+      @include no-select;
+      transition: background-color 0.12s ease, box-shadow 0.12s ease;
+
+      a {
+        flex: 1 1 auto;
+        min-width: 0;
+        font-size: 0.82rem;
+        line-height: 1.2;
+        color: var(--on-surface-muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        transition: color 0.12s ease;
+      }
+
+      // Action icons reveal on hover (space reserved → no layout shift).
+      mat-icon {
+        flex: 0 0 auto;
+        width: 1.05rem;
+        height: 1.05rem;
+        font-size: 1.05rem;
+        color: var(--on-surface-muted);
+        opacity: 0;
+        cursor: pointer;
+        transition: opacity 0.12s ease, color 0.12s ease;
+      }
+
+      &:hover {
+        background: var(--surface-2);
+        a { color: var(--on-surface); }
+        mat-icon { opacity: 1; }
+      }
+      mat-icon:hover { color: var(--accent); }
+      mat-icon.red-hover:hover { color: var(--danger); }
+
+      // The active/library class sits on the <a>; light up the whole row.
+      &:has(a.active) {
+        background: var(--accent-soft);
+        box-shadow: inset 3px 0 0 var(--accent);
+        a { color: var(--accent); }
+      }
+      &:has(a.activeLib) {
+        background: var(--accent-soft);
+        box-shadow: inset 3px 0 0 var(--accent-hover);
+        a { color: var(--accent-hover); }
+      }
+      // Fallback (older engines without :has) — at least colour the text.
+      a.active { color: var(--accent); }
+      a.activeLib { color: var(--accent-hover); }
+    }
+  }
+
+  .list-bottom {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 0.4rem;
+    height: 2.5rem;
+    border-top: 1px solid var(--border-muted);
+    box-shadow: inset 0 1px 0 var(--edge-highlight);
+    color: var(--on-surface-muted);
+    font-size: 0.72rem;
+
+    mat-icon {
+      width: 1.2rem;
+      height: 1.2rem;
+      font-size: 1.2rem;
+      cursor: pointer;
+      &:hover { color: var(--accent); }
+    }
+    div { font-family: var(--font-mono); white-space: nowrap; }
+  }
+}
+
 @mixin list {
   .list-wrapper {
     position: relative;
     @include no-select;
     .list-drawer {
       display: grid;
-      grid-template-rows: 2.5rem auto 2.5rem;
+      grid-template-rows: 2.5rem minmax(0, 1fr) auto;
       position: absolute;
       width: 12rem;
       height: 100%;
-      background-color: $grey2;
-      border-right: 1px solid $border-dark;
-      border-left: 1px solid $border-dark;
-      .list-title {
-        display: flex;
-        align-items: center;
-        box-shadow: 0 -1px 0 $shadow-dark inset;
-        border-bottom: 1px solid $border-light;
-        padding: 0.5rem;
-        cursor: pointer;
-      }
-      .list-title:hover {
-        color: $blue;
-      }
+      background: var(--surface-1);
+      border-right: 1px solid var(--border-muted);
+      border-left: 1px solid var(--border-muted);
 
-      .list-items {
-        padding: 0 0.5rem 0 0.5rem;
-
-        .list-item {
-          display: flex;
-          justify-content: space-between;
-          a {
-            width: 80%;
-            line-height: 1.5rem;
-            display: block;
-            word-wrap: break-word;
-            word-break: break-all;
-          }
-          a.active {
-            color: $blue;
-          }
-        }
-      }
-
-      .list-bottom {
-        display: flex;
-        flex-direction: row;
-        justify-content: center;
-        align-items: center;
-        box-shadow: 0 -1px 0 $shadow-dark;
-        border-top: 1px solid $border-light;
-      }
+      @include list-chrome;
     }
   }
 }
 
+// Shared FDS form styling — consumed by ~27 list-less AND list-based components
+// (general, dump, misc, mesh, fires, device, …). Sections read as subtle cards:
+// a `.form-title` header + one-or-more `.form-row` bodies. Fields sit in a tidy
+// auto-fill grid, numeric inputs are compact readouts, and units (ng-katex) clip
+// onto the input's right edge as an adornment. Everything here is global — edit
+// once, every form component follows.
 @mixin form-box {
   .form-box {
     display: flex;
     flex-direction: column;
     padding: 1rem;
 
+    // ---- Section header (top of the card) ----
     .form-title {
-      background: linear-gradient(180deg, var(--surface-3), var(--surface-2));
+      background: linear-gradient(180deg, var(--surface-2), var(--surface-1));
       text-align: left;
-      padding: 0.45rem 1rem;
-      width: calc(100% - 2rem);
-      border-top: 1px solid var(--edge-highlight);
-      border-bottom: 1px solid var(--border-muted);
-      // Thin green section marker (inset → no layout shift) + seating shadow.
-      box-shadow: inset 2px 0 0 var(--accent), 0 1px 0 var(--edge-shadow);
+      padding: 0.4rem 0.85rem;
+      border: 1px solid var(--border-muted);
+      border-bottom: none;
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+      box-shadow: inset 2px 0 0 var(--accent); // azure section marker down the edge
       label {
         text-transform: uppercase;
-        letter-spacing: 0.09em;
-        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        font-size: 0.7rem;
         font-weight: 600;
         color: var(--on-surface-muted);
       }
     }
-    .form-row {
-      display: flex;
-      flex-direction: row;
-      align-items: left;
-      flex-wrap: wrap;
 
-      div {
+    // ---- Section body (a section can hold several stacked rows) ----
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+      gap: 0.1rem 1rem;
+      align-items: end;
+      padding: 0.55rem 0.85rem 0.65rem;
+      background: var(--surface-1);
+      border-left: 1px solid var(--border-muted);
+      border-right: 1px solid var(--border-muted);
+      box-shadow: inset 2px 0 0 var(--accent); // continue the marker down the body
+
+      // Hairline seam between stacked rows of the same section.
+      & + .form-row { box-shadow: inset 2px 0 0 var(--accent), inset 0 1px 0 var(--border-muted); }
+
+      // Close the card on the section's last row (a row not followed by a row).
+      &:not(:has(+ .form-row)) {
+        border-bottom: 1px solid var(--border-muted);
+        border-radius: 0 0 var(--radius-md) var(--radius-md);
+        margin-bottom: 0.85rem;
+      }
+
+      // ---- Field cell ----
+      > div {
         display: flex;
         flex-direction: column;
-        align-items: left;
-        padding: 0.3rem;
+        align-items: flex-start;
+        gap: 0.12rem;
+        padding: 0.28rem 0;
+        min-width: 0;
+
         label {
-          font-size: 0.8rem;
+          font-size: 0.72rem;
+          line-height: 1.2;
+          color: var(--on-surface-muted);
         }
-        div.field-container {
+
+        .field-container {
           display: flex;
           flex-direction: row;
           align-items: center;
-          padding-left: 0rem;
-          input {
-            margin-right: 0.4rem;
+          width: 100%;
+          color: var(--on-surface);
+
+          input { margin-right: 0.3rem; }
+
+          // Numeric fields → compact right-aligned readout.
+          input[decimalinput],
+          input[integerinput],
+          input[rgbinput] {
+            width: 4.75rem;
+            flex: 0 0 auto;
           }
-        }
-        div.field-container.click {
-          cursor: pointer;
-        }
-        div.field-container.click:hover {
-          color: $blue;
+          // Text fields fill the cell.
+          input[stringinput] { flex: 1 1 auto; min-width: 0; margin-right: 0; }
+
+          // Unit adornment: ng-katex clips onto the input's right edge.
+          input:has(+ ng-katex) {
+            margin-right: 0;
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+          }
+          ng-katex {
+            display: inline-flex;
+            align-items: center;
+            height: 1.5rem;
+            padding: 0 0.45rem;
+            background: var(--surface-3);
+            border: 1px solid var(--border-muted);
+            border-left: none;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            color: var(--on-surface-muted);
+            font-size: 0.75rem;
+            white-space: nowrap;
+          }
+
+          &.click { cursor: pointer; }
+          &.click:hover { color: $blue; }
         }
       }
+
+      // Multi-input fields (e.g. gravity X,Y,Z) need two columns.
+      > div:has(.field-container > input:nth-of-type(3)) { grid-column: span 2; }
+
+      // Author-intended group break → start a fresh grid row.
+      > .form-column-break { grid-column: 1 / -1; height: 0; padding: 0; margin: 0; }
     }
   }
   .library {
@@ -140,14 +289,12 @@
     }
 
     .lib-drawer.opened {
-      //transition: margin-left $open-time ease-in-out;
-      transition: margin-left 1s ease-in-out;
+      transition: margin-left 0.3s ease-in-out;
       margin-left: -20rem;
     }
 
     .lib-drawer.closed {
-      //transition: margin-left $close-time-lib ease-in-out;
-      transition: margin-left 1s ease-in-out;
+      transition: margin-left 0.3s ease-in-out;
       margin-left: -3rem;
     }
 
@@ -156,17 +303,21 @@
 
       .lib-label {
         width: 6rem;
-        padding: 0.5rem;
+        padding: 0.45rem;
         transform: rotate(270deg) translateY(-6rem) translateX(-1rem);
         transform-origin: top right;
-        background-color: $green;
-        color: $grey1;
+        background: var(--accent);
+        color: #fff;
         text-align: center;
         z-index: 10;
         position: relative;
-        border-top-left-radius: 0.3rem;
-        border-top-right-radius: 0.3rem;
+        border-top-left-radius: var(--radius-sm);
+        border-top-right-radius: var(--radius-sm);
         cursor: pointer;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        box-shadow: var(--shadow-md);
 
         label {
           cursor: pointer;
@@ -178,54 +329,18 @@
       z-index: 12;
       flex-grow: 1;
       height: 100%;
-      background-color: $grey2;
+      background: var(--surface-1);
       .list {
         display: grid;
-        grid-template-rows: 2.5rem auto 2.5rem;
+        grid-template-rows: 2.5rem minmax(0, 1fr) auto;
         position: absolute;
         width: 17rem;
         height: 100%;
-        background-color: $grey2;
-        border-right: 1px solid $border-dark;
-        border-left: 1px solid $border-dark;
-        .list-title {
-          display: flex;
-          align-items: center;
-          box-shadow: 0 -1px 0 $shadow-dark inset;
-          border-bottom: 1px solid $border-light;
-          padding: 0.5rem;
-          cursor: pointer;
-        }
-        .list-title:hover {
-          color: $blue;
-        }
+        background: var(--surface-1);
+        border-right: 1px solid var(--border-muted);
+        border-left: 1px solid var(--border-muted);
 
-        .list-items {
-          padding: 0 0.5rem 0 0.5rem;
-
-          .list-item {
-            display: flex;
-            a {
-              width: 80%;
-              line-height: 1.5rem;
-              display: block;
-              word-wrap: break-word;
-              word-break: break-all;
-            }
-            a.active {
-              color: $blue;
-            }
-          }
-        }
-
-        .list-bottom {
-          display: flex;
-          flex-direction: row;
-          justify-content: center;
-          align-items: center;
-          box-shadow: 0 -1px 0 $shadow-dark;
-          border-top: 1px solid $border-light;
-        }
+        @include list-chrome;
       }
     }
   }
@@ -246,14 +361,12 @@
     }
 
     .help-drawer.opened {
-      //transition: margin-left $open-time ease-in-out;
-      transition: margin-left 1s ease-in-out;
+      transition: margin-left 0.3s ease-in-out;
       margin-left: -20rem;
     }
 
     .help-drawer.closed {
-      //transition: margin-left $close-time-lib ease-in-out;
-      transition: margin-left 1s ease-in-out;
+      transition: margin-left 0.3s ease-in-out;
       margin-left: -3rem;
     }
 
@@ -262,17 +375,23 @@
 
       .help-label {
         width: 6rem;
-        padding: 0.5rem;
+        padding: 0.45rem;
         transform: rotate(270deg) translateY(-6rem) translateX(-9rem);
         transform-origin: top right;
-        background-color: $help;
-        color: $grey1;
+        background: var(--surface-3);
+        color: var(--on-surface-muted);
         text-align: center;
         z-index: 10;
         position: relative;
-        border-top-left-radius: 0.3rem;
-        border-top-right-radius: 0.3rem;
+        border: 1px solid var(--border-muted);
+        border-bottom: none;
+        border-top-left-radius: var(--radius-sm);
+        border-top-right-radius: var(--radius-sm);
         cursor: pointer;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        box-shadow: var(--shadow-md);
 
         label {
           cursor: pointer;
@@ -284,27 +403,30 @@
       z-index: 12;
       flex-grow: 1;
       height: 100%;
-      background-color: $grey2;
+      background: var(--surface-1);
       .help-list {
-        background-color: $grey2;
-        border-right: 1px solid $border-dark;
-        border-left: 1px solid $border-dark;
+        background: var(--surface-1);
+        border-right: 1px solid var(--border-muted);
+        border-left: 1px solid var(--border-muted);
         height: 100%;
         @include no-select;
         width: 17rem;
         .element {
           h3 {
-            font-size: 1rem;
-            height: 1rem;
-            padding: 0.7rem 1rem 0.5rem 1rem;
-            box-shadow: 0 -1px 0 $shadow-dark inset;
-            border-bottom: 1px solid $border-light;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 0.6rem 1rem 0.5rem 1rem;
+            background: var(--surface-2);
+            border-bottom: 1px solid var(--border-muted);
+            box-shadow: inset 2px 0 0 var(--accent);
+            color: var(--on-surface);
           }
           .content {
-            font-size: 0.9rem;
+            font-size: 0.82rem;
             font-style: italic;
-            padding: 0.5rem 1rem 0.5rem 1rem;
-            line-height: 1.2;
+            padding: 0.5rem 1rem 0.7rem 1rem;
+            line-height: 1.35;
+            color: var(--on-surface-muted);
           }
         }
       }

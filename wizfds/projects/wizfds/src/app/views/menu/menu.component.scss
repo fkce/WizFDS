@@ -1,83 +1,230 @@
 @use "../../app.component.scss" as *;
 
-$open-time: 0.5s;
-$close-time: 0.5s;
-$close-time-lib: 1s;
-$open-curve: ease-out;
-$close-curve: ease-in;
-
-.n0 {
-	display: flex;
-	align-items: center;
-	background-color: $grey1;
-	height: 1.5rem;
-	padding: 0.5rem;
-	border: none;
-	cursor: pointer;
-	@include no-select;
-}
-.n0:hover {
-	color: $blue;
-	a {
-		color: $blue;
-	}
+:host {
+  display: block;
+  height: 100%;
 }
 
-.n1 {
-	display: flex;
-	align-items: center;
-	background-color: $grey2;
-	height: 1.5rem;
-	padding: 0.5rem;
-	padding-left: 1rem;
-	border-bottom: 1px solid $border-light;
-	border-right: 1px solid $border-dark;
-	box-shadow: 0 -1px 0 $shadow-dark inset;
-	cursor: pointer;
-	@include no-select;
-
-	sup {
-		vertical-align: super;
-		font-size: 0.6rem;
-		padding-bottom: 0.6rem;
-	}
-}
-.n1:hover {
-	color: $blue;
-}
-.n1:last-child {
-	border-bottom: none;
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  // Subtle machined gradient down the rail, seated with a right-edge seam.
+  background:
+    linear-gradient(var(--scanline), var(--scanline)),
+    linear-gradient(180deg, var(--surface-1), var(--surface));
+  border-right: 1px solid var(--border-muted);
+  box-shadow: inset -1px 0 0 var(--edge-shadow);
+  @include no-select;
 }
 
-.n2 {
-	display: flex;
-	align-items: center;
-	background-color: $grey4;
-	height: 1.4rem;
-	padding-top: 0.3rem;
-	padding-left: 1.4rem;
-	width: 100%;
-	cursor: pointer;
-	@include no-select;
-}
-.n2:hover {
-	color: $blue;
-}
-.n2:last-child {
-	padding-bottom: 0.3rem;
+// --- Brand + collapse --------------------------------------------------------
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--topbar-h, 3rem);
+  padding: 0 0.4rem 0 0.75rem;
+  border-bottom: 1px solid var(--border-muted);
+  box-shadow: 0 1px 0 var(--edge-highlight) inset;
+  flex: 0 0 auto;
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .brand-word,
+  .brand-mark {
+    font-family: var(--font-ui);
+    font-weight: 700;
+    font-size: 1.25rem;
+    letter-spacing: -0.01em;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .brand-mark { display: none; }
+  .brand-wiz { color: var(--on-surface); }
+  .brand-fds { color: var(--accent); }
+
+  .collapse-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: var(--radius-sm);
+    color: var(--on-surface-muted);
+    cursor: pointer;
+    flex: 0 0 auto;
+    transition: background-color 0.15s ease, color 0.15s ease;
+
+    mat-icon {
+      width: 1.1rem;
+      height: 1.1rem;
+      font-size: 1.1rem;
+      transition: transform 0.2s ease;
+    }
+    mat-icon svg { width: 1.1rem !important; height: 1.1rem !important; }
+
+    &:hover { background: var(--surface-2); color: var(--accent); }
+  }
 }
 
-.ng2 {
-	overflow: hidden;
+// --- Navigation --------------------------------------------------------------
+.sidebar-nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: visible;
+  padding: 0.3rem 0;
 }
 
-.ng2.open {
-	max-height: 10rem;
-	transition: max-height $open-time $open-curve;
-	border-right: 1px solid $border-dark;
+// Shared row look for the top-level Projects entry (fds-menu rows are styled in
+// fds-menu.component.scss, which mirrors these values).
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  height: 2rem;
+  padding: 0 0.75rem;
+  cursor: pointer;
+  color: var(--on-surface-muted);
+  position: relative;
+  transition: background-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+
+  mat-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    font-size: 1.25rem;
+    flex: 0 0 auto;
+    color: inherit;
+  }
+  mat-icon svg { width: 1.25rem !important; height: 1.25rem !important; }
+
+  .nav-label {
+    font-size: 0.9rem;
+    color: inherit;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &:hover {
+    background: var(--surface-2);
+    color: var(--on-surface);
+    mat-icon, mat-icon:hover { color: var(--accent); }
+  }
+
+  &.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+    box-shadow: inset 3px 0 0 var(--accent);
+    mat-icon, mat-icon.active, .nav-label, .nav-label.active { color: var(--accent); }
+  }
 }
 
-.ng2.close {
-	max-height: 0;
-	transition: max-height $close-time cubic-bezier(0, 1, 0, 1);
+// --- Footer: CAD sync + library ---------------------------------------------
+.sidebar-footer {
+  flex: 0 0 auto;
+  padding: 0.3rem 0 0.4rem;
+  background: var(--surface-1);
+  border-top: 1px solid var(--border-muted);
+  box-shadow: 0 -1px 0 var(--edge-highlight) inset;
+
+  .foot-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    height: 1.9rem;
+    padding: 0 0.75rem;
+    cursor: pointer;
+    color: var(--on-surface-muted);
+    font-size: 0.82rem;
+    position: relative;
+    transition: background-color 0.12s ease, color 0.12s ease;
+
+    mat-icon {
+      width: 1.15rem;
+      height: 1.15rem;
+      font-size: 1.15rem;
+      flex: 0 0 auto;
+      color: inherit;
+    }
+    mat-icon svg { width: 1.15rem !important; height: 1.15rem !important; }
+
+    .foot-label {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    &:hover {
+      background: var(--surface-2);
+      color: var(--on-surface);
+      mat-icon, mat-icon:hover { color: var(--accent); }
+    }
+
+    &.active {
+      color: var(--accent);
+      box-shadow: inset 3px 0 0 var(--accent);
+      background: var(--accent-soft);
+      mat-icon { color: var(--accent); }
+    }
+
+    // Connected CAD reads as the one genuine "positive" state → success green.
+    &.cad-toggle.on {
+      color: var(--success);
+      mat-icon, mat-icon:hover { color: var(--success); }
+      &:hover { background: var(--success-soft); }
+    }
+    .foot-dot {
+      margin-left: auto;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 0 3px var(--success-soft);
+      flex: 0 0 auto;
+    }
+    // Preserve the library autosave colour cue on the save glyph.
+    mat-icon.red { color: var(--danger); }
+    mat-icon.green { color: var(--success); }
+  }
+}
+
+// =============================================================================
+// Collapsed icon-rail
+// =============================================================================
+.sidebar.collapsed {
+  .sidebar-brand {
+    flex-direction: column;
+    height: auto;
+    padding: 0.4rem 0;
+    gap: 0.35rem;
+  }
+  .brand-word { display: none; }
+  .brand-mark { display: inline-flex; }
+  .collapse-btn mat-icon { transform: rotate(180deg); }
+
+  // Let flyouts escape the (now non-scrolling, short) rail.
+  .sidebar-nav { overflow: visible; }
+
+  .nav-item,
+  .foot-item {
+    justify-content: center;
+    gap: 0;
+    padding: 0;
+  }
+  .nav-label,
+  .foot-label,
+  .foot-dot { display: none; }
+
+  // Active accent bar reads better as a full-height left tick in the rail.
+  .nav-item.active,
+  .foot-item.active { box-shadow: inset 3px 0 0 var(--accent); }
 }

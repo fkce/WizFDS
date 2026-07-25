@@ -1,1 +1,157 @@
-@use '../menu.component.scss' as *;
+@use "../../../app.component.scss" as *;
+
+$open-time: 0.28s;
+$close-time: 0.28s;
+$open-curve: ease-out;
+
+:host { display: block; }
+
+.fds-menu { display: block; }
+
+// --- Shared row look (leaf · group header · sub-item) ------------------------
+.n1,
+.n2 {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  color: var(--on-surface-muted);
+  position: relative;
+  transition: background-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+  @include no-select;
+
+  .row-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    font-size: 1.25rem;
+    flex: 0 0 auto;
+    color: inherit;
+  }
+  .row-icon svg { width: 1.25rem !important; height: 1.25rem !important; }
+
+  .nav-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 0.9rem;
+    color: inherit;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    sup {
+      font-size: 0.55rem;
+      vertical-align: super;
+      color: var(--accent);
+      margin-left: 1px;
+    }
+  }
+
+  &:hover {
+    background: var(--surface-2);
+    color: var(--on-surface);
+    .row-icon, .row-icon:hover { color: var(--accent); }
+  }
+
+  &.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+    box-shadow: inset 3px 0 0 var(--accent);
+    .row-icon, .nav-label { color: var(--accent); }
+  }
+}
+
+.n1 {
+  height: 2rem;
+  padding: 0 0.75rem;
+
+  &.group-header {
+    .chevron {
+      width: 1rem;
+      height: 1rem;
+      font-size: 1rem;
+      flex: 0 0 auto;
+      color: var(--grey-500);
+      transition: color 0.12s ease;
+    }
+    &:hover .chevron { color: var(--on-surface-muted); }
+    &.expanded { color: var(--on-surface); }
+  }
+}
+
+.n2 {
+  height: 1.75rem;
+  padding: 0 0.75rem 0 2.1rem; // indent sub-items under the group icon
+
+  .row-icon { width: 1.1rem; height: 1.1rem; font-size: 1.1rem; }
+  .row-icon svg { width: 1.1rem !important; height: 1.1rem !important; }
+  .nav-label { font-size: 0.86rem; }
+}
+
+// --- Accordion (expanded mode) ----------------------------------------------
+.ng2 { overflow: hidden; }
+.ng2.open {
+  max-height: 14rem;
+  transition: max-height $open-time $open-curve;
+}
+.ng2.close {
+  max-height: 0;
+  transition: max-height $close-time cubic-bezier(0, 1, 0, 1);
+}
+
+.flyout-title { display: none; }
+
+// =============================================================================
+// Collapsed icon-rail + hover flyout
+// =============================================================================
+.fds-menu.collapsed {
+  .nav-label,
+  .chevron { display: none; }
+
+  .n1,
+  .n2 {
+    justify-content: center;
+    gap: 0;
+    padding: 0;
+  }
+  .n1 { height: 2.1rem; }
+
+  .nav-group { position: relative; }
+
+  // Group submenu → hover flyout anchored to the right of the rail.
+  .ng2 {
+    position: absolute;
+    left: 100%;
+    top: 0;
+    min-width: 12rem;
+    max-height: none !important;
+    overflow: visible;
+    display: none;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    padding: 0.25rem 0;
+    z-index: 40;
+  }
+  .nav-group:hover > .ng2 { display: block; }
+
+  // Inside the flyout, restore the labelled row layout.
+  .flyout-title {
+    display: block;
+    padding: 0.2rem 0.85rem 0.3rem;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--on-surface-muted);
+    border-bottom: 1px solid var(--border-muted);
+    margin-bottom: 0.2rem;
+  }
+  .ng2 .n2 {
+    justify-content: flex-start;
+    gap: 0.6rem;
+    height: 1.9rem;
+    padding: 0 0.85rem;
+
+    .nav-label { display: inline; }
+  }
+}

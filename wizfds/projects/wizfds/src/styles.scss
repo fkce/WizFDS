@@ -67,9 +67,9 @@ table {
 $red: var(--danger);
 $white: var(--on-surface);
 $grey: var(--on-surface-muted);
-$blue: var(--info);
-$blue-dark: var(--info);
-$green: var(--accent);
+$blue: var(--accent);        // interactive / active / hover → azure accent
+$blue-dark: var(--accent-active);
+$green: var(--accent);       // legacy "accent" alias → azure (NOT success; use var(--success) for positive states)
 $orange: var(--warning);
 $orange-light: var(--surface-2);
 $help: var(--on-surface-muted);
@@ -97,6 +97,15 @@ $body: var(--surface);
 html {
   font-size: 1rem;
   font-family: var(--font-ui);
+}
+
+// App-root hosts the full-viewport shell grid (see app.component.scss). Kept
+// global (not in a component `:host`) because app.component.scss is @used by
+// other components and a `:host` rule there would leak onto their hosts.
+app-root {
+  display: block;
+  height: 100vh;
+  overflow: hidden;
 }
 
 body {
@@ -137,7 +146,7 @@ a.active {
   color: $blue;
 }
 a.activeLib {
-  color: $green;
+  color: var(--accent-hover); // selected library source item — a lighter azure, distinct from .active
 }
 
 mat-icon:hover {
@@ -148,7 +157,7 @@ mat-icon.red {
   color: $red;
 }
 mat-icon.green {
-  color: $green;
+  color: var(--success); // genuine positive semantics (kept green on purpose)
 }
 mat-icon.red-hover:hover {
   color: $red;
@@ -267,14 +276,90 @@ ng-katex {
   font-family: var(--font-ui) !important;
 }
 .success {
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--success);
+  color: var(--on-success);
   font-family: var(--font-ui) !important;
 }
 .warning {
   background: var(--warning);
   color: var(--surface);
   font-family: var(--font-ui) !important;
+}
+
+// --- Angular Material dialogs (steps-dialog, custom-ramp-dialog, …) ----------
+// The M3 theme in this app leaves the dialog surface colour unset, so the panel
+// renders transparent and content floats unreadably over the page. Give it an
+// explicit dark panel, a dimming backdrop, and themed title/content/actions.
+.cdk-overlay-dark-backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+.mat-mdc-dialog-container {
+  --mdc-dialog-container-color: var(--surface-1);
+  --mdc-dialog-subhead-color: var(--on-surface);
+  --mdc-dialog-supporting-text-color: var(--on-surface);
+  --mat-dialog-headline-padding: 1rem 1.25rem 0.5rem;
+  color: var(--on-surface);
+
+  .mat-mdc-dialog-surface {
+    background: var(--surface-1);
+    color: var(--on-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+  }
+
+  // Header — azure section marker + separator, like the form-card titles.
+  .mat-mdc-dialog-title,
+  .mdc-dialog__title {
+    color: var(--on-surface);
+    font-family: var(--font-ui);
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    padding: 0.75rem 1.25rem 0.65rem 1.15rem;
+    margin-bottom: 0.25rem;
+    border-bottom: 1px solid var(--border-muted);
+    box-shadow: inset 3px 0 0 var(--accent);
+    &::before { height: auto; content: none; }
+  }
+  .mat-mdc-dialog-content,
+  .mdc-dialog__content {
+    color: var(--on-surface);
+    font-family: var(--font-ui);
+    padding-top: 0.5rem;
+  }
+
+  // Actions — primary (submit) is an azure filled button; secondary
+  // ([mat-dialog-close]) is a subtle outline.
+  .mat-mdc-dialog-actions {
+    padding: 0.65rem 1.25rem 0.9rem;
+    gap: 0.5rem;
+    border-top: 1px solid var(--border-muted);
+
+    button {
+      height: 1.9rem;
+      min-height: 1.9rem;
+      padding: 0 0.95rem;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-ui);
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+      border: 1px solid var(--accent);
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+      &::after { display: none; } // kill the global button ripple
+      &:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #fff; }
+    }
+    button[mat-dialog-close] {
+      background: transparent;
+      color: var(--on-surface-muted);
+      border: 1px solid var(--border);
+      &:hover { background: var(--surface-2); color: var(--on-surface); border-color: var(--border); }
+    }
+  }
 }
 
 // Angular Material theme is now provided by `@use "styles/theme"` at the top of
@@ -287,9 +372,15 @@ button.mat-menu-item {
 a.mat-menu-item > mat-icon {
   margin-bottom: 14px;
 }
+// The injected <svg> fills its mat-icon box rather than a hard-coded 24px. This
+// makes custom icon sizes (e.g. 1.2rem in the top bar / sidebar) actually apply —
+// component-scoped `mat-icon svg` rules can't reach the runtime-injected svg
+// (emulated encapsulation adds an attribute the svg never gets), so this global
+// rule is the single source of truth for svg sizing. Default 24px boxes stay 24px.
 .mat-icon svg {
-  height: 24px;
-  width: 24px;
+  height: 100%;
+  width: 100%;
+  display: block;
 }
 mat-icon {
   -webkit-touch-callout: none;

@@ -1,247 +1,490 @@
 @use "../main.component.scss" as *;
 @use "../../../app.component.scss" as *;
 
-$open-time: 0.1s;
-$close-time: 0.1s;
+$open-time: 0.18s;
+$close-time: 0.14s;
 $open-curve: ease-out;
-$close-curve: ease-in;
 $red: var(--danger);
 
-.project-header {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-    padding-left: 1rem;
-    padding-right: 1rem;
-    height: 2.5rem;
-    background-color: $grey1;
-    box-shadow: 0 -1px 0 $shadow-dark inset;
+// Shared column template — header row and project rows must line up exactly.
+$cols: 1.6rem minmax(8rem, 16%) minmax(0, 1fr) 9rem 6rem 4rem;
 
-    label {
-        font-size: 0.9rem;
-        cursor: pointer;
-    }
-    div.add-project {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: flex-start;
-        width: 30%;
-    }
-    i:first-child {
-        margin-left: 2px;
-    }
-    .project-categories {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: flex-end;
-        flex-grow: 1;
-        width: auto;
-        .project-category {
-            position: relative;
-            background-color: transparent;
-            color: var(--on-surface-muted);
-            border-radius: var(--radius-sm);
-            border: 2px solid var(--border);
-            font-size: 0.9rem;
-            font-family: var(--font-ui);
-            padding: 3px 6px 3px 6px;
-            text-align: center;
-            transition-duration: 0.4s;
-            -webkit-transition-duration: 0.4s;
-            text-decoration: none;
-            overflow: hidden;
-            cursor: pointer;
-            margin-left: 0.4rem;
-        }
-        .project-category:hover {
-            border: 2px solid $blue;
-        }
-        .project-category.activeCategory {
-            background: var(--surface-3);
-            color: var(--on-surface);
-            border: 2px solid var(--accent);
-        }
-    }
-    i:last-child {
-        margin-left: 2px;
-    }
-    .project-navigation {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: center;
-        width: 40%;
-    }
+:host {
+  display: block;
+  height: 100%;
 }
 
-.app-loading {
-    position: relative;
+// ============================ Toolbar ============================
+.projects-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  height: 2.75rem;
+  padding: 0 1rem;
+  background:
+    linear-gradient(var(--scanline), var(--scanline)),
+    var(--surface-1);
+  border-bottom: 1px solid var(--border-muted);
+  box-shadow: 0 1px 0 var(--edge-highlight) inset, 0 2px 4px var(--edge-shadow);
+  @include no-select;
+
+  .toolbar-left,
+  .toolbar-right {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    height: 100%;
+    gap: 0.7rem;
+    min-width: 0;
+  }
 }
 
+.new-project-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 1.75rem;
+  min-height: 1.75rem;
+  padding: 0 0.7rem 0 0.5rem;
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+
+  &::after { display: none; }              // kill the global button ripple
+  &:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  mat-icon { width: 1.1rem; height: 1.1rem; font-size: 1.1rem; }
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  .search-ico {
+    position: absolute;
+    left: 0.4rem;
+    width: 1.05rem;
+    height: 1.05rem;
+    font-size: 1.05rem;
+    color: var(--on-surface-muted);
+    pointer-events: none;
+  }
+  input {
+    width: 15rem;
+    height: 1.75rem;
+    padding-left: 1.75rem;
+    padding-right: 1.6rem;
+    font-family: var(--font-ui);
+    font-size: 0.85rem;
+  }
+  .clear-ico {
+    position: absolute;
+    right: 0.3rem;
+    width: 1rem;
+    height: 1rem;
+    font-size: 1rem;
+    color: var(--on-surface-muted);
+    cursor: pointer;
+    &:hover { color: var(--on-surface); }
+  }
+}
+
+.projects-pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--on-surface-muted);
+  font-size: 0.72rem;
+
+  .pg-btn {
+    width: 1.2rem;
+    height: 1.2rem;
+    font-size: 1.2rem;
+    cursor: pointer;
+    &:hover { color: var(--accent); }
+  }
+  .pg-range { font-family: var(--font-mono); white-space: nowrap; }
+}
+
+.category-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+
+  .cat-chip {
+    height: 1.75rem;
+    min-height: 1.75rem;
+    padding: 0 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--on-surface-muted);
+    font-family: var(--font-ui);
+    font-size: 0.78rem;
+    text-transform: capitalize;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+
+    &::after { display: none; }
+    &:hover { border-color: var(--accent); color: var(--on-surface); }
+    &.active {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+  }
+}
+
+// ============================ Loading ============================
 .loading-projects {
-    margin-top: 4rem;
+  margin-top: 4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--on-surface-muted);
+
+  .spinner {
+    height: 120px;
+    width: 120px;
+    animation: rotate 2s linear infinite;
+    transform-origin: center center;
+  }
+  .spinner .path {
+    stroke-dasharray: 1, 200;
+    stroke-dashoffset: 0;
+    animation: dash 1.5s ease-in-out infinite;
+    stroke-linecap: round;
+    stroke: var(--accent);
+  }
+  @keyframes rotate { 100% { transform: rotate(360deg); } }
+  @keyframes dash {
+    0%   { stroke-dasharray: 1, 200;  stroke-dashoffset: 0; }
+    50%  { stroke-dasharray: 89, 200; stroke-dashoffset: -35px; }
+    100% { stroke-dasharray: 89, 200; stroke-dashoffset: -124px; }
+  }
+}
+
+// ============================ Column header ============================
+.projects-head {
+  display: grid;
+  grid-template-columns: $cols;
+  column-gap: 1rem;
+  align-items: center;
+  height: 1.95rem;
+  padding: 0 1rem;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border-muted);
+  box-shadow: 0 1px 0 var(--edge-highlight) inset;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--on-surface-muted);
+  @include no-select;
+
+  .sortable {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    cursor: pointer;
+    transition: color 0.12s ease;
+    &:hover { color: var(--on-surface); }
+  }
+  .sort-arrow {
+    width: 0.8rem;
+    height: 0.8rem;
+    font-size: 0.8rem;
+    color: var(--accent);
+  }
+}
+
+.projects-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 3rem 1rem;
+  color: var(--on-surface-muted);
+  font-size: 0.9rem;
+
+  mat-icon { width: 2rem; height: 2rem; font-size: 2rem; opacity: 0.4; }
+}
+
+// ============================ Project rows ============================
+.project {
+  display: grid;
+  grid-template-columns: $cols;
+  column-gap: 1rem;
+  align-items: center;
+  height: 2.4rem;
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--border-muted);
+  transition: background-color 0.12s ease, box-shadow 0.12s ease;
+  @include no-select;
+
+  &:hover { background: var(--surface-2); }
+
+  &.loaded {
+    background: var(--accent-soft);
+    box-shadow: inset 3px 0 0 var(--accent);
+    .col-chevron .chevron { color: var(--accent); }
+  }
+
+  .col-chevron {
+    display: flex;
     align-items: center;
     justify-content: center;
-    .spinner {
-        height: 150px;
-        width: 150px;
-        animation: rotate 2s linear infinite;
-        transform-origin: center center;
+    .chevron {
+      width: 1.35rem;
+      height: 1.35rem;
+      font-size: 1.35rem;
+      color: var(--on-surface-muted);
+      cursor: pointer;
+      transition: color 0.12s ease;
+      &:hover { color: var(--accent); }
     }
-    .spinner .path {
-        stroke-dasharray: 1, 200;
-        stroke-dashoffset: 0;
-        animation: dash 1.5s ease-in-out infinite;
-        stroke-linecap: round;
-        stroke: var(--accent);
-    }
-    @keyframes rotate {
-        100% {
-            transform: rotate(360deg);
-        }
-    }
-    @keyframes dash {
-        0% {
-            stroke-dasharray: 1, 200;
-            stroke-dashoffset: 0;
-        }
-        50% {
-            stroke-dasharray: 89, 200;
-            stroke-dashoffset: -35px;
-        }
-        100% {
-            stroke-dasharray: 89, 200;
-            stroke-dashoffset: -124px;
-        }
-    }
-}
+  }
 
-.project {
-    display: grid;
-    grid-template-columns: 20% auto 8.9rem 3rem;
-    grid-column-gap: 1rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
+  .col-name {
+    display: flex;
     align-items: center;
-    height: 2.5rem;
-    border-bottom: 1px solid $border-light;
-    box-shadow: 0 -1px 0 $shadow-dark inset;
-    background-color: $grey2;
-    @include no-select;
-    input {
-        border: none;
-        box-shadow: none;
-        background-color: none;
+    min-width: 0;
+    .edit { flex: 1 1 auto; min-width: 0; }
+  }
+  .loaded-tag {
+    flex: 0 0 auto;
+    margin-left: 0.4rem;
+    padding: 0.05rem 0.3rem;
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-line);
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+  }
+
+  .col-desc { display: flex; align-items: center; min-width: 0; }
+  .col-cat { display: flex; align-items: center; }
+
+  .col-scen {
+    display: flex;
+    align-items: center;
+    .count-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 1.4rem;
+      height: 1.35rem;
+      padding: 0 0.4rem;
+      border-radius: 999px;
+      background: var(--surface-3);
+      color: var(--on-surface);
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      &.zero { color: var(--on-surface-muted); opacity: 0.55; }
     }
-    input.description {
-        max-width: 100%;
-    }
-    label {
-        font-size: 0.9rem;
-        cursor: pointer;
-    }
-    .name {
-        display: flex;
-        align-items: center;
-    }
-    .category {
-        display: flex;
-        justify-content: flex-start;
-        align-items: center;
-    }
-    .desc {
-        display: flex;
-        justify-content: flex-start;
-        align-items: center;
-        margin-left: 0;
-        padding-left: 0;
-    }
-    .delete {
-        display: flex;
-        flex-direction: row;
-        justify-content: flex-end;
-        align-items: center;
-    }
+  }
+
+  .col-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
 }
 
+// ---- Inline-editable text fields (project name/desc, scenario name) --------
+// Read as plain text; hover hints editability; focus becomes a filled field.
+.project .edit,
+.scenario .edit {
+  width: 100%;
+  height: 1.65rem;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  box-shadow: none;
+  color: var(--on-surface);
+  font-family: var(--font-ui);
+  font-size: 0.88rem;
+  transition: background-color 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+
+  &::placeholder { color: var(--on-surface-muted); opacity: 0.7; }
+  &:hover {
+    background: var(--surface-2);
+    border-color: var(--border-muted);
+  }
+  &:focus,
+  &:focus-visible {
+    outline: none;
+    background: var(--surface-2);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+}
+.project .desc-input { color: var(--on-surface-muted); }
+
+// ---- Delete (two-step inline confirm) -------------------------------------
+.del-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 1.6rem;
+  border-radius: var(--radius-sm);
+  color: var(--on-surface-muted);
+  cursor: pointer;
+  transition: color 0.12s ease;
+
+  mat-icon { width: 1.15rem; height: 1.15rem; font-size: 1.15rem; color: inherit; }
+  &:hover { color: var(--danger); }
+
+  .confirm-text {
+    padding: 0.12rem 0.4rem;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--danger);
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid var(--danger);
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+  }
+}
+
+// ============================ Scenarios ============================
 .scenario {
-    border-bottom: 1px solid $border-light;
-    background-color: $grey3;
-    overflow: hidden;
-    @include no-select;
-    input {
-        background-color: none;
-        border: none;
-        box-shadow: none;
-    }
-    .scenario-item {
-        display: flex;
-        justify-content: space-between;
-        flex-wrap: nowrap;
-        align-items: center;
-        height: 2.5rem;
-        border-left: 2px solid $grey3;
-        .name {
-            margin-left: 2rem;
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: flex-start;
-            width: 100%;
-            cursor: pointer;
-        }
-        .controls {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: flex-end;
-            padding-right: 1rem;
-        }
-    }
+  overflow: hidden;
+  background: var(--surface);                       // recessed "drawer"
+  box-shadow: inset 0 6px 8px -8px var(--edge-shadow);
+  @include no-select;
 
-    .scenario-item:hover {
-        background-color: $grey-hover;
-        .ico {
-            color: $blue;
-        }
-    }
-    .scenario-item:last-child {
-        border-top: 1px solid $grey2;
-        border-bottom: none;
-        font-size: 0.9rem;
-    }
-    .scenario-item:last-child:hover {
-        background-color: $grey3;
-        color: $blue;
-        font-size: 0.9rem;
-    }
-
-    .scenario-item.activeScenario {
-        background-color: $grey-hover;
-        border-left: 2px solid $blue;
-        .ico {
-            color: $blue;
-        }
-    }
-}
-
-.scenario.open {
+  &.open {
     max-height: 100rem;
     transition: max-height $open-time $open-curve;
-}
-
-.scenario.close {
-    max-height: 0rem;
+    border-bottom: 1px solid var(--border-muted);
+  }
+  &.close {
+    max-height: 0;
     transition: max-height $close-time cubic-bezier(0, 1, 0, 1);
     border: none;
+  }
+}
+
+.scenario-inner {
+  position: relative;
+  padding: 0.25rem 0;
+
+  // Vertical tree rail aligned under the project chevron.
+  &::before {
+    content: "";
+    position: absolute;
+    left: 1.8rem;
+    top: 0;
+    bottom: 1.35rem;                                 // stop above the "New scenario" row
+    width: 1px;
+    background: var(--border);
+  }
+}
+
+.scenario-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 2.15rem;
+  padding: 0 1rem 0 2.75rem;
+  transition: background-color 0.12s ease, box-shadow 0.12s ease;
+
+  // Horizontal connector tick from the rail to the row.
+  &::before {
+    content: "";
+    position: absolute;
+    left: 1.8rem;
+    top: 50%;
+    width: 0.75rem;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .scen-name {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1 1 auto;
+    min-width: 0;
+    cursor: pointer;
+
+    .scen-ico {
+      width: 1.1rem;
+      height: 1.1rem;
+      font-size: 1.1rem;
+      flex: 0 0 auto;
+      color: var(--on-surface-muted);
+    }
+    .edit { flex: 1 1 auto; min-width: 0; }
+    .loaded-dot {
+      flex: 0 0 auto;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+  }
+
+  .scen-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    flex: 0 0 auto;
+
+    .ctrl-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.7rem;
+      height: 1.7rem;
+      border-radius: var(--radius-sm);
+      color: var(--on-surface-muted);
+      cursor: pointer;
+      transition: background-color 0.12s ease, color 0.12s ease;
+
+      mat-icon { width: 1.1rem; height: 1.1rem; font-size: 1.1rem; color: inherit; }
+      &:hover { background: var(--surface-2); color: var(--accent); }
+      &.del-btn:hover { color: var(--danger); }
+    }
+  }
+
+  &:hover {
+    background: var(--surface-2);
+    .scen-name .scen-ico { color: var(--accent); }
+  }
+
+  &.active {
+    background: var(--accent-soft);
+    box-shadow: inset 2px 0 0 var(--accent);
+    &::before { background: var(--accent); }
+    .scen-name .scen-ico { color: var(--accent); }
+    .scen-name .edit { color: var(--accent); }
+  }
+
+  // "New scenario" ghost row
+  &.add-scenario {
+    height: 2rem;
+    color: var(--on-surface-muted);
+    font-size: 0.85rem;
+    cursor: pointer;
+    &::before { display: none; }
+    .scen-name { cursor: pointer; }
+    mat-icon { width: 1.1rem; height: 1.1rem; font-size: 1.1rem; }
+    &:hover { color: var(--accent); background: var(--surface-2); }
+  }
 }

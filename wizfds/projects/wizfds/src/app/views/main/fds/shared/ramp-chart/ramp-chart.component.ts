@@ -283,7 +283,7 @@ export class RampChartComponent implements OnInit, OnChanges, AfterViewInit {
       .attr("class", "dot")
       .attr('transform', `translate(${this.margin.left}, ${this.margin.top})`)
       .attr("r", 6)
-      .attr("fill", "rgb(0,168,243)")
+      .attr("fill", "#3b82f6")
       .attr("cx", (d) => { return this.x(d.x); })
       .attr("cy", (d) => { return this.y(d.y); });
 

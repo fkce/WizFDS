@@ -1,6 +1,6 @@
 // Angular Material 20 M3 theme for WizFDS.
 // Replaces the legacy `@import '@angular/material/prebuilt-themes/pink-bluegrey.css'`.
-// Green (accent) drives Material's primary (filled buttons / active states); the
+// Azure (accent) drives Material's primary (filled buttons / active states); the
 // neutral-grey design tokens (_tokens.scss) are wired into Material's --mat-sys-* surfaces
 // so Material components match the app's own chrome. Dark theme only.
 
@@ -12,8 +12,8 @@ html {
   @include mat.theme(
     (
       color: (
-        primary: mat.$green-palette,
-        tertiary: mat.$blue-palette,
+        primary: mat.$blue-palette,
+        tertiary: mat.$azure-palette,
         theme-type: dark,
       ),
       typography: (
@@ -29,7 +29,7 @@ html {
 
   // --- Map Material system tokens onto WizFDS semantic tokens ---------------
   // Wrapped in `& {}` because these declarations follow mat.theme's nested rules
-  // (Sass "mixed-decls" deprecation). Action color: pin Material primary to green.
+  // (Sass "mixed-decls" deprecation). Action color: pin Material primary to azure.
   & {
   --mat-sys-primary: var(--accent);
   --mat-sys-on-primary: var(--on-accent);

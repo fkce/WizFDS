@@ -17,6 +17,7 @@ import { FdsScenarioService } from '@services/fds-scenario/fds-scenario.service'
 import { environment } from '@env/environment';
 import { timer, Subscription } from 'rxjs';
 import { SnackBarService } from '@services/snack-bar/snack-bar.service';
+import { LayoutService } from '@services/layout/layout.service';
 
 @Component({
     selector: 'app-root',
@@ -33,6 +34,20 @@ export class AppComponent {
   mainSub: Subscription;
   wsSub: Subscription;
 
+  /**
+   * Derives a coarse autosave state for the status bar from the save-icon class
+   * string the services write to `main.autoSave.fdsObjectSaveFont`:
+   *   'red'                        → pending unsaved changes
+   *   '…content-save green'        → last save succeeded
+   *   '' | '…content-save'         → idle / mid-save
+   */
+  get saveState(): 'unsaved' | 'saved' | 'idle' {
+    const flag = (this.main && this.main.autoSave && this.main.autoSave.fdsObjectSaveFont) || '';
+    if (flag.indexOf('red') >= 0) return 'unsaved';
+    if (flag.indexOf('green') >= 0) return 'saved';
+    return 'idle';
+  }
+
   constructor(
     private mainService: MainService,
     private websocket: WebsocketService,
@@ -42,8 +57,9 @@ export class AppComponent {
     private categoryService: CategoryService,
     private router: Router,
     public httpManager: HttpManagerService,
-    private websocketService: WebsocketService,
-    private snackBarService: SnackBarService
+    public websocketService: WebsocketService,
+    private snackBarService: SnackBarService,
+    public layout: LayoutService
   ) {
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
@@ -83,14 +99,14 @@ export class AppComponent {
     this.router.navigate(['']);
 
     // For developing purpose
-    //if (isDevMode()) {
-    //  setTimeout(() => {
-    //    this.setCurrentFdsScenario(3455, 17283);
-    //  }, 4000);
-    //  setTimeout(() => {
-    //    this.router.navigate(['/fds/visualize']);
-    //  }, 6000);
-    //}
+    if (isDevMode()) {
+      setTimeout(() => {
+        this.setCurrentFdsScenario(3011, 14865);
+      }, 4000);
+      setTimeout(() => {
+        this.router.navigate(['/fds/general']);
+      }, 6000);
+    }
 
     // Subscribe websocket requests status for websocket CAD sync
     this.wsSub = this.websocketService.requestStatus.subscribe(

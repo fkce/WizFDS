@@ -26,15 +26,13 @@ export class IntegerInputDirective {
   }
 
   formatInput() {
-    //this.el.value = this.currencyPipe.parse(value); // opossite of transform
-
-    // Set auto size
-    //if (this.el.value.length < 3) {
-    //  this.el.size = 3;
-    //}
-    //else {
-    this.el.style.width = 0.6 * this.el.value.length + 'rem';
-    //}
+    // Size hint only — the actual field width comes from the shared CSS
+    // form-control rule (compact numeric readout), matching decimalInput /
+    // rgbInput. (Previously set an inline style.width that made 1-digit values
+    // collapse to ~0.6rem and overrode the CSS.)
+    if (this.el.value.length > 0) {
+      this.el.size = this.el.value.length;
+    }
 
     // Validation only: red border when not an integer; otherwise defer to the CSS
     // form-control style (grey box, green on focus) — matches text inputs.
