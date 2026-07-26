@@ -1,0 +1,40 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build wizfds (prod)",
+			"type": "shell",
+			"command": "npm run wizFds:build-prod",
+			"problemMatcher": ["$tsc"],
+			"group": "build"
+		},
+		{
+			"label": "Build webSmokeview (prod)",
+			"type": "shell",
+			"command": "npm run webSmv:build-prod",
+			"problemMatcher": ["$tsc"],
+			"group": "build"
+		},
+		{
+			"label": "Build webSmokeviewLib",
+			"type": "shell",
+			"command": "npm run webSmvLib:build-prod",
+			"problemMatcher": ["$tsc"],
+			"group": "build"
+		},
+		{
+			"label": "Build wizWelcome (prod)",
+			"type": "shell",
+			"command": "npm run wizWel:build-prod",
+			"problemMatcher": ["$tsc"],
+			"group": "build"
+		},
+		{
+			"label": "Test webSmokeviewLib",
+			"type": "shell",
+			"command": "npx ng test webSmokeviewLib --watch=false --browsers=ChromeHeadless",
+			"problemMatcher": ["$tsc"],
+			"group": "test"
+		}
+	]
+}
