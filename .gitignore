@@ -1,2 +1,5 @@
 /cad/WizFDS/bin
 /cad/WizFDS/obj
+
+# Visual Studio local state
+/cad/.vs/
