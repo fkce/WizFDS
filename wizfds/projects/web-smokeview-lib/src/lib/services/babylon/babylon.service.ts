@@ -9,14 +9,27 @@ import { ReplaySubject } from 'rxjs';
 export class BabylonService {
 
   public canvas: HTMLCanvasElement;
-  public engine: BABYLON.Engine;
+  public engine: BABYLON.WebGPUEngine;
   public camera: BABYLON.ArcRotateCamera;
   public scene: BABYLON.Scene;
   public readonly ready$ = new ReplaySubject<void>(1);
-  // Feature flag: enable to use WGSL shader files. Default off to keep GLSLstable until validated.
-  public useWGSL = false;
+  /**
+   * False once createScene() has established that this browser cannot run the
+   * WebGPU engine. There is no WebGL fallback - see docs/adr/0001-webgpu-only-wgsl.md.
+   */
+  public webGPUAvailable = true;
 
   public constructor(private ngZone: NgZone) { }
+
+  /**
+   * Whether this browser exposes WebGPU at all. Callable before a scene exists,
+   * so the UI can say so on first paint rather than after a failed engine
+   * initialisation. A true answer is necessary but not sufficient - the adapter
+   * request inside createScene() can still fail.
+   */
+  public static isWebGPUSupported(): boolean {
+    return typeof navigator !== 'undefined' && !!(navigator as any).gpu;
+  }
 
   /**
    * Resolve an assets-relative path (e.g. 'assets/shaders/mesh') against the app base href.
@@ -48,69 +61,33 @@ export class BabylonService {
 
     // The first step is to get the reference of the canvas element from our HTML document
     this.canvas = canvas.nativeElement;
-    
-    // Try WebGPU engine first (unless overridden by query params)
-    let isWebGPU = false;
+    this.webGPUAvailable = true;
 
-    // Diagnostics / overrides via query params: ?webgl=1 to force WebGL, ?wgsl=1 to force WGSL (when WebGPU available)
-    let forceWebGL = false;
-    let forceWGSL = false;
-    try {
-      const href = (typeof window !== 'undefined' && window.location?.href) ? window.location.href : '';
-      if (href) {
-        const params = new URL(href).searchParams;
-        const yes = (v: string | null) => v === '1' || v === 'true';
-        forceWebGL = yes(params.get('webgl'));
-        forceWGSL = yes(params.get('wgsl'));
-      }
-    } catch {}
-
-    const gpuSupported = typeof navigator !== 'undefined' && !!(navigator as any).gpu;
+    // WebGPU only, no WebGL fallback - see docs/adr/0001-webgpu-only-wgsl.md.
+    // The caller is expected to surface webGPUAvailable to the user.
+    if (!BabylonService.isWebGPUSupported()) {
+      this.webGPUAvailable = false;
+      console.warn('[BabylonService] navigator.gpu is unavailable - this browser does not support WebGPU.');
+      return;
+    }
 
     try {
-      const WebGPUEngineCtor = (BABYLON as any).WebGPUEngine;
-      if (!forceWebGL) {
-        const webgpu = new WebGPUEngineCtor(this.canvas, { 
-          adaptToDeviceRatio: true,
-          antialias: true,
-          alpha: false,
-          premultipliedAlpha: false,
-          preserveDrawingBuffer: true
-        });
-        await (webgpu as any).initAsync();
-        this.engine = webgpu as unknown as BABYLON.Engine;
-        isWebGPU = true;
-      } else {
-        throw new Error('Forced WebGL via query param');
-      }
+      // `alpha` and `preserveDrawingBuffer` used to be passed here as well;
+      // both are WebGL-only options that WebGPUEngine never reads.
+      const webgpu = new BABYLON.WebGPUEngine(this.canvas, {
+        adaptToDeviceRatio: true,
+        antialias: true,
+        premultipliedAlpha: false
+      });
+      await webgpu.initAsync();
+      this.engine = webgpu;
     } catch (e) {
-      // Fallback to WebGL engine
-      this.engine = new BABYLON.Engine(this.canvas, true);
-      isWebGPU = false;
+      this.webGPUAvailable = false;
+      console.error('[BabylonService] WebGPU engine failed to initialise', e);
+      return;
     }
-  // Choose shader language automatically
-  this.useWGSL = isWebGPU;
-  if (forceWGSL && !isWebGPU) {
-    if (isDevMode()) console.warn('[BabylonService] WGSL was forced via ?wgsl=1, but WebGPU is not active. Using GLSL with WebGL.');
-  }
-  if (isDevMode()) console.info('[BabylonService] GPU supported:', gpuSupported, '| Engine:', isWebGPU ? 'WebGPU' : 'WebGL', '| useWGSL:', this.useWGSL);
 
-  // Configure shader repositories to the app assets base path so we can pass shader names only (e.g. 'mesh').
-  try {
-    const repoBase = this.resolveAssetPath(`assets/shaders/${this.useWGSL ? 'wgsl' : 'glsl'}/`);
-    (BABYLON as any).Engine.ShadersRepository = repoBase;
-    (BABYLON as any).Effect.ShadersRepository = repoBase;
-    (BABYLON as any).Effect.ShadersRepositoryWGSL = repoBase;
-    // Force the default source processors to NO-OP so they don't rewrite our explicit URLs
-    const EffectAny = (BABYLON as any).Effect;
-    if (EffectAny) {
-      try { EffectAny.SetShadersRepository?.(repoBase); } catch {}
-      // Disable includes and preprocessors from pulling from default paths
-      try { EffectAny.IncludesShadersStore = EffectAny.IncludesShadersStore || {}; } catch {}
-      try { EffectAny.ShadersStore = EffectAny.ShadersStore || {}; } catch {}
-    }
-    if (isDevMode()) console.info('[BabylonService] ShadersRepository set to', repoBase);
-  } catch {}
+    if (isDevMode()) console.info('[BabylonService] Engine: WebGPU');
 
     // create a basic BJS Scene object
     this.scene = new BABYLON.Scene(this.engine);
@@ -141,7 +118,7 @@ export class BabylonService {
 
     this.scene.activeCameras.push(this.camera);
 
-    // Expose a back-reference so downstream code can access the flag when needed.
+    // Expose a back-reference so downstream code can reach the service from a scene.
     (this.scene as any).babylonService = this;
 
     // Fix canvas resolution to match display size
@@ -177,21 +154,20 @@ export class BabylonService {
   }
 
   /**
-   * Load shader sources (vertex/fragment) as plain text from assets/shaders/{wgsl|glsl}.
+   * Load shader sources (vertex/fragment) as plain text from assets/shaders.
    * This bypasses Babylon’s internal filename/extension inference and guarantees
-   * we fetch the correct .wgsl or .fx files.
+   * we fetch the right files - Babylon resolves unknown includes without an
+   * error callback, so a wrong URL hangs silently instead of throwing.
    */
   public async loadShaderSources(name: string): Promise<{
     vertexSource: string;
     fragmentSource: string;
-    shaderLanguage: number; // 0: GLSL, 1: WGSL
+    shaderLanguage: BABYLON.ShaderLanguage;
     urls: { vertex: string; fragment: string };
   }> {
-    const folder = this.useWGSL ? 'wgsl' : 'glsl';
-    const ext = this.useWGSL ? 'wgsl' : 'fx';
-    const base = this.resolveAssetPath(`assets/shaders/${folder}/${name}`);
-    const vUrl = `${base}.vertex.${ext}`;
-    const fUrl = `${base}.fragment.${ext}`;
+    const base = this.resolveAssetPath(`assets/shaders/${name}`);
+    const vUrl = `${base}.vertex.wgsl`;
+    const fUrl = `${base}.fragment.wgsl`;
 
     const [vRes, fRes] = await Promise.all([
       fetch(vUrl, { cache: 'no-cache' }),
@@ -205,10 +181,13 @@ export class BabylonService {
     }
 
     const [vertexSource, fragmentSource] = await Promise.all([vRes.text(), fRes.text()]);
-    //try { console.debug('[BabylonService] Loaded shader sources', { vUrl, fUrl, lenV: vertexSource.length, lenF: fragmentSource.length, useWGSL: this.useWGSL }); } catch {}
 
-    const shaderLanguage = this.useWGSL ? ((BABYLON as any).ShaderLanguage?.WGSL ?? 1) : ((BABYLON as any).ShaderLanguage?.GLSL ?? 0);
-    return { vertexSource, fragmentSource, shaderLanguage, urls: { vertex: vUrl, fragment: fUrl } };
+    return {
+      vertexSource,
+      fragmentSource,
+      shaderLanguage: BABYLON.ShaderLanguage.WGSL,
+      urls: { vertex: vUrl, fragment: fUrl }
+    };
   }
 
   /**

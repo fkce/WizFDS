@@ -142,10 +142,7 @@ export class FireService {
 
     // Load fire shaders
     const sources = await this.babylonService.loadShaderSources('fire');
-    const isWGSL = sources.shaderLanguage === ((BABYLON as any).ShaderLanguage?.WGSL ?? 1);
-    const uniformsList = isWGSL
-      ? ["clipX", "clipY", "clipZ", "transparent"]
-      : ["world", "worldView", "worldViewProjection", "view", "projection", "clipX", "clipY", "clipZ", "transparent"];
+    const uniformsList = ["clipX", "clipY", "clipZ", "transparent"];
 
     this.material = new (BABYLON as any).ShaderMaterial(
       "fireShader",
@@ -155,7 +152,7 @@ export class FireService {
         needAlphaBlending: true,
         attributes: ["position", "normal", "color"],
         uniforms: uniformsList,
-        uniformBuffers: isWGSL ? ["Scene", "Mesh"] : [],
+        uniformBuffers: ["Scene", "Mesh"],
         shaderLanguage: sources.shaderLanguage,
         entryPoint: { vertex: 'main', fragment: 'main' }
       }

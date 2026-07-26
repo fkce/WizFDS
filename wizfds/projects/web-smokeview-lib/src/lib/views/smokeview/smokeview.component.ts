@@ -29,6 +29,8 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @HostListener('pointerdown', ['$event'])
   onPointerDown(event: PointerEvent): void {
+    // No scene when the browser has no WebGPU - nothing to pick against
+    if (!this.babylonService.scene) return;
 
     // Control camera
     let pickInfoViewCube = this.babylonService.scene.pick(this.babylonService.scene.pointerX, this.babylonService.scene.pointerY, null, null, this.viewCubeService.cameraViewCube);
@@ -53,6 +55,13 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
 
   showHelp: boolean = false;
 
+  /**
+   * Mirrors BabylonService.webGPUAvailable once the scene has been attempted.
+   * False means the browser cannot render anything - the template says so
+   * instead of leaving a blank canvas. See docs/adr/0001-webgpu-only-wgsl.md.
+   */
+  webGPUAvailable: boolean = true;
+
   constructor(
     public obstService: ObstService,
     public meshService: MeshService,
@@ -70,10 +79,20 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   ) { }
 
 
-  ngOnInit() { }
+  ngOnInit() {
+    // Decided on first paint, so an unsupported browser sees the message
+    // straight away instead of after a failed engine initialisation.
+    this.webGPUAvailable = BabylonService.isWebGPUSupported();
+  }
 
   async ngAfterViewInit() {
+    if (!this.webGPUAvailable) return;
+
     await this.babylonService.createScene(this.rendererCanvas);
+    // The adapter request can still fail on a browser that advertises WebGPU
+    this.webGPUAvailable = this.babylonService.webGPUAvailable;
+    if (!this.webGPUAvailable) return;
+
     this.babylonService.ready$.subscribe(() => {
       this.babylonService.animate();
       

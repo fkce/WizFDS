@@ -140,8 +140,7 @@ export class VentService {
 
     // Load shader sources
     const sources = await this.babylonService.loadShaderSources('vent');
-    const isWGSL = sources.shaderLanguage === ((BABYLON as any).ShaderLanguage?.WGSL ?? 1);
-    const uniformsList = isWGSL ? ["clipX", "clipY", "clipZ"] : ["world", "worldView", "worldViewProjection", "view", "projection", "clipX", "clipY", "clipZ"];
+    const uniformsList = ["clipX", "clipY", "clipZ"];
 
     // Create opaque vents mesh
     if (ventData.opaque.vertices.length > 0) {
@@ -164,7 +163,7 @@ export class VentService {
           needAlphaBlending: false,
           attributes: ["position", "normal", "color"],
           uniforms: uniformsList,
-          uniformBuffers: isWGSL ? ["Scene", "Mesh"] : [],
+          uniformBuffers: ["Scene", "Mesh"],
           shaderLanguage: sources.shaderLanguage,
           entryPoint: { vertex: 'main', fragment: 'main' }
         }
@@ -196,7 +195,7 @@ export class VentService {
           needAlphaBlending: true,
           attributes: ["position", "normal", "color"],
           uniforms: uniformsList,
-          uniformBuffers: isWGSL ? ["Scene", "Mesh"] : [],
+          uniformBuffers: ["Scene", "Mesh"],
           shaderLanguage: sources.shaderLanguage,
           entryPoint: { vertex: 'main', fragment: 'main' }
         }
@@ -373,10 +372,7 @@ export class VentService {
 
     // Load fire shaders (have clipping + transparent uniform)
     const sources = await this.babylonService.loadShaderSources('fire');
-    const isWGSL = sources.shaderLanguage === ((BABYLON as any).ShaderLanguage?.WGSL ?? 1);
-    const uniformsList = isWGSL
-      ? ["clipX", "clipY", "clipZ", "transparent"]
-      : ["world", "worldView", "worldViewProjection", "view", "projection", "clipX", "clipY", "clipZ", "transparent"];
+    const uniformsList = ["clipX", "clipY", "clipZ", "transparent"];
 
     let groupIndex = 0;
     for (const [, groupVents] of colorGroups) {
@@ -400,7 +396,7 @@ export class VentService {
           needAlphaBlending: true,
           attributes: ["position", "normal", "color"],
           uniforms: uniformsList,
-          uniformBuffers: isWGSL ? ["Scene", "Mesh"] : [],
+          uniformBuffers: ["Scene", "Mesh"],
           shaderLanguage: sources.shaderLanguage,
           entryPoint: { vertex: 'main', fragment: 'main' }
         }

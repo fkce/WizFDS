@@ -1,7 +1,21 @@
 <div class="main" #mainContainer>
 
-    <canvas class="renderer" #rendererCanvas></canvas>
+    <canvas class="renderer" #rendererCanvas [hidden]="!webGPUAvailable"></canvas>
 
+    <div class="unsupported" *ngIf="!webGPUAvailable">
+        <mat-icon svgIcon="alert-circle-outline" aria-hidden="true"></mat-icon>
+        <h2>WebGPU is not available in this browser</h2>
+        <p>
+            The 3D preview renders exclusively on WebGPU. There is no fallback renderer,
+            so nothing can be displayed here.
+        </p>
+        <p class="hint">
+            Supported: Chrome and Edge 113+, Firefox 141+, Safari 26+. On a desktop browser
+            that should support it, check whether hardware acceleration is enabled.
+        </p>
+    </div>
+
+    <ng-container *ngIf="webGPUAvailable">
     <div class="info" *ngIf="obstService.pickedObst">
         <p>
             id: {{ obstService.pickedObst.id }}<br>
@@ -49,6 +63,7 @@
             <div class="slider" [style.width.px]="playerService.setSlider()"></div>
         </div>
     </div>
+    </ng-container>
 
 
 

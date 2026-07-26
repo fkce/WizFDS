@@ -68,11 +68,12 @@ Each entity class takes a JSON string in its constructor and has a `toJSON()` me
 
 ### web-smokeview-lib
 
-BabylonJS-based 3D rendering library **using WebGPU engine with WGSL shaders**. GLSL shaders in `src/assets/shaders/glsl/` are maintained as fallback only. Key services:
-- `BabylonService` - Scene setup and rendering
+BabylonJS-based 3D rendering library, **WebGPU only, WGSL only**. There is no WebGL fallback: a browser without `navigator.gpu` gets an explicit message instead of a scene (ADR-0001, `docs/adr/0001-webgpu-only-wgsl.md`). Key services:
+- `BabylonService` - Scene setup and rendering; `webGPUAvailable` reports whether the engine could be created
 - `SmokeviewApiService` - Public API for the library
 - Drawing services per entity type: `obst`, `mesh`, `slice`, `hole`, `vent`, `jetfan`, `geom`, `open`, etc.
-- Shader files in `src/assets/shaders/`
+- Shader files in `src/assets/shaders/` as `<name>.{vertex,fragment}.wgsl`, loaded by `BabylonService.loadShaderSources()`
+- `tools/shader-harness/` compiles every shader in isolation - `node tools/shader-harness/server.js`, then open http://localhost:4599
 
 The wizfds app imports this library directly via source path (not npm):
 ```typescript

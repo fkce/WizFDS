@@ -78,6 +78,40 @@ button:hover {
     height: calc(100vh - 12rem);
     text-align: center;
   }
+  .unsupported {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    height: calc(100vh - 12rem);
+    padding: 2rem;
+    color: $white;
+
+    mat-icon {
+      width: 3rem;
+      height: 3rem;
+      margin-bottom: 1rem;
+      color: $orange;
+    }
+    h2 {
+      font-family: "Play";
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0 0 0.75rem;
+    }
+    p {
+      max-width: 32rem;
+      line-height: 1.5;
+      font-size: 0.9rem;
+    }
+    p.hint {
+      margin-top: 0.75rem;
+      color: $grey;
+      font-size: 0.8rem;
+    }
+  }
   .info {
     display: flex;
     flex-direction: column;

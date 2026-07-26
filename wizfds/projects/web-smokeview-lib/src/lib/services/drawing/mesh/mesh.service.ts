@@ -180,8 +180,7 @@ export class MeshService {
     this.babylonService.loadShaderSources('mesh')
       .then((sources) => {
         try { console.debug('[MeshService] shaders', sources.urls); } catch {}
-    const isWGSL = sources.shaderLanguage === ((BABYLON as any).ShaderLanguage?.WGSL ?? 1);
-    const uniformsList = isWGSL ? ["transparent"] : ["world", "worldView", "worldViewProjection", "view", "projection", "transparent"];
+    const uniformsList = ["transparent"];
     this.material = new (BABYLON as any).ShaderMaterial(
           "shader",
           this.babylonService.scene,
@@ -190,7 +189,7 @@ export class MeshService {
             needAlphaBlending: true,
             attributes: ["position", "normal", "color"],
             uniforms: uniformsList,
-            uniformBuffers: isWGSL ? ["Scene", "Mesh"] : [],
+            uniformBuffers: ["Scene", "Mesh"],
             shaderLanguage: sources.shaderLanguage,
             entryPoint: { vertex: 'main', fragment: 'main' }
           }

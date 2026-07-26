@@ -382,8 +382,7 @@ export class JetfanService {
 
     // Load shader sources for jetfan boxes (reuse obst shaders)
     const sources = await this.babylonService.loadShaderSources('obst');
-    const isWGSL = sources.shaderLanguage === ((BABYLON as any).ShaderLanguage?.WGSL ?? 1);
-    const uniformsList = isWGSL ? ["clipX", "clipY", "clipZ"] : ["world", "worldView", "worldViewProjection", "view", "projection", "clipX", "clipY", "clipZ"];
+    const uniformsList = ["clipX", "clipY", "clipZ"];
 
     // Create opaque jetfans mesh
     if (jetfanData.opaque.vertices.length > 0) {
@@ -410,7 +409,7 @@ export class JetfanService {
           needAlphaBlending: false,
           attributes: ["position", "normal", "color"],
           uniforms: uniformsList,
-          uniformBuffers: isWGSL ? ["Scene", "Mesh"] : [],
+          uniformBuffers: ["Scene", "Mesh"],
           shaderLanguage: sources.shaderLanguage,
           entryPoint: { vertex: 'main', fragment: 'main' }
         }
@@ -454,7 +453,7 @@ export class JetfanService {
           needAlphaBlending: true,
           attributes: ["position", "normal", "color"],
           uniforms: uniformsList,
-          uniformBuffers: isWGSL ? ["Scene", "Mesh"] : [],
+          uniformBuffers: ["Scene", "Mesh"],
           shaderLanguage: sources.shaderLanguage,
           entryPoint: { vertex: 'main', fragment: 'main' }
         }
@@ -475,7 +474,6 @@ export class JetfanService {
 
     // Create flow arrows for each jetfan
     const arrowSources = await this.babylonService.loadShaderSources('arrow');
-    const arrowUniformsList = isWGSL ? [] : ["world", "worldView", "worldViewProjection", "view", "projection"];
 
     this.arrowMaterial = new (BABYLON as any).ShaderMaterial(
       "arrowShader",
@@ -484,8 +482,8 @@ export class JetfanService {
       {
         needAlphaBlending: false,
         attributes: ["position", "normal"],
-        uniforms: arrowUniformsList,
-        uniformBuffers: isWGSL ? ["Scene", "Mesh"] : [],
+        uniforms: [],
+        uniformBuffers: ["Scene", "Mesh"],
         shaderLanguage: arrowSources.shaderLanguage,
         entryPoint: { vertex: 'main', fragment: 'main' }
       }

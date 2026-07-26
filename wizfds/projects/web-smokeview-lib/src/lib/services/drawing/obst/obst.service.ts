@@ -6,6 +6,9 @@ import { HelpersService } from '../../helpers/helpers.service';
 import { HoleService } from '../hole/hole.service';
 import { IObst, IHole } from '../interfaces';
 
+/** Clipping uniforms declared by obst.vertex.wgsl and obstBackCap.vertex.wgsl */
+const CLIP_UNIFORMS = ["clipX", "clipY", "clipZ"];
+
 @Injectable({
   providedIn: 'root'
 })
@@ -521,18 +524,15 @@ export class ObstService {
       this.babylonService.loadShaderSources('obst')
         .then((sources) => {
           if (isDevMode()) { try { console.debug('[ObstService] opaque shaders', sources.urls); } catch {} }
-      const isWGSL = sources.shaderLanguage === ((BABYLON as any).ShaderLanguage?.WGSL ?? 1);
-    const uniformsList = isWGSL ? ["clipX", "clipY", "clipZ"] : ["world", "worldView", "worldViewProjection", "view", "projection", "clipX", "clipY", "clipZ"];
-      
-      this.material = new (BABYLON as any).ShaderMaterial(
+          this.material = new (BABYLON as any).ShaderMaterial(
             "opaqueShader",
             this.babylonService.scene,
             { vertexSource: sources.vertexSource, fragmentSource: sources.fragmentSource },
             {
               needAlphaBlending: false, // Opaque mesh never needs alpha blending
               attributes: ["position", "normal", "color"],
-              uniforms: uniformsList,
-              uniformBuffers: isWGSL ? ["Scene", "Mesh"] : [],
+              uniforms: CLIP_UNIFORMS,
+              uniformBuffers: ["Scene", "Mesh"],
               shaderLanguage: sources.shaderLanguage,
               entryPoint: { vertex: 'main', fragment: 'main' }
             }
@@ -580,18 +580,15 @@ export class ObstService {
       this.babylonService.loadShaderSources('obst')
         .then((sources) => {
           if (isDevMode()) { try { console.debug('[ObstService] transparent shaders', sources.urls); } catch {} }
-      const isWGSL_trans = sources.shaderLanguage === ((BABYLON as any).ShaderLanguage?.WGSL ?? 1);
-    const uniformsList_trans = isWGSL_trans ? ["clipX", "clipY", "clipZ"] : ["world", "worldView", "worldViewProjection", "view", "projection", "clipX", "clipY", "clipZ"];
-      
-      (this as any).materialTransparent = new (BABYLON as any).ShaderMaterial(
+          (this as any).materialTransparent = new (BABYLON as any).ShaderMaterial(
             "transparentShader",
             this.babylonService.scene,
             { vertexSource: sources.vertexSource, fragmentSource: sources.fragmentSource },
             {
               needAlphaBlending: true, // Transparent mesh always needs alpha blending
               attributes: ["position", "normal", "color"],
-              uniforms: uniformsList_trans,
-              uniformBuffers: isWGSL_trans ? ["Scene", "Mesh"] : [],
+              uniforms: CLIP_UNIFORMS,
+              uniformBuffers: ["Scene", "Mesh"],
               shaderLanguage: sources.shaderLanguage,
               entryPoint: { vertex: 'main', fragment: 'main' }
             }
@@ -625,18 +622,15 @@ export class ObstService {
       this.babylonService.loadShaderSources('obstBackCap')
         .then((sources) => {
           if (isDevMode()) { try { console.debug('[ObstService] opaque backCap shaders', sources.urls); } catch {} }
-      const isWGSL_back = sources.shaderLanguage === ((BABYLON as any).ShaderLanguage?.WGSL ?? 1);
-    const uniformsList_back = isWGSL_back ? ["clipX", "clipY", "clipZ"] : ["world", "worldView", "worldViewProjection", "view", "projection", "clipX", "clipY", "clipZ"];
-      
-      this.materialBackCap = new (BABYLON as any).ShaderMaterial(
+          this.materialBackCap = new (BABYLON as any).ShaderMaterial(
             "opaqueBackCapShader",
             this.babylonService.scene,
             { vertexSource: sources.vertexSource, fragmentSource: sources.fragmentSource },
             {
               needAlphaBlending: false, // Opaque back cap never needs alpha blending
               attributes: ["position", "normal", "color"],
-              uniforms: uniformsList_back,
-              uniformBuffers: isWGSL_back ? ["Scene", "Mesh"] : [],
+              uniforms: CLIP_UNIFORMS,
+              uniformBuffers: ["Scene", "Mesh"],
               shaderLanguage: sources.shaderLanguage,
               entryPoint: { vertex: 'main', fragment: 'main' }
             }
