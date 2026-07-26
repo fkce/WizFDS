@@ -176,31 +176,16 @@ export class MeshService {
     this.vertexData.normals = this.normals;
     this.vertexData.applyToMesh(this.mesh);
 
-    // Load shader sources explicitly to avoid any extension inference
-    this.babylonService.loadShaderSources('mesh')
-      .then((sources) => {
-        try { console.debug('[MeshService] shaders', sources.urls); } catch {}
-    const uniformsList = ["transparent"];
-    this.material = new (BABYLON as any).ShaderMaterial(
-          "shader",
-          this.babylonService.scene,
-          { vertexSource: sources.vertexSource, fragmentSource: sources.fragmentSource },
-          {
-            needAlphaBlending: true,
-            attributes: ["position", "normal", "color"],
-            uniforms: uniformsList,
-            uniformBuffers: ["Scene", "Mesh"],
-            shaderLanguage: sources.shaderLanguage,
-            entryPoint: { vertex: 'main', fragment: 'main' }
-          }
-        );
+    this.babylonService.createShaderMaterial({ name: "shader", shader: "mesh", needAlphaBlending: true })
+      .then((material) => {
+        this.material = material;
         this.material.setFloat("transparent", 0.0);
         this.material.zOffset = 0.04;
         this.material.freeze();
         this.mesh.material = this.material;
       })
       .catch((e) => {
-        try { console.error('[MeshService] Failed to load shader sources', e); } catch {}
+        console.error('[MeshService] Failed to create the mesh shader material', e);
       });
   this.mesh.enableEdgesRendering();
     this.mesh.edgesWidth = 0.1;

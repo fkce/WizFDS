@@ -1,6 +1,7 @@
 import { colorbars as Colorbars } from '../../../consts/colorbars';
 import * as BABYLON from 'babylonjs';
 import { toInteger } from 'lodash';
+import { BabylonService } from '../../babylon/babylon.service';
 
 export class Slice {
 
@@ -62,32 +63,18 @@ export class Slice {
         texture_colorbar.wrapR = BABYLON.Texture.CLAMP_ADDRESSMODE;
         texture_colorbar.wrapU = BABYLON.Texture.CLAMP_ADDRESSMODE;
 
-        // Create material with shaders. The scene carries a back-reference to
-        // BabylonService, which is the only thing that knows where shaders live.
-        const svc = (scene as any).babylonService as any;
-        svc.loadShaderSources('slice')
-            .then((sources: any) => {
-                // Cast because `entryPoint` is honoured at runtime but absent from
-                // IShaderMaterialOptions - same as every other ShaderMaterial here.
-                this.material = new (BABYLON as any).ShaderMaterial(
-                    'shader',
-                    scene,
-                    { vertexSource: sources.vertexSource, fragmentSource: sources.fragmentSource },
-                    {
-                        attributes: ['position', 'normal', 'color', 'texture_coordinate', 'blank'],
-                        uniforms: ['is_blank'],
-                        uniformBuffers: ['Scene', 'Mesh'],
-                        shaderLanguage: sources.shaderLanguage,
-                        entryPoint: { vertex: 'main', fragment: 'main' }
-                    }
-                );
+        // The scene carries a back-reference to BabylonService, which owns shader loading
+        const babylonService = (scene as any).babylonService as BabylonService;
+        babylonService.createShaderMaterial({ name: 'shader', shader: 'slice' })
+            .then((material) => {
+                this.material = material;
                 this.material.setInt('is_blank', this.isBlank);
                 this.material.setTexture('texture_colorbar_sampler_tex', texture_colorbar);
                 this.material.backFaceCulling = false;
                 this.material.zOffset = 0.2;
                 this.mesh.material = this.material;
             })
-            .catch((e: any) => { console.error('[Slice] Failed to load shader sources', e); });
+            .catch((e: any) => { console.error('[Slice] Failed to create the slice material', e); });
     }
 
     /**

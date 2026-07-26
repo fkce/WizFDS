@@ -138,10 +138,6 @@ export class VentService {
       this._meshTransparent = null;
     }
 
-    // Load shader sources
-    const sources = await this.babylonService.loadShaderSources('vent');
-    const uniformsList = ["clipX", "clipY", "clipZ"];
-
     // Create opaque vents mesh
     if (ventData.opaque.vertices.length > 0) {
       this.mesh = new BABYLON.Mesh('vents', this.babylonService.scene);
@@ -155,19 +151,10 @@ export class VentService {
       vertexData.applyToMesh(this.mesh);
       
       // Create material for opaque vents
-      this.material = new (BABYLON as any).ShaderMaterial(
-        "ventShader",
-        this.babylonService.scene,
-        { vertexSource: sources.vertexSource, fragmentSource: sources.fragmentSource },
-        {
-          needAlphaBlending: false,
-          attributes: ["position", "normal", "color"],
-          uniforms: uniformsList,
-          uniformBuffers: ["Scene", "Mesh"],
-          shaderLanguage: sources.shaderLanguage,
-          entryPoint: { vertex: 'main', fragment: 'main' }
-        }
-      );
+      this.material = await this.babylonService.createShaderMaterial({
+        name: "ventShader",
+        shader: "vent"
+      });
       this.material.backFaceCulling = false;
       this.material.zOffset = -0.01; // Render vents in front of jetfan to prevent z-fighting
       
@@ -187,19 +174,11 @@ export class VentService {
       vertexDataTransparent.applyToMesh(this._meshTransparent);
       
       // Create material for transparent vents
-      this.materialTransparent = new (BABYLON as any).ShaderMaterial(
-        "ventTransparentShader",
-        this.babylonService.scene,
-        { vertexSource: sources.vertexSource, fragmentSource: sources.fragmentSource },
-        {
-          needAlphaBlending: true,
-          attributes: ["position", "normal", "color"],
-          uniforms: uniformsList,
-          uniformBuffers: ["Scene", "Mesh"],
-          shaderLanguage: sources.shaderLanguage,
-          entryPoint: { vertex: 'main', fragment: 'main' }
-        }
-      );
+      this.materialTransparent = await this.babylonService.createShaderMaterial({
+        name: "ventTransparentShader",
+        shader: "vent",
+        needAlphaBlending: true
+      });
       this.materialTransparent.backFaceCulling = false;
       this.materialTransparent.zOffset = -0.01; // Render transparent vents in front of jetfan to prevent z-fighting
       
@@ -370,10 +349,6 @@ export class VentService {
       colorGroups.get(key).push(vent);
     });
 
-    // Load fire shaders (have clipping + transparent uniform)
-    const sources = await this.babylonService.loadShaderSources('fire');
-    const uniformsList = ["clipX", "clipY", "clipZ", "transparent"];
-
     let groupIndex = 0;
     for (const [, groupVents] of colorGroups) {
       const data = this.buildBasicVentsVertexData(groupVents);
@@ -388,19 +363,12 @@ export class VentService {
       vertexData.normals = data.normals;
       vertexData.applyToMesh(mesh);
 
-      const material = new (BABYLON as any).ShaderMaterial(
-        `basicVentShader_${groupIndex}`,
-        this.babylonService.scene,
-        { vertexSource: sources.vertexSource, fragmentSource: sources.fragmentSource },
-        {
-          needAlphaBlending: true,
-          attributes: ["position", "normal", "color"],
-          uniforms: uniformsList,
-          uniformBuffers: ["Scene", "Mesh"],
-          shaderLanguage: sources.shaderLanguage,
-          entryPoint: { vertex: 'main', fragment: 'main' }
-        }
-      );
+      // Basic vents borrow the fire shader - it has clipping plus a transparent uniform
+      const material = await this.babylonService.createShaderMaterial({
+        name: `basicVentShader_${groupIndex}`,
+        shader: "fire",
+        needAlphaBlending: true
+      });
 
       material.backFaceCulling = false;
       material.zOffset = -0.015;

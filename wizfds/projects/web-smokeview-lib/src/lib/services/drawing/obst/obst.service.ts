@@ -6,9 +6,6 @@ import { HelpersService } from '../../helpers/helpers.service';
 import { HoleService } from '../hole/hole.service';
 import { IObst, IHole } from '../interfaces';
 
-/** Clipping uniforms declared by obst.vertex.wgsl and obstBackCap.vertex.wgsl */
-const CLIP_UNIFORMS = ["clipX", "clipY", "clipZ"];
-
 @Injectable({
   providedIn: 'root'
 })
@@ -517,23 +514,10 @@ export class ObstService {
       this.vertexData.normals = this.normals;
       this.vertexData.applyToMesh(this.mesh);
 
-      // Load shader sources for opaque mesh
-      this.babylonService.loadShaderSources('obst')
-        .then((sources) => {
-          if (isDevMode()) { try { console.debug('[ObstService] opaque shaders', sources.urls); } catch {} }
-          this.material = new (BABYLON as any).ShaderMaterial(
-            "opaqueShader",
-            this.babylonService.scene,
-            { vertexSource: sources.vertexSource, fragmentSource: sources.fragmentSource },
-            {
-              needAlphaBlending: false, // Opaque mesh never needs alpha blending
-              attributes: ["position", "normal", "color"],
-              uniforms: CLIP_UNIFORMS,
-              uniformBuffers: ["Scene", "Mesh"],
-              shaderLanguage: sources.shaderLanguage,
-              entryPoint: { vertex: 'main', fragment: 'main' }
-            }
-          );
+      // Opaque mesh never needs alpha blending
+      this.babylonService.createShaderMaterial({ name: "opaqueShader", shader: "obst" })
+        .then((material) => {
+          this.material = material;
           this.material.setFloat("clipX", this.clipXNorm);
           this.material.setFloat("clipY", this.clipYNorm);
           this.material.setFloat("clipZ", this.clipZNorm);
@@ -541,7 +525,7 @@ export class ObstService {
           this.material.freeze();
           this.mesh.material = this.material;
         })
-        .catch((e) => { if (isDevMode()) { try { console.error('[ObstService] Failed to load opaque obst shader sources', e); } catch {} } });
+        .catch((e) => { if (isDevMode()) { try { console.error('[ObstService] Failed to create the opaque obst material', e); } catch {} } });
 
       this.mesh.enableEdgesRendering();
       this.mesh.edgesWidth = 0.05;
@@ -573,23 +557,9 @@ export class ObstService {
       transparentVertexData.normals = transparentNormals;
       transparentVertexData.applyToMesh((this as any)._meshTransparent);
 
-      // Load shader sources for transparent mesh
-      this.babylonService.loadShaderSources('obst')
-        .then((sources) => {
-          if (isDevMode()) { try { console.debug('[ObstService] transparent shaders', sources.urls); } catch {} }
-          (this as any).materialTransparent = new (BABYLON as any).ShaderMaterial(
-            "transparentShader",
-            this.babylonService.scene,
-            { vertexSource: sources.vertexSource, fragmentSource: sources.fragmentSource },
-            {
-              needAlphaBlending: true, // Transparent mesh always needs alpha blending
-              attributes: ["position", "normal", "color"],
-              uniforms: CLIP_UNIFORMS,
-              uniformBuffers: ["Scene", "Mesh"],
-              shaderLanguage: sources.shaderLanguage,
-              entryPoint: { vertex: 'main', fragment: 'main' }
-            }
-          );
+      this.babylonService.createShaderMaterial({ name: "transparentShader", shader: "obst", needAlphaBlending: true })
+        .then((material) => {
+          (this as any).materialTransparent = material;
           (this as any).materialTransparent.setFloat("clipX", this.clipXNorm);
           (this as any).materialTransparent.setFloat("clipY", this.clipYNorm);
           (this as any).materialTransparent.setFloat("clipZ", this.clipZNorm);
@@ -597,7 +567,7 @@ export class ObstService {
           (this as any).materialTransparent.freeze();
           (this as any)._meshTransparent.material = (this as any).materialTransparent;
         })
-        .catch((e) => { if (isDevMode()) { try { console.error('[ObstService] Failed to load transparent obst shader sources', e); } catch {} } });
+        .catch((e) => { if (isDevMode()) { try { console.error('[ObstService] Failed to create the transparent obst material', e); } catch {} } });
 
       (this as any)._meshTransparent.enableEdgesRendering();
       (this as any)._meshTransparent.edgesWidth = 0.05;
@@ -616,22 +586,9 @@ export class ObstService {
       this.vertexData.applyToMesh(this.meshBackCap);
 
       // Back-cap material for opaque mesh only
-      this.babylonService.loadShaderSources('obstBackCap')
-        .then((sources) => {
-          if (isDevMode()) { try { console.debug('[ObstService] opaque backCap shaders', sources.urls); } catch {} }
-          this.materialBackCap = new (BABYLON as any).ShaderMaterial(
-            "opaqueBackCapShader",
-            this.babylonService.scene,
-            { vertexSource: sources.vertexSource, fragmentSource: sources.fragmentSource },
-            {
-              needAlphaBlending: false, // Opaque back cap never needs alpha blending
-              attributes: ["position", "normal", "color"],
-              uniforms: CLIP_UNIFORMS,
-              uniformBuffers: ["Scene", "Mesh"],
-              shaderLanguage: sources.shaderLanguage,
-              entryPoint: { vertex: 'main', fragment: 'main' }
-            }
-          );
+      this.babylonService.createShaderMaterial({ name: "opaqueBackCapShader", shader: "obstBackCap" })
+        .then((material) => {
+          this.materialBackCap = material;
           this.materialBackCap.setFloat("clipX", this.clipXNorm);
           this.materialBackCap.setFloat("clipY", this.clipYNorm);
           this.materialBackCap.setFloat("clipZ", this.clipZNorm);
@@ -639,7 +596,7 @@ export class ObstService {
           this.materialBackCap.freeze();
           this.meshBackCap.material = this.materialBackCap;
         })
-        .catch((e) => { if (isDevMode()) { try { console.error('[ObstService] Failed to load opaque obstBackCap shader sources', e); } catch {} } });
+        .catch((e) => { if (isDevMode()) { try { console.error('[ObstService] Failed to create the obst back-cap material', e); } catch {} } });
       this.meshBackCap.freezeWorldMatrix();
     }
     

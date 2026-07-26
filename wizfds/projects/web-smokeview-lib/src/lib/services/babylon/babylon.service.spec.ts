@@ -51,6 +51,48 @@ describe('BabylonService', () => {
     expect(sources.shaderLanguage).toBe(BABYLON.ShaderLanguage.WGSL);
   });
 
+  it('fetches each shader once, however many materials ask for it', async () => {
+    const fetchSpy = spyOn(window, 'fetch').and.callFake((input: RequestInfo | URL) =>
+      Promise.resolve(new Response(`// ${String(input)}`, { status: 200 })));
+    const service: BabylonService = TestBed.inject(BabylonService);
+
+    await Promise.all([
+      service.loadShaderSources('obst'),
+      service.loadShaderSources('obst'),
+      service.loadShaderSources('obst')
+    ]);
+
+    // one vertex + one fragment request, not three of each
+    expect(fetchSpy.calls.count()).toBe(2);
+  });
+
+  it('builds a shader material from a shader name', async () => {
+    spyOn(window, 'fetch').and.callFake((input: RequestInfo | URL) =>
+      Promise.resolve(new Response(`// ${String(input)}`, { status: 200 })));
+    const service: BabylonService = TestBed.inject(BabylonService);
+    const engine = new BABYLON.NullEngine();
+    service.scene = new BABYLON.Scene(engine);
+
+    const material = await service.createShaderMaterial({
+      name: 'fireShader',
+      shader: 'fire',
+      needAlphaBlending: true
+    });
+
+    expect(material.name).toBe('fireShader');
+    // attributes and uniforms follow from the shader, so the caller need not repeat them
+    expect(material.options.uniforms).toEqual(['clipX', 'clipY', 'clipZ', 'transparent']);
+    expect(material.options.attributes).toEqual(['position', 'normal', 'color']);
+    expect(material.options.needAlphaBlending).toBeTrue();
+    // WGSL needs the Scene and Mesh UBOs bound, which is the wiring being centralised
+    expect(material.options.uniformBuffers).toContain('Scene');
+    expect(material.options.uniformBuffers).toContain('Mesh');
+    expect(material.options.shaderLanguage).toBe(BABYLON.ShaderLanguage.WGSL);
+
+    service.scene.dispose();
+    engine.dispose();
+  });
+
   it('reports WebGPU as unavailable instead of falling back to WebGL', async () => {
     setNavigatorGpu(undefined);
     const service: BabylonService = TestBed.inject(BabylonService);

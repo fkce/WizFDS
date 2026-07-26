@@ -3,6 +3,45 @@ import * as BABYLON from 'babylonjs';
 import 'babylonjs-materials';
 import { ReplaySubject } from 'rxjs';
 
+/** WGSL sources for one shader, plus the URLs they came from (for diagnostics). */
+export interface ShaderSources {
+  vertexSource: string;
+  fragmentSource: string;
+  shaderLanguage: BABYLON.ShaderLanguage;
+  urls: { vertex: string; fragment: string };
+}
+
+/** What actually differs between the library's shader materials. */
+export interface ShaderMaterialSpec {
+  /** Material name, as it appears in the scene and in Babylon's diagnostics */
+  name: string;
+  /** Shader base name under assets/shaders, e.g. 'obst' for obst.{vertex,fragment}.wgsl */
+  shader: string;
+  /** Defaults to SHADER_INTERFACES[shader].attributes */
+  attributes?: string[];
+  /** Defaults to SHADER_INTERFACES[shader].uniforms */
+  uniforms?: string[];
+  needAlphaBlending?: boolean;
+}
+
+/**
+ * The attributes and uniforms each shader in assets/shaders declares.
+ *
+ * These follow from the .wgsl sources, not from the caller - every service that
+ * draws with `obst` needs exactly the same three clipping uniforms - so they are
+ * declared once here and defaulted in createShaderMaterial(). Change a shader's
+ * interface and this table is the single place to follow it.
+ */
+const SHADER_INTERFACES: Record<string, { attributes: string[]; uniforms: string[] }> = {
+  obst: { attributes: ['position', 'normal', 'color'], uniforms: ['clipX', 'clipY', 'clipZ'] },
+  obstBackCap: { attributes: ['position', 'normal', 'color'], uniforms: ['clipX', 'clipY', 'clipZ'] },
+  vent: { attributes: ['position', 'normal', 'color'], uniforms: ['clipX', 'clipY', 'clipZ'] },
+  fire: { attributes: ['position', 'normal', 'color'], uniforms: ['clipX', 'clipY', 'clipZ', 'transparent'] },
+  mesh: { attributes: ['position', 'normal', 'color'], uniforms: ['transparent'] },
+  arrow: { attributes: ['position', 'normal'], uniforms: [] },
+  slice: { attributes: ['position', 'normal', 'color', 'texture_coordinate', 'blank'], uniforms: ['is_blank'] }
+};
+
 @Injectable({
   providedIn: 'root'
 })
@@ -18,6 +57,9 @@ export class BabylonService {
    * WebGPU engine. There is no WebGL fallback - see docs/adr/0001-webgpu-only-wgsl.md.
    */
   public webGPUAvailable = true;
+
+  /** Shader name -> in-flight or resolved sources. See loadShaderSources(). */
+  private readonly shaderSources = new Map<string, Promise<ShaderSources>>();
 
   public constructor(private ngZone: NgZone) { }
 
@@ -154,17 +196,51 @@ export class BabylonService {
   }
 
   /**
+   * Build a ShaderMaterial from a shader name, fetching its sources if needed.
+   *
+   * Every material in this library is WGSL and binds the same two uniform
+   * buffers, so callers describe only what actually differs between them.
+   */
+  public async createShaderMaterial(spec: ShaderMaterialSpec): Promise<BABYLON.ShaderMaterial> {
+    const sources = await this.loadShaderSources(spec.shader);
+    const shaderInterface = SHADER_INTERFACES[spec.shader];
+
+    // Cast: `entryPoint` is honoured at runtime but absent from IShaderMaterialOptions
+    return new (BABYLON as any).ShaderMaterial(
+      spec.name,
+      this.scene,
+      { vertexSource: sources.vertexSource, fragmentSource: sources.fragmentSource },
+      {
+        needAlphaBlending: spec.needAlphaBlending ?? false,
+        attributes: spec.attributes ?? shaderInterface?.attributes ?? [],
+        uniforms: spec.uniforms ?? shaderInterface?.uniforms ?? [],
+        uniformBuffers: ['Scene', 'Mesh'],
+        shaderLanguage: sources.shaderLanguage,
+        entryPoint: { vertex: 'main', fragment: 'main' }
+      }
+    ) as BABYLON.ShaderMaterial;
+  }
+
+  /**
    * Load shader sources (vertex/fragment) as plain text from assets/shaders.
    * This bypasses Babylon’s internal filename/extension inference and guarantees
    * we fetch the right files - Babylon resolves unknown includes without an
    * error callback, so a wrong URL hangs silently instead of throwing.
+   *
+   * Shaders are static assets and several services ask for the same one, so the
+   * in-flight promise is shared. A failure is not cached, to leave retries open.
    */
-  public async loadShaderSources(name: string): Promise<{
-    vertexSource: string;
-    fragmentSource: string;
-    shaderLanguage: BABYLON.ShaderLanguage;
-    urls: { vertex: string; fragment: string };
-  }> {
+  public loadShaderSources(name: string): Promise<ShaderSources> {
+    const cached = this.shaderSources.get(name);
+    if (cached) return cached;
+
+    const pending = this.fetchShaderSources(name);
+    this.shaderSources.set(name, pending);
+    pending.catch(() => this.shaderSources.delete(name));
+    return pending;
+  }
+
+  private async fetchShaderSources(name: string): Promise<ShaderSources> {
     const base = this.resolveAssetPath(`assets/shaders/${name}`);
     const vUrl = `${base}.vertex.wgsl`;
     const fUrl = `${base}.fragment.wgsl`;

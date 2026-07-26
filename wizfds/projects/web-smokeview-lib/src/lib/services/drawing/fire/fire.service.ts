@@ -140,23 +140,11 @@ export class FireService {
     vertexData.normals = data.normals;
     vertexData.applyToMesh(this.mesh);
 
-    // Load fire shaders
-    const sources = await this.babylonService.loadShaderSources('fire');
-    const uniformsList = ["clipX", "clipY", "clipZ", "transparent"];
-
-    this.material = new (BABYLON as any).ShaderMaterial(
-      "fireShader",
-      this.babylonService.scene,
-      { vertexSource: sources.vertexSource, fragmentSource: sources.fragmentSource },
-      {
-        needAlphaBlending: true,
-        attributes: ["position", "normal", "color"],
-        uniforms: uniformsList,
-        uniformBuffers: ["Scene", "Mesh"],
-        shaderLanguage: sources.shaderLanguage,
-        entryPoint: { vertex: 'main', fragment: 'main' }
-      }
-    );
+    this.material = await this.babylonService.createShaderMaterial({
+      name: "fireShader",
+      shader: "fire",
+      needAlphaBlending: true
+    });
 
     this.material.backFaceCulling = false;
     this.material.zOffset = -0.02;

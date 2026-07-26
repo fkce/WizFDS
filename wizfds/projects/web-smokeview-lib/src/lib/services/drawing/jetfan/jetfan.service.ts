@@ -380,10 +380,6 @@ export class JetfanService {
     this.arrowMeshes.forEach(arrow => arrow.dispose());
     this.arrowMeshes = [];
 
-    // Load shader sources for jetfan boxes (reuse obst shaders)
-    const sources = await this.babylonService.loadShaderSources('obst');
-    const uniformsList = ["clipX", "clipY", "clipZ"];
-
     // Create opaque jetfans mesh
     if (jetfanData.opaque.vertices.length > 0) {
       this.mesh = new BABYLON.Mesh('jetfans', this.babylonService.scene);
@@ -400,20 +396,11 @@ export class JetfanService {
       
       vertexData.applyToMesh(this.mesh);
       
-      // Create material for opaque jetfans
-      this.material = new (BABYLON as any).ShaderMaterial(
-        "jetfanShader",
-        this.babylonService.scene,
-        { vertexSource: sources.vertexSource, fragmentSource: sources.fragmentSource },
-        {
-          needAlphaBlending: false,
-          attributes: ["position", "normal", "color"],
-          uniforms: uniformsList,
-          uniformBuffers: ["Scene", "Mesh"],
-          shaderLanguage: sources.shaderLanguage,
-          entryPoint: { vertex: 'main', fragment: 'main' }
-        }
-      );
+      // Create material for opaque jetfans (jetfan boxes reuse the obst shader)
+      this.material = await this.babylonService.createShaderMaterial({
+        name: "jetfanShader",
+        shader: "obst"
+      });
       this.material.setFloat("clipX", -1.1);  // Default clipping values like obst service
       this.material.setFloat("clipY", -1.1);
       this.material.setFloat("clipZ", 1.1);
@@ -445,19 +432,11 @@ export class JetfanService {
       vertexDataTransparent.applyToMesh(this._meshTransparent);
       
       // Create material for transparent jetfans
-      this.materialTransparent = new (BABYLON as any).ShaderMaterial(
-        "jetfanTransparentShader",
-        this.babylonService.scene,
-        { vertexSource: sources.vertexSource, fragmentSource: sources.fragmentSource },
-        {
-          needAlphaBlending: true,
-          attributes: ["position", "normal", "color"],
-          uniforms: uniformsList,
-          uniformBuffers: ["Scene", "Mesh"],
-          shaderLanguage: sources.shaderLanguage,
-          entryPoint: { vertex: 'main', fragment: 'main' }
-        }
-      );
+      this.materialTransparent = await this.babylonService.createShaderMaterial({
+        name: "jetfanTransparentShader",
+        shader: "obst",
+        needAlphaBlending: true
+      });
       this.materialTransparent.setFloat("clipX", -1.1);  // Default clipping values like obst service
       this.materialTransparent.setFloat("clipY", -1.1);
       this.materialTransparent.setFloat("clipZ", 1.1);
@@ -473,21 +452,10 @@ export class JetfanService {
     }
 
     // Create flow arrows for each jetfan
-    const arrowSources = await this.babylonService.loadShaderSources('arrow');
-
-    this.arrowMaterial = new (BABYLON as any).ShaderMaterial(
-      "arrowShader",
-      this.babylonService.scene,
-      { vertexSource: arrowSources.vertexSource, fragmentSource: arrowSources.fragmentSource },
-      {
-        needAlphaBlending: false,
-        attributes: ["position", "normal"],
-        uniforms: [],
-        uniformBuffers: ["Scene", "Mesh"],
-        shaderLanguage: arrowSources.shaderLanguage,
-        entryPoint: { vertex: 'main', fragment: 'main' }
-      }
-    );
+    this.arrowMaterial = await this.babylonService.createShaderMaterial({
+      name: "arrowShader",
+      shader: "arrow"
+    });
 
     this.jetfans.forEach((jetfan) => {
       const arrow = this.createFlowArrow(jetfan);
