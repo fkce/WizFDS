@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, isDevMode } from '@angular/core';
 import { ObstService } from '../drawing/obst/obst.service';
 import { IObst, ISurf, IMesh, IOpen, IVent, IJetFan, IHole, IFire } from '../drawing/interfaces';
 import { MeshService } from '../drawing/mesh/mesh.service';
@@ -54,13 +54,26 @@ export class SmokeviewApiService {
     this.jetfanService.renderJetfans(jetfans);
   }
 
-  public renderFires(fires: IFire[]) {
+  /**
+   * Fires and basic vents render asynchronously. The returned promise settles
+   * once the render has finished, and never rejects: a failed render is logged
+   * rather than left to surface as an unhandled rejection in the host app.
+   */
+  public async renderFires(fires: IFire[]): Promise<void> {
     this.fireService.fires = fires;
-    this.fireService.renderFires();
+    try {
+      await this.fireService.renderFires();
+    } catch (e) {
+      if (isDevMode()) { try { console.error('[SmokeviewApi] Failed to render fires', e); } catch { } }
+    }
   }
 
-  public renderVents(vents: IVent[]) {
+  public async renderVents(vents: IVent[]): Promise<void> {
     this.ventService.basicVents = vents;
-    this.ventService.renderBasicVents();
+    try {
+      await this.ventService.renderBasicVents();
+    } catch (e) {
+      if (isDevMode()) { try { console.error('[SmokeviewApi] Failed to render basic vents', e); } catch { } }
+    }
   }
 }
