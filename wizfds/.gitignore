@@ -49,3 +49,12 @@ testem.log
 # System Files
 .DS_Store
 Thumbs.db
+
+# npm audit report artifact
+/audit.json
+
+# Playwright screenshots from local UI verification
+/tools/
+
+# Claude Code local settings
+/.claude/
