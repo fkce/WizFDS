@@ -54,7 +54,8 @@ Thumbs.db
 /audit.json
 
 # Playwright screenshots from local UI verification
-/tools/
+# (only the generated output — tools/ itself holds tracked dev utilities)
+/tools/shots/
 
 # Claude Code local settings
 /.claude/

@@ -1,0 +1,231 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>web-smokeview-lib shader harness</title>
+  <style>
+    body { font-family: ui-monospace, Consolas, monospace; background: #11151c; color: #dde3ec; margin: 0; padding: 1.5rem; }
+    h1 { font-size: 1rem; font-weight: 600; margin: 0 0 1rem; color: #7dd3fc; }
+    canvas { width: 240px; height: 160px; border: 1px solid #2a3441; border-radius: 4px; }
+    pre { white-space: pre-wrap; line-height: 1.55; margin: 1rem 0 0; }
+    .ok { color: #4ade80; }
+    .fail { color: #f87171; }
+    .warn { color: #fbbf24; }
+  </style>
+</head>
+<body>
+<h1>web-smokeview-lib shader harness</h1>
+<canvas id="c" width="240" height="160"></canvas>
+<pre id="out"></pre>
+<script src="/babylon/babylon.js"></script>
+<script>
+/**
+ * Compiles every shader used by web-smokeview-lib and reports OK / compile
+ * error / timeout per shader, per language.
+ *
+ * Two things it is designed to catch:
+ *  - a shader file that does not exist. The server mimics an SPA fallback, so a
+ *    missing file arrives as index.html with status 200, not as a 404.
+ *  - a shader that never finishes compiling. Babylon fetches unresolved
+ *    #include files without an error callback, so a bad include hangs silently
+ *    rather than throwing - hence the explicit timeout below.
+ *
+ * Results are also left on window.__RESULTS__ for programmatic inspection.
+ */
+
+// Shader names requested by the library through BabylonService.loadShaderSources()
+const NAMES = ['obst', 'obstBackCap', 'mesh', 'vent', 'arrow', 'fire', 'slice'];
+const COMPILE_TIMEOUT_MS = 6000;
+
+const RESULTS = { engine: null, layout: null, availability: {}, compile: {} };
+const out = document.getElementById('out');
+
+function log(msg, cls) {
+  const span = document.createElement('span');
+  if (cls) span.className = cls;
+  span.textContent = msg + '\n';
+  out.appendChild(span);
+  console.log('[harness] ' + msg);
+}
+
+/**
+ * Shader layout differs before and after the WebGPU-only migration (issue #82):
+ * originally assets/shaders/{wgsl,glsl}/<name>.<stage>.<ext>, afterwards a flat
+ * assets/shaders/<name>.<stage>.wgsl. Detect rather than assume.
+ */
+async function detectLayout() {
+  const probe = async (url) => {
+    const r = await fetch(url, { cache: 'no-cache' });
+    const t = await r.text();
+    return !t.trimStart().toLowerCase().startsWith('<!doctype');
+  };
+  if (await probe('/assets/shaders/wgsl/obst.vertex.wgsl')) return 'nested';
+  if (await probe('/assets/shaders/obst.vertex.wgsl')) return 'flat';
+  return 'unknown';
+}
+
+function shaderUrl(layout, lang, name, stage) {
+  const ext = lang === 'wgsl' ? 'wgsl' : 'fx';
+  return layout === 'flat'
+    ? `/assets/shaders/${name}.${stage}.${ext}`
+    : `/assets/shaders/${lang}/${name}.${stage}.${ext}`;
+}
+
+async function checkAvailability(layout, languages) {
+  for (const lang of languages) {
+    for (const name of NAMES) {
+      for (const stage of ['vertex', 'fragment']) {
+        const url = shaderUrl(layout, lang, name, stage);
+        const r = await fetch(url, { cache: 'no-cache' });
+        const body = await r.text();
+        const missing = body.trimStart().toLowerCase().startsWith('<!doctype');
+        RESULTS.availability[`${lang}/${name}.${stage}`] = { status: r.status, missing, bytes: body.length };
+        if (missing) log(`MISSING (served index.html, status ${r.status}): ${url}`, 'fail');
+      }
+    }
+  }
+}
+
+async function loadSources(layout, lang, name) {
+  const [v, f] = await Promise.all([
+    fetch(shaderUrl(layout, lang, name, 'vertex'), { cache: 'no-cache' }),
+    fetch(shaderUrl(layout, lang, name, 'fragment'), { cache: 'no-cache' }),
+  ]);
+  return { vertexSource: await v.text(), fragmentSource: await f.text() };
+}
+
+function buildProbeMesh(scene, name) {
+  const mesh = BABYLON.MeshBuilder.CreateBox('probe_' + name, { size: 1 }, scene);
+  const vd = new BABYLON.VertexData();
+  vd.positions = mesh.getVerticesData('position');
+  vd.indices = mesh.getIndices();
+  vd.normals = mesh.getVerticesData('normal');
+  vd.colors = new Array((vd.positions.length / 3) * 4).fill(1);
+  vd.applyToMesh(mesh);
+  const perVertex = vd.positions.length / 3;
+  // slice shaders read these two custom attributes
+  mesh.setVerticesData('texture_coordinate', new Float32Array(perVertex), false, 1);
+  mesh.setVerticesData('blank', new Float32Array(perVertex), false, 1);
+  return mesh;
+}
+
+async function compileAll(scene, layout, lang) {
+  const isWGSL = lang === 'wgsl';
+  const SL = isWGSL ? BABYLON.ShaderLanguage.WGSL : BABYLON.ShaderLanguage.GLSL;
+  // Mirrors what BabylonService does, so include resolution behaves identically
+  BABYLON.Effect.ShadersRepository = layout === 'flat'
+    ? `${location.origin}/assets/shaders/`
+    : `${location.origin}/assets/shaders/${lang}/`;
+
+  for (const name of NAMES) {
+    const key = `${lang}/${name}`;
+    if (RESULTS.availability[`${lang}/${name}.vertex`]?.missing) {
+      RESULTS.compile[key] = 'SKIPPED (file missing)';
+      log(`${key.padEnd(22)} -> SKIPPED (file missing)`, 'warn');
+      continue;
+    }
+
+    const sources = await loadSources(layout, lang, name);
+    const uniforms = isWGSL
+      ? ['clipX', 'clipY', 'clipZ', 'transparent', 'is_blank']
+      : ['world', 'worldView', 'worldViewProjection', 'view', 'projection',
+         'clipX', 'clipY', 'clipZ', 'transparent', 'is_blank'];
+
+    const mesh = buildProbeMesh(scene, name);
+    const mat = new BABYLON.ShaderMaterial(name, scene, sources, {
+      attributes: ['position', 'normal', 'color', 'texture_coordinate', 'blank'],
+      uniforms,
+      uniformBuffers: isWGSL ? ['Scene', 'Mesh'] : [],
+      shaderLanguage: SL,
+      entryPoint: { vertex: 'main', fragment: 'main' },
+    });
+    mesh.material = mat;
+
+    const verdict = await new Promise((resolve) => {
+      let settled = false;
+      const finish = (v) => { if (!settled) { settled = true; resolve(v); } };
+      mat.onError = (_effect, errors) =>
+        finish('COMPILE ERROR: ' + String(errors).slice(0, 400).replace(/\n/g, ' | '));
+      mat.onCompiled = () => finish('OK');
+      // Catches the silent hang on an unresolved #include
+      setTimeout(() => finish(`TIMEOUT (no onCompiled, no onError after ${COMPILE_TIMEOUT_MS / 1000}s)`), COMPILE_TIMEOUT_MS);
+      const poll = () => {
+        if (settled) return;
+        try {
+          mat.isReady(mesh);
+          // Draw a frame explicitly. Without any frames, onCompiled may never
+          // fire and a valid shader reports a false TIMEOUT. Done here rather
+          // than through engine.runRenderLoop() so that only one engine draws
+          // at a time - two concurrent render loops freeze the page.
+          scene.render();
+        } catch (e) { finish('THROWN: ' + e.message); return; }
+        setTimeout(poll, 100);
+      };
+      poll();
+    });
+
+    RESULTS.compile[key] = verdict;
+    log(`${key.padEnd(22)} -> ${verdict}`, verdict === 'OK' ? 'ok' : 'fail');
+    mesh.dispose();
+    mat.dispose();
+  }
+}
+
+function makeScene(engine, name) {
+  const scene = new BABYLON.Scene(engine);
+  new BABYLON.ArcRotateCamera(name, 0, 0, 5, BABYLON.Vector3.Zero(), scene);
+  return scene;
+}
+
+(async () => {
+  const layout = await detectLayout();
+  RESULTS.layout = layout;
+  if (layout === 'unknown') {
+    log('Could not locate shaders under /assets/shaders - check the server output.', 'fail');
+    return;
+  }
+  log(`Shader layout: ${layout}` + (layout === 'flat' ? '  (WGSL-only, post-#82)' : '  (wgsl/ + glsl/ subfolders)'));
+
+  // A flat layout means the GLSL path is gone, so only probe for it when nested
+  const languages = layout === 'flat' ? ['wgsl'] : ['wgsl', 'glsl'];
+  await checkAvailability(layout, languages);
+
+  const canvas = document.getElementById('c');
+  let engine, engineKind;
+  try {
+    if (!navigator.gpu) throw new Error('navigator.gpu unavailable');
+    engine = new BABYLON.WebGPUEngine(canvas, { antialias: true });
+    await engine.initAsync();
+    engineKind = 'WebGPU';
+  } catch (e) {
+    engine = new BABYLON.Engine(canvas, true);
+    engineKind = `WebGL (WebGPU unavailable: ${e.message})`;
+  }
+  RESULTS.engine = engineKind;
+  log('Engine: ' + engineKind, engineKind === 'WebGPU' ? 'ok' : 'warn');
+
+  log('--- WGSL ---');
+  if (engineKind === 'WebGPU') {
+    await compileAll(makeScene(engine, 'wgslCam'), layout, 'wgsl');
+  } else {
+    log('skipped: WGSL requires a WebGPU engine', 'warn');
+  }
+
+  if (languages.includes('glsl')) {
+    log('--- GLSL ---');
+    const glEngine = new BABYLON.Engine(document.createElement('canvas'), true);
+    await compileAll(makeScene(glEngine, 'glslCam'), layout, 'glsl');
+  }
+
+  const failed = Object.entries(RESULTS.compile).filter(([, v]) => v !== 'OK');
+  log('');
+  log(failed.length === 0
+    ? `=== ALL ${Object.keys(RESULTS.compile).length} SHADERS OK ===`
+    : `=== ${failed.length} of ${Object.keys(RESULTS.compile).length} NOT OK ===`,
+    failed.length === 0 ? 'ok' : 'fail');
+
+  window.__RESULTS__ = RESULTS;
+})();
+</script>
+</body>
+</html>
