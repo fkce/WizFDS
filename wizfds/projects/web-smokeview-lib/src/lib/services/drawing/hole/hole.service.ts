@@ -226,12 +226,25 @@ export class HoleService {
   }
 
   /**
-   * Check if a hole intersects with an obst
+   * Check if a hole intersects with an obst.
+   *
+   * Works on raw FDS coordinates, not on vis.xbNorm: holes are assigned to obsts
+   * before the obsts are normalized, so xbNorm is not populated yet at that point.
+   * Normalization is a translation plus a positive scaling, so it preserves
+   * intersection anyway.
+   *
+   * A &HOLE normally cuts all the way through a wall and overhangs its outline -
+   * that is how doors and windows are written - so this is an overlap test, not a
+   * containment test. Touching faces (zero shared volume) do not count.
    */
   public holeIntersectsObst(hole: IHole, obst: IObst): boolean {
-    const hXb = hole.vis.xbNorm;
-    const oXb = obst.vis.xbNorm;
-    
+    if (!hole || !hole.xb || !obst || !obst.xb) {
+      return false;
+    }
+
+    const hXb = hole.xb;
+    const oXb = obst.xb;
+
     return !(hXb.x2 <= oXb.x1 || hXb.x1 >= oXb.x2 ||
              hXb.y2 <= oXb.y1 || hXb.y1 >= oXb.y2 ||
              hXb.z2 <= oXb.z1 || hXb.z1 >= oXb.z2);

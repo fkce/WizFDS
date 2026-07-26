@@ -104,7 +104,7 @@ export class AppComponent {
         this.setCurrentFdsScenario(3011, 14865);
       }, 4000);
       setTimeout(() => {
-        this.router.navigate(['/fds/general']);
+        this.router.navigate(['/fds/visualize']);
       }, 6000);
     }
 

@@ -768,7 +768,7 @@ export class ObstService {
   /**
    * Assign holes to obsts based on spatial intersection
    */
-  private assignHolesToObsts(): void {
+  public assignHolesToObsts(): void {
     if (!this.holes || this.holes.length === 0) {
       return;
     }
@@ -781,7 +781,7 @@ export class ObstService {
     // Assign holes to obsts based on intersection
     this.holes.forEach(hole => {
       this.obsts.forEach(obst => {
-        if (this.holeIntersectsObst(hole, obst)) {
+        if (this.holeService.holeIntersectsObst(hole, obst)) {
           if (!obst.holes) {
             obst.holes = [];
           }
@@ -878,26 +878,6 @@ export class ObstService {
       holeXb.z2 += (zMin < 0) ? -zMin : zMin;
       hole.vis.xbNorm.z2 = holeXb.z2 / delta;
     });
-  }
-
-  /**
-   * Check if a hole intersects with an obst
-   */
-  private holeIntersectsObst(hole: any, obst: any): boolean {
-    if (!hole.xb || !obst.xb) {
-      return false;
-    }
-
-    // Convert hole and obst coordinates to arrays for easier comparison
-    const holeXb = [hole.xb.x1, hole.xb.x2, hole.xb.y1, hole.xb.y2, hole.xb.z1, hole.xb.z2];
-    const obstXb = [obst.xb.x1, obst.xb.x2, obst.xb.y1, obst.xb.y2, obst.xb.z1, obst.xb.z2];
-
-    // Check if hole is within obst bounds
-    return (
-      holeXb[0] >= obstXb[0] && holeXb[1] <= obstXb[1] && // X bounds
-      holeXb[2] >= obstXb[2] && holeXb[3] <= obstXb[3] && // Y bounds
-      holeXb[4] >= obstXb[4] && holeXb[5] <= obstXb[5]    // Z bounds
-    );
   }
 
 }
