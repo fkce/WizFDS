@@ -163,7 +163,10 @@
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
-            "main": "projects/web-smokeview-lib/src/test.ts",
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ],
             "tsConfig": "projects/web-smokeview-lib/tsconfig.spec.json",
             "karmaConfig": "projects/web-smokeview-lib/karma.conf.js"
           }

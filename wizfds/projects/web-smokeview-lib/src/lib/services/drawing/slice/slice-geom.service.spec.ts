@@ -6,7 +6,7 @@ describe('SliceGeomService', () => {
   beforeEach(() => TestBed.configureTestingModule({}));
 
   it('should be created', () => {
-    const service: SliceGeomService = TestBed.get(SliceGeomService);
+    const service: SliceGeomService = TestBed.inject(SliceGeomService);
     expect(service).toBeTruthy();
   });
 });

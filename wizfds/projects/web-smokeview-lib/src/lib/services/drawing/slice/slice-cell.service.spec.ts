@@ -6,7 +6,7 @@ describe('SliceCellService', () => {
   beforeEach(() => TestBed.configureTestingModule({}));
 
   it('should be created', () => {
-    const service: SliceCellService = TestBed.get(SliceCellService);
+    const service: SliceCellService = TestBed.inject(SliceCellService);
     expect(service).toBeTruthy();
   });
 });

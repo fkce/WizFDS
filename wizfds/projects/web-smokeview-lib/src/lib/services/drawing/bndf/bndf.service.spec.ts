@@ -6,7 +6,7 @@ describe('BndfService', () => {
   beforeEach(() => TestBed.configureTestingModule({}));
 
   it('should be created', () => {
-    const service: BndfService = TestBed.get(BndfService);
+    const service: BndfService = TestBed.inject(BndfService);
     expect(service).toBeTruthy();
   });
 });
