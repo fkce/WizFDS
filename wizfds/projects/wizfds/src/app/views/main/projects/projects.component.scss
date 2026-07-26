@@ -382,7 +382,9 @@ $cols: 1.6rem minmax(8rem, 16%) minmax(0, 1fr) 9rem 6rem 4rem;
   position: relative;
   padding: 0.25rem 0;
 
-  // Vertical tree rail aligned under the project chevron.
+  // Vertical tree rail aligned under the project chevron. z-index keeps it above
+  // the (opaque) row hover/active backgrounds so it doesn't vanish on hover — it
+  // sits at x:1.8rem where there is no row content to occlude.
   &::before {
     content: "";
     position: absolute;
@@ -391,6 +393,7 @@ $cols: 1.6rem minmax(8rem, 16%) minmax(0, 1fr) 9rem 6rem 4rem;
     bottom: 1.35rem;                                 // stop above the "New scenario" row
     width: 1px;
     background: var(--border);
+    z-index: 1;
   }
 }
 
