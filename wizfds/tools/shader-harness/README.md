@@ -1,6 +1,6 @@
 # Shader harness
 
-Kompiluje **wszystkie** shadery używane przez `web-smokeview-lib` w izolacji od aplikacji — bez logowania, bez scenariusza, bez backendu — i raportuje wynik per shader, per język.
+Kompiluje **wszystkie** shadery używane przez `web-smokeview-lib` w izolacji od aplikacji — bez logowania, bez scenariusza, bez backendu — i raportuje wynik per shader.
 
 Narzędzie powstało przy audycie z 2026-07-26 ([`docs/audits/2026-07-26-web-smokeview-webgpu.md`](../../docs/audits/2026-07-26-web-smokeview-webgpu.md)) i to ono dostarczyło dowodu, że ścieżka WebGL nie działa.
 
@@ -23,26 +23,21 @@ Dwie rzeczy, których zwykłe uruchomienie aplikacji **nie** pokazuje:
 
 2. **Shader, który nigdy nie kończy kompilacji.** Babylon pobiera nierozwiązane pliki `#include` **bez callbacku błędu** (`babylon.max.js:53760`), więc zły include wiesza kompilację w ciszy — bez wyjątku i bez wpisu w konsoli. Stąd jawny timeout (6 s) i osobny werdykt `TIMEOUT`.
 
-## Odporność na zmiany układu katalogów
+## Wyłącznie WGSL na WebGPU
 
-Układ shaderów zmienia się wraz z migracją WebGPU-only (#82):
+Po migracji #82 shadery leżą płasko w `assets/shaders/<nazwa>.<etap>.wgsl`, a katalogi `wgsl/` i `glsl/` już nie istnieją. Zgodnie z [ADR-0001](../../docs/adr/0001-webgpu-only-wgsl.md) biblioteka nie ma ścieżki WebGL, więc harness też jej nie ma: bez `navigator.gpu` kończy jawnym komunikatem, zamiast kompilować coś, czego aplikacja i tak nie użyje.
 
-| Przed | Po |
-|---|---|
-| `assets/shaders/wgsl/<nazwa>.<etap>.wgsl` | `assets/shaders/<nazwa>.<etap>.wgsl` |
-| `assets/shaders/glsl/<nazwa>.<etap>.fx` | — (usunięte) |
+## Wynik odniesienia
 
-Harness **wykrywa** układ zamiast go zakładać, i przy układzie płaskim pomija ścieżkę GLSL. Działa więc zarówno przed migracją, jak i po niej.
+Oczekiwany wynik to `=== ALL 7 SHADERS OK ===`.
 
-## Wynik odniesienia (2026-07-26, przed #82)
+Zapis historyczny z audytu 2026-07-26, sprzed #82 — to on uzasadnił usunięcie ścieżki WebGL:
 
 | Shader | WGSL (WebGPU) | GLSL (WebGL) |
 |---|---|---|
 | `obst`, `obstBackCap`, `mesh`, `slice` | OK | `VERTEX SHADER ERROR: 0:7: '<' : syntax error` |
 | `vent`, `arrow` | OK | OK |
 | `fire` | OK | plik nie istnieje |
-
-Po ukończeniu #82 oczekiwany wynik to `=== ALL 7 SHADERS OK ===` przy układzie płaskim.
 
 ## Dodanie nowego shadera
 

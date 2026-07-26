@@ -37,7 +37,7 @@
 const NAMES = ['obst', 'obstBackCap', 'mesh', 'vent', 'arrow', 'fire', 'slice'];
 const COMPILE_TIMEOUT_MS = 6000;
 
-const RESULTS = { engine: null, layout: null, availability: {}, compile: {} };
+const RESULTS = { engine: null, availability: {}, compile: {} };
 const out = document.getElementById('out');
 
 function log(msg, cls) {
@@ -48,48 +48,28 @@ function log(msg, cls) {
   console.log('[harness] ' + msg);
 }
 
-/**
- * Shader layout differs before and after the WebGPU-only migration (issue #82):
- * originally assets/shaders/{wgsl,glsl}/<name>.<stage>.<ext>, afterwards a flat
- * assets/shaders/<name>.<stage>.wgsl. Detect rather than assume.
- */
-async function detectLayout() {
-  const probe = async (url) => {
-    const r = await fetch(url, { cache: 'no-cache' });
-    const t = await r.text();
-    return !t.trimStart().toLowerCase().startsWith('<!doctype');
-  };
-  if (await probe('/assets/shaders/wgsl/obst.vertex.wgsl')) return 'nested';
-  if (await probe('/assets/shaders/obst.vertex.wgsl')) return 'flat';
-  return 'unknown';
+/** Since #82 the shaders live flat under assets/shaders/<name>.<stage>.wgsl. */
+function shaderUrl(name, stage) {
+  return `/assets/shaders/${name}.${stage}.wgsl`;
 }
 
-function shaderUrl(layout, lang, name, stage) {
-  const ext = lang === 'wgsl' ? 'wgsl' : 'fx';
-  return layout === 'flat'
-    ? `/assets/shaders/${name}.${stage}.${ext}`
-    : `/assets/shaders/${lang}/${name}.${stage}.${ext}`;
-}
-
-async function checkAvailability(layout, languages) {
-  for (const lang of languages) {
-    for (const name of NAMES) {
-      for (const stage of ['vertex', 'fragment']) {
-        const url = shaderUrl(layout, lang, name, stage);
-        const r = await fetch(url, { cache: 'no-cache' });
-        const body = await r.text();
-        const missing = body.trimStart().toLowerCase().startsWith('<!doctype');
-        RESULTS.availability[`${lang}/${name}.${stage}`] = { status: r.status, missing, bytes: body.length };
-        if (missing) log(`MISSING (served index.html, status ${r.status}): ${url}`, 'fail');
-      }
+async function checkAvailability() {
+  for (const name of NAMES) {
+    for (const stage of ['vertex', 'fragment']) {
+      const url = shaderUrl(name, stage);
+      const r = await fetch(url, { cache: 'no-cache' });
+      const body = await r.text();
+      const missing = body.trimStart().toLowerCase().startsWith('<!doctype');
+      RESULTS.availability[`${name}.${stage}`] = { status: r.status, missing, bytes: body.length };
+      if (missing) log(`MISSING (served index.html, status ${r.status}): ${url}`, 'fail');
     }
   }
 }
 
-async function loadSources(layout, lang, name) {
+async function loadSources(name) {
   const [v, f] = await Promise.all([
-    fetch(shaderUrl(layout, lang, name, 'vertex'), { cache: 'no-cache' }),
-    fetch(shaderUrl(layout, lang, name, 'fragment'), { cache: 'no-cache' }),
+    fetch(shaderUrl(name, 'vertex'), { cache: 'no-cache' }),
+    fetch(shaderUrl(name, 'fragment'), { cache: 'no-cache' }),
   ]);
   return { vertexSource: await v.text(), fragmentSource: await f.text() };
 }
@@ -109,34 +89,26 @@ function buildProbeMesh(scene, name) {
   return mesh;
 }
 
-async function compileAll(scene, layout, lang) {
-  const isWGSL = lang === 'wgsl';
-  const SL = isWGSL ? BABYLON.ShaderLanguage.WGSL : BABYLON.ShaderLanguage.GLSL;
+async function compileAll(scene) {
   // Mirrors what BabylonService does, so include resolution behaves identically
-  BABYLON.Effect.ShadersRepository = layout === 'flat'
-    ? `${location.origin}/assets/shaders/`
-    : `${location.origin}/assets/shaders/${lang}/`;
+  BABYLON.Effect.ShadersRepository = `${location.origin}/assets/shaders/`;
 
   for (const name of NAMES) {
-    const key = `${lang}/${name}`;
-    if (RESULTS.availability[`${lang}/${name}.vertex`]?.missing) {
+    const key = name;
+    if (RESULTS.availability[`${name}.vertex`]?.missing) {
       RESULTS.compile[key] = 'SKIPPED (file missing)';
       log(`${key.padEnd(22)} -> SKIPPED (file missing)`, 'warn');
       continue;
     }
 
-    const sources = await loadSources(layout, lang, name);
-    const uniforms = isWGSL
-      ? ['clipX', 'clipY', 'clipZ', 'transparent', 'is_blank']
-      : ['world', 'worldView', 'worldViewProjection', 'view', 'projection',
-         'clipX', 'clipY', 'clipZ', 'transparent', 'is_blank'];
+    const sources = await loadSources(name);
 
     const mesh = buildProbeMesh(scene, name);
     const mat = new BABYLON.ShaderMaterial(name, scene, sources, {
       attributes: ['position', 'normal', 'color', 'texture_coordinate', 'blank'],
-      uniforms,
-      uniformBuffers: isWGSL ? ['Scene', 'Mesh'] : [],
-      shaderLanguage: SL,
+      uniforms: ['clipX', 'clipY', 'clipZ', 'transparent', 'is_blank'],
+      uniformBuffers: ['Scene', 'Mesh'],
+      shaderLanguage: BABYLON.ShaderLanguage.WGSL,
       entryPoint: { vertex: 'main', fragment: 'main' },
     });
     mesh.material = mat;
@@ -178,44 +150,31 @@ function makeScene(engine, name) {
 }
 
 (async () => {
-  const layout = await detectLayout();
-  RESULTS.layout = layout;
-  if (layout === 'unknown') {
-    log('Could not locate shaders under /assets/shaders - check the server output.', 'fail');
+  await checkAvailability();
+  if (NAMES.every((n) => RESULTS.availability[`${n}.vertex`]?.missing)) {
+    log('No shaders found under /assets/shaders - check the server output.', 'fail');
     return;
   }
-  log(`Shader layout: ${layout}` + (layout === 'flat' ? '  (WGSL-only, post-#82)' : '  (wgsl/ + glsl/ subfolders)'));
 
-  // A flat layout means the GLSL path is gone, so only probe for it when nested
-  const languages = layout === 'flat' ? ['wgsl'] : ['wgsl', 'glsl'];
-  await checkAvailability(layout, languages);
+  // WGSL compiles on a WebGPU engine and nowhere else. Per ADR-0001 the library
+  // has no WebGL path, so a harness fallback would only test something that
+  // does not ship.
+  if (!navigator.gpu) {
+    log('WebGPU is not available in this browser - nothing can be compiled here.', 'fail');
+    return;
+  }
 
-  const canvas = document.getElementById('c');
-  let engine, engineKind;
+  const engine = new BABYLON.WebGPUEngine(document.getElementById('c'), { antialias: true });
   try {
-    if (!navigator.gpu) throw new Error('navigator.gpu unavailable');
-    engine = new BABYLON.WebGPUEngine(canvas, { antialias: true });
     await engine.initAsync();
-    engineKind = 'WebGPU';
   } catch (e) {
-    engine = new BABYLON.Engine(canvas, true);
-    engineKind = `WebGL (WebGPU unavailable: ${e.message})`;
+    log(`The WebGPU engine could not be created: ${e.message}`, 'fail');
+    return;
   }
-  RESULTS.engine = engineKind;
-  log('Engine: ' + engineKind, engineKind === 'WebGPU' ? 'ok' : 'warn');
+  RESULTS.engine = 'WebGPU';
+  log('Engine: WebGPU', 'ok');
 
-  log('--- WGSL ---');
-  if (engineKind === 'WebGPU') {
-    await compileAll(makeScene(engine, 'wgslCam'), layout, 'wgsl');
-  } else {
-    log('skipped: WGSL requires a WebGPU engine', 'warn');
-  }
-
-  if (languages.includes('glsl')) {
-    log('--- GLSL ---');
-    const glEngine = new BABYLON.Engine(document.createElement('canvas'), true);
-    await compileAll(makeScene(glEngine, 'glslCam'), layout, 'glsl');
-  }
+  await compileAll(makeScene(engine, 'wgslCam'));
 
   const failed = Object.entries(RESULTS.compile).filter(([, v]) => v !== 'OK');
   log('');
