@@ -1,5 +1,5 @@
 @use '../../../main.component.scss' as *;
-@use '../../../../../app.component.scss' as *;
+@use '../../../../../../styles/palette' as *;
 
 .layers-list {
     background-color: $grey4;

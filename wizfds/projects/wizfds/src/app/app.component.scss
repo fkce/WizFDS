@@ -1,45 +1,5 @@
-// Legacy palette shim → global design tokens (styles/_tokens.scss, loaded on :root).
-// SCSS variables are file-scoped, so each component that references them re-maps
-// here; the CSS custom properties they point at ARE global at runtime.
-// NOTE: 8 component stylesheets `@use` this file — keep every $var + the mixin.
-$red: var(--danger);
-$white: var(--on-surface);
-$grey: var(--on-surface-muted);
-$blue: var(--accent);          // interactive / active / hover → azure accent
-$blue-dark: var(--accent-active);
-$green: var(--accent);         // legacy "accent" alias → azure (positive states use var(--success))
-$orange: var(--warning);
-$orange-light: var(--surface-2);
-$help: var(--on-surface-muted);
-
-$grey-hover: var(--grey-800);
-
-$grey1: var(--grey-900);
-$grey2: var(--grey-850);
-$grey3: var(--grey-800);
-$grey4: var(--grey-600);
-$grey5: var(--grey-500);
-$grey6: var(--grey-400);
-
-$border-light: var(--border);
-$border-dark: var(--border-muted);
-
-$shadow-light: var(--grey-850);
-$shadow-dark: var(--grey-900);
-
-$active: var(--grey-400);
-$active1: var(--info);
-$passive: var(--grey-600);
-$body: var(--surface);
-
-@mixin no-select {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  -khtml-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-}
+@use "../styles/palette" as *;
+@forward "../styles/palette";
 
 // =============================================================================
 // App shell — full-height sidebar · slim top bar · working canvas · status bar

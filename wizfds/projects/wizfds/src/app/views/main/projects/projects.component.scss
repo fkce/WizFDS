@@ -1,5 +1,5 @@
 @use "../main.component.scss" as *;
-@use "../../../app.component.scss" as *;
+@use "../../../../styles/palette" as *;
 
 $open-time: 0.18s;
 $close-time: 0.14s;
