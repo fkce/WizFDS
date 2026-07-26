@@ -459,9 +459,6 @@ export class ObstService {
     (this as any).transparentColors = transparentColors;
     (this as any).transparentIndices = transparentIndices;
     
-    // Store CSG flag for render method
-    (this as any).hasCSGMeshes = hasCSGMeshes;
-    
     // Debug info
     if (isDevMode()) { try {
       console.debug('[ObstService] Vertex data split:', {
@@ -608,13 +605,13 @@ export class ObstService {
       (this as any)._meshTransparent.freezeWorldMatrix();
     }
 
-    // Create back cap mesh only for opaque obsts (clipping visualization)
-    // Skip backCap for CSG meshes as they have incompatible vertex data
+    // Create back cap mesh for opaque obsts (clipping visualization).
+    // It is applied the same vertexData as the opaque mesh - geometry produced
+    // by CSG hole cutting included - so obsts carrying a &HOLE get a cap too.
     if (this.meshBackCap) { this.meshBackCap.dispose(); }
-    const hasCSGMeshes = (this as any).hasCSGMeshes || false;
-    
-    if (this.vertices.length > 0 && !hasCSGMeshes) {
-      if (isDevMode()) console.log('[ObstService] Creating meshBackCap for standard obsts');
+
+    if (this.vertices.length > 0) {
+      if (isDevMode()) console.log('[ObstService] Creating meshBackCap');
       this.meshBackCap = new BABYLON.Mesh("obstBackCapOpaque", this.babylonService.scene);
       this.vertexData.applyToMesh(this.meshBackCap);
 
@@ -644,8 +641,6 @@ export class ObstService {
         })
         .catch((e) => { if (isDevMode()) { try { console.error('[ObstService] Failed to load opaque obstBackCap shader sources', e); } catch {} } });
       this.meshBackCap.freezeWorldMatrix();
-    } else if (hasCSGMeshes) {
-      if (isDevMode()) console.log('[ObstService] Skipping meshBackCap creation for CSG meshes');
     }
     
     // Put somewhere else ...

@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
+import * as BABYLON from 'babylonjs';
 
 import { ObstService } from './obst.service';
+import { BabylonService } from '../../babylon/babylon.service';
 import { IHole, IObst, IXb } from '../interfaces';
 
 function makeObst(id: string, xb: IXb): IObst {
@@ -34,10 +36,34 @@ function makeHole(id: string, xb: IXb): IHole {
 
 describe('ObstService', () => {
   let service: ObstService;
+  let engine: BABYLON.NullEngine;
+  let scene: BABYLON.Scene;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
+    // A headless engine is enough: the back cap is a mesh, and CSG runs on the CPU.
+    engine = new BABYLON.NullEngine();
+    scene = new BABYLON.Scene(engine);
+
+    TestBed.configureTestingModule({
+      providers: [{
+        provide: BabylonService,
+        useValue: {
+          scene: scene,
+          camera: { setPosition: () => { }, setTarget: () => { } },
+          // No shader assets are served in the suite, and NullEngine compiles no
+          // WGSL. Both are treated as non-fatal by the drawing services, so the
+          // meshes are still built - which is what these tests are about.
+          loadShaderSources: () => Promise.reject(new Error('no shader assets under test')),
+          createShaderMaterial: () => Promise.reject(new Error('no shader assets under test'))
+        }
+      }]
+    });
     service = TestBed.inject(ObstService);
+  });
+
+  afterEach(() => {
+    scene.dispose();
+    engine.dispose();
   });
 
   it('should be created', () => {
@@ -58,6 +84,35 @@ describe('ObstService', () => {
       service.assignHolesToObsts();
 
       expect(wall.holes).toEqual([doorway]);
+    });
+  });
+
+  describe('clipping back cap', () => {
+    const opaqueSurf = { id: 'SURF_1', color: { rgb: [255, 208, 0] }, transparency: 1 };
+
+    it('builds the back cap for a plain wall', () => {
+      service.obsts = [makeObst('WALL', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 })];
+      service.holes = [];
+      service.surfs = [opaqueSurf];
+
+      service.renderObsts();
+
+      expect(service.meshBackCap).toBeTruthy();
+    });
+
+    it('builds the back cap for a wall that has a doorway cut out of it', () => {
+      // Without the back cap the clipped cross-section renders hollow instead of
+      // solid red - and the cap is switched off for the whole scene, not just
+      // for the wall carrying the hole.
+      const wall = makeObst('WALL', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 });
+      service.obsts = [wall];
+      service.holes = [makeHole('DOOR', { x1: 1.0, x2: 2.0, y1: 1.9, y2: 2.3, z1: 0.0, z2: 2.1 })];
+      service.surfs = [opaqueSurf];
+
+      service.renderObsts();
+
+      expect(wall.holes.length).withContext('the doorway must reach the wall').toBe(1);
+      expect(service.meshBackCap).toBeTruthy();
     });
   });
 });
