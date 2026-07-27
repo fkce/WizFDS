@@ -64,6 +64,9 @@ export class BabylonService {
    * rendering into a disposed scene.
    */
   public readonly scene$ = this.sceneSubject.asObservable();
+
+  /** Held so it can be removed again - see animate(). */
+  private resizeListener: (() => void) | null = null;
   /**
    * False once createScene() has established that this browser cannot run the
    * WebGPU engine. There is no WebGL fallback - see docs/adr/0001-webgpu-only-wgsl.md.
@@ -113,20 +116,32 @@ export class BabylonService {
    * so nobody draws into a scene that is halfway gone.
    */
   public disposeScene(): void {
-    if (!this.scene && !this.engine) { return; }
+    if (this.sceneSubject.value) {
+      this.sceneSubject.next(null);
+    }
 
-    this.sceneSubject.next(null);
-
-    if (this.scene) {
-      this.scene.dispose();
+    // Every step runs even if an earlier one throws: a half-torn-down scene
+    // that still looks alive is what wedges the next createScene().
+    try {
+      if (this.scene) { this.scene.dispose(); }
+    } catch (e) {
+      console.error('[BabylonService] Disposing the scene failed', e);
+    } finally {
       this.scene = null;
     }
-    if (this.engine) {
-      this.engine.stopRenderLoop();
-      this.engine.dispose();
+
+    try {
+      if (this.engine) {
+        this.engine.stopRenderLoop();
+        this.engine.dispose();
+      }
+    } catch (e) {
+      console.error('[BabylonService] Disposing the engine failed', e);
+    } finally {
       this.engine = null;
     }
 
+    this.removeResizeListener();
     this.sceneLifecycle.reset();
   }
 
@@ -160,8 +175,10 @@ export class BabylonService {
       // A WebGPU device can be lost - driver reset, GPU switch, a backgrounded
       // tab reclaimed. Without this the canvas silently stops updating.
       this.engine.onContextLostObservable.add(() => {
-        console.error('[BabylonService] The GPU device was lost - the scene can no longer be rendered.');
-        this.sceneSubject.next(null);
+        console.error('[BabylonService] The GPU device was lost - tearing the scene down.');
+        // Not just a signal: the render loop would otherwise keep drawing into
+        // a lost device, and the services would keep holding its meshes.
+        this.disposeScene();
       });
     } catch (e) {
       this.webGPUAvailable = false;
@@ -240,24 +257,36 @@ export class BabylonService {
     // We have to run this outside angular zones,
     // because it could trigger heavy changeDetection cycles.
     this.ngZone.runOutsideAngular(() => {
-      let frameCount = 0;
       const rendererLoopCallback = () => {
-        this.scene.render();
-        frameCount++;
+        // The loop is stopped on dispose, but a frame already in flight can
+        // still land after the scene is gone.
+        if (this.scene) { this.scene.render(); }
       };
 
       if (document.readyState !== 'loading') {
         this.engine.runRenderLoop(rendererLoopCallback);
       } else {
         window.addEventListener('DOMContentLoaded', () => {
-          this.engine.runRenderLoop(rendererLoopCallback);
-        });
+          if (this.engine) { this.engine.runRenderLoop(rendererLoopCallback); }
+        }, { once: true });
       }
 
-      window.addEventListener('resize', () => {
-        this.engine.resize();
-      });
+      // Kept so disposeScene() can take it off again - re-entering the view
+      // used to add another one, and after leaving they all fired against a
+      // null engine.
+      this.removeResizeListener();
+      this.resizeListener = () => {
+        if (this.engine) { this.engine.resize(); }
+      };
+      window.addEventListener('resize', this.resizeListener);
     });
+  }
+
+  private removeResizeListener(): void {
+    if (this.resizeListener) {
+      window.removeEventListener('resize', this.resizeListener);
+      this.resizeListener = null;
+    }
   }
 
   /**

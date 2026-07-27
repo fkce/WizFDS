@@ -47,6 +47,7 @@ export class VentService implements SceneScoped {
     this.material = null;
     this.materialTransparent = null;
     this.basicMeshGroups.length = 0;
+    this.basicVisibility = 0;
   }
 
   /**

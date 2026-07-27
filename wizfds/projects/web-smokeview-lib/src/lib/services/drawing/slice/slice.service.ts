@@ -37,11 +37,21 @@ export class SliceService implements SceneScoped {
     sceneLifecycle.register(this);
   }
 
-  /** Release everything tied to the scene that has just been disposed. */
+  /**
+   * Release everything tied to the scene that has just been disposed.
+   *
+   * `slices` matters as much as `mesh`: each Slice carries its own mesh, and
+   * playSlice()'s interval writes into all of them. PlayerService stops the
+   * interval from its own reset; this drops what it was writing into.
+   */
   public resetSceneState(): void {
     this.mesh = null;
     this.material = null;
     this.vertexData = null;
+    this.slices.length = 0;
+    this.tex = new Float32Array([]);
+    this.texData = new Float32Array([]);
+    this.isBlank = 1;
     this.vertices.length = 0;
     this.indices.length = 0;
     this.normals.length = 0;

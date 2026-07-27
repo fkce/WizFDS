@@ -64,6 +64,9 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private sceneSub: Subscription;
 
+  /** Set in ngOnDestroy - createScene() is awaited and can outlive the view. */
+  private destroyed = false;
+
   constructor(
     public obstService: ObstService,
     public meshService: MeshService,
@@ -90,6 +93,14 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!this.webGPUAvailable) return;
 
     await this.babylonService.createScene(this.rendererCanvas);
+
+    // Leaving the view while the engine was still initialising: ngOnDestroy
+    // already ran and found nothing to dispose, so tear down what just arrived.
+    if (this.destroyed) {
+      this.babylonService.disposeScene();
+      return;
+    }
+
     // The adapter request can still fail on a browser that advertises WebGPU
     this.webGPUAvailable = this.babylonService.webGPUAvailable;
     if (!this.webGPUAvailable) return;
@@ -127,6 +138,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   //}
 
   ngOnDestroy() {
+    this.destroyed = true;
     if (this.sceneSub) {
       this.sceneSub.unsubscribe();
     }

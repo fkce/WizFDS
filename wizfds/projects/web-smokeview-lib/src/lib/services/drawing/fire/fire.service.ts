@@ -39,6 +39,7 @@ export class FireService implements SceneScoped {
   public resetSceneState(): void {
     this.mesh = null;
     this.material = null;
+    this.visibility = 0;
   }
 
   /**

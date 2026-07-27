@@ -39,6 +39,9 @@ export class OpenService implements SceneScoped {
     this.meshes.length = 0;
     this.material = null;
     this.vertexData = null;
+    // render() does not restore this, so a stale value would leave the toggle
+    // one step out of phase with what is actually drawn
+    this.visibility = 1;
     this.vertices.length = 0;
     this.normals.length = 0;
     this.colors.length = 0;

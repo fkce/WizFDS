@@ -143,17 +143,38 @@ describe('BabylonService', () => {
       expect(seen).toEqual([null]);
     });
 
-    it('emits null when the scene is disposed', () => {
-      service.scene = new BABYLON.Scene(engine);
+    /**
+     * Put the service in the state createScene() leaves behind. That method
+     * needs a real WebGPU adapter, which the suite has no way to provide, so
+     * the scene is announced through the subject directly.
+     */
+    const announceScene = (scene: BABYLON.Scene) => {
+      service.scene = scene;
       service.engine = engine as any;
+      (service as any).sceneSubject.next(scene);
+    };
+
+    it('emits null when the scene is disposed', () => {
+      const scene = new BABYLON.Scene(engine);
+      announceScene(scene);
       const seen: (BABYLON.Scene | null)[] = [];
-      service.scene$.subscribe(scene => seen.push(scene));
+      service.scene$.subscribe(s => seen.push(s));
 
       service.disposeScene();
 
-      expect(seen.length).toBe(2);
-      expect(seen[1]).toBeNull();
+      expect(seen).toEqual([scene, null]);
       expect(service.scene).toBeNull();
+    });
+
+    it('does not emit twice when disposed twice', () => {
+      announceScene(new BABYLON.Scene(engine));
+      service.disposeScene();
+      const seen: (BABYLON.Scene | null)[] = [];
+      service.scene$.subscribe(s => seen.push(s));
+
+      service.disposeScene();
+
+      expect(seen).toEqual([null]);
     });
 
     it('does not replay a disposed scene to a late subscriber', () => {
