@@ -2,8 +2,8 @@ import { Component, OnInit, AfterViewInit } from '@angular/core';
 import { SmokeviewApiService } from '../../../../../../../web-smokeview-lib/src/lib/services/smokeview-api/smokeview-api.service';
 import { MainService } from '@services/main/main.service';
 import { Main } from '@services/main/main';
-import { combineLatest, Subscription } from 'rxjs';
-import { filter, take } from 'rxjs/operators';
+import { Subscription, timer } from 'rxjs';
+import { filter, map, switchMap, take } from 'rxjs/operators';
 import { BabylonService } from '../../../../../../../web-smokeview-lib/src/lib/services/babylon/babylon.service';
 
 @Component({
@@ -32,11 +32,18 @@ export class VisualizeComponent implements OnInit, AfterViewInit {
   ngAfterViewInit() {
     // The scene can become ready before the scenario has finished loading - on a
     // slow backend it reliably does, and reaching for fdsObject then throws and
-    // leaves the preview blank. Wait for both instead of assuming an order.
-    this.readySub = combineLatest([
-      this.babylonService.ready$,
-      this.mainService.getMain().pipe(filter(main => !!main?.currentFdsScenario?.fdsObject))
-    ]).pipe(take(1)).subscribe(() => this.renderScenario());
+    // leaves the preview blank for the rest of the session.
+    //
+    // The scenario cannot be awaited as a stream: MainService never calls
+    // mainSubject.next(), it mutates the shared Main object in place, so
+    // subscribers are told nothing when a scenario arrives. Hence the poll.
+    this.readySub = this.babylonService.ready$.pipe(
+      switchMap(() => timer(0, 250).pipe(
+        map(() => this.main),
+        filter(main => !!main?.currentFdsScenario?.fdsObject),
+        take(1)
+      ))
+    ).subscribe(() => this.renderScenario());
   }
 
   private renderScenario(): void {
