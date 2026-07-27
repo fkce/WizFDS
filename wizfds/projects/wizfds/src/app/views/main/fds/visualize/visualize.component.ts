@@ -2,8 +2,9 @@ import { Component, OnInit, AfterViewInit } from '@angular/core';
 import { SmokeviewApiService } from '../../../../../../../web-smokeview-lib/src/lib/services/smokeview-api/smokeview-api.service';
 import { MainService } from '@services/main/main.service';
 import { Main } from '@services/main/main';
-import { Subscription, timer } from 'rxjs';
-import { filter, map, switchMap, take } from 'rxjs/operators';
+import { Subscription, timer, TimeoutError } from 'rxjs';
+import { filter, map, switchMap, take, timeout } from 'rxjs/operators';
+import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 import { BabylonService } from '../../../../../../../web-smokeview-lib/src/lib/services/babylon/babylon.service';
 
 @Component({
@@ -14,6 +15,9 @@ import { BabylonService } from '../../../../../../../web-smokeview-lib/src/lib/s
 })
 export class VisualizeComponent implements OnInit, AfterViewInit {
 
+  /** How long to wait for the scenario before giving up on the preview. */
+  private static readonly SCENARIO_TIMEOUT_MS = 30000;
+
   main: Main;
 
   mainSub: Subscription;
@@ -22,7 +26,8 @@ export class VisualizeComponent implements OnInit, AfterViewInit {
   constructor(
     private mainService: MainService,
     private smvApiService: SmokeviewApiService,
-    private babylonService: BabylonService
+    private babylonService: BabylonService,
+    private snackBarService: SnackBarService
   ) { }
 
   ngOnInit(): void {
@@ -36,14 +41,26 @@ export class VisualizeComponent implements OnInit, AfterViewInit {
     //
     // The scenario cannot be awaited as a stream: MainService never calls
     // mainSubject.next(), it mutates the shared Main object in place, so
-    // subscribers are told nothing when a scenario arrives. Hence the poll.
+    // subscribers are told nothing when a scenario arrives. Hence the poll -
+    // the proper fix belongs in MainService, not here.
     this.readySub = this.babylonService.ready$.pipe(
       switchMap(() => timer(0, 250).pipe(
         map(() => this.main),
         filter(main => !!main?.currentFdsScenario?.fdsObject),
-        take(1)
+        take(1),
+        // Without this the poll spins until the component is destroyed, and a
+        // scenario that never arrives leaves the user with a silent blank canvas.
+        timeout({ first: VisualizeComponent.SCENARIO_TIMEOUT_MS })
       ))
-    ).subscribe(() => this.renderScenario());
+    ).subscribe({
+      next: () => this.renderScenario(),
+      error: (error) => {
+        const message = error instanceof TimeoutError
+          ? 'Scenario did not load in time - 3D preview unavailable'
+          : 'Could not draw the 3D preview';
+        this.snackBarService.notify('error', message);
+      }
+    });
   }
 
   private renderScenario(): void {
