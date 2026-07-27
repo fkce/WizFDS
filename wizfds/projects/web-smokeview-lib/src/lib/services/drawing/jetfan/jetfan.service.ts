@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import * as BABYLON from 'babylonjs';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
+import { FaceRange, SceneRegistryService } from '../../babylon/scene-registry.service';
 
 import { BabylonService } from '../../babylon/babylon.service';
 import { HelpersService } from '../../helpers/helpers.service';
@@ -28,10 +29,14 @@ export class JetfanService implements SceneScoped {
   public clipY: number = 0;
   public clipZ: number = 0;
 
+  /** What this service put in the registry, so a re-render can take it out. */
+  private registeredUuids: string[] = [];
+
   constructor(
     private babylonService: BabylonService,
     private helpersService: HelpersService,
     private ventService: VentService,
+    private sceneRegistry: SceneRegistryService,
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
@@ -45,6 +50,30 @@ export class JetfanService implements SceneScoped {
     this.materialTransparent = null;
     this.arrowMeshes.length = 0;
     this.arrowMaterial = null;
+    // The registry empties itself with the scene - this is only about not
+    // holding on to uuids that named meshes of a scene that is gone.
+    this.registeredUuids.length = 0;
+  }
+
+  /**
+   * Tell the registry where a batch of jetfans ended up, now that its mesh
+   * exists. The bodies share one buffer, so identity is a face range within it.
+   */
+  private registerFaces(mesh: BABYLON.Mesh, faces: FaceRange[]): void {
+    faces.forEach(({ uuid, first, count }) => {
+      this.sceneRegistry.register(uuid, { mesh: mesh, faces: { first: first, count: count } });
+      this.registeredUuids.push(uuid);
+    });
+  }
+
+  /**
+   * Drop the entries of the previous render, together with the meshes they
+   * name: a jetfan taken out of the scenario would otherwise keep answering for
+   * faces of a buffer it is no longer in.
+   */
+  private forgetRegisteredFaces(): void {
+    this.registeredUuids.forEach(uuid => this.sceneRegistry.forget(uuid));
+    this.registeredUuids.length = 0;
   }
 
   /**
@@ -232,8 +261,16 @@ export class JetfanService implements SceneScoped {
 
   /**
    * Update jetfans vertex data (similar to obsts)
+   *
+   * `faces` says which triangles of each buffer belong to which jetfan. Both
+   * buffers batch several jetfans into one mesh, so naming the mesh alone would
+   * not say which of them was hit - and the ranges are per buffer, because a
+   * face index only means anything inside the one it was counted in.
    */
   public updateJetfansVertexData() {
+    let jetfansFaces: FaceRange[] = [];
+    let jetfansFacesTransparent: FaceRange[] = [];
+
     let jetfansVertices: number[] = [];
     let jetfansIndices: number[] = [];
     let jetfansColors: number[] = [];
@@ -263,6 +300,11 @@ export class JetfanService implements SceneScoped {
         const colors = isTransparent ? jetfansColorsTransparent : jetfansColors;
         const normals = isTransparent ? jetfansNormalsTransparent : jetfansNormals;
         const currentIndexCount = isTransparent ? indexCountTransparent : indexCount;
+        const faces = isTransparent ? jetfansFacesTransparent : jetfansFaces;
+
+        // Read afterwards rather than computed: nothing here may assume a fixed
+        // triangle count per jetfan.
+        const facesBefore = indices.length / 3;
 
         // Generate jetfan geometry (box like obst) - using exact same pattern as obst service
         if (isTransparent) {
@@ -278,6 +320,10 @@ export class JetfanService implements SceneScoped {
           indices.push(...this.helpersService.getIndices(indexCount));
           indexCount++;
         }
+
+        faces.push({
+          uuid: jetfan.uuid, first: facesBefore, count: indices.length / 3 - facesBefore
+        });
       }
     });
 
@@ -287,13 +333,15 @@ export class JetfanService implements SceneScoped {
         vertices: jetfansVertices,
         indices: jetfansIndices,
         colors: jetfansColors,
-        normals: jetfansNormals
+        normals: jetfansNormals,
+        faces: jetfansFaces
       },
       transparent: {
         vertices: jetfansVerticesTransparent,
         indices: jetfansIndicesTransparent,
         colors: jetfansColorsTransparent,
-        normals: jetfansNormalsTransparent
+        normals: jetfansNormalsTransparent,
+        faces: jetfansFacesTransparent
       }
     };
   }
@@ -380,7 +428,8 @@ export class JetfanService implements SceneScoped {
     // Get vertex data for jetfan boxes
     const jetfanData = this.updateJetfansVertexData();
 
-    // Dispose existing meshes
+    // Dispose existing meshes, and the registry entries that named them
+    this.forgetRegisteredFaces();
     if (this.mesh) {
       this.mesh.dispose();
       this.mesh = null;
@@ -409,7 +458,11 @@ export class JetfanService implements SceneScoped {
       vertexData.normals = computedNormals; // Use computed normals
       
       vertexData.applyToMesh(this.mesh);
-      
+
+      // Before the material, not after: which jetfan a face belongs to is
+      // settled by the buffer, and stays true even if the shader never arrives.
+      this.registerFaces(this.mesh, jetfanData.opaque.faces);
+
       // Create material for opaque jetfans (jetfan boxes reuse the obst shader)
       this.material = await this.babylonService.createShaderMaterial({
         name: "jetfanShader",
@@ -444,7 +497,9 @@ export class JetfanService implements SceneScoped {
       vertexDataTransparent.normals = computedNormalsTransparent; // Use computed normals
       
       vertexDataTransparent.applyToMesh(this._meshTransparent);
-      
+
+      this.registerFaces(this._meshTransparent, jetfanData.transparent.faces);
+
       // Create material for transparent jetfans
       this.materialTransparent = await this.babylonService.createShaderMaterial({
         name: "jetfanTransparentShader",
@@ -633,6 +688,7 @@ export class JetfanService implements SceneScoped {
    */
   public clear() {
     this.jetfans = [];
+    this.forgetRegisteredFaces();
     if (this.mesh) {
       this.mesh.dispose();
       this.mesh = null;

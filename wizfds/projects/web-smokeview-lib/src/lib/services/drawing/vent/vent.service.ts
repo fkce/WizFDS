@@ -1,6 +1,7 @@
 import { Injectable, isDevMode } from '@angular/core';
 import * as BABYLON from 'babylonjs';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
+import { FaceRange, SceneRegistryService } from '../../babylon/scene-registry.service';
 import { forEach, cloneDeep, toNumber } from 'lodash';
 
 import { BabylonService } from '../../babylon/babylon.service';
@@ -32,9 +33,13 @@ export class VentService implements SceneScoped {
   private basicClipYNorm: number = -1.1;
   private basicClipZNorm: number = 1.1;
 
+  /** What this service put in the registry, so a re-render can take it out. */
+  private registeredBasicUuids: string[] = [];
+
   constructor(
     private babylonService: BabylonService,
     private helpersService: HelpersService,
+    private sceneRegistry: SceneRegistryService,
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
@@ -48,10 +53,40 @@ export class VentService implements SceneScoped {
     this.materialTransparent = null;
     this.basicMeshGroups.length = 0;
     this.basicVisibility = 0;
+    // The registry empties itself with the scene - this is only about not
+    // holding on to uuids that named meshes of a scene that is gone.
+    this.registeredBasicUuids.length = 0;
+  }
+
+  /**
+   * Tell the registry where a batch of basic vents ended up, now that its mesh
+   * exists. A colour group shares one buffer, so identity is a face range
+   * within it.
+   */
+  private registerBasicFaces(mesh: BABYLON.Mesh, faces: FaceRange[]): void {
+    faces.forEach(({ uuid, first, count }) => {
+      this.sceneRegistry.register(uuid, { mesh: mesh, faces: { first: first, count: count } });
+      this.registeredBasicUuids.push(uuid);
+    });
+  }
+
+  /**
+   * Drop the entries of the previous render, together with the meshes they
+   * name: a vent taken out of the scenario would otherwise keep answering for
+   * faces of a buffer it is no longer in.
+   */
+  private forgetRegisteredBasicFaces(): void {
+    this.registeredBasicUuids.forEach(uuid => this.sceneRegistry.forget(uuid));
+    this.registeredBasicUuids.length = 0;
   }
 
   /**
    * Update vents vertex data
+   *
+   * These are the inlet and outlet planes drawn for a jetfan, not vents from
+   * the FDS model: their uuids are made up from the jetfan's, so there is no
+   * element for the registry to name. The jetfan body carries that identity -
+   * see JetfanService.
    */
   public updateVentsVertexData() {
     let ventsVertices: number[] = [];
@@ -304,16 +339,27 @@ export class VentService implements SceneScoped {
 
   /**
    * Build batched vertex data for a group of basic vents
+   *
+   * `faces` says which triangles of this buffer belong to which vent. The whole
+   * group shares one mesh, so naming the mesh alone would not say which vent
+   * was hit - and the ranges are per group, because a face index only means
+   * anything inside the buffer it was counted in.
    */
-  private buildBasicVentsVertexData(vents: IVent[]) {
+  private buildBasicVentsVertexData(vents: IVent[]): {
+    vertices: number[], indices: number[], colors: number[], normals: number[], faces: FaceRange[]
+  } {
     let vertices: number[] = [];
     let indices: number[] = [];
     let colors: number[] = [];
     let normals: number[] = [];
     let indexCount = 0;
+    const faces: FaceRange[] = [];
 
     vents.forEach((vent) => {
       if (vent.vis && vent.vis.xbNorm) {
+        // Read afterwards rather than computed: nothing here may assume a fixed
+        // triangle count per vent.
+        const facesBefore = indices.length / 3;
         const geom = this.helpersService.generateVentGeometry(vent.vis.xbNorm);
 
         vertices.push(...geom.vertices);
@@ -333,24 +379,31 @@ export class VentService implements SceneScoped {
           indices.push(geom.indices[i] + indexCount);
         }
         indexCount += geom.vertices.length / 3;
+
+        faces.push({
+          uuid: vent.uuid, first: facesBefore, count: indices.length / 3 - facesBefore
+        });
       }
     });
 
-    return { vertices, indices, colors, normals };
+    return { vertices, indices, colors, normals, faces };
   }
 
   /**
    * Render basic vents — grouped by edge color so each group gets correct edgesColor
    */
   public async renderBasicVents() {
+    // Dispose before the empty check, not after: deleting the last vent of a
+    // scenario arrives here as an empty list, and the meshes drawn for the
+    // previous one - along with the registry entries naming them - have to go
+    // with it rather than outlive the vents they stand for.
+    this.disposeBasicMeshGroups();
+
     if (!this.basicVents || this.basicVents.length === 0) {
       return;
     }
 
     this.normalizeBasicVents();
-
-    // Dispose existing mesh groups
-    this.disposeBasicMeshGroups();
 
     // Group vents by edge color (colorNorm RGB rounded to 3 decimals)
     const colorGroups = new Map<string, IVent[]>();
@@ -376,6 +429,10 @@ export class VentService implements SceneScoped {
       vertexData.colors = data.colors;
       vertexData.normals = data.normals;
       vertexData.applyToMesh(mesh);
+
+      // Before the material, not after: which vent a face belongs to is settled
+      // by the buffer, and stays true even if the shader never arrives.
+      this.registerBasicFaces(mesh, data.faces);
 
       // Basic vents borrow the fire shader - it has clipping plus a transparent uniform
       const material = await this.babylonService.createShaderMaterial({
@@ -482,8 +539,13 @@ export class VentService implements SceneScoped {
 
   /**
    * Dispose all basic mesh groups
+   *
+   * The registry entries go with them: a vent left registered against a
+   * disposed mesh would keep answering for faces that no longer exist.
    */
   private disposeBasicMeshGroups() {
+    this.forgetRegisteredBasicFaces();
+
     this.basicMeshGroups.forEach(g => {
       g.mesh.dispose();
     });
