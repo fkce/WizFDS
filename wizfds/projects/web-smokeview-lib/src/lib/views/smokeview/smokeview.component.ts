@@ -10,7 +10,6 @@ import { SmokeviewApiService } from '../../services/smokeview-api/smokeview-api.
 import { forEach, startsWith, toLower, trim, toNumber, minBy, min, maxBy, max, sortBy } from 'lodash';
 import { ViewCubeService } from '../../services/babylon/viewCube/view-cube.service';
 import * as BABYLON from 'babylonjs';
-import { IObst } from '../../services/drawing/interfaces';
 import { MeshService } from '../../services/drawing/mesh/mesh.service';
 import { OpenService } from '../../services/drawing/open/open.service';
 import { VentService } from '../../services/drawing/vent/vent.service';

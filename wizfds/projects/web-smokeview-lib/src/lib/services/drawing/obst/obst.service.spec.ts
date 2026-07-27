@@ -4,34 +4,30 @@ import * as BABYLON from 'babylonjs';
 import { ObstService } from './obst.service';
 import { BabylonService } from '../../babylon/babylon.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
-import { IHole, IObst, IXb } from '../interfaces';
+import { SceneColor, SceneHole, SceneObst, SceneXb } from '../scene-input';
 
-function makeObst(id: string, xb: IXb): IObst {
+/** An &SURF with TRANSPARENCY=1, as the app resolves it. */
+const OPAQUE: SceneColor = { r: 1, g: 208 / 255, b: 0, a: 1 };
+
+/** An &SURF with TRANSPARENCY=0.4 - drawn into the second buffer. */
+const GLAZED: SceneColor = { r: 0, g: 128 / 255, b: 1, a: 0.4 };
+
+function makeObst(id: string, xb: SceneXb, color: SceneColor = OPAQUE): SceneObst {
   return {
     id: id,
     uuid: `${id}-uuid`,
-    idAC: 1,
     xb: xb,
-    surf: { surf_id: { id: 'SURF_1' } },
-    elevation: 0,
-    thicken: false,
-    overlay: true,
-    permit_hole: true,
-    removable: true,
-    ctrl_id: '',
-    devc_id: '',
-    // Deliberately left un-normalized: holes are assigned before normalizeObsts() runs
-    vis: { xbNorm: { x1: 0, x2: 0, y1: 0, y2: 0, z1: 0, z2: 0 }, colorNorm: [1, 1, 1, 1] }
+    surfId: 'SURF_1',
+    permitHole: true,
+    color: color
   };
 }
 
-function makeHole(id: string, xb: IXb): IHole {
+function makeHole(id: string, xb: SceneXb): SceneHole {
   return {
     id: id,
     uuid: `${id}-uuid`,
-    idAC: 2,
-    xb: xb,
-    vis: { xbNorm: { x1: 0, x2: 0, y1: 0, y2: 0, z1: 0, z2: 0 }, colorNorm: [1, 1, 1, 1] }
+    xb: xb
   };
 }
 
@@ -89,26 +85,28 @@ describe('ObstService', () => {
     expect(service).toBeTruthy();
   });
 
-  describe('assignHolesToObsts', () => {
-    it('assigns a doorway cut clean through a wall to that wall', () => {
-      // &OBST XB=0.0,4.0,2.0,2.2,0.0,3.0 - a 0.2 m thick wall along the X axis
-      const wall = makeObst('WALL', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 });
-      // &HOLE XB=1.0,2.0,1.9,2.3,0.0,2.1 - a door punched through the full wall
-      // thickness, overhanging it by 0.1 m on each face
-      const doorway = makeHole('DOOR', { x1: 1.0, x2: 2.0, y1: 1.9, y2: 2.3, z1: 0.0, z2: 2.1 });
+  describe('renderJson', () => {
+    // The standalone viewer reads geometry straight out of a Smokeview export
+    // and has no scenario to hand over - see ADR-0004.
 
-      service.obsts = [wall];
-      service.holes = [doorway];
+    it('does not empty the buffers it was handed on the next render', () => {
+      const data = {
+        vertices: [0, 0, 0, 1, 0, 0, 1, 1, 0],
+        colors: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        indices: [0, 1, 2]
+      };
 
-      service.assignHolesToObsts();
+      service.renderJson(data);
+      service.obsts = [makeObst('W1', { x1: 0, x2: 4, y1: 2, y2: 2.2, z1: 0, z2: 3 })];
+      service.holes = [];
+      service.renderObsts();
 
-      expect(wall.holes).toEqual([doorway]);
+      expect(data.vertices.length).toBe(9);
+      expect(data.indices.length).toBe(3);
     });
   });
 
   describe('vertex normals', () => {
-    const opaqueSurf = { id: 'SURF_1', color: { rgb: [255, 208, 0] }, transparency: 1 };
-
     it('computes a unit normal for every vertex of every obst', () => {
       // Three walls so that per-obst normals cannot be confused with each other
       service.obsts = [
@@ -117,7 +115,6 @@ describe('ObstService', () => {
         makeObst('W3', { x1: 6.0, x2: 8.0, y1: 6.0, y2: 6.2, z1: 0.0, z2: 2.5 })
       ];
       service.holes = [];
-      service.surfs = [opaqueSurf];
 
       service.renderObsts();
 
@@ -134,8 +131,41 @@ describe('ObstService', () => {
     });
   });
 
+  describe('colours', () => {
+    // The app resolves the &SURF before the obst crosses the boundary, so the
+    // alpha it hands over is what decides which buffer the obst lands in.
+
+    it('draws a fully opaque obst into the opaque buffer', () => {
+      service.obsts = [makeObst('W1', { x1: 0, x2: 4, y1: 2, y2: 2.2, z1: 0, z2: 3 }, OPAQUE)];
+      service.holes = [];
+
+      service.renderObsts();
+
+      expect(service.vertices.length).toBeGreaterThan(0);
+      expect(service.meshTransparent).toBeFalsy();
+    });
+
+    it('draws an obst short of fully opaque into the transparent buffer', () => {
+      service.obsts = [makeObst('W1', { x1: 0, x2: 4, y1: 2, y2: 2.2, z1: 0, z2: 3 }, GLAZED)];
+      service.holes = [];
+
+      service.renderObsts();
+
+      expect(service.vertices.length).toBe(0);
+      expect(service.meshTransparent).toBeTruthy();
+    });
+
+    it('puts the colour it was given into the vertex buffer', () => {
+      service.obsts = [makeObst('W1', { x1: 0, x2: 4, y1: 2, y2: 2.2, z1: 0, z2: 3 }, OPAQUE)];
+      service.holes = [];
+
+      service.renderObsts();
+
+      expect(service.colors.slice(0, 4)).toEqual([OPAQUE.r, OPAQUE.g, OPAQUE.b, OPAQUE.a]);
+    });
+  });
+
   describe('triangle winding', () => {
-    const opaqueSurf = { id: 'SURF_1', color: { rgb: [255, 208, 0] }, transparency: 1 };
     const wallXb = { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 };
 
     beforeAll(async () => {
@@ -149,13 +179,11 @@ describe('ObstService', () => {
       // mixed winding shows up as red exterior walls on the obsts with openings.
       service.obsts = [makeObst('PLAIN', wallXb)];
       service.holes = [];
-      service.surfs = [opaqueSurf];
       service.renderObsts();
       const plain = signedVolume(service.vertices, service.indices);
 
       service.obsts = [makeObst('WITH_HOLE', wallXb)];
       service.holes = [makeHole('DOOR', { x1: 1.0, x2: 2.0, y1: 1.9, y2: 2.3, z1: 0.0, z2: 2.1 })];
-      service.surfs = [opaqueSurf];
       service.renderObsts();
       const cut = signedVolume(service.vertices, service.indices);
 
@@ -190,13 +218,11 @@ describe('ObstService', () => {
       // whatever VertexData.ComputeNormals settles on.
       service.obsts = [makeObst('PLAIN', wallXb)];
       service.holes = [];
-      service.surfs = [opaqueSurf];
       service.renderObsts();
       const plain = normalWindingAgreement();
 
       service.obsts = [makeObst('WITH_HOLE', wallXb)];
       service.holes = [makeHole('DOOR', { x1: 1.0, x2: 2.0, y1: 1.9, y2: 2.3, z1: 0.0, z2: 2.1 })];
-      service.surfs = [opaqueSurf];
       service.renderObsts();
       const cut = normalWindingAgreement();
 
@@ -208,7 +234,6 @@ describe('ObstService', () => {
   });
 
   describe('scene registry', () => {
-    const opaqueSurf = { id: 'SURF_1', color: { rgb: [255, 208, 0] }, transparency: 1 };
     const wallXb = { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 };
     let registry: SceneRegistryService;
 
@@ -222,7 +247,6 @@ describe('ObstService', () => {
         makeObst('W2', { x1: 0.0, x2: 0.2, y1: 0.0, y2: 4.0, z1: 0.0, z2: 3.0 })
       ];
       service.holes = [];
-      service.surfs = [opaqueSurf];
 
       service.renderObsts();
 
@@ -234,7 +258,6 @@ describe('ObstService', () => {
     it('maps a face back to the obst that owns it', () => {
       service.obsts = [makeObst('W1', wallXb), makeObst('W2', wallXb)];
       service.holes = [];
-      service.surfs = [opaqueSurf];
 
       service.renderObsts();
 
@@ -255,7 +278,6 @@ describe('ObstService', () => {
         makeObst('PLAIN', { x1: 6.0, x2: 8.0, y1: 6.0, y2: 6.2, z1: 0.0, z2: 2.5 })
       ];
       service.holes = [makeHole('DOOR', { x1: 1.0, x2: 2.0, y1: 1.9, y2: 2.3, z1: 0.0, z2: 2.1 })];
-      service.surfs = [opaqueSurf];
 
       service.renderObsts();
 
@@ -270,7 +292,6 @@ describe('ObstService', () => {
     it('forgets the previous render rather than stacking entries', () => {
       service.obsts = [makeObst('W1', wallXb)];
       service.holes = [];
-      service.surfs = [opaqueSurf];
       service.renderObsts();
 
       service.obsts = [makeObst('W2', wallXb)];
@@ -282,12 +303,9 @@ describe('ObstService', () => {
   });
 
   describe('resetSceneState', () => {
-    const opaqueSurf = { id: 'SURF_1', color: { rgb: [255, 208, 0] }, transparency: 1 };
-
     it('lets go of everything that belonged to the disposed scene', () => {
       service.obsts = [makeObst('W1', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 })];
       service.holes = [];
-      service.surfs = [opaqueSurf];
       service.renderObsts();
       service.pickedObst = makeObst('W1', { x1: 0, x2: 1, y1: 0, y2: 1, z1: 0, z2: 1 });
 
@@ -310,7 +328,6 @@ describe('ObstService', () => {
     it('leaves the service able to draw into the next scene', () => {
       service.obsts = [makeObst('W1', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 })];
       service.holes = [];
-      service.surfs = [opaqueSurf];
       service.renderObsts();
 
       service.resetSceneState();
@@ -369,9 +386,6 @@ describe('ObstService', () => {
   });
 
   describe('material lifetime', () => {
-    const opaqueSurf = { id: 'SURF_1', color: { rgb: [255, 208, 0] }, transparency: 1 };
-    const glazedSurf = { id: 'SURF_2', color: { rgb: [0, 128, 255] }, transparency: 0.4 };
-
     beforeEach(() => {
       // The suite-wide stub rejects, so no material is ever built and there is
       // nothing to leak. Hand out real ones here to see what render() keeps.
@@ -400,7 +414,6 @@ describe('ObstService', () => {
     it('keeps the back cap opposite the wireframe across clicks', async () => {
       service.obsts = [makeObst('W1', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 })];
       service.holes = [];
-      service.surfs = [opaqueSurf];
       service.renderObsts();
       await settleMaterials();
 
@@ -421,7 +434,6 @@ describe('ObstService', () => {
 
       service.obsts = [makeObst('W1', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 })];
       service.holes = [];
-      service.surfs = [opaqueSurf];
       service.renderObsts();
       await settleMaterials();
 
@@ -434,7 +446,6 @@ describe('ObstService', () => {
 
       service.obsts = [makeObst('W1', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 })];
       service.holes = [];
-      service.surfs = [opaqueSurf];
       service.renderObsts();
       await settleMaterials();
 
@@ -450,11 +461,10 @@ describe('ObstService', () => {
       // Navigating back into the view re-renders the same scenario. Meshes are
       // disposed by name-less reference, so a missed dispose shows up here.
       service.obsts = [
-        makeObst('W1', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 }),
-        { ...makeObst('W2', { x1: 0.0, x2: 0.2, y1: 0.0, y2: 4.0, z1: 0.0, z2: 3.0 }), surf: { surf_id: { id: 'SURF_2' } } } as IObst
+        makeObst('W1', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 }, OPAQUE),
+        makeObst('W2', { x1: 0.0, x2: 0.2, y1: 0.0, y2: 4.0, z1: 0.0, z2: 3.0 }, GLAZED)
       ];
       service.holes = [];
-      service.surfs = [opaqueSurf, glazedSurf];
 
       service.renderObsts();
       await settleMaterials();
@@ -475,11 +485,10 @@ describe('ObstService', () => {
       // One opaque and one glazed wall, so all three materials are in play:
       // opaque, transparent and back cap.
       service.obsts = [
-        makeObst('W1', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 }),
-        { ...makeObst('W2', { x1: 0.0, x2: 0.2, y1: 0.0, y2: 4.0, z1: 0.0, z2: 3.0 }), surf: { surf_id: { id: 'SURF_2' } } } as IObst
+        makeObst('W1', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 }, OPAQUE),
+        makeObst('W2', { x1: 0.0, x2: 0.2, y1: 0.0, y2: 4.0, z1: 0.0, z2: 3.0 }, GLAZED)
       ];
       service.holes = [];
-      service.surfs = [opaqueSurf, glazedSurf];
 
       service.renderObsts();
       await settleMaterials();
@@ -498,31 +507,47 @@ describe('ObstService', () => {
   });
 
   describe('clipping back cap', () => {
-    const opaqueSurf = { id: 'SURF_1', color: { rgb: [255, 208, 0] }, transparency: 1 };
-
     it('builds the back cap for a plain wall', () => {
       service.obsts = [makeObst('WALL', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 })];
       service.holes = [];
-      service.surfs = [opaqueSurf];
 
       service.renderObsts();
 
       expect(service.meshBackCap).toBeTruthy();
     });
 
-    it('builds the back cap for a wall that has a doorway cut out of it', () => {
+    it('builds the back cap for a wall that has a doorway cut out of it', async () => {
       // Without the back cap the clipped cross-section renders hollow instead of
       // solid red - and the cap is switched off for the whole scene, not just
       // for the wall carrying the hole.
-      const wall = makeObst('WALL', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 });
-      service.obsts = [wall];
+      await BABYLON.InitializeCSG2Async({ manifoldUrl: '/assets/manifold' });
+      const registry = TestBed.inject(SceneRegistryService);
+
+      service.obsts = [makeObst('WALL', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 })];
       service.holes = [makeHole('DOOR', { x1: 1.0, x2: 2.0, y1: 1.9, y2: 2.3, z1: 0.0, z2: 2.1 })];
-      service.surfs = [opaqueSurf];
 
       service.renderObsts();
 
-      expect(wall.holes.length).withContext('the doorway must reach the wall').toBe(1);
+      expect(registry.entryFor('WALL-uuid').faces.count)
+        .withContext('the doorway must reach the wall, so the wall is not a plain box')
+        .not.toBe(12);
       expect(service.meshBackCap).toBeTruthy();
+    });
+
+    it('draws an obst that forbids holes as a solid box', () => {
+      // PERMIT_HOLE=.FALSE. means FDS ignores the opening, so the preview has to
+      // as well - even though the boxes overlap.
+      const sealed: SceneObst = {
+        ...makeObst('SEALED', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 }),
+        permitHole: false
+      };
+      service.obsts = [sealed];
+      service.holes = [makeHole('DOOR', { x1: 1.0, x2: 2.0, y1: 1.9, y2: 2.3, z1: 0.0, z2: 2.1 })];
+
+      service.renderObsts();
+
+      const registry = TestBed.inject(SceneRegistryService);
+      expect(registry.entryFor('SEALED-uuid').faces.count).toBe(12);
     });
   });
 });

@@ -2,18 +2,25 @@ import { Injectable } from '@angular/core';
 import * as BABYLON from 'babylonjs';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
-import { forEach, cloneDeep, toNumber } from 'lodash';
 
 import { BabylonService } from '../../babylon/babylon.service';
 import { HelpersService } from '../../helpers/helpers.service';
-import { IFire } from '../interfaces';
+import { SceneFire, SceneXb } from '../scene-input';
+
+/** A fire as the app gave it, paired with where the library puts it. */
+interface PlacedFire {
+  readonly fire: SceneFire,
+  readonly xbNorm: SceneXb,
+  /** The colour as a flat rgba array, ready for the vertex buffer. */
+  readonly color: number[]
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class FireService implements SceneScoped {
 
-  public fires: IFire[] = [];
+  public fires: readonly SceneFire[] = [];
   public mesh: BABYLON.Mesh;
   public material: BABYLON.ShaderMaterial;
 
@@ -51,48 +58,23 @@ export class FireService implements SceneScoped {
   }
 
   /**
-   * Normalize fire coordinates and colors using shared mesh bounds
+   * Place the fires in the scene, against the bounds the meshes established.
+   *
+   * A fire is drawn as the plane of its &VENT in the colour of its &SURF; both
+   * arrive resolved, so there is nothing to look up here.
    */
-  private normalizeFires(): void {
-    let delta = this.helpersService.normDelta;
-    let xMin = this.helpersService.normXMin;
-    let yMin = this.helpersService.normYMin;
-    let zMin = this.helpersService.normZMin;
-
-    forEach(this.fires, (fire: IFire) => {
-      // Normalize xb
-      let xb = cloneDeep(fire.xb);
-      forEach(xb, (o, key) => {
-        xb[key] = toNumber(o);
-      });
-
-      xb.x1 += (xMin < 0) ? -xMin : xMin;
-      fire.vis.xbNorm.x1 = xb.x1 / delta;
-      xb.x2 += (xMin < 0) ? -xMin : xMin;
-      fire.vis.xbNorm.x2 = xb.x2 / delta;
-
-      xb.y1 += (yMin < 0) ? -yMin : yMin;
-      fire.vis.xbNorm.y1 = xb.y1 / delta;
-      xb.y2 += (yMin < 0) ? -yMin : yMin;
-      fire.vis.xbNorm.y2 = xb.y2 / delta;
-
-      xb.z1 += (zMin < 0) ? -zMin : zMin;
-      fire.vis.xbNorm.z1 = xb.z1 / delta;
-      xb.z2 += (zMin < 0) ? -zMin : zMin;
-      fire.vis.xbNorm.z2 = xb.z2 / delta;
-
-      // Normalize color (RGB 0-255 → 0-1), fallback red
-      const rgb = (fire.color && fire.color.rgb && fire.color.rgb.length >= 3)
-        ? fire.color.rgb
-        : [255, 0, 0];
-      fire.vis.colorNorm = [rgb[0] / 255, rgb[1] / 255, rgb[2] / 255, 1];
-    });
+  private placeFires(): PlacedFire[] {
+    return (this.fires || []).map((fire: SceneFire) => ({
+      fire: fire,
+      xbNorm: this.helpersService.normalizeXb(fire.xb),
+      color: this.helpersService.toRgba(fire.color)
+    }));
   }
 
   /**
    * Build batched vertex data for all fires using vent geometry (planes)
    */
-  private updateFiresVertexData() {
+  private updateFiresVertexData(placed: readonly PlacedFire[]) {
     let vertices: number[] = [];
     let indices: number[] = [];
     let colors: number[] = [];
@@ -101,33 +83,27 @@ export class FireService implements SceneScoped {
 
     this.pendingRegistrations.length = 0;
 
-    this.fires.forEach((fire) => {
-      if (fire.vis && fire.vis.xbNorm) {
-        const facesBefore = indices.length / 3;
-        const geom = this.helpersService.generateVentGeometry(fire.vis.xbNorm);
+    placed.forEach((placedFire: PlacedFire) => {
+      const facesBefore = indices.length / 3;
+      const geom = this.helpersService.generateVentGeometry(placedFire.xbNorm);
 
-        vertices.push(...geom.vertices);
-        normals.push(...geom.normals);
+      vertices.push(...geom.vertices);
+      normals.push(...geom.normals);
 
-        const fireColor = [
-          fire.vis.colorNorm[0],
-          fire.vis.colorNorm[1],
-          fire.vis.colorNorm[2],
-          1.0
-        ];
-        for (let i = 0; i < geom.vertices.length / 3; i++) {
-          colors.push(...fireColor);
-        }
-
-        for (let i = 0; i < geom.indices.length; i++) {
-          indices.push(geom.indices[i] + indexCount);
-        }
-        indexCount += geom.vertices.length / 3;
-
-        this.pendingRegistrations.push({
-          uuid: fire.uuid, first: facesBefore, count: indices.length / 3 - facesBefore
-        });
+      // Fires are always drawn opaque, whatever the &SURF says
+      const fireColor = [placedFire.color[0], placedFire.color[1], placedFire.color[2], 1.0];
+      for (let i = 0; i < geom.vertices.length / 3; i++) {
+        colors.push(...fireColor);
       }
+
+      for (let i = 0; i < geom.indices.length; i++) {
+        indices.push(geom.indices[i] + indexCount);
+      }
+      indexCount += geom.vertices.length / 3;
+
+      this.pendingRegistrations.push({
+        uuid: placedFire.fire.uuid, first: facesBefore, count: indices.length / 3 - facesBefore
+      });
     });
 
     return { vertices, indices, colors, normals };
@@ -141,11 +117,11 @@ export class FireService implements SceneScoped {
       return;
     }
 
-    // Normalize coordinates using shared mesh bounds
-    this.normalizeFires();
+    // Place them against the bounds the meshes established
+    const placed = this.placeFires();
 
     // Build vertex data
-    const data = this.updateFiresVertexData();
+    const data = this.updateFiresVertexData(placed);
 
     if (data.vertices.length === 0) {
       return;

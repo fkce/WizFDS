@@ -1,6 +1,6 @@
 import { Injectable, isDevMode } from '@angular/core';
 import { ObstService } from '../drawing/obst/obst.service';
-import { IObst, ISurf, IMesh, IOpen, IVent, IJetFan, IHole, IFire } from '../drawing/interfaces';
+import { SceneInput } from '../drawing/scene-input';
 import { MeshService } from '../drawing/mesh/mesh.service';
 import { OpenService } from '../drawing/open/open.service';
 import { VentService } from '../drawing/vent/vent.service';
@@ -21,59 +21,60 @@ export class SmokeviewApiService {
     private fireService: FireService
   ) { }
 
-  public renderObsts(obsts: IObst[], surfs?: ISurf[]) {
-    this.obstService.obsts = obsts;
-    this.obstService.surfs = surfs;
+  /**
+   * Draw a scenario.
+   *
+   * One call for the whole scene rather than one per element type: the drawing
+   * services share the normalisation the meshes establish, so the order below is
+   * part of the contract and not something a caller should have to know. Handing
+   * over `SceneInput` also means every element type crosses this boundary the
+   * same way - flat, typed and read-only (ADR-0004).
+   *
+   * The promise settles once everything has been drawn and never rejects: a
+   * failed render is logged rather than left to surface as an unhandled
+   * rejection in the host app.
+   */
+  public async render(scene: SceneInput): Promise<void> {
+    // The meshes span the whole model, so they are what the scene bounds are
+    // taken from. Everything after this is placed against those bounds.
+    this.meshService.meshes = scene.meshes;
+    this.meshService.renderMeshes();
+
+    // Holes are not drawn in their own right - they are cut out of the obsts
+    // they overlap, so the obst service needs both lists together.
+    this.obstService.obsts = scene.obsts;
+    this.obstService.holes = scene.holes;
     this.obstService.renderObsts();
+
+    this.openService.opens = scene.opens;
+    this.openService.renderOpens();
+
+    this.jetfanService.jetfans = scene.jetfans;
+    await this.settled('jetfans', () => this.jetfanService.render());
+
+    this.fireService.fires = scene.fires;
+    await this.settled('fires', () => this.fireService.renderFires());
+
+    this.ventService.basicVents = scene.vents;
+    await this.settled('vents', () => this.ventService.renderBasicVents());
   }
 
-  public renderHoles(holes: IHole[]) {
-    this.obstService.holes = holes;
-  }
-
+  /**
+   * Draw obsts from a pre-built vertex buffer.
+   *
+   * The standalone viewer reads geometry straight out of a Smokeview export, so
+   * it has no scenario to hand over - see ADR-0004.
+   */
   public renderJsonObsts(data: any) {
     this.obstService.renderJson(data);
   }
 
-  public renderMeshes(meshes: IMesh[]) {
-    this.meshService.meshes = meshes;
-    this.meshService.renderMeshes();
-  }
-
-  public renderOpens(opens: IOpen[]) {
-    this.openService.opens = opens;
-    this.openService.renderOpens();
-  }
-
-  public renderJetfans(jetfans: any[]) {
-    //this.jetfanService.jetfans = jetfans;
-    this.jetfanService.renderJetfans(jetfans);
-  }
-
-  public renderWizJetfans(jetfans: any[]) {
-    this.jetfanService.renderJetfans(jetfans);
-  }
-
-  /**
-   * Fires and basic vents render asynchronously. The returned promise settles
-   * once the render has finished, and never rejects: a failed render is logged
-   * rather than left to surface as an unhandled rejection in the host app.
-   */
-  public async renderFires(fires: IFire[]): Promise<void> {
-    this.fireService.fires = fires;
+  /** Run one drawing step, keeping a failure from taking the rest down with it. */
+  private async settled(what: string, render: () => Promise<void>): Promise<void> {
     try {
-      await this.fireService.renderFires();
+      await render();
     } catch (e) {
-      if (isDevMode()) { try { console.error('[SmokeviewApi] Failed to render fires', e); } catch { } }
-    }
-  }
-
-  public async renderVents(vents: IVent[]): Promise<void> {
-    this.ventService.basicVents = vents;
-    try {
-      await this.ventService.renderBasicVents();
-    } catch (e) {
-      if (isDevMode()) { try { console.error('[SmokeviewApi] Failed to render basic vents', e); } catch { } }
+      if (isDevMode()) { try { console.error(`[SmokeviewApi] Failed to render ${what}`, e); } catch { } }
     }
   }
 }

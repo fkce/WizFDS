@@ -1,19 +1,23 @@
 import { Injectable } from '@angular/core';
 import { BabylonService } from '../../babylon/babylon.service';
 import { HelpersService } from '../../helpers/helpers.service';
-import { forEach, max, cloneDeep, toNumber } from 'lodash';
-import { IMesh, IOpen } from '../interfaces';
+import { forEach } from 'lodash';
+import { SceneOpen, SceneXb } from '../scene-input';
 import * as BABYLON from 'babylonjs';
-import { MeshService } from '../mesh/mesh.service';
-import { Vector3 } from 'babylonjs';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
+
+/** An opening as the app gave it, paired with where the library puts it. */
+interface PlacedOpen {
+  readonly open: SceneOpen,
+  readonly xbNorm: SceneXb
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class OpenService implements SceneScoped {
-  opens: IOpen[] = [];
+  opens: readonly SceneOpen[] = [];
 
   vertices: number[] = [];
   normals: number[] = [];
@@ -29,7 +33,6 @@ export class OpenService implements SceneScoped {
   constructor(
     private babylonService: BabylonService,
     private helperService: HelpersService,
-    private meshService: MeshService,
     private sceneRegistry: SceneRegistryService,
     sceneLifecycle: SceneLifecycleService
   ) {
@@ -39,9 +42,13 @@ export class OpenService implements SceneScoped {
   /** What this service put in the registry, so a re-render can take it out. */
   private registeredUuids: string[] = [];
 
+  /** Where each opening of the last render went. Built here, never written back. */
+  private placed: PlacedOpen[] = [];
+
   /** Release everything tied to the scene that has just been disposed. */
   public resetSceneState(): void {
     this.meshes.length = 0;
+    this.placed.length = 0;
     this.material = null;
     this.vertexData = null;
     // render() does not restore this, so a stale value would leave the toggle
@@ -60,8 +67,8 @@ export class OpenService implements SceneScoped {
 
     this.disposePreviousOpens();
 
-    // Prepare normalized geometry and colors
-    this.normalizeOpens();
+    // Work out where every opening goes
+    this.placed = this.placeOpens();
 
     // Render data
     this.render();
@@ -87,42 +94,16 @@ export class OpenService implements SceneScoped {
   }
 
   /**
-   * Normalize opens
+   * Place the openings in the scene.
+   *
+   * Openings are drawn green - the colour is the library's own choice, an `OPEN`
+   * vent has none in the FDS model - so it never crosses the boundary.
    */
-  private normalizeOpens(): void {
-
-    let delta = this.helperService.normDelta;
-    let xMin = this.helperService.normXMin;
-    let yMin = this.helperService.normYMin;
-    let zMin = this.helperService.normZMin;
-
-    // Normalize ...
-    forEach(this.opens, (open: IOpen) => {
-
-      // Normalize xb
-      let xb = cloneDeep(open.xb);
-      forEach(xb, (o, key) => {
-        xb[key] = toNumber(o);
-      });
-
-      xb.x1 += (xMin < 0) ? -xMin : xMin;
-      open.vis.xbNorm.x1 = xb.x1 / delta;
-
-      xb.x2 += (xMin < 0) ? -xMin : xMin;
-      open.vis.xbNorm.x2 = xb.x2 / delta;
-
-      xb.y1 += (yMin < 0) ? -yMin : yMin;
-      open.vis.xbNorm.y1 = xb.y1 / delta;
-      xb.y2 += (yMin < 0) ? -yMin : yMin;
-      open.vis.xbNorm.y2 = xb.y2 / delta;
-
-      xb.z1 += (zMin < 0) ? -zMin : zMin;
-      open.vis.xbNorm.z1 = xb.z1 / delta;
-      xb.z2 += (zMin < 0) ? -zMin : zMin;
-      open.vis.xbNorm.z2 = xb.z2 / delta;
-
-      open.vis.colorNorm = [0.04, 0.811, 0.04, 1.0];
-    });
+  private placeOpens(): PlacedOpen[] {
+    return (this.opens || []).map((open: SceneOpen) => ({
+      open: open,
+      xbNorm: this.helperService.normalizeXb(open.xb)
+    }));
   }
 
   /**
@@ -135,9 +116,9 @@ export class OpenService implements SceneScoped {
     this.material.alpha = 0.0;
     this.material.zOffset = -0.06;
 
-    if (this.opens && this.opens.length > 0) {
-      forEach(this.opens, (open, index: number) => {
-        let options: any = this.helperService.getPlaneDimFromXb(open.vis.xbNorm);
+    if (this.placed.length > 0) {
+      forEach(this.placed, (placed: PlacedOpen, index: number) => {
+        let options: any = this.helperService.getPlaneDimFromXb(placed.xbNorm);
         this.meshes.push(BABYLON.MeshBuilder.CreatePlane("plane", { height: options.height, width: options.width, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, this.babylonService.scene));
         this.meshes[index].material = this.material;
         this.meshes[index].rotate(options.rotate, Math.PI / 2);
@@ -150,8 +131,8 @@ export class OpenService implements SceneScoped {
         this.meshes[index].freezeWorldMatrix();
 
         // One plane per opening, so the mesh alone identifies it
-        this.sceneRegistry.register(open.uuid, { mesh: this.meshes[index] });
-        this.registeredUuids.push(open.uuid);
+        this.sceneRegistry.register(placed.open.uuid, { mesh: this.meshes[index] });
+        this.registeredUuids.push(placed.open.uuid);
       });
     }
   }
