@@ -2,7 +2,8 @@ import { Component, OnInit, AfterViewInit } from '@angular/core';
 import { SmokeviewApiService } from '../../../../../../../web-smokeview-lib/src/lib/services/smokeview-api/smokeview-api.service';
 import { MainService } from '@services/main/main.service';
 import { Main } from '@services/main/main';
-import { Subscription } from 'rxjs';
+import { combineLatest, Subscription } from 'rxjs';
+import { filter, take } from 'rxjs/operators';
 import { BabylonService } from '../../../../../../../web-smokeview-lib/src/lib/services/babylon/babylon.service';
 
 @Component({
@@ -29,87 +30,95 @@ export class VisualizeComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit() {
-    this.readySub = this.babylonService.ready$.subscribe(() => {
-      this.smvApiService.renderMeshes(this.main.currentFdsScenario.fdsObject.geometry.meshes);
-      
-      // Render holes if they exist
-      if (this.main.currentFdsScenario.fdsObject.geometry.holes) {
-        this.smvApiService.renderHoles(this.main.currentFdsScenario.fdsObject.geometry.holes);
-      }
-      
-      this.smvApiService.renderObsts(this.main.currentFdsScenario.fdsObject.geometry.obsts, this.main.currentFdsScenario.fdsObject.geometry.surfs);
-      this.smvApiService.renderOpens(this.main.currentFdsScenario.fdsObject.geometry.opens);
-      
-      // Check if jetfans exist and render them
-      if (this.main.currentFdsScenario.fdsObject.ventilation && this.main.currentFdsScenario.fdsObject.ventilation.jetfans) {
-        this.smvApiService.renderJetfans(this.main.currentFdsScenario.fdsObject.ventilation.jetfans);
-      }
+    // The scene can become ready before the scenario has finished loading - on a
+    // slow backend it reliably does, and reaching for fdsObject then throws and
+    // leaves the preview blank. Wait for both instead of assuming an order.
+    this.readySub = combineLatest([
+      this.babylonService.ready$,
+      this.mainService.getMain().pipe(filter(main => !!main?.currentFdsScenario?.fdsObject))
+    ]).pipe(take(1)).subscribe(() => this.renderScenario());
+  }
 
-      // Render fires
-      if (this.main.currentFdsScenario.fdsObject.fires &&
-          this.main.currentFdsScenario.fdsObject.fires.fires) {
-        const fires = this.main.currentFdsScenario.fdsObject.fires.fires;
-        const mappedFires = fires.map(fire => ({
-          id: fire.id,
-          uuid: fire.uuid,
-          idAC: fire.idAC,
+  private renderScenario(): void {
+    this.smvApiService.renderMeshes(this.main.currentFdsScenario.fdsObject.geometry.meshes);
+
+    // Render holes if they exist
+    if (this.main.currentFdsScenario.fdsObject.geometry.holes) {
+      this.smvApiService.renderHoles(this.main.currentFdsScenario.fdsObject.geometry.holes);
+    }
+
+    this.smvApiService.renderObsts(this.main.currentFdsScenario.fdsObject.geometry.obsts, this.main.currentFdsScenario.fdsObject.geometry.surfs);
+    this.smvApiService.renderOpens(this.main.currentFdsScenario.fdsObject.geometry.opens);
+
+    // Check if jetfans exist and render them
+    if (this.main.currentFdsScenario.fdsObject.ventilation && this.main.currentFdsScenario.fdsObject.ventilation.jetfans) {
+      this.smvApiService.renderJetfans(this.main.currentFdsScenario.fdsObject.ventilation.jetfans);
+    }
+
+    // Render fires
+    if (this.main.currentFdsScenario.fdsObject.fires &&
+        this.main.currentFdsScenario.fdsObject.fires.fires) {
+      const fires = this.main.currentFdsScenario.fdsObject.fires.fires;
+      const mappedFires = fires.map(fire => ({
+        id: fire.id,
+        uuid: fire.uuid,
+        idAC: fire.idAC,
+        xb: {
+          x1: fire.vent.xb.x1, x2: fire.vent.xb.x2,
+          y1: fire.vent.xb.y1, y2: fire.vent.xb.y2,
+          z1: fire.vent.xb.z1, z2: fire.vent.xb.z2
+        },
+        color: {
+          label: fire.surf.color.label || 'RED',
+          value: fire.surf.color.value || 'RED',
+          rgb: (fire.surf.color.rgb?.length >= 3)
+            ? [fire.surf.color.rgb[0], fire.surf.color.rgb[1], fire.surf.color.rgb[2]]
+            : [255, 0, 0],
+          show: true
+        },
+        vis: {
+          xbNorm: { x1: 0, x2: 0, y1: 0, y2: 0, z1: 0, z2: 0 },
+          colorNorm: [1, 0, 0, 1]
+        }
+      }));
+      this.smvApiService.renderFires(mappedFires);
+    }
+
+    // Render basic vents
+    if (this.main.currentFdsScenario.fdsObject.ventilation &&
+        this.main.currentFdsScenario.fdsObject.ventilation.vents) {
+      const vents = this.main.currentFdsScenario.fdsObject.ventilation.vents;
+      const mappedVents = vents.map(vent => {
+        const surfColor = vent.surf?.color;
+        const rgb = (surfColor?.rgb?.length >= 3)
+          ? [surfColor.rgb[0], surfColor.rgb[1], surfColor.rgb[2]]
+          : [0, 0, 255];
+        const alpha = vent.surf?.transparency ?? 1;
+        return {
+          id: vent.id,
+          uuid: vent.uuid,
+          idAC: vent.idAC,
           xb: {
-            x1: fire.vent.xb.x1, x2: fire.vent.xb.x2,
-            y1: fire.vent.xb.y1, y2: fire.vent.xb.y2,
-            z1: fire.vent.xb.z1, z2: fire.vent.xb.z2
+            x1: vent.xb.x1, x2: vent.xb.x2,
+            y1: vent.xb.y1, y2: vent.xb.y2,
+            z1: vent.xb.z1, z2: vent.xb.z2
           },
+          surf_id: vent.surf?.id || '',
+          elevation: vent.elevation || 0,
           color: {
-            label: fire.surf.color.label || 'RED',
-            value: fire.surf.color.value || 'RED',
-            rgb: (fire.surf.color.rgb?.length >= 3)
-              ? [fire.surf.color.rgb[0], fire.surf.color.rgb[1], fire.surf.color.rgb[2]]
-              : [255, 0, 0],
+            label: surfColor?.label || 'BLUE',
+            value: surfColor?.value || 'BLUE',
+            rgb: [...rgb, alpha],
             show: true
           },
           vis: {
             xbNorm: { x1: 0, x2: 0, y1: 0, y2: 0, z1: 0, z2: 0 },
-            colorNorm: [1, 0, 0, 1]
+            colorNorm: [rgb[0] / 255, rgb[1] / 255, rgb[2] / 255, alpha]
           }
-        }));
-        this.smvApiService.renderFires(mappedFires);
-      }
-
-      // Render basic vents
-      if (this.main.currentFdsScenario.fdsObject.ventilation &&
-          this.main.currentFdsScenario.fdsObject.ventilation.vents) {
-        const vents = this.main.currentFdsScenario.fdsObject.ventilation.vents;
-        const mappedVents = vents.map(vent => {
-          const surfColor = vent.surf?.color;
-          const rgb = (surfColor?.rgb?.length >= 3)
-            ? [surfColor.rgb[0], surfColor.rgb[1], surfColor.rgb[2]]
-            : [0, 0, 255];
-          const alpha = vent.surf?.transparency ?? 1;
-          return {
-            id: vent.id,
-            uuid: vent.uuid,
-            idAC: vent.idAC,
-            xb: {
-              x1: vent.xb.x1, x2: vent.xb.x2,
-              y1: vent.xb.y1, y2: vent.xb.y2,
-              z1: vent.xb.z1, z2: vent.xb.z2
-            },
-            surf_id: vent.surf?.id || '',
-            elevation: vent.elevation || 0,
-            color: {
-              label: surfColor?.label || 'BLUE',
-              value: surfColor?.value || 'BLUE',
-              rgb: [...rgb, alpha],
-              show: true
-            },
-            vis: {
-              xbNorm: { x1: 0, x2: 0, y1: 0, y2: 0, z1: 0, z2: 0 },
-              colorNorm: [rgb[0] / 255, rgb[1] / 255, rgb[2] / 255, alpha]
-            }
-          };
-        });
-        this.smvApiService.renderVents(mappedVents);
-      }
-    });
+        };
+      });
+      this.smvApiService.renderVents(mappedVents);
+    }
   }
 
   ngOnDestroy() {
