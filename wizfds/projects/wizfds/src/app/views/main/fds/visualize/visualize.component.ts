@@ -2,9 +2,8 @@ import { Component, OnInit, AfterViewInit } from '@angular/core';
 import { SmokeviewApiService } from '../../../../../../../web-smokeview-lib/src/lib/services/smokeview-api/smokeview-api.service';
 import { MainService } from '@services/main/main.service';
 import { Main } from '@services/main/main';
-import { Subscription, timer, TimeoutError } from 'rxjs';
-import { filter, map, switchMap, take, timeout } from 'rxjs/operators';
-import { SnackBarService } from '@services/snack-bar/snack-bar.service';
+import { combineLatest, Subscription } from 'rxjs';
+import { filter } from 'rxjs/operators';
 import { BabylonService } from '../../../../../../../web-smokeview-lib/src/lib/services/babylon/babylon.service';
 
 @Component({
@@ -15,9 +14,6 @@ import { BabylonService } from '../../../../../../../web-smokeview-lib/src/lib/s
 })
 export class VisualizeComponent implements OnInit, AfterViewInit {
 
-  /** How long to wait for the scenario before giving up on the preview. */
-  private static readonly SCENARIO_TIMEOUT_MS = 30000;
-
   main: Main;
 
   mainSub: Subscription;
@@ -26,8 +22,7 @@ export class VisualizeComponent implements OnInit, AfterViewInit {
   constructor(
     private mainService: MainService,
     private smvApiService: SmokeviewApiService,
-    private babylonService: BabylonService,
-    private snackBarService: SnackBarService
+    private babylonService: BabylonService
   ) { }
 
   ngOnInit(): void {
@@ -37,30 +32,15 @@ export class VisualizeComponent implements OnInit, AfterViewInit {
   ngAfterViewInit() {
     // The scene can become ready before the scenario has finished loading - on a
     // slow backend it reliably does, and reaching for fdsObject then throws and
-    // leaves the preview blank for the rest of the session.
-    //
-    // The scenario cannot be awaited as a stream: MainService never calls
-    // mainSubject.next(), it mutates the shared Main object in place, so
-    // subscribers are told nothing when a scenario arrives. Hence the poll -
-    // the proper fix belongs in MainService, not here.
-    this.readySub = this.babylonService.ready$.pipe(
-      switchMap(() => timer(0, 250).pipe(
-        map(() => this.main),
-        filter(main => !!main?.currentFdsScenario?.fdsObject),
-        take(1),
-        // Without this the poll spins until the component is destroyed, and a
-        // scenario that never arrives leaves the user with a silent blank canvas.
-        timeout({ first: VisualizeComponent.SCENARIO_TIMEOUT_MS })
-      ))
-    ).subscribe({
-      next: () => this.renderScenario(),
-      error: (error) => {
-        const message = error instanceof TimeoutError
-          ? 'Scenario did not load in time - 3D preview unavailable'
-          : 'Could not draw the 3D preview';
-        this.snackBarService.notify('error', message);
-      }
-    });
+    // leaves the preview blank for the rest of the session. Drawing therefore
+    // waits for both, in whichever order they arrive, and redraws if the user
+    // switches to another scenario.
+    this.readySub = combineLatest([
+      this.babylonService.ready$,
+      this.mainService.currentFdsScenario$
+    ]).pipe(
+      filter(([, fdsScenario]) => !!fdsScenario?.fdsObject)
+    ).subscribe(() => this.renderScenario());
   }
 
   private renderScenario(): void {
