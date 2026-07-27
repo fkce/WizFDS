@@ -4,6 +4,7 @@ import * as BABYLON from 'babylonjs';
 import { ObstService } from './obst.service';
 import { BabylonService } from '../../babylon/babylon.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
+import { SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 import { SceneColor, SceneHole, SceneObst, SceneXb } from '../scene-input';
 
 /** An &SURF with TRANSPARENCY=1, as the app resolves it. */
@@ -103,6 +104,51 @@ describe('ObstService', () => {
 
       expect(data.vertices.length).toBe(9);
       expect(data.indices.length).toBe(3);
+    });
+  });
+
+  describe('scene coordinates', () => {
+    // The scene is drawn in FDS metres 1:1 with its origin at the FDS origin, so
+    // a coordinate read off the screen can be typed straight into a .fds file -
+    // see docs/adr/0002-wspolrzedne-w-metrach.md.
+
+    /** The box the vertex buffer actually spans. */
+    function drawnBox(vertices: readonly number[]) {
+      const at = (offset: number) => {
+        const values = [];
+        for (let i = offset; i < vertices.length; i += 3) { values.push(vertices[i]); }
+        return { min: Math.min(...values), max: Math.max(...values) };
+      };
+      return { x: at(0), y: at(1), z: at(2) };
+    }
+
+    it('draws an obst at the coordinates the scenario gave it', () => {
+      // Far from the origin and far from unit size: normalisation would have
+      // shifted this onto zero and squeezed it into a cube one unit across.
+      service.obsts = [makeObst('W1', { x1: 100, x2: 140, y1: 50, y2: 70, z1: 0, z2: 6 })];
+      service.holes = [];
+
+      service.renderObsts();
+
+      const drawn = drawnBox(service.vertices);
+      expect(drawn.x).toEqual({ min: 100, max: 140 });
+      expect(drawn.y).toEqual({ min: 50, max: 70 });
+      expect(drawn.z).toEqual({ min: 0, max: 6 });
+    });
+
+    it('keeps a hundred-metre model a hundred metres across', () => {
+      // Two obsts a hundred metres apart stay a hundred metres apart, whatever
+      // else is in the scene - there is no global divisor left to change.
+      service.obsts = [
+        makeObst('NEAR', { x1: 0, x2: 1, y1: 0, y2: 1, z1: 0, z2: 3 }),
+        makeObst('FAR', { x1: 100, x2: 101, y1: 0, y2: 1, z1: 0, z2: 3 })
+      ];
+      service.holes = [];
+
+      service.renderObsts();
+
+      const drawn = drawnBox(service.vertices);
+      expect(drawn.x.max - drawn.x.min).toBe(101);
     });
   });
 
@@ -442,19 +488,21 @@ describe('ObstService', () => {
     });
 
     it('carries clip values set before the materials arrived', async () => {
-      service.clip(0, 'x');
+      TestBed.inject(SceneBoundsService).setFrom([{ x1: 0, x2: 10, y1: 0, y2: 8, z1: 0, z2: 4 }]);
+      service.clip(50, 'x');
 
       service.obsts = [makeObst('W1', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 })];
       service.holes = [];
       service.renderObsts();
       await settleMaterials();
 
-      // clip(0) means "fully clipped away", which the shader reads as -1.1.
-      // ShaderMaterial exposes no getter for a uniform, hence the private read.
-      expect(service.clipXNorm).toBe(-1.1);
+      // Halfway along a ten-metre model is five metres - the shader is handed the
+      // coordinate, not a fraction (ADR-0002). ShaderMaterial exposes no getter
+      // for a uniform, hence the private read.
+      expect(service.clipPlane('x')).toBe(5);
       expect((service.material as any)._floats.clipX)
         .withContext('the material built afterwards must pick up the slider position')
-        .toBe(-1.1);
+        .toBe(5);
     });
 
     it('does not grow the live mesh count across repeated renders', async () => {

@@ -6,6 +6,8 @@ import { OpenService } from '../drawing/open/open.service';
 import { VentService } from '../drawing/vent/vent.service';
 import { JetfanService } from '../drawing/jetfan/jetfan.service';
 import { FireService } from '../drawing/fire/fire.service';
+import { BabylonService } from '../babylon/babylon.service';
+import { SceneBoundsService } from '../scene-bounds/scene-bounds.service';
 
 @Injectable({
   providedIn: 'root'
@@ -18,25 +20,32 @@ export class SmokeviewApiService {
     private openService: OpenService,
     private ventService: VentService,
     private jetfanService: JetfanService,
-    private fireService: FireService
+    private fireService: FireService,
+    private babylonService: BabylonService,
+    private sceneBounds: SceneBoundsService
   ) { }
 
   /**
    * Draw a scenario.
    *
-   * One call for the whole scene rather than one per element type: the drawing
-   * services share the normalisation the meshes establish, so the order below is
-   * part of the contract and not something a caller should have to know. Handing
-   * over `SceneInput` also means every element type crosses this boundary the
-   * same way - flat, typed and read-only (ADR-0004).
+   * One call for the whole scene rather than one per element type: how big the
+   * model is has to be settled before anything is drawn, and that is a property
+   * of the scenario as a whole. Handing over `SceneInput` also means every
+   * element type crosses this boundary the same way - flat, typed and read-only
+   * (ADR-0004).
    *
    * The promise settles once everything has been drawn and never rejects: a
    * failed render is logged rather than left to surface as an unhandled
    * rejection in the host app.
    */
   public async render(scene: SceneInput): Promise<void> {
-    // The meshes span the whole model, so they are what the scene bounds are
-    // taken from. Everything after this is placed against those bounds.
+    // Measure first: the camera, the clip sliders, the edge widths and the world
+    // axes are all multiples of how big the model is (ADR-0002). Doing it here
+    // rather than in whichever drawing service happened to run first is what
+    // makes the answer the same however little the scenario contains.
+    this.sceneBounds.setFromScene(scene);
+    this.babylonService.applySceneBounds();
+
     this.meshService.meshes = scene.meshes;
     this.meshService.renderMeshes();
 
@@ -63,9 +72,12 @@ export class SmokeviewApiService {
    * Draw obsts from a pre-built vertex buffer.
    *
    * The standalone viewer reads geometry straight out of a Smokeview export, so
-   * it has no scenario to hand over - see ADR-0004.
+   * it has no scenario to hand over - see ADR-0004. The buffer is what the model
+   * is measured from instead.
    */
   public renderJsonObsts(data: any) {
+    this.sceneBounds.setFromPositions((data && data.vertices) || []);
+    this.babylonService.applySceneBounds();
     this.obstService.renderJson(data);
   }
 

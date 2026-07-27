@@ -543,7 +543,13 @@ export class Color {
     }
 }
 
+/**
+ * What the visualization needs on top of the FDS attributes.
+ *
+ * It used to carry `xbNorm` as well - where the library had squeezed the element
+ * into its unit cube. The scene is drawn in FDS metres 1:1 now (ADR-0002), so
+ * there is nothing to remember: `xb` is the scene coordinate.
+ */
 export interface IVis {
-	xbNorm?: Xb,
 	colorNorm?: number[]
 }

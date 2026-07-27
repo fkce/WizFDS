@@ -5,12 +5,12 @@ import { SceneRegistryService } from '../../babylon/scene-registry.service';
 
 import { BabylonService } from '../../babylon/babylon.service';
 import { HelpersService } from '../../helpers/helpers.service';
-import { SceneFire, SceneXb } from '../scene-input';
+import { SceneFire } from '../scene-input';
+import { SceneAxis, SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 
-/** A fire as the app gave it, paired with where the library puts it. */
+/** A fire as the app gave it, paired with the colour it is drawn in. */
 interface PlacedFire {
   readonly fire: SceneFire,
-  readonly xbNorm: SceneXb,
   /** The colour as a flat rgba array, ready for the vertex buffer. */
   readonly color: number[]
 }
@@ -24,13 +24,10 @@ export class FireService implements SceneScoped {
   public mesh: BABYLON.Mesh;
   public material: BABYLON.ShaderMaterial;
 
-  // Clipping
+  /** Where the three clip sliders stand, as a percentage of the model. */
   public clipX: number = 0;
   public clipY: number = 0;
   public clipZ: number = 100;
-  private clipXNorm: number = -1.1;
-  private clipYNorm: number = -1.1;
-  private clipZNorm: number = 1.1;
 
   // 3-state visibility toggle: 0=edges only, 1=edges+semi-transparent, 2=hidden
   public visibility: number = 0;
@@ -38,6 +35,7 @@ export class FireService implements SceneScoped {
   constructor(
     private babylonService: BabylonService,
     private helpersService: HelpersService,
+    private sceneBounds: SceneBoundsService,
     private sceneRegistry: SceneRegistryService,
     sceneLifecycle: SceneLifecycleService
   ) {
@@ -58,15 +56,15 @@ export class FireService implements SceneScoped {
   }
 
   /**
-   * Place the fires in the scene, against the bounds the meshes established.
+   * Work out how each fire is drawn.
    *
    * A fire is drawn as the plane of its &VENT in the colour of its &SURF; both
-   * arrive resolved, so there is nothing to look up here.
+   * arrive resolved, so there is nothing to look up here, and the plane stands
+   * exactly where the scenario puts it (ADR-0002).
    */
   private placeFires(): PlacedFire[] {
     return (this.fires || []).map((fire: SceneFire) => ({
       fire: fire,
-      xbNorm: this.helpersService.normalizeXb(fire.xb),
       color: this.helpersService.toRgba(fire.color)
     }));
   }
@@ -85,7 +83,7 @@ export class FireService implements SceneScoped {
 
     placed.forEach((placedFire: PlacedFire) => {
       const facesBefore = indices.length / 3;
-      const geom = this.helpersService.generateVentGeometry(placedFire.xbNorm);
+      const geom = this.helpersService.generateVentGeometry(placedFire.fire.xb);
 
       vertices.push(...geom.vertices);
       normals.push(...geom.normals);
@@ -158,9 +156,9 @@ export class FireService implements SceneScoped {
 
     this.material.backFaceCulling = false;
     this.material.zOffset = -0.02;
-    this.material.setFloat("clipX", this.clipXNorm);
-    this.material.setFloat("clipY", this.clipYNorm);
-    this.material.setFloat("clipZ", this.clipZNorm);
+    this.material.setFloat("clipX", this.sceneBounds.clipAt('x', this.clipX));
+    this.material.setFloat("clipY", this.sceneBounds.clipAt('y', this.clipY));
+    this.material.setFloat("clipZ", this.sceneBounds.clipAt('z', this.clipZ));
     // Initial state: edges only (transparent=0.0)
     this.material.setFloat("transparent", 0.0);
 
@@ -168,7 +166,7 @@ export class FireService implements SceneScoped {
 
     // Red edges
     this.mesh.enableEdgesRendering();
-    this.mesh.edgesWidth = 0.1;
+    this.mesh.edgesWidth = this.sceneBounds.outlineWidth;
     this.mesh.edgesColor = new BABYLON.Color4(1, 0, 0, 1);
 
     this.mesh.freezeWorldMatrix();
@@ -189,7 +187,7 @@ export class FireService implements SceneScoped {
     if (this.visibility == 0) {
       // Show edges + semi-transparent fill
       this.material.setFloat('transparent', 0.6);
-      this.mesh.edgesWidth = 0.1;
+      this.mesh.edgesWidth = this.sceneBounds.outlineWidth;
       this.visibility = 1;
     } else if (this.visibility == 1) {
       // Hide all
@@ -199,44 +197,29 @@ export class FireService implements SceneScoped {
     } else if (this.visibility == 2) {
       // Show edges only
       this.material.setFloat('transparent', 0.0);
-      this.mesh.edgesWidth = 0.1;
+      this.mesh.edgesWidth = this.sceneBounds.outlineWidth;
       this.visibility = 0;
     }
   }
 
   /**
    * Clip fire mesh
+   *
+   * The slider spans the whole scene, not the fires alone: it has to mean the
+   * same coordinate whichever element type it is cutting through.
+   *
    * @param value percentage 0-100
    * @param direction x, y, z
    */
-  public clip(value: number, direction: string) {
+  public clip(value: number, direction: SceneAxis) {
+    if (direction == 'x') { this.clipX = value; }
+    else if (direction == 'y') { this.clipY = value; }
+    else { this.clipZ = value; }
+
+    // The slider is live from the first frame, while the material is still being
+    // fetched; renderFires() reads the positions back when it builds one.
     if (!this.material) return;
-
-    const globalBounds = {
-      x: this.helpersService.normXMax || 1,
-      y: this.helpersService.normYMax || 1,
-      z: this.helpersService.normZMax || 1
-    };
-
-    if (direction == 'x') {
-      this.clipX = value;
-      let clip = (value == 100) ? 1.1 : globalBounds.x * (value / 100);
-      clip = (value == 0) ? -1.1 : clip;
-      this.material.setFloat("clipX", clip);
-      this.clipXNorm = clip;
-    } else if (direction == 'y') {
-      this.clipY = value;
-      let clip = (value == 100) ? 1.1 : globalBounds.y * (value / 100);
-      clip = (value == 0) ? -1.1 : clip;
-      this.material.setFloat("clipY", clip);
-      this.clipYNorm = clip;
-    } else if (direction == 'z') {
-      this.clipZ = value;
-      let clip = (value == 100) ? 1.1 : globalBounds.z * (value / 100);
-      clip = (value == 0) ? -1.1 : clip;
-      this.material.setFloat("clipZ", clip);
-      this.clipZNorm = clip;
-    }
+    this.material.setFloat(`clip${direction.toUpperCase()}`, this.sceneBounds.clipAt(direction, value));
   }
 
   /**

@@ -5,6 +5,18 @@ import { cloneDeep, toNumber } from 'lodash';
 import { ObstService } from '../../drawing/obst/obst.service';
 import { SceneLifecycleService, SceneScoped } from '../scene-lifecycle.service';
 
+/**
+ * The layer the cube and its hit boxes live on.
+ *
+ * A bit outside the default mask, so the main camera - which keeps the default -
+ * draws none of them, and the cube's own camera draws nothing else. The cube used
+ * to be hidden from the main view by standing a thousand units away instead;
+ * that only worked while the whole scene was one unit across, and stopped once
+ * the scene became metres 1:1 (ADR-0002), which is when a hundred-metre model
+ * started showing up behind the cube.
+ */
+const VIEW_CUBE_LAYER = 0x10000000;
+
 @Injectable({
   providedIn: 'root'
 })
@@ -210,6 +222,26 @@ export class ViewCubeService implements SceneScoped {
     this.createFrontLeftBox();
     this.createBackRightBox();
     this.createBackLeftBox();
+
+    this.isolateOnOwnLayer();
+  }
+
+  /**
+   * Put everything this service built on its own rendering layer.
+   *
+   * Assigned by type rather than by name, for the same reason resetSceneState()
+   * is: naming thirty-odd meshes would be a list the next added face or box
+   * silently drops out of - and one missing entry is a box floating in the middle
+   * of the model.
+   */
+  private isolateOnOwnLayer(): void {
+    Object.keys(this).forEach(key => {
+      const value = (this as any)[key];
+      if (value instanceof BABYLON.AbstractMesh) {
+        value.layerMask = VIEW_CUBE_LAYER;
+      }
+    });
+    this.cameraViewCube.layerMask = VIEW_CUBE_LAYER;
   }
 
   /**

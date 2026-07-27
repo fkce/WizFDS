@@ -2,16 +2,11 @@ import { Injectable } from '@angular/core';
 import { BabylonService } from '../../babylon/babylon.service';
 import { HelpersService } from '../../helpers/helpers.service';
 import { forEach } from 'lodash';
-import { SceneMesh, SceneXb } from '../scene-input';
+import { SceneMesh } from '../scene-input';
 import * as BABYLON from 'babylonjs';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
-
-/** A mesh as the app gave it, paired with where the library puts it. */
-interface PlacedMesh {
-  readonly mesh: SceneMesh,
-  readonly xbNorm: SceneXb
-}
+import { SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 
 /**
  * Meshes are drawn as yellow outlines. The colour is the library's own choice -
@@ -40,14 +35,12 @@ export class MeshService implements SceneScoped {
   constructor(
     private babylonService: BabylonService,
     private helperService: HelpersService,
+    private sceneBounds: SceneBoundsService,
     private sceneRegistry: SceneRegistryService,
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
   }
-
-  /** Where each mesh of the last render went. Built here, never written back. */
-  private placed: PlacedMesh[] = [];
 
   /** Face ranges collected while building the buffer, registered in render(). */
   private readonly pendingRegistrations: { uuid: string, first: number, count: number }[] = [];
@@ -67,18 +60,14 @@ export class MeshService implements SceneScoped {
     this.normals.length = 0;
     this.colors.length = 0;
     this.indices.length = 0;
-    this.placed.length = 0;
   }
 
   /**
    * Reder meshes
    */
   public renderMeshes() {
-    // Work out where every mesh goes
-    this.placed = this.placeMeshes();
-
     // If nothing valid to render, exit early
-    if (this.placed.length === 0) {
+    if (!this.meshes || this.meshes.length === 0) {
       return;
     }
 
@@ -95,25 +84,6 @@ export class MeshService implements SceneScoped {
   }
 
   /**
-   * Place the meshes in the scene.
-   *
-   * The meshes span the whole model, so they are what the scene bounds are taken
-   * from - which is why this has to run before any other element type is placed.
-   */
-  private placeMeshes(): PlacedMesh[] {
-    if (!this.meshes || this.meshes.length === 0) {
-      return [];
-    }
-
-    this.helperService.setBoundsFrom(this.meshes.map((mesh: SceneMesh) => mesh.xb));
-
-    return this.meshes.map((mesh: SceneMesh) => ({
-      mesh: mesh,
-      xbNorm: this.helperService.normalizeXb(mesh.xb)
-    }));
-  }
-
-  /**
    * Update meshes vertex data
    */
   private updateMeshesVertexData(): void {
@@ -126,13 +96,13 @@ export class MeshService implements SceneScoped {
 
     this.pendingRegistrations.length = 0;
 
-    forEach(this.placed, (placed: PlacedMesh, index: number) => {
+    forEach(this.meshes, (mesh: SceneMesh, index: number) => {
       const facesBefore = this.indices.length / 3;
-      this.vertices.push(...this.helperService.getVerticesFromXb(placed.xbNorm));
+      this.vertices.push(...this.helperService.getVerticesFromXb(mesh.xb));
       this.colors.push(...this.helperService.getColors(MESH_COLOR));
       this.indices.push(...this.helperService.getIndices(index));
       this.pendingRegistrations.push({
-        uuid: placed.mesh.uuid, first: facesBefore, count: this.indices.length / 3 - facesBefore
+        uuid: mesh.uuid, first: facesBefore, count: this.indices.length / 3 - facesBefore
       });
     });
   }
@@ -178,8 +148,8 @@ export class MeshService implements SceneScoped {
       .catch((e) => {
         console.error('[MeshService] Failed to create the mesh shader material', e);
       });
-  this.mesh.enableEdgesRendering();
-    this.mesh.edgesWidth = 0.1;
+    this.mesh.enableEdgesRendering();
+    this.mesh.edgesWidth = this.sceneBounds.outlineWidth;
     this.mesh.edgesColor = new BABYLON.Color4(1, 0.815, 0, 1);
 
     // Preformance optimization
@@ -198,13 +168,13 @@ export class MeshService implements SceneScoped {
     // Show only edges;
     if (this.visibility == 0) {
       this.material.setFloat('transparent', 0.0);
-      this.mesh.edgesWidth = 0.1;
+      this.mesh.edgesWidth = this.sceneBounds.outlineWidth;
       this.visibility = 1;
     }
     // Show edges and backface
     else if (this.visibility == 1) {
       this.material.setFloat('transparent', 1.0);
-      this.mesh.edgesWidth = 0.1;
+      this.mesh.edgesWidth = this.sceneBounds.outlineWidth;
       this.visibility = 2;
     }
     // Hide all

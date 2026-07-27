@@ -1,12 +1,13 @@
 import { Injectable, isDevMode } from '@angular/core';
 import { BabylonService } from '../../babylon/babylon.service';
 import * as BABYLON from 'babylonjs';
-import { forEach, find, cloneDeep, sortBy } from 'lodash';
+import { forEach, find, sortBy } from 'lodash';
 import { HelpersService } from '../../helpers/helpers.service';
 import { HoleService } from '../hole/hole.service';
 import { SceneHole, SceneObst, SceneXb } from '../scene-input';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
+import { SceneAxis, SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 
 /**
  * An obst as the app gave it, paired with everything the library worked out about
@@ -15,11 +16,10 @@ import { SceneRegistryService } from '../../babylon/scene-registry.service';
  */
 interface PlacedObst {
   readonly obst: SceneObst,
-  readonly xbNorm: SceneXb,
   /** The colour as a flat rgba array, ready for the vertex buffer. */
   readonly color: number[],
-  /** The openings that cut into this obst, in scene coordinates. */
-  readonly holeXbsNorm: SceneXb[]
+  /** The openings that cut into this obst. */
+  readonly holeXbs: SceneXb[]
 }
 
 @Injectable({
@@ -77,21 +77,45 @@ export class ObstService implements SceneScoped {
   /** What this service put in the registry, so a re-render can take it out. */
   private registeredUuids: string[] = [];
 
+  /** Where the three clip sliders stand, as a percentage of the model. */
   clipX: number = 0.0;
   clipY: number = 0.0;
   clipZ: number = 100.0;
-  clipXNorm: number = -1.1;
-  clipYNorm: number = -1.1;
-  clipZNorm: number = 1.1;
 
   constructor(
     private babylonService: BabylonService,
     private helperService: HelpersService,
     private holeService: HoleService,
+    private sceneBounds: SceneBoundsService,
     private sceneRegistry: SceneRegistryService,
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
+  }
+
+  /**
+   * Where a clipping plane currently stands, in FDS metres.
+   *
+   * Worked out on demand rather than stored, so that a scenario drawn at a
+   * different scale moves the planes with it: a slider left at 50% means the
+   * middle of whatever is on screen now, not the middle of the model it was last
+   * dragged over.
+   */
+  public clipPlane(axis: SceneAxis): number {
+    const percent = axis === 'x' ? this.clipX : axis === 'y' ? this.clipY : this.clipZ;
+    return this.sceneBounds.clipAt(axis, percent);
+  }
+
+  /**
+   * Push the current slider positions onto a material, as planes in metres.
+   *
+   * Every material this service builds is built inside a promise, long after the
+   * sliders became clickable, so each of them starts life by reading them back.
+   */
+  private applyClipTo(material: BABYLON.ShaderMaterial): void {
+    material.setFloat("clipX", this.clipPlane('x'));
+    material.setFloat("clipY", this.clipPlane('y'));
+    material.setFloat("clipZ", this.clipPlane('z'));
   }
 
   /**
@@ -147,28 +171,20 @@ export class ObstService implements SceneScoped {
    * @param value percentage
    * @param direction x, y, z direction
    */
-  public clip(value: number, direction: string) {
+  public clip(value: number, direction: SceneAxis) {
 
-    // Use global mesh bounds instead of obst mesh bounds for clipping calibration
-    // This ensures that clip sliders are calibrated against all geometry (meshes) in the scene
-    const globalBounds = {
-      x: this.helperService.normXMax || 1,
-      y: this.helperService.normYMax || 1,
-      z: this.helperService.normZMax || 1
-    };
+    // The sliders span the model, which is the bounding box of the whole scene
+    // rather than of the obsts alone: a slider has to mean the same coordinate
+    // whichever element type it is cutting through.
+    if (direction == 'x') { this.clipX = value; }
+    else if (direction == 'y') { this.clipY = value; }
+    else { this.clipZ = value; }
 
-    if (!globalBounds.hasOwnProperty(direction)) { return; }
-
-    let clip = (value == 100) ? 1.1 : globalBounds[direction] * (value / 100);
-    clip = (value == 0) ? -1.1 : clip;
-
-    if (direction == 'x') { this.clipX = value; this.clipXNorm = clip; }
-    else if (direction == 'y') { this.clipY = value; this.clipYNorm = clip; }
-    else { this.clipZ = value; this.clipZNorm = clip; }
+    const clip = this.sceneBounds.clipAt(direction, value);
 
     // The sliders are live from the first frame, while the materials are still
     // being fetched. Push the value into whatever exists; the rest read the
-    // norms when they are built.
+    // plane positions back when they are built.
     const uniform = `clip${direction.toUpperCase()}`;
     forEach([this.material, this.materialBackCap, this.materialTransparent], (material: BABYLON.ShaderMaterial) => {
       if (material) { material.setFloat(uniform, clip); }
@@ -216,7 +232,7 @@ export class ObstService implements SceneScoped {
    */
   public renderObsts() {
 
-    // Work out where every obst goes, in what colour, and which openings cut it
+    // Work out what colour every obst is and which openings cut it
     this.placed = this.placeObsts();
 
     // Update obsts vertex data
@@ -224,30 +240,21 @@ export class ObstService implements SceneScoped {
 
     // Render data
     this.render();
-
-    // Set camera
-    let bounding = cloneDeep(this.mesh.getBoundingInfo().boundingSphere);
-    this.babylonService.camera.setPosition(new BABYLON.Vector3(bounding.centerWorld.x, bounding.centerWorld.y, bounding.centerWorld.z + 2));
-    this.babylonService.camera.setTarget(bounding.centerWorld);
   }
 
   /**
-   * Place the obsts and their openings in the scene.
+   * Work out how each obst is drawn.
    *
    * Colours arrive resolved: the app looks the &SURF up, because it is the app
-   * that owns both. Openings are matched on FDS coordinates and only then
-   * normalised, so that both ends of the comparison are in the same units.
+   * that owns both. The boxes themselves need no placing - the scene is in FDS
+   * metres 1:1 (ADR-0002), so an obst stands exactly where the scenario says.
    */
   private placeObsts(): PlacedObst[] {
-    // A scenario with no &MESH still has to be drawn somewhere
-    this.helperService.ensureBounds((this.obsts || []).map((obst: SceneObst) => obst.xb));
-
     return (this.obsts || []).map((obst: SceneObst) => ({
       obst: obst,
-      xbNorm: this.helperService.normalizeXb(obst.xb),
       color: this.helperService.toRgba(obst.color),
-      holeXbsNorm: this.holeService.holesFor(obst, this.holes)
-        .map((hole: SceneHole) => this.helperService.normalizeXb(hole.xb))
+      holeXbs: this.holeService.holesFor(obst, this.holes)
+        .map((hole: SceneHole) => hole.xb)
     }));
   }
 
@@ -294,11 +301,11 @@ export class ObstService implements SceneScoped {
       const transparentFacesBefore = transparentIndices.length / 3;
 
       // Check if obst has holes and can have holes
-      if (placed.holeXbsNorm.length > 0 && this.holeService.canHaveHoles(obst)) {
+      if (placed.holeXbs.length > 0 && this.holeService.canHaveHoles(obst)) {
         try {
           // Process obst with holes using CSG
           const meshWithHoles = this.holeService.cutHoles(
-            obst.id, placed.xbNorm, placed.holeXbsNorm, this.babylonService.scene
+            obst.id, obst.xb, placed.holeXbs, this.babylonService.scene
           );
 
           if (meshWithHoles) {
@@ -389,7 +396,7 @@ export class ObstService implements SceneScoped {
           // Fall through to standard processing
         }
       } else {
-        if (placed.holeXbsNorm.length > 0) {
+        if (placed.holeXbs.length > 0) {
           if (isDevMode()) console.log('[ObstService] Obst has holes but permit_hole is false:', obst.id, 'permit_hole:', obst.permitHole);
         }
       }
@@ -398,7 +405,7 @@ export class ObstService implements SceneScoped {
       if (!processedWithHoles) {
         if (isTransparent) {
           // Add to transparent mesh
-          transparentVertices.push(...this.helperService.getVerticesFromXb(placed.xbNorm));
+          transparentVertices.push(...this.helperService.getVerticesFromXb(obst.xb));
           transparentColors.push(...this.helperService.getColors(placed.color));
           transparentIndices.push(...this.helperService.getIndices(transparentIndex));
           transparentIndex++;
@@ -406,7 +413,7 @@ export class ObstService implements SceneScoped {
           // Add to opaque mesh
           const currentVertexCount = this.vertices.length / 3;
           const currentVertexStart = this.vertices.length;
-          this.vertices.push(...this.helperService.getVerticesFromXb(placed.xbNorm));
+          this.vertices.push(...this.helperService.getVerticesFromXb(obst.xb));
           const currentVertexEnd = this.vertices.length;
           this.colors.push(...this.helperService.getColors(placed.color));
 
@@ -521,9 +528,7 @@ export class ObstService implements SceneScoped {
           // with no mesh to belong to.
           if (opaqueMesh.isDisposed()) { material.dispose(); return; }
           this.material = material;
-          this.material.setFloat("clipX", this.clipXNorm);
-          this.material.setFloat("clipY", this.clipYNorm);
-          this.material.setFloat("clipZ", this.clipZNorm);
+          this.applyClipTo(this.material);
           this.material.backFaceCulling = false;
           // A wireframe toggled while this was still loading must not be lost
           this.applyWireframe();
@@ -533,7 +538,7 @@ export class ObstService implements SceneScoped {
         .catch((e) => { if (isDevMode()) { try { console.error('[ObstService] Failed to create the opaque obst material', e); } catch {} } });
 
       this.mesh.enableEdgesRendering();
-      this.mesh.edgesWidth = 0.05;
+      this.mesh.edgesWidth = this.sceneBounds.edgeWidth;
       this.mesh.edgesColor = new BABYLON.Color4(0.4, 0.4, 0.4, 1);
       this.mesh.freezeWorldMatrix();
     }
@@ -571,9 +576,7 @@ export class ObstService implements SceneScoped {
         .then((material) => {
           if (transparentMesh.isDisposed()) { material.dispose(); return; }
           this.materialTransparent = material;
-          this.materialTransparent.setFloat("clipX", this.clipXNorm);
-          this.materialTransparent.setFloat("clipY", this.clipYNorm);
-          this.materialTransparent.setFloat("clipZ", this.clipZNorm);
+          this.applyClipTo(this.materialTransparent);
           this.materialTransparent.backFaceCulling = false;
           this.materialTransparent.freeze();
           transparentMesh.material = this.materialTransparent;
@@ -581,7 +584,7 @@ export class ObstService implements SceneScoped {
         .catch((e) => { if (isDevMode()) { try { console.error('[ObstService] Failed to create the transparent obst material', e); } catch {} } });
 
       this._meshTransparent.enableEdgesRendering();
-      this._meshTransparent.edgesWidth = 0.05;
+      this._meshTransparent.edgesWidth = this.sceneBounds.edgeWidth;
       this._meshTransparent.edgesColor = new BABYLON.Color4(0.4, 0.4, 0.4, 1);
       this._meshTransparent.freezeWorldMatrix();
     }
@@ -604,9 +607,7 @@ export class ObstService implements SceneScoped {
         .then((material) => {
           if (backCapMesh.isDisposed()) { material.dispose(); return; }
           this.materialBackCap = material;
-          this.materialBackCap.setFloat("clipX", this.clipXNorm);
-          this.materialBackCap.setFloat("clipY", this.clipYNorm);
-          this.materialBackCap.setFloat("clipZ", this.clipZNorm);
+          this.applyClipTo(this.materialBackCap);
           this.materialBackCap.zOffset = -0.01; // Always bring to front for clipping visualization
           this.materialBackCap.freeze();
           backCapMesh.material = this.materialBackCap;
@@ -692,7 +693,7 @@ export class ObstService implements SceneScoped {
     if (this.mesh) {
       if (enabled) {
         this.mesh.enableEdgesRendering();
-        this.mesh.edgesWidth = 0.05;
+        this.mesh.edgesWidth = this.sceneBounds.edgeWidth;
         this.mesh.edgesColor = new BABYLON.Color4(0.4, 0.4, 0.4, 1);
       } else {
         this.mesh.disableEdgesRendering();
@@ -704,7 +705,7 @@ export class ObstService implements SceneScoped {
     if (this._meshTransparent) {
       if (enabled) {
         this._meshTransparent.enableEdgesRendering();
-        this._meshTransparent.edgesWidth = 0.05;
+        this._meshTransparent.edgesWidth = this.sceneBounds.edgeWidth;
         this._meshTransparent.edgesColor = new BABYLON.Color4(0.4, 0.4, 0.4, 1);
       } else {
         this._meshTransparent.disableEdgesRendering();
@@ -730,6 +731,10 @@ export class ObstService implements SceneScoped {
     let intersectInfo = [];
     let faceId = -1;
 
+    // The clipping planes, read once: they are the same for every triangle and
+    // the loop below runs over the whole scene.
+    const clipX = this.clipPlane('x'), clipY = this.clipPlane('y'), clipZ = this.clipPlane('z');
+
     for (let i = 0; i < this.indices.length; i += 3) {
       faceId += 1;
       let p0 = this.positions[this.indices[i]];
@@ -742,17 +747,11 @@ export class ObstService implements SceneScoped {
       if (currentIntersectInfo
         &&
         (
-          (p0.x >= this.clipXNorm &&
-            p0.y >= this.clipYNorm &&
-            p0.z <= this.clipZNorm)
+          (p0.x >= clipX && p0.y >= clipY && p0.z <= clipZ)
           ||
-          (p1.x >= this.clipXNorm &&
-            p1.y >= this.clipYNorm &&
-            p1.z <= this.clipZNorm)
+          (p1.x >= clipX && p1.y >= clipY && p1.z <= clipZ)
           ||
-          (p2.x >= this.clipXNorm &&
-            p2.y >= this.clipYNorm &&
-            p2.z <= this.clipZNorm)
+          (p2.x >= clipX && p2.y >= clipY && p2.z <= clipZ)
         )
       ) {
         currentIntersectInfo.faceId = faceId;
@@ -777,11 +776,11 @@ export class ObstService implements SceneScoped {
       this.pickedObst = picked.obst;
 
       // Create box
-      const xbNorm = picked.xbNorm;
+      const xb = picked.obst.xb;
       let options = {
-        width: xbNorm.x2 - xbNorm.x1,
-        height: xbNorm.y2 - xbNorm.y1,
-        depth: xbNorm.z2 - xbNorm.z1
+        width: xb.x2 - xb.x1,
+        height: xb.y2 - xb.y1,
+        depth: xb.z2 - xb.z1
       }
       this.pickedObstMesh = BABYLON.MeshBuilder.CreateBox("pickedObst", options, this.babylonService.scene);
       this.pickedObstMaterial = new BABYLON.StandardMaterial("myMaterial", this.babylonService.scene);
@@ -790,12 +789,12 @@ export class ObstService implements SceneScoped {
       this.pickedObstMaterial.zOffset = -0.05;
       this.pickedObstMesh.material = this.pickedObstMaterial;
       this.pickedObstMesh.enableEdgesRendering();
-      this.pickedObstMesh.edgesWidth = 0.1;
+      this.pickedObstMesh.edgesWidth = this.sceneBounds.outlineWidth;
       this.pickedObstMesh.edgesColor = new BABYLON.Color4(0.09, 0.49, 0.99, 1);
       this.pickedObstMesh.position = new BABYLON.Vector3(
-        xbNorm.x1 + (xbNorm.x2 - xbNorm.x1) / 2,
-        xbNorm.y1 + (xbNorm.y2 - xbNorm.y1) / 2,
-        xbNorm.z1 + (xbNorm.z2 - xbNorm.z1) / 2
+        xb.x1 + (xb.x2 - xb.x1) / 2,
+        xb.y1 + (xb.y2 - xb.y1) / 2,
+        xb.z1 + (xb.z2 - xb.z1) / 2
       );
 
       if (isDevMode()) console.log(this.pickedObstMesh);

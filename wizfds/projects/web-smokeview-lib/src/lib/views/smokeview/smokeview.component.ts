@@ -15,6 +15,7 @@ import { OpenService } from '../../services/drawing/open/open.service';
 import { VentService } from '../../services/drawing/vent/vent.service';
 import { JetfanService } from '../../services/drawing/jetfan/jetfan.service';
 import { FireService } from '../../services/drawing/fire/fire.service';
+import { SceneAxis, SceneBoundsService } from '../../services/scene-bounds/scene-bounds.service';
 
 @Component({
     selector: 'lib-smokeview',
@@ -41,7 +42,10 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
       let pickInfo;
       pickInfo = this.babylonService.scene.pick(this.babylonService.scene.pointerX, this.babylonService.scene.pointerY, null, null, this.babylonService.camera);
       if (pickInfo.hit) {
-        var ray = new BABYLON.Ray(pickInfo.ray.origin, pickInfo.ray.direction, 4);
+        // Long enough to cross the whole model from wherever the camera stands.
+        // A fixed length used to do, back when the scene was one unit across.
+        const reach = this.babylonService.camera.radius + 2 * this.sceneBounds.extent;
+        var ray = new BABYLON.Ray(pickInfo.ray.origin, pickInfo.ray.direction, reach);
         //let rayHelper = new BABYLON.RayHelper(ray);
         //rayHelper.show(this.babylonService.scene, new BABYLON.Color3(0, 0, 1));
         this.obstService.selectObst(ray);
@@ -78,9 +82,20 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     public playerService: PlayerService,
     public inputService: InputService,
     public viewCubeService: ViewCubeService,
+    private sceneBounds: SceneBoundsService,
     private smokeviewApiService: SmokeviewApiService
   ) { }
 
+  /**
+   * Where a clip slider currently cuts, as the user reads it.
+   *
+   * The slider is a percentage of the model; what it means is a coordinate in
+   * metres, and that is the number the user can type into a `.fds` file
+   * (ADR-0002). Rounded to a centimetre - finer than any geometry FDS is given.
+   */
+  public clipLabel(axis: SceneAxis): string {
+    return `${this.obstService.clipPlane(axis).toFixed(2)} m`;
+  }
 
   ngOnInit() {
     // Decided on first paint, so an unsupported browser sees the message

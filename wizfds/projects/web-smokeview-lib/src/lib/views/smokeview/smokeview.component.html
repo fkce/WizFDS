@@ -48,11 +48,11 @@
 
     <div class="clip">
         <p>x:&nbsp;<input type="range" [ngModel]="obstService.clipX" (ngModelChange)="obstService.clip($event, 'x'); fireService.clip($event, 'x'); ventService.clipBasic($event, 'x')"
-                min="0" max="100" />&nbsp;{{obstService.clipX}}%</p>
+                min="0" max="100" />&nbsp;{{clipLabel('x')}}</p>
         <p>y:&nbsp;<input type="range" [ngModel]="obstService.clipY" (ngModelChange)="obstService.clip($event, 'y'); fireService.clip($event, 'y'); ventService.clipBasic($event, 'y')"
-                min="0" max="100" />&nbsp;{{obstService.clipY}}%</p>
+                min="0" max="100" />&nbsp;{{clipLabel('y')}}</p>
         <p>z:&nbsp;<input type="range" [ngModel]="obstService.clipZ" (ngModelChange)="obstService.clip($event, 'z'); fireService.clip($event, 'z'); ventService.clipBasic($event, 'z')"
-                min="0" max="100" />&nbsp;{{obstService.clipZ}}%</p>
+                min="0" max="100" />&nbsp;{{clipLabel('z')}}</p>
     </div>
     <div class="player" *ngIf="playerService.frameNo > 0">
         <div class="time">Frame: {{playerService.frameCur}}</div>

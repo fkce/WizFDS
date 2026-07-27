@@ -139,8 +139,8 @@ describe('JetfanService', () => {
       await service.render();
 
       expect(ventService.vents.length).withContext('one inlet and one outlet').toBe(2);
-      const inlet = ventService.vents[0].xbNorm;
-      const outlet = ventService.vents[1].xbNorm;
+      const inlet = ventService.vents[0].xb;
+      const outlet = ventService.vents[1].xb;
       expect(inlet.x1).toBe(inlet.x2);
       expect(outlet.x1).toBe(outlet.x2);
       expect(outlet.x1).withContext('+x blows out of the far face').toBeGreaterThan(inlet.x1);
@@ -151,8 +151,8 @@ describe('JetfanService', () => {
 
       await service.render();
 
-      const inlet = ventService.vents[0].xbNorm;
-      const outlet = ventService.vents[1].xbNorm;
+      const inlet = ventService.vents[0].xb;
+      const outlet = ventService.vents[1].xb;
       expect(outlet.x1).withContext('-x blows out of the near face').toBeLessThan(inlet.x1);
     });
 
@@ -161,8 +161,8 @@ describe('JetfanService', () => {
 
       await service.render();
 
-      const inlet = ventService.vents[0].xbNorm;
-      const outlet = ventService.vents[1].xbNorm;
+      const inlet = ventService.vents[0].xb;
+      const outlet = ventService.vents[1].xb;
       expect(inlet.z1).toBe(inlet.z2);
       expect(outlet.z1).toBe(outlet.z2);
       expect(outlet.z1).toBeGreaterThan(inlet.z1);
