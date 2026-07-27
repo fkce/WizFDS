@@ -5,6 +5,7 @@ import { forEach, max, cloneDeep, toNumber } from 'lodash';
 import { IMesh } from '../interfaces';
 import * as BABYLON from 'babylonjs';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
+import { SceneRegistryService } from '../../babylon/scene-registry.service';
 
 @Injectable({
   providedIn: 'root'
@@ -27,10 +28,17 @@ export class MeshService implements SceneScoped {
   constructor(
     private babylonService: BabylonService,
     private helperService: HelpersService,
+    private sceneRegistry: SceneRegistryService,
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
   }
+
+  /** Face ranges collected while building the buffer, registered in render(). */
+  private readonly pendingRegistrations: { uuid: string, first: number, count: number }[] = [];
+
+  /** What this service put in the registry, so a re-render can take it out. */
+  private registeredUuids: string[] = [];
 
   /** Release everything tied to the scene that has just been disposed. */
   public resetSceneState(): void {
@@ -165,10 +173,16 @@ export class MeshService implements SceneScoped {
     this.colors.length = 0;
     this.indices.length = 0;
 
+    this.pendingRegistrations.length = 0;
+
     forEach(this.meshes, (mesh: IMesh, index: number) => {
+      const facesBefore = this.indices.length / 3;
       this.vertices.push(...this.helperService.getVerticesFromXb(mesh.vis.xbNorm));
       this.colors.push(...this.helperService.getColors(mesh.vis.colorNorm));
       this.indices.push(...this.helperService.getIndices(index));
+      this.pendingRegistrations.push({
+        uuid: mesh.uuid, first: facesBefore, count: this.indices.length / 3 - facesBefore
+      });
     });
   }
 
@@ -183,6 +197,14 @@ export class MeshService implements SceneScoped {
 
     // Create new custom mesh and vertex data
     this.mesh = new BABYLON.Mesh("custom", this.babylonService.scene);
+
+    // All meshes share this one buffer, so identity is a face range within it
+    this.registeredUuids.forEach(uuid => this.sceneRegistry.forget(uuid));
+    this.registeredUuids = [];
+    this.pendingRegistrations.forEach(({ uuid, first, count }) => {
+      this.sceneRegistry.register(uuid, { mesh: this.mesh, faces: { first: first, count: count } });
+      this.registeredUuids.push(uuid);
+    });
 
     // Compute normals
     BABYLON.VertexData.ComputeNormals(this.vertices, this.indices, this.normals);

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import * as BABYLON from 'babylonjs';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
+import { SceneRegistryService } from '../../babylon/scene-registry.service';
 import { forEach, cloneDeep, toNumber } from 'lodash';
 
 import { BabylonService } from '../../babylon/babylon.service';
@@ -30,10 +31,17 @@ export class FireService implements SceneScoped {
   constructor(
     private babylonService: BabylonService,
     private helpersService: HelpersService,
+    private sceneRegistry: SceneRegistryService,
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
   }
+
+  /** Face ranges collected while building the buffer, registered in renderFires(). */
+  private readonly pendingRegistrations: { uuid: string, first: number, count: number }[] = [];
+
+  /** What this service put in the registry, so a re-render can take it out. */
+  private registeredUuids: string[] = [];
 
   /** Release everything tied to the scene that has just been disposed. */
   public resetSceneState(): void {
@@ -91,8 +99,11 @@ export class FireService implements SceneScoped {
     let normals: number[] = [];
     let indexCount = 0;
 
+    this.pendingRegistrations.length = 0;
+
     this.fires.forEach((fire) => {
       if (fire.vis && fire.vis.xbNorm) {
+        const facesBefore = indices.length / 3;
         const geom = this.helpersService.generateVentGeometry(fire.vis.xbNorm);
 
         vertices.push(...geom.vertices);
@@ -112,6 +123,10 @@ export class FireService implements SceneScoped {
           indices.push(geom.indices[i] + indexCount);
         }
         indexCount += geom.vertices.length / 3;
+
+        this.pendingRegistrations.push({
+          uuid: fire.uuid, first: facesBefore, count: indices.length / 3 - facesBefore
+        });
       }
     });
 
@@ -143,6 +158,14 @@ export class FireService implements SceneScoped {
     }
 
     this.mesh = new BABYLON.Mesh('fires', this.babylonService.scene);
+
+    // All fires share this buffer, so identity is a face range within it
+    this.registeredUuids.forEach(uuid => this.sceneRegistry.forget(uuid));
+    this.registeredUuids = [];
+    this.pendingRegistrations.forEach(({ uuid, first, count }) => {
+      this.sceneRegistry.register(uuid, { mesh: this.mesh, faces: { first: first, count: count } });
+      this.registeredUuids.push(uuid);
+    });
 
     const vertexData = new BABYLON.VertexData();
     vertexData.positions = data.vertices;

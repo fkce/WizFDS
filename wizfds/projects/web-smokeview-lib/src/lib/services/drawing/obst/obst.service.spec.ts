@@ -3,6 +3,7 @@ import * as BABYLON from 'babylonjs';
 
 import { ObstService } from './obst.service';
 import { BabylonService } from '../../babylon/babylon.service';
+import { SceneRegistryService } from '../../babylon/scene-registry.service';
 import { IHole, IObst, IXb } from '../interfaces';
 
 function makeObst(id: string, xb: IXb): IObst {
@@ -203,6 +204,80 @@ describe('ObstService', () => {
       expect(cut)
         .withContext(`plain obst ${(plain * 100).toFixed(0)}% of triangles agree, cut obst ${(cut * 100).toFixed(0)}%`)
         .toBeCloseTo(plain, 6);
+    });
+  });
+
+  describe('scene registry', () => {
+    const opaqueSurf = { id: 'SURF_1', color: { rgb: [255, 208, 0] }, transparency: 1 };
+    const wallXb = { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 };
+    let registry: SceneRegistryService;
+
+    beforeEach(() => {
+      registry = TestBed.inject(SceneRegistryService);
+    });
+
+    it('registers every obst it draws, by uuid', () => {
+      service.obsts = [
+        makeObst('W1', wallXb),
+        makeObst('W2', { x1: 0.0, x2: 0.2, y1: 0.0, y2: 4.0, z1: 0.0, z2: 3.0 })
+      ];
+      service.holes = [];
+      service.surfs = [opaqueSurf];
+
+      service.renderObsts();
+
+      expect(registry.entryFor('W1-uuid')).toBeTruthy();
+      expect(registry.entryFor('W2-uuid')).toBeTruthy();
+      expect(registry.entryFor('W1-uuid').mesh).toBe(service.mesh);
+    });
+
+    it('maps a face back to the obst that owns it', () => {
+      service.obsts = [makeObst('W1', wallXb), makeObst('W2', wallXb)];
+      service.holes = [];
+      service.surfs = [opaqueSurf];
+
+      service.renderObsts();
+
+      const first = registry.entryFor('W1-uuid').faces;
+      const second = registry.entryFor('W2-uuid').faces;
+      expect(registry.uuidAt(service.mesh, first.first)).toBe('W1-uuid');
+      expect(registry.uuidAt(service.mesh, first.first + first.count - 1)).toBe('W1-uuid');
+      expect(registry.uuidAt(service.mesh, second.first)).toBe('W2-uuid');
+    });
+
+    it('maps faces of an obst carrying a hole, whose triangle count is not twelve', async () => {
+      // `Math.floor(faceId / 12)` assumed every obst is twelve triangles, so a
+      // single &HOLE shifted every later obst's identity by one.
+      await BABYLON.InitializeCSG2Async({ manifoldUrl: '/assets/manifold' });
+
+      service.obsts = [
+        makeObst('CUT', wallXb),
+        makeObst('PLAIN', { x1: 6.0, x2: 8.0, y1: 6.0, y2: 6.2, z1: 0.0, z2: 2.5 })
+      ];
+      service.holes = [makeHole('DOOR', { x1: 1.0, x2: 2.0, y1: 1.9, y2: 2.3, z1: 0.0, z2: 2.1 })];
+      service.surfs = [opaqueSurf];
+
+      service.renderObsts();
+
+      const cut = registry.entryFor('CUT-uuid').faces;
+      const plain = registry.entryFor('PLAIN-uuid').faces;
+      expect(cut.count).withContext('a cut obst is not twelve triangles').not.toBe(12);
+      expect(registry.uuidAt(service.mesh, cut.first)).toBe('CUT-uuid');
+      expect(registry.uuidAt(service.mesh, cut.first + cut.count - 1)).toBe('CUT-uuid');
+      expect(registry.uuidAt(service.mesh, plain.first)).toBe('PLAIN-uuid');
+    });
+
+    it('forgets the previous render rather than stacking entries', () => {
+      service.obsts = [makeObst('W1', wallXb)];
+      service.holes = [];
+      service.surfs = [opaqueSurf];
+      service.renderObsts();
+
+      service.obsts = [makeObst('W2', wallXb)];
+      service.renderObsts();
+
+      expect(registry.entryFor('W1-uuid')).toBeUndefined();
+      expect(registry.entryFor('W2-uuid')).toBeTruthy();
     });
   });
 
