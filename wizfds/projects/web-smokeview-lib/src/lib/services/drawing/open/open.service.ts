@@ -21,7 +21,6 @@ export class OpenService {
   meshes: BABYLON.Mesh[] = [];
   vertexData: BABYLON.VertexData;
   material: BABYLON.StandardMaterial;
-  materials: BABYLON.StandardMaterial[] = [];
 
   visibility: number = 1;
 
@@ -36,21 +35,29 @@ export class OpenService {
    */
   public renderOpens() {
 
-    // Dispose previous opens
-    if (this.meshes && this.meshes.length > 0) {
-      for (let i; i < this.meshes.length; i++) {
-        this.meshes[i].dispose();
-        this.materials[i].dispose();
-      };
-      this.meshes.length = 0;
-      this.materials.length = 0;
-    }
+    this.disposePreviousOpens();
 
     // Prepare normalized geometry and colors
     this.normalizeOpens();
 
     // Render data
     this.render();
+  }
+
+  /**
+   * Release what the previous render put in the scene.
+   *
+   * One StandardMaterial is shared by every open plane, so it is disposed once
+   * rather than per mesh.
+   */
+  private disposePreviousOpens(): void {
+    forEach(this.meshes, (mesh: BABYLON.Mesh) => mesh.dispose());
+    this.meshes.length = 0;
+
+    if (this.material) {
+      this.material.dispose();
+      this.material = null;
+    }
   }
 
   /**
@@ -123,6 +130,9 @@ export class OpenService {
    * Toggle open visibility
    */
   public toogleVisibility() {
+    // The button is live from the first frame, before anything is rendered
+    if (!this.material) return;
+
     // Show only edges;
     if (this.visibility == 0) {
       this.material.alpha = 0.0;

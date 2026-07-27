@@ -1,6 +1,5 @@
 import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, HostListener, isDevMode } from '@angular/core';
 import { ObstService } from '../../services/drawing/obst/obst.service';
-import { SliceGeomService } from '../../services/drawing/slice/slice-geom.service';
 import { BabylonService } from '../../services/babylon/babylon.service';
 import { SliceService } from '../../services/drawing/slice/slice.service';
 import { PlayerService } from '../../services/player/player.service';
@@ -47,8 +46,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
         this.obstService.selectObst(ray);
       }
       else {
-        this.obstService.pickedObstMesh.dispose();
-        this.obstService.pickedObst = undefined;
+        this.obstService.clearSelection();
       }
     }
   }
@@ -69,7 +67,6 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     public ventService: VentService,
     public jetfanService: JetfanService,
     public fireService: FireService,
-    public sliceGeomService: SliceGeomService,
     private babylonService: BabylonService,
     public sliceService: SliceService,
     public playerService: PlayerService,

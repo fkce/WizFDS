@@ -270,9 +270,12 @@ export class BabylonService {
     const vUrl = `${base}.vertex.wgsl`;
     const fUrl = `${base}.fragment.wgsl`;
 
+    // Shaders are static assets copied verbatim by the build, so they carry no
+    // content hash and their freshness is the server's cache headers to decide.
+    // Forcing `no-cache` here only bought a revalidation round-trip per load.
     const [vRes, fRes] = await Promise.all([
-      fetch(vUrl, { cache: 'no-cache' }),
-      fetch(fUrl, { cache: 'no-cache' }),
+      fetch(vUrl),
+      fetch(fUrl),
     ]);
 
     if (!vRes.ok || !fRes.ok) {

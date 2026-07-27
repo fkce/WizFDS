@@ -39,9 +39,8 @@
         <button (click)="openService.toogleVisibility()">Open</button>
         <button (click)="meshService.toogleVisibility()">Mesh</button>
         <hr>
-        <button
-            (click)="obstService.material.wireframe = obstService.material.wireframe ? false : true; obstService.meshBackCap.isVisible = obstService.meshBackCap.isVisible ? false : true;">Trinagles</button>
-        <button (click)="obstService.setEdgesRendering(obstService.mesh.edgesWidth == 0);">Obst Outline</button>
+        <button (click)="obstService.toggleWireframe()">Trinagles</button>
+        <button (click)="obstService.toggleEdgesRendering()">Obst Outline</button>
         <button (click)="jetfanService.setEdgesRendering(jetfanService.mesh?.edgesWidth == 0);">Jetfan Outline</button>
         <button (click)="fireService.toogleVisibility()">Fire</button>
         <button (click)="ventService.toogleBasicVisibility()">Vent</button>

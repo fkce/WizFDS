@@ -206,6 +206,182 @@ describe('ObstService', () => {
     });
   });
 
+  describe('UI actions before the shaders have arrived', () => {
+    // Materials are built inside a promise. Every control in the template is
+    // clickable from the first frame, so each of these runs against a service
+    // that has no mesh and no material yet.
+
+    it('toggles the wireframe without throwing', () => {
+      expect(() => service.toggleWireframe()).not.toThrow();
+    });
+
+    it('toggles the obst outline without throwing', () => {
+      expect(() => service.toggleEdgesRendering()).not.toThrow();
+    });
+
+    it('clears a selection that was never made without throwing', () => {
+      expect(() => service.clearSelection()).not.toThrow();
+    });
+
+    it('moves a clip slider without throwing', () => {
+      expect(() => service.clip(50, 'x')).not.toThrow();
+      expect(() => service.clip(50, 'y')).not.toThrow();
+      expect(() => service.clip(50, 'z')).not.toThrow();
+    });
+
+    it('forgets the picked obst when the selection is cleared', () => {
+      service.pickedObst = makeObst('WALL', { x1: 0, x2: 1, y1: 0, y2: 1, z1: 0, z2: 1 });
+
+      service.clearSelection();
+
+      expect(service.pickedObst).toBeUndefined();
+    });
+
+    it('disposes the highlight box together with its material', () => {
+      // selectObst() builds a fresh StandardMaterial for every pick, so leaving
+      // it behind means one orphan per ctrl+click.
+      const mesh = BABYLON.MeshBuilder.CreateBox('pickedObst', {}, scene);
+      const material = new BABYLON.StandardMaterial('pickedObstMaterial', scene);
+      mesh.material = material;
+      service.pickedObstMesh = mesh;
+      service.pickedObstMaterial = material;
+
+      service.clearSelection();
+
+      expect(mesh.isDisposed()).toBe(true);
+      expect(scene.materials).not.toContain(material);
+    });
+  });
+
+  describe('material lifetime', () => {
+    const opaqueSurf = { id: 'SURF_1', color: { rgb: [255, 208, 0] }, transparency: 1 };
+    const glazedSurf = { id: 'SURF_2', color: { rgb: [0, 128, 255] }, transparency: 0.4 };
+
+    beforeEach(() => {
+      // The suite-wide stub rejects, so no material is ever built and there is
+      // nothing to leak. Hand out real ones here to see what render() keeps.
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [{
+          provide: BabylonService,
+          useValue: {
+            scene: scene,
+            camera: { setPosition: () => { }, setTarget: () => { } },
+            loadShaderSources: () => Promise.reject(new Error('no shader assets under test')),
+            createShaderMaterial: (spec: { name: string }) => Promise.resolve(
+              new BABYLON.ShaderMaterial(spec.name, scene, { vertexSource: '', fragmentSource: '' }, {})
+            )
+          }
+        }]
+      });
+      service = TestBed.inject(ObstService);
+    });
+
+    /** Let the .then() chains that build the materials run. */
+    async function settleMaterials(): Promise<void> {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+
+    it('keeps the back cap opposite the wireframe across clicks', async () => {
+      service.obsts = [makeObst('W1', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 })];
+      service.holes = [];
+      service.surfs = [opaqueSurf];
+      service.renderObsts();
+      await settleMaterials();
+
+      service.toggleWireframe();
+      expect(service.material.wireframe).withContext('first click, wireframe').toBe(true);
+      expect(service.meshBackCap.isVisible).withContext('first click, back cap').toBe(false);
+
+      service.toggleWireframe();
+      expect(service.material.wireframe).withContext('second click, wireframe').toBe(false);
+      expect(service.meshBackCap.isVisible).withContext('second click, back cap').toBe(true);
+    });
+
+    it('applies a wireframe toggled before the material existed', async () => {
+      // Clicked while the shader was still in flight: the flag has nowhere to
+      // land yet, but it must not be lost - and the back cap must not flip on
+      // its own, which would leave the two permanently out of step.
+      service.toggleWireframe();
+
+      service.obsts = [makeObst('W1', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 })];
+      service.holes = [];
+      service.surfs = [opaqueSurf];
+      service.renderObsts();
+      await settleMaterials();
+
+      expect(service.material.wireframe).toBe(true);
+      expect(service.meshBackCap.isVisible).toBe(false);
+    });
+
+    it('carries clip values set before the materials arrived', async () => {
+      service.clip(0, 'x');
+
+      service.obsts = [makeObst('W1', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 })];
+      service.holes = [];
+      service.surfs = [opaqueSurf];
+      service.renderObsts();
+      await settleMaterials();
+
+      // clip(0) means "fully clipped away", which the shader reads as -1.1.
+      // ShaderMaterial exposes no getter for a uniform, hence the private read.
+      expect(service.clipXNorm).toBe(-1.1);
+      expect((service.material as any)._floats.clipX)
+        .withContext('the material built afterwards must pick up the slider position')
+        .toBe(-1.1);
+    });
+
+    it('does not grow the live mesh count across repeated renders', async () => {
+      // Navigating back into the view re-renders the same scenario. Meshes are
+      // disposed by name-less reference, so a missed dispose shows up here.
+      service.obsts = [
+        makeObst('W1', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 }),
+        { ...makeObst('W2', { x1: 0.0, x2: 0.2, y1: 0.0, y2: 4.0, z1: 0.0, z2: 3.0 }), surf: { surf_id: { id: 'SURF_2' } } } as IObst
+      ];
+      service.holes = [];
+      service.surfs = [opaqueSurf, glazedSurf];
+
+      service.renderObsts();
+      await settleMaterials();
+      const afterFirst = scene.meshes.length;
+
+      service.renderObsts();
+      await settleMaterials();
+      service.renderObsts();
+      await settleMaterials();
+
+      expect(afterFirst).toBeGreaterThan(0);
+      expect(scene.meshes.length)
+        .withContext(`${afterFirst} meshes after one render, ${scene.meshes.length} after three`)
+        .toBe(afterFirst);
+    });
+
+    it('does not orphan a material on every render', async () => {
+      // One opaque and one glazed wall, so all three materials are in play:
+      // opaque, transparent and back cap.
+      service.obsts = [
+        makeObst('W1', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 }),
+        { ...makeObst('W2', { x1: 0.0, x2: 0.2, y1: 0.0, y2: 4.0, z1: 0.0, z2: 3.0 }), surf: { surf_id: { id: 'SURF_2' } } } as IObst
+      ];
+      service.holes = [];
+      service.surfs = [opaqueSurf, glazedSurf];
+
+      service.renderObsts();
+      await settleMaterials();
+      const afterFirst = scene.materials.length;
+
+      service.renderObsts();
+      await settleMaterials();
+      service.renderObsts();
+      await settleMaterials();
+
+      expect(afterFirst).toBeGreaterThan(0);
+      expect(scene.materials.length)
+        .withContext(`${afterFirst} materials after one render, ${scene.materials.length} after three`)
+        .toBe(afterFirst);
+    });
+  });
+
   describe('clipping back cap', () => {
     const opaqueSurf = { id: 'SURF_1', color: { rgb: [255, 208, 0] }, transparency: 1 };
 
