@@ -270,9 +270,11 @@ export class BabylonService {
     const vUrl = `${base}.vertex.wgsl`;
     const fUrl = `${base}.fragment.wgsl`;
 
+    // Shaders are build artefacts, versioned with the bundle - no reason to
+    // make the browser revalidate them on every reload.
     const [vRes, fRes] = await Promise.all([
-      fetch(vUrl, { cache: 'no-cache' }),
-      fetch(fUrl, { cache: 'no-cache' }),
+      fetch(vUrl),
+      fetch(fUrl),
     ]);
 
     if (!vRes.ok || !fRes.ok) {
