@@ -148,28 +148,6 @@ export class HelpersService {
     return flatten(times(24, constant(color)));
   }
 
-  /**
-   * Get normals for a cube (24 vertices)
-   */
-  public getNormals() {
-    // 6 faces × 4 vertices each = 24 normals
-    // Each face has same normal for all 4 vertices
-    return [
-      // Bottom face (z1) - normal pointing down
-      0, 0, -1,  0, 0, -1,  0, 0, -1,  0, 0, -1,
-      // Top face (z2) - normal pointing up  
-      0, 0, 1,   0, 0, 1,   0, 0, 1,   0, 0, 1,
-      // Bottom face (z1) - duplicate (seems to be how getVerticesFromXb works)
-      0, 0, -1,  0, 0, -1,  0, 0, -1,  0, 0, -1,
-      // Top face (z2) - duplicate
-      0, 0, 1,   0, 0, 1,   0, 0, 1,   0, 0, 1,
-      // Bottom face (z1) - duplicate 
-      0, 0, -1,  0, 0, -1,  0, 0, -1,  0, 0, -1,
-      // Top face (z2) - duplicate
-      0, 0, 1,   0, 0, 1,   0, 0, 1,   0, 0, 1
-    ];
-  }
-
   public getIndices(i: number) {
 
     function multiply(n) {
