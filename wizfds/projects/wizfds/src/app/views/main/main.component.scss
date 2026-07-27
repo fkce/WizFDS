@@ -132,6 +132,9 @@
     position: relative;
     @include no-select;
     .list-drawer {
+      // border-box so the side borders sit inside the 12rem grid track instead
+      // of overhanging the form column by 2px.
+      box-sizing: border-box;
       display: grid;
       grid-template-rows: 2.5rem minmax(0, 1fr) auto;
       position: absolute;
@@ -343,6 +346,10 @@ $-drawer-w: $-drawer-list-w + $-tab-thickness;
       height: 100%;
       background: var(--surface-1);
       .list {
+        // border-box so the side borders sit *inside* the 17rem the drawer
+        // reserves — otherwise the list is 17rem + 2px and its right border is
+        // clipped by the shell's overflow-x.
+        box-sizing: border-box;
         display: grid;
         grid-template-rows: 2.5rem minmax(0, 1fr) auto;
         position: absolute;
@@ -422,6 +429,7 @@ $-drawer-w: $-drawer-list-w + $-tab-thickness;
       height: 100%;
       background: var(--surface-1);
       .help-list {
+        box-sizing: border-box; // see .lib-area .list
         background: var(--surface-1);
         border-right: 1px solid var(--border-muted);
         border-left: 1px solid var(--border-muted);
