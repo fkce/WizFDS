@@ -44,7 +44,7 @@ npm run wizFds:cm:copy    # copies custom FDS mode/hints/folding to node_modules
 
 ### wizfds App - Core Services
 
-- **MainService** (`services/main/`) - Central state holder. `Main` object contains user settings, current project/scenario, websocket config, idle timer. All services subscribe to it via `mainSubject` BehaviorSubject.
+- **MainService** (`services/main/`) - Central state holder. `Main` object contains user settings, current project/scenario, websocket config, idle timer. `getMain()` hands out a reference to the shared, mutated-in-place `Main` - it is not a change stream, and `mainSubject` does not re-emit. Use it to read a field lazily. To react to a *change*, subscribe to a narrow stream such as `currentFdsScenario$` and mutate through the matching setter (`setCurrentFdsScenario()`). See `docs/adr/0007-waskie-strumienie-zamiast-mainsubject.md`.
 - **FdsScenarioService** (`services/fds-scenario/`) - CRUD for FDS scenarios via REST API. Manages auto-save with `syncType` variants: `'head'` (name only), `'input'` (FDS text file), `'all'` (full object).
 - **JsonFdsService** (`services/json-fds/`) - Converts internal JSON FDS object to FDS input text file format. `json2fds()` is the main export method. Uses `parseAmper()` to serialize each FDS namelist group (e.g., `&MESH`, `&OBST`, `&SURF`).
 - **WebsocketService** (`services/websocket/`) - WebSocket connection to CAD plugin. Handles bidirectional geometry sync (`fExport` imports from CAD, `selectCad`/`fSelect` handles element selection).

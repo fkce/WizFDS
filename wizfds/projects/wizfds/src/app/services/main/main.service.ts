@@ -1,6 +1,8 @@
 import { Injectable, isDevMode } from '@angular/core';
 import { BehaviorSubject, Observable, of, timer } from 'rxjs';
+import { distinctUntilChanged } from 'rxjs/operators';
 import { Main } from './main';
+import { FdsScenario } from '@services/fds-scenario/fds-scenario';
 import { HttpManagerService, Result } from '@services/http-manager/http-manager.service';
 import { each } from 'lodash';
 import { SnackBarService } from '@services/snack-bar/snack-bar.service';
@@ -13,6 +15,21 @@ export class MainService {
   main: Main = new Main(JSON.stringify({}));
   mainSubject = new BehaviorSubject<Main>(this.main);
 
+  private readonly currentFdsScenarioSubject = new BehaviorSubject<FdsScenario | undefined>(undefined);
+
+  /**
+   * The current scenario, for consumers that have to *react* when it changes.
+   *
+   * Distinct by id on purpose: auto-saving the scenario name re-assigns the
+   * field with the same scenario (FdsScenarioService.updateFdsScenario, syncType
+   * 'head'), and redrawing the 3D preview on every save would be ruinous.
+   *
+   * See docs/adr/0007-waskie-strumienie-zamiast-mainsubject.md.
+   */
+  public readonly currentFdsScenario$ = this.currentFdsScenarioSubject.pipe(
+    distinctUntilChanged((previous, current) => previous?.id === current?.id)
+  );
+
   constructor(
     private httpManager: HttpManagerService,
     private snackBarService: SnackBarService
@@ -20,9 +37,29 @@ export class MainService {
     this.getSettings();
   }
 
+  /**
+   * The shared Main object.
+   *
+   * This is a reference-injection mechanism, not a change stream: `mainSubject`
+   * never emits again after subscription, and Main is mutated in place, so
+   * subscribers see new values only because they hold the same object. Fine for
+   * reading a field lazily - if you need to know *when* something changed,
+   * subscribe to a narrow stream like currentFdsScenario$ instead.
+   */
   public getMain(): Observable<Main> {
     //return of(this.main);
     return this.mainSubject.asObservable();
+  }
+
+  /**
+   * Replace the current scenario and tell subscribers.
+   *
+   * Assigning `main.currentFdsScenario` directly still works and still skips
+   * the notification silently - route changes through here.
+   */
+  public setCurrentFdsScenario(fdsScenario: FdsScenario | undefined): void {
+    this.main.currentFdsScenario = fdsScenario;
+    this.currentFdsScenarioSubject.next(fdsScenario);
   }
 
   /**

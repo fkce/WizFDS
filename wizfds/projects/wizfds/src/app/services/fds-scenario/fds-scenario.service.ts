@@ -35,7 +35,7 @@ export class FdsScenarioService {
 
       // Disable autoSave besause of performance
       this.main.autoSave.disable = true;
-      this.main.currentFdsScenario = new FdsScenario(JSON.stringify(result.data));
+      this.mainService.setCurrentFdsScenario(new FdsScenario(JSON.stringify(result.data)));
       this.main.autoSave.disable = false;
 
       // Set current project in main object
@@ -92,7 +92,9 @@ export class FdsScenarioService {
 
       this.httpManager.put(this.main.settings.hostAddress + '/api/fdsScenario/' + fdsScenario.id, JSON.stringify({ type: 'head', data: { id: fdsScenario.id, name: fdsScenario.name } })).then((result: Result) => {
         if (this.main.currentFdsScenario != undefined) {
-          this.main.currentFdsScenario = fdsScenario;
+          // Same scenario, refreshed after the name was saved - currentFdsScenario$
+          // is distinct by id, so this does not re-emit
+          this.mainService.setCurrentFdsScenario(fdsScenario);
           // Change chid after scenario name update
           this.main.currentFdsScenario.fdsObject.general.head.chid = this.main.currentFdsScenario.name;
           this.main.currentFdsScenario.fdsObject.general.head.title = this.main.currentFdsScenario.name + ' scenario';

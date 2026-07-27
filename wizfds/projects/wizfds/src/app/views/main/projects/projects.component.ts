@@ -164,14 +164,14 @@ export class ProjectsComponent implements OnInit, OnDestroy {
       this.fdsScenarioService.updateFdsScenario(this.main.currentProject.id, this.main.currentFdsScenario.id);
     }
     this.projectService.setCurrnetProject(index);
-    this.main.currentFdsScenario = undefined;
+    this.mainService.setCurrentFdsScenario(undefined);
   }
   public unsetCurrentProject() {
     if (this.main.currentProject != undefined && this.main.currentFdsScenario != undefined) {
       this.fdsScenarioService.updateFdsScenario(this.main.currentProject.id, this.main.currentFdsScenario.id);
     }
     this.main.currentProject = undefined;
-    this.main.currentFdsScenario = undefined;
+    this.mainService.setCurrentFdsScenario(undefined);
   }
 
   /**
@@ -226,7 +226,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   public changeCategoryActivity(categoryUuid: string, categoryIndex: number) {
     if (this.main.currentProject != undefined && this.main.currentProject.category == categoryUuid) {
       if (this.main.currentFdsScenario != undefined) {
-        this.main.currentFdsScenario = undefined;
+        this.mainService.setCurrentFdsScenario(undefined);
       }
       this.main.currentProject = undefined;
     }
@@ -276,7 +276,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   /** Delete fds scenario */
   public deleteFdsScenario(projectId: number, fdsScenarioId: number) {
     if (this.main.currentFdsScenario != undefined && this.main.currentFdsScenario.id == fdsScenarioId)
-      this.main.currentFdsScenario = undefined;
+      this.mainService.setCurrentFdsScenario(undefined);
 
     this.fdsScenarioService.deleteFdsScenario(projectId, fdsScenarioId);
   }
