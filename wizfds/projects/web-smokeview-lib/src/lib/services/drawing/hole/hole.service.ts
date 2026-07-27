@@ -1,14 +1,13 @@
 import { Injectable, isDevMode } from '@angular/core';
 import * as BABYLON from 'babylonjs';
-import { IHole, IObst, IXb } from '../interfaces';
-import { HelpersService } from '../../helpers/helpers.service';
+import { SceneHole, SceneObst, SceneXb } from '../scene-input';
 
 @Injectable({
   providedIn: 'root'
 })
 export class HoleService {
 
-  constructor(private helpersService: HelpersService) { }
+  constructor() { }
 
   /**
    * Whether the CSG2 backend (Manifold) finished loading. Cutting is impossible
@@ -19,40 +18,48 @@ export class HoleService {
   }
 
   /**
-   * Process obst with holes using CSG operations
-   * @param obst The obst object that may contain holes
-   * @param scene Babylon scene
-   * @returns Processed mesh with holes cut and inner walls added
+   * Cut a set of openings out of an obst and return the resulting mesh.
+   *
+   * Everything here is in scene coordinates, worked out by the caller: the obst
+   * and the holes are the app's elements and are never written to (ADR-0004), so
+   * where they landed is not something this service can read off them.
+   *
+   * @param id the obst's FDS name, used to name the temporary meshes
+   * @param obstXbNorm the obst's box in scene coordinates
+   * @param holeXbsNorm the boxes to subtract from it, in scene coordinates
+   * @returns the cut mesh, or null when the obst should be drawn solid instead
    */
-  public processObstWithHoles(obst: IObst, scene: BABYLON.Scene): BABYLON.Mesh | null {
+  public cutHoles(
+    id: string, obstXbNorm: SceneXb, holeXbsNorm: readonly SceneXb[], scene: BABYLON.Scene
+  ): BABYLON.Mesh | null {
     // If no holes, return null (will use standard obst rendering)
-    if (!obst.holes || obst.holes.length === 0) {
+    if (!holeXbsNorm || holeXbsNorm.length === 0) {
       return null;
     }
 
     // Manifold failing to load costs the openings, not the whole scene: the
     // obst falls back to being drawn solid.
     if (!this.isCsgReady()) {
-      if (isDevMode()) console.warn('[HoleService] CSG2 is not ready - drawing obst solid:', obst.id);
+      if (isDevMode()) console.warn('[HoleService] CSG2 is not ready - drawing obst solid:', id);
       return null;
     }
 
     try {
       // Create base obst geometry
-      const obstMesh = this.createObstGeometry(obst, scene);
+      const obstMesh = this.createBox(`obstBase_${id}`, obstXbNorm, scene);
       // Make the obstMesh invisible during processing (it will be disposed anyway)
       obstMesh.isVisible = false;
-      
+
       let resultMesh = obstMesh;
 
       // Process each hole
-      obst.holes.forEach((hole, index) => {
+      holeXbsNorm.forEach((holeXbNorm, index) => {
         try {
           // Create hole geometry
-          const holeMesh = this.createHoleGeometry(hole, scene);
+          const holeMesh = this.createBox(`hole_${id}_${index}`, holeXbNorm, scene);
           // Make hole mesh invisible (it's only used for CSG, not rendering)
           holeMesh.isVisible = false;
-          
+
           // Perform CSG subtraction to cut the hole
           const obstCSG = BABYLON.CSG2.FromMesh(resultMesh);
           const holeCSG = BABYLON.CSG2.FromMesh(holeMesh);
@@ -75,11 +82,11 @@ export class HoleService {
           obstCSG.dispose();
           holeCSG.dispose();
           subtractedCSG.dispose();
-          
+
           // Force mesh update
           resultMesh.refreshBoundingInfo();
           resultMesh.computeWorldMatrix(true);
-          
+
         } catch (error) {
           console.error('[HoleService] Error processing hole:', error);
         }
@@ -91,29 +98,25 @@ export class HoleService {
       }
 
       return resultMesh;
-      
+
     } catch (error) {
-      console.error('[HoleService] Error in processObstWithHoles:', error);
+      console.error('[HoleService] Error in cutHoles:', error);
       return null;
     }
   }
 
-  /**
-   * Create base obst geometry mesh
-   */
-  private createObstGeometry(obst: IObst, scene: BABYLON.Scene): BABYLON.Mesh {
-    const xb = obst.vis.xbNorm;
+  /** A box standing exactly where its scene coordinates put it. */
+  private createBox(name: string, xb: SceneXb, scene: BABYLON.Scene): BABYLON.Mesh {
     const width = xb.x2 - xb.x1;
     const height = xb.y2 - xb.y1;
     const depth = xb.z2 - xb.z1;
 
-    const mesh = BABYLON.MeshBuilder.CreateBox(`obstBase_${obst.id}`, {
+    const mesh = BABYLON.MeshBuilder.CreateBox(name, {
       width: width,
       height: height,
       depth: depth
     }, scene);
 
-    // Position the mesh
     mesh.position = new BABYLON.Vector3(
       xb.x1 + width / 2,
       xb.y1 + height / 2,
@@ -121,147 +124,42 @@ export class HoleService {
     );
 
     return mesh;
-  }
-
-  /**
-   * Create hole geometry mesh
-   */
-  private createHoleGeometry(hole: IHole, scene: BABYLON.Scene): BABYLON.Mesh {
-    const xb = hole.vis.xbNorm;
-    const width = xb.x2 - xb.x1;
-    const height = xb.y2 - xb.y1;
-    const depth = xb.z2 - xb.z1;
-
-    // For debugging, create a visible hole mesh
-    const mesh = BABYLON.MeshBuilder.CreateBox(`hole_${hole.id}`, {
-      width: width,
-      height: height,
-      depth: depth
-    }, scene);
-
-    // Position the mesh
-    mesh.position = new BABYLON.Vector3(
-      xb.x1 + width / 2,
-      xb.y1 + height / 2,
-      xb.z1 + depth / 2
-    );
-
-    return mesh;
-  }
-
-  /**
-   * Create inner walls for holes to simulate material thickness
-   */
-  private createHoleInnerWalls(hole: IHole, parentObst: IObst, scene: BABYLON.Scene): BABYLON.Mesh[] {
-    const walls: BABYLON.Mesh[] = [];
-    const holeXb = hole.vis.xbNorm;
-    const obstXb = parentObst.vis.xbNorm;
-    
-    // Wall thickness (small value to create inner surfaces)
-    const wallThickness = 0.01;
-    
-    // Create walls for each face of the hole that intersects with obst boundaries
-    
-    // X-min wall (left side)
-    if (holeXb.x1 > obstXb.x1) {
-      walls.push(this.createWall(
-        holeXb.x1, holeXb.y1, holeXb.z1,
-        wallThickness, holeXb.y2 - holeXb.y1, holeXb.z2 - holeXb.z1,
-        'x_min', scene, hole.id
-      ));
-    }
-    
-    // X-max wall (right side)
-    if (holeXb.x2 < obstXb.x2) {
-      walls.push(this.createWall(
-        holeXb.x2 - wallThickness, holeXb.y1, holeXb.z1,
-        wallThickness, holeXb.y2 - holeXb.y1, holeXb.z2 - holeXb.z1,
-        'x_max', scene, hole.id
-      ));
-    }
-    
-    // Y-min wall (front side)
-    if (holeXb.y1 > obstXb.y1) {
-      walls.push(this.createWall(
-        holeXb.x1, holeXb.y1, holeXb.z1,
-        holeXb.x2 - holeXb.x1, wallThickness, holeXb.z2 - holeXb.z1,
-        'y_min', scene, hole.id
-      ));
-    }
-    
-    // Y-max wall (back side)
-    if (holeXb.y2 < obstXb.y2) {
-      walls.push(this.createWall(
-        holeXb.x1, holeXb.y2 - wallThickness, holeXb.z1,
-        holeXb.x2 - holeXb.x1, wallThickness, holeXb.z2 - holeXb.z1,
-        'y_max', scene, hole.id
-      ));
-    }
-    
-    // Z-min wall (bottom side)
-    if (holeXb.z1 > obstXb.z1) {
-      walls.push(this.createWall(
-        holeXb.x1, holeXb.y1, holeXb.z1,
-        holeXb.x2 - holeXb.x1, holeXb.y2 - holeXb.y1, wallThickness,
-        'z_min', scene, hole.id
-      ));
-    }
-    
-    // Z-max wall (top side)
-    if (holeXb.z2 < obstXb.z2) {
-      walls.push(this.createWall(
-        holeXb.x1, holeXb.y1, holeXb.z2 - wallThickness,
-        holeXb.x2 - holeXb.x1, holeXb.y2 - holeXb.y1, wallThickness,
-        'z_max', scene, hole.id
-      ));
-    }
-    
-    return walls;
-  }
-  
-  /**
-   * Create a single wall mesh for inner hole surfaces
-   */
-  private createWall(
-    x: number, y: number, z: number,
-    width: number, height: number, depth: number,
-    face: string, scene: BABYLON.Scene, holeId: string
-  ): BABYLON.Mesh {
-    const wall = BABYLON.MeshBuilder.CreateBox(`wall_${face}_${holeId}`, {
-      width: width,
-      height: height,
-      depth: depth
-    }, scene);
-    
-    wall.position = new BABYLON.Vector3(
-      x + width / 2,
-      y + height / 2,
-      z + depth / 2
-    );
-    
-    return wall;
   }
 
   /**
    * Check if an obst can have holes
    */
-  public canHaveHoles(obst: IObst): boolean {
-    return obst.permit_hole === true;
+  public canHaveHoles(obst: SceneObst): boolean {
+    return obst.permitHole === true;
+  }
+
+  /**
+   * Which of the scenario's openings cut into a given obst.
+   *
+   * A &HOLE is not owned by an obst in the FDS model - it is a box, and every
+   * obst it overlaps gets cut. Matching them used to write the result onto the
+   * obst itself; it is returned instead, so the scenario stays untouched.
+   *
+   * `PERMIT_HOLE` is deliberately not consulted here: whether an obst refuses to
+   * be cut is a drawing decision, and the caller says so in its own log.
+   */
+  public holesFor(obst: SceneObst, holes: readonly SceneHole[]): SceneHole[] {
+    if (!obst || !holes) { return []; }
+    return holes.filter((hole: SceneHole) => this.holeIntersectsObst(hole, obst));
   }
 
   /**
    * Check if a hole intersects with an obst.
    *
-   * Works on raw FDS coordinates, not on vis.xbNorm: holes are assigned to obsts
-   * before the obsts are normalized, so xbNorm is not populated yet at that point.
-   * Normalization is a translation plus a positive scaling, so it preserves
-   * intersection anyway.
+   * Works on the FDS coordinates rather than on the scene ones: holes are matched
+   * to obsts before either has been placed in the scene. Normalisation is a
+   * translation plus a positive scaling, so it preserves intersection anyway.
    *
    * A &HOLE normally cuts all the way through a wall and overhangs its outline -
    * that is how doors and windows are written - so this is an overlap test, not a
    * containment test. Touching faces (zero shared volume) do not count.
    */
-  public holeIntersectsObst(hole: IHole, obst: IObst): boolean {
+  public holeIntersectsObst(hole: SceneHole, obst: SceneObst): boolean {
     if (!hole || !hole.xb || !obst || !obst.xb) {
       return false;
     }

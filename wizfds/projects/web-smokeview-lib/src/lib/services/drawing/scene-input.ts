@@ -1,0 +1,117 @@
+/**
+ * What the app hands the library to draw.
+ *
+ * The scenario itself lives in the app - the `Fds` object is the only source of
+ * truth (ADR-0004) - so nothing here is a domain class. Everything is flat,
+ * already resolved and read-only: the library never looks a &SURF up, never
+ * follows a reference it was not given, and never writes back. That is what lets
+ * the app serialise and auto-save while the preview is on screen.
+ *
+ * `uuid` identifies an element everywhere in the system (ADR-0005). `idAC` is a
+ * link to the CAD plugin and means nothing for drawing, so it does not cross.
+ */
+
+/**
+ * An axis-aligned box.
+ *
+ * The same shape serves for the FDS coordinates that cross the boundary and for
+ * the unit-cube coordinates the library normalises them into. Squeezing the scene
+ * into a unit cube is the library's own business, and it goes away in Phase 2
+ * (#86) - at which point the two are the same thing (ADR-0002).
+ */
+export interface SceneXb {
+    readonly x1: number,
+    readonly x2: number,
+    readonly y1: number,
+    readonly y2: number,
+    readonly z1: number,
+    readonly z2: number
+}
+
+/**
+ * A colour ready for a vertex buffer: every component in 0..1, alpha included.
+ *
+ * The app does the conversion from the 0..255 rgb it stores, so the library has
+ * one representation to deal with rather than one per element type.
+ */
+export interface SceneColor {
+    readonly r: number,
+    readonly g: number,
+    readonly b: number,
+    readonly a: number
+}
+
+/** Everything the library draws has an identity, an FDS name and a box. */
+export interface SceneElement {
+    readonly uuid: string,
+    /** The FDS `ID`, shown to the user. Not an identity - it need not be unique. */
+    readonly id: string,
+    /** Where the element stands, in FDS metres. */
+    readonly xb: SceneXb
+}
+
+/** A &MESH. Drawn as an outline, in a colour the library picks itself. */
+export type SceneMesh = SceneElement;
+
+/** A &HOLE. Cut out of the obsts it overlaps; never drawn on its own. */
+export type SceneHole = SceneElement;
+
+/** An `OPEN` vent. Drawn as a plane, in a colour the library picks itself. */
+export type SceneOpen = SceneElement;
+
+/** An &OBST, with its &SURF already resolved to a colour. */
+export interface SceneObst extends SceneElement {
+    readonly color: SceneColor,
+    /**
+     * The &SURF this obst names, shown in the pick panel. `''` when it names none
+     * - which includes an obst with one &SURF per face, since that has no single
+     * name to show and no single colour to draw it in.
+     */
+    readonly surfId: string,
+    /** `PERMIT_HOLE`. An obst that forbids holes is drawn solid. */
+    readonly permitHole: boolean
+}
+
+/** A &VENT from the ventilation system, coloured by its &SURF. */
+export interface SceneVent extends SceneElement {
+    readonly color: SceneColor
+}
+
+/** A fire, drawn as the plane of its &VENT in the colour of its &SURF. */
+export interface SceneFire extends SceneElement {
+    readonly color: SceneColor
+}
+
+/** Which way a jetfan blows. */
+export type SceneJetfanDirection = '+x' | '-x' | '+y' | '-y' | '+z' | '-z';
+
+export const SCENE_JETFAN_DIRECTIONS: readonly SceneJetfanDirection[] =
+    ['+x', '-x', '+y', '-y', '+z', '-z'];
+
+/** Narrow a stored direction onto the six the library can draw. */
+export function isSceneJetfanDirection(value: string): value is SceneJetfanDirection {
+    return SCENE_JETFAN_DIRECTIONS.indexOf(value as SceneJetfanDirection) !== -1;
+}
+
+/**
+ * A jet fan. The library derives its inlet and outlet planes and its flow arrow
+ * from `direction` - those are drawings, not elements of the scenario.
+ */
+export interface SceneJetfan extends SceneElement {
+    readonly color: SceneColor,
+    readonly direction: SceneJetfanDirection
+}
+
+/**
+ * One scenario, as the library receives it. Every element type crosses the
+ * boundary this way and no other.
+ */
+export interface SceneInput {
+    readonly meshes: readonly SceneMesh[],
+    readonly obsts: readonly SceneObst[],
+    readonly holes: readonly SceneHole[],
+    readonly opens: readonly SceneOpen[],
+    readonly vents: readonly SceneVent[],
+    readonly fires: readonly SceneFire[],
+    readonly jetfans: readonly SceneJetfan[]
+}

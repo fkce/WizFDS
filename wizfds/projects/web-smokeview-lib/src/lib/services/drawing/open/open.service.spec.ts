@@ -3,16 +3,14 @@ import * as BABYLON from 'babylonjs';
 
 import { OpenService } from './open.service';
 import { BabylonService } from '../../babylon/babylon.service';
-import { IOpen, IXb } from '../interfaces';
+import { SceneOpen, SceneXb } from '../scene-input';
 
-function makeOpen(id: string, xb: IXb): IOpen {
+function makeOpen(id: string, xb: SceneXb): SceneOpen {
   return {
     id: id,
     uuid: `${id}-uuid`,
-    idAC: 1,
-    xb: xb,
-    vis: { xbNorm: { x1: 0, x2: 0, y1: 0, y2: 0, z1: 0, z2: 0 }, colorNorm: [0, 1, 0, 1] }
-  } as IOpen;
+    xb: xb
+  };
 }
 
 describe('OpenService', () => {
@@ -49,8 +47,8 @@ describe('OpenService', () => {
 
   describe('renderOpens', () => {
     // A vent on the y = 0 plane, so getPlaneDimFromXb() produces a plane
-    const wall: IXb = { x1: 0, x2: 2, y1: 0, y2: 0, z1: 0, z2: 3 };
-    const floor: IXb = { x1: 0, x2: 2, y1: 0, y2: 2, z1: 0, z2: 0 };
+    const wall: SceneXb = { x1: 0, x2: 2, y1: 0, y2: 0, z1: 0, z2: 3 };
+    const floor: SceneXb = { x1: 0, x2: 2, y1: 0, y2: 2, z1: 0, z2: 0 };
 
     it('disposes the previous meshes instead of leaking them', () => {
       service.opens = [makeOpen('OPEN_1', wall), makeOpen('OPEN_2', floor)];

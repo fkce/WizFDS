@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import * as BABYLON from 'babylonjs';
 
 import { HoleService } from './hole.service';
-import { IHole, IObst, IXb } from '../interfaces';
+import { SceneHole, SceneObst, SceneXb } from '../scene-input';
 
 /**
  * Signed volume of a closed triangle mesh, via the divergence theorem. An
@@ -28,34 +28,24 @@ function meshVolume(mesh: BABYLON.Mesh): number {
  * A wall 4 m long, 0.2 m thick, 3 m high, running along the X axis.
  * In FDS terms: &OBST XB=0.0,4.0,2.0,2.2,0.0,3.0
  */
-const wallXb: IXb = { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 };
+const wallXb: SceneXb = { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 };
 
-function makeObst(xb: IXb): IObst {
+function makeObst(xb: SceneXb, id: string = 'OBST_WALL'): SceneObst {
   return {
-    id: 'OBST_WALL',
-    uuid: 'obst-uuid',
-    idAC: 1,
+    id: id,
+    uuid: `${id}-uuid`,
     xb: xb,
-    surf: { surf_id: { id: 'SURF_1' } },
-    elevation: 0,
-    thicken: false,
-    overlay: true,
-    permit_hole: true,
-    removable: true,
-    ctrl_id: '',
-    devc_id: '',
-    // Deliberately left un-normalized: assignment happens before normalizeObsts()
-    vis: { xbNorm: { x1: 0, x2: 0, y1: 0, y2: 0, z1: 0, z2: 0 }, colorNorm: [1, 1, 1, 1] }
+    surfId: 'SURF_1',
+    permitHole: true,
+    color: { r: 1, g: 208 / 255, b: 0, a: 1 }
   };
 }
 
-function makeHole(xb: IXb): IHole {
+function makeHole(xb: SceneXb, id: string = 'HOLE_DOOR'): SceneHole {
   return {
-    id: 'HOLE_DOOR',
-    uuid: 'hole-uuid',
-    idAC: 2,
-    xb: xb,
-    vis: { xbNorm: { x1: 0, x2: 0, y1: 0, y2: 0, z1: 0, z2: 0 }, colorNorm: [1, 1, 1, 1] }
+    id: id,
+    uuid: `${id}-uuid`,
+    xb: xb
   };
 }
 
@@ -117,7 +107,50 @@ describe('HoleService', () => {
     });
   });
 
-  describe('processObstWithHoles', () => {
+  describe('holesFor', () => {
+    // Matching used to be done by writing a `holes` array onto the obst itself -
+    // a field the FDS model does not have, on an object owned by the app.
+
+    it('gives back the doorway that cuts clean through a wall', () => {
+      const doorway = makeHole({ x1: 1.0, x2: 2.0, y1: 1.9, y2: 2.3, z1: 0.0, z2: 2.1 }, 'DOOR');
+
+      expect(service.holesFor(makeObst(wallXb), [doorway])).toEqual([doorway]);
+    });
+
+    it('leaves out an opening that lands somewhere else', () => {
+      const elsewhere = makeHole({ x1: 5.0, x2: 6.0, y1: 1.9, y2: 2.3, z1: 0.0, z2: 2.1 }, 'FAR');
+
+      expect(service.holesFor(makeObst(wallXb), [elsewhere])).toEqual([]);
+    });
+
+    it('gives the same opening to every wall it crosses', () => {
+      // A &HOLE belongs to no obst in particular - it is a box, and everything it
+      // overlaps gets cut.
+      const crossing = makeHole({ x1: 1.0, x2: 2.0, y1: 0.0, y2: 5.0, z1: 0.0, z2: 2.1 }, 'PASSAGE');
+      const near = makeObst(wallXb, 'NEAR');
+      const far = makeObst({ x1: 0.0, x2: 4.0, y1: 4.0, y2: 4.2, z1: 0.0, z2: 3.0 }, 'FAR_WALL');
+
+      expect(service.holesFor(near, [crossing])).toEqual([crossing]);
+      expect(service.holesFor(far, [crossing])).toEqual([crossing]);
+    });
+
+    it('still reports an opening on an obst that forbids holes', () => {
+      // Whether the opening is actually cut is the caller's call - it logs the
+      // refusal, so it has to be told there was something to refuse.
+      const sealed: SceneObst = { ...makeObst(wallXb), permitHole: false };
+      const doorway = makeHole({ x1: 1.0, x2: 2.0, y1: 1.9, y2: 2.3, z1: 0.0, z2: 2.1 }, 'DOOR');
+
+      expect(service.holesFor(sealed, [doorway])).toEqual([doorway]);
+      expect(service.canHaveHoles(sealed)).toBe(false);
+    });
+
+    it('copes with a scenario that has no openings at all', () => {
+      expect(service.holesFor(makeObst(wallXb), [])).toEqual([]);
+      expect(service.holesFor(makeObst(wallXb), undefined)).toEqual([]);
+    });
+  });
+
+  describe('cutHoles', () => {
     let engine: BABYLON.NullEngine;
     let scene: BABYLON.Scene;
 
@@ -128,14 +161,8 @@ describe('HoleService', () => {
     const WALL_VOLUME = 2.4;
     const DOORWAY_VOLUME = 0.42;
 
-    function wallWithDoorway(): IObst {
-      const wall = makeObst(wallXb);
-      wall.vis.xbNorm = { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 };
-      const doorway = makeHole({ x1: 1.0, x2: 2.0, y1: 1.9, y2: 2.3, z1: 0.0, z2: 2.1 });
-      doorway.vis.xbNorm = { x1: 1.0, x2: 2.0, y1: 1.9, y2: 2.3, z1: 0.0, z2: 2.1 };
-      wall.holes = [doorway];
-      return wall;
-    }
+    /** The doorway written so that it overhangs the wall on both faces. */
+    const doorwayXb: SceneXb = { x1: 1.0, x2: 2.0, y1: 1.9, y2: 2.3, z1: 0.0, z2: 2.1 };
 
     beforeAll(async () => {
       // Manifold is served from assets/manifold, never from a CDN - see
@@ -158,7 +185,7 @@ describe('HoleService', () => {
     });
 
     it('cuts a doorway whose faces are coplanar with the wall', () => {
-      const mesh = service.processObstWithHoles(wallWithDoorway(), scene);
+      const mesh = service.cutHoles('WALL', wallXb, [doorwayXb], scene);
 
       expect(mesh).withContext('an obst carrying a hole must produce a mesh').toBeTruthy();
       expect(meshVolume(mesh)).toBeCloseTo(WALL_VOLUME - DOORWAY_VOLUME, 3);
@@ -168,13 +195,9 @@ describe('HoleService', () => {
       // The same doorway, but written with exactly the wall's own y bounds -
       // an ordinary way to write it, and the case where both solids share two
       // whole faces rather than merely crossing.
-      const wall = makeObst(wallXb);
-      wall.vis.xbNorm = { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 };
-      const doorway = makeHole({ x1: 1.0, x2: 2.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 2.1 });
-      doorway.vis.xbNorm = { x1: 1.0, x2: 2.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 2.1 };
-      wall.holes = [doorway];
+      const flush: SceneXb = { x1: 1.0, x2: 2.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 2.1 };
 
-      const mesh = service.processObstWithHoles(wall, scene);
+      const mesh = service.cutHoles('WALL', wallXb, [flush], scene);
 
       expect(mesh).toBeTruthy();
       expect(meshVolume(mesh)).toBeCloseTo(WALL_VOLUME - DOORWAY_VOLUME, 3);
@@ -184,7 +207,7 @@ describe('HoleService', () => {
       // The cut geometry has to stay put. CSG2.toMesh() centres the result on
       // the origin unless told otherwise, which would teleport every obst
       // carrying a hole into the middle of the scene.
-      const mesh = service.processObstWithHoles(wallWithDoorway(), scene);
+      const mesh = service.cutHoles('WALL', wallXb, [doorwayXb], scene);
       mesh.refreshBoundingInfo();
       const box = mesh.getBoundingInfo().boundingBox;
 
@@ -200,14 +223,11 @@ describe('HoleService', () => {
       // Manifold failing to load must cost the openings, not the whole scene.
       spyOn(service, 'isCsgReady').and.returnValue(false);
 
-      expect(service.processObstWithHoles(wallWithDoorway(), scene)).toBeNull();
+      expect(service.cutHoles('WALL', wallXb, [doorwayXb], scene)).toBeNull();
     });
 
     it('leaves an obst without holes to the standard rendering path', () => {
-      const wall = makeObst(wallXb);
-      wall.holes = [];
-
-      expect(service.processObstWithHoles(wall, scene)).toBeNull();
+      expect(service.cutHoles('WALL', wallXb, [], scene)).toBeNull();
     });
   });
 });

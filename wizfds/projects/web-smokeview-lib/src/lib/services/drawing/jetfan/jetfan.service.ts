@@ -5,8 +5,35 @@ import { FaceRange, SceneRegistryService } from '../../babylon/scene-registry.se
 
 import { BabylonService } from '../../babylon/babylon.service';
 import { HelpersService } from '../../helpers/helpers.service';
-import { VentService } from '../vent/vent.service';
-import { IJetFan, IVent, IXb } from '../interfaces';
+import { DerivedVent, VentService } from '../vent/vent.service';
+import { SceneJetfan, SceneJetfanDirection, SceneXb } from '../scene-input';
+
+/**
+ * A jetfan as the app gave it, paired with everything the library worked out
+ * about drawing it - including the two planes it blows between, which are
+ * drawings rather than elements of the scenario.
+ */
+interface PlacedJetfan {
+  readonly jetfan: SceneJetfan,
+  readonly xbNorm: SceneXb,
+  /** The colour as a flat rgba array, ready for the vertex buffer. */
+  readonly color: number[],
+  readonly ventInXbNorm: SceneXb,
+  readonly ventOutXbNorm: SceneXb
+}
+
+/**
+ * The box drawn for a jetfan whose coordinates are all zero.
+ *
+ * A jetfan is normally placed in CAD; until it is, the scenario holds no
+ * geometry for it and there is nothing to draw. Rather than a degenerate point,
+ * the preview shows a stand-in box - which is how it has always behaved.
+ */
+const UNPLACED_JETFAN_XB: SceneXb = { x1: 2.0, x2: 8.0, y1: 3.0, y2: 5.0, z1: 1.0, z2: 3.0 };
+
+/** The inlet plane is blue, the outlet red. Both are the library's own choice. */
+const VENT_IN_COLOR: number[] = [0.0, 0.0, 1.0, 0.8];
+const VENT_OUT_COLOR: number[] = [1.0, 0.0, 0.0, 0.8];
 
 @Injectable({
   providedIn: 'root'
@@ -14,7 +41,7 @@ import { IJetFan, IVent, IXb } from '../interfaces';
 export class JetfanService implements SceneScoped {
 
   // Babylon.js objects
-  public jetfans: IJetFan[] = [];
+  public jetfans: readonly SceneJetfan[] = [];
   public mesh: BABYLON.Mesh;
   private _meshTransparent: BABYLON.Mesh;
   public material: BABYLON.ShaderMaterial;
@@ -31,6 +58,9 @@ export class JetfanService implements SceneScoped {
 
   /** What this service put in the registry, so a re-render can take it out. */
   private registeredUuids: string[] = [];
+
+  /** Where each jetfan of the last render went. Built here, never written back. */
+  private placed: PlacedJetfan[] = [];
 
   constructor(
     private babylonService: BabylonService,
@@ -50,6 +80,7 @@ export class JetfanService implements SceneScoped {
     this.materialTransparent = null;
     this.arrowMeshes.length = 0;
     this.arrowMaterial = null;
+    this.placed.length = 0;
     // The registry empties itself with the scene - this is only about not
     // holding on to uuids that named meshes of a scene that is gone.
     this.registeredUuids.length = 0;
@@ -77,125 +108,101 @@ export class JetfanService implements SceneScoped {
   }
 
   /**
-   * Generate vent_in and vent_out from jetfan definition
+   * Place the jetfans in the scene, and with them the two planes each one blows
+   * between.
    */
-  private generateVentsFromJetfan(jetfan: IJetFan): { vent_in: IVent, vent_out: IVent } {
-    // Use normalized jetfan coordinates
-    const xbNorm = jetfan.vis.xbNorm;
-    
-    // Create vent_in and vent_out XB based on direction (in normalized space)
-    let ventInXbNorm: IXb, ventOutXbNorm: IXb;
-    
-    switch (jetfan.direction) {
-      case '+x':
-        ventInXbNorm = { ...xbNorm, x2: xbNorm.x1 }; // Left face
-        ventOutXbNorm = { ...xbNorm, x1: xbNorm.x2 }; // Right face
-        break;
-      case '-x':
-        ventInXbNorm = { ...xbNorm, x1: xbNorm.x2 }; // Right face
-        ventOutXbNorm = { ...xbNorm, x2: xbNorm.x1 }; // Left face
-        break;
-      case '+y':
-        ventInXbNorm = { ...xbNorm, y2: xbNorm.y1 }; // Front face
-        ventOutXbNorm = { ...xbNorm, y1: xbNorm.y2 }; // Back face
-        break;
-      case '-y':
-        ventInXbNorm = { ...xbNorm, y1: xbNorm.y2 }; // Back face
-        ventOutXbNorm = { ...xbNorm, y2: xbNorm.y1 }; // Front face
-        break;
-      case '+z':
-        ventInXbNorm = { ...xbNorm, z2: xbNorm.z1 }; // Bottom face
-        ventOutXbNorm = { ...xbNorm, z1: xbNorm.z2 }; // Top face
-        break;
-      case '-z':
-        ventInXbNorm = { ...xbNorm, z1: xbNorm.z2 }; // Top face
-        ventOutXbNorm = { ...xbNorm, z2: xbNorm.z1 }; // Bottom face
-        break;
-      default:
-        // Default to +x direction
-        ventInXbNorm = { ...xbNorm, x2: xbNorm.x1 };
-        ventOutXbNorm = { ...xbNorm, x1: xbNorm.x2 };
-    }
-    
-    // Create vent_in (blue color)
-    const vent_in: IVent = {
-      id: jetfan.id + '_vent_in',
-      uuid: jetfan.uuid + '_in',
-      idAC: jetfan.idAC,
-      xb: jetfan.xb, // Keep original coordinates for reference
-      surf_id: 'HVAC',
-      elevation: jetfan.elevation,
-      color: {
-        label: 'BLUE',
-        value: 'BLUE',
-        rgb: [0.0, 0.0, 1.0, 0.8], // Blue with some transparency
-        show: true
-      },
-      vis: {
-        xbNorm: ventInXbNorm, // Use normalized coordinates for rendering
-        colorNorm: [0.0, 0.0, 1.0, 0.8]
-      }
-    };
-    
-    // Create vent_out (red color)
-    const vent_out: IVent = {
-      id: jetfan.id + '_vent_out',
-      uuid: jetfan.uuid + '_out',
-      idAC: jetfan.idAC,
-      xb: jetfan.xb, // Keep original coordinates for reference
-      surf_id: 'HVAC',
-      elevation: jetfan.elevation,
-      color: {
-        label: 'RED',
-        value: 'RED',
-        rgb: [1.0, 0.0, 0.0, 0.8], // Red with some transparency
-        show: true
-      },
-      vis: {
-        xbNorm: ventOutXbNorm, // Use normalized coordinates for rendering
-        colorNorm: [1.0, 0.0, 0.0, 0.8]
-      }
-    };
-    
-    return { vent_in, vent_out };
+  private placeJetfans(): PlacedJetfan[] {
+    const boxes = (this.jetfans || []).map((jetfan: SceneJetfan) => this.boxFor(jetfan));
+
+    // A scenario with neither &MESH nor &OBST still has to be drawn somewhere
+    this.helpersService.ensureBounds(boxes);
+
+    return (this.jetfans || []).map((jetfan: SceneJetfan, index: number) => {
+      const xbNorm = this.helpersService.normalizeXb(boxes[index]);
+      const faces = this.ventFaces(xbNorm, jetfan.direction);
+      return {
+        jetfan: jetfan,
+        xbNorm: xbNorm,
+        color: this.helpersService.toRgba(jetfan.color),
+        ventInXbNorm: faces.in,
+        ventOutXbNorm: faces.out
+      };
+    });
+  }
+
+  /** The box to draw a jetfan as, standing in for one that was never placed. */
+  private boxFor(jetfan: SceneJetfan): SceneXb {
+    const xb = jetfan.xb;
+    const isUnplaced = xb.x1 === xb.x2 && xb.y1 === xb.y2 && xb.z1 === xb.z2 && xb.x1 === 0;
+    return isUnplaced ? UNPLACED_JETFAN_XB : xb;
   }
 
   /**
-   * Create flow arrow for vent_out
+   * The two faces of a jetfan's box that air goes in at and comes out of.
+   *
+   * Both are degenerate boxes - one pair of coordinates collapsed onto the other -
+   * which is exactly what HelpersService.generateVentGeometry() draws as a plane.
    */
-  private createFlowArrow(jetfan: IJetFan): BABYLON.Mesh {
-    // Calculate arrow position at the center of vent_out (use normalized coordinates)
-    const xbNorm = jetfan.vent_out?.vis?.xbNorm || jetfan.vis.xbNorm;
+  private ventFaces(xbNorm: SceneXb, direction: SceneJetfanDirection): { in: SceneXb, out: SceneXb } {
+    switch (direction) {
+      case '+x':
+        return { in: { ...xbNorm, x2: xbNorm.x1 }, out: { ...xbNorm, x1: xbNorm.x2 } };
+      case '-x':
+        return { in: { ...xbNorm, x1: xbNorm.x2 }, out: { ...xbNorm, x2: xbNorm.x1 } };
+      case '+y':
+        return { in: { ...xbNorm, y2: xbNorm.y1 }, out: { ...xbNorm, y1: xbNorm.y2 } };
+      case '-y':
+        return { in: { ...xbNorm, y1: xbNorm.y2 }, out: { ...xbNorm, y2: xbNorm.y1 } };
+      case '+z':
+        return { in: { ...xbNorm, z2: xbNorm.z1 }, out: { ...xbNorm, z1: xbNorm.z2 } };
+      case '-z':
+        return { in: { ...xbNorm, z1: xbNorm.z2 }, out: { ...xbNorm, z2: xbNorm.z1 } };
+      default:
+        // The contract narrows direction to the six above; a scenario carrying
+        // anything else is normalised on the way in - see the app's mapper.
+        return { in: { ...xbNorm, x2: xbNorm.x1 }, out: { ...xbNorm, x1: xbNorm.x2 } };
+    }
+  }
+
+  /**
+   * Create flow arrow for the outlet plane
+   */
+  private createFlowArrow(placed: PlacedJetfan): BABYLON.Mesh {
+    // Calculate arrow position at the center of the outlet plane
+    const xbNorm = placed.ventOutXbNorm;
     const centerX = (xbNorm.x1 + xbNorm.x2) / 2;
     const centerY = (xbNorm.y1 + xbNorm.y2) / 2;
     const centerZ = (xbNorm.z1 + xbNorm.z2) / 2;
-    
+
+    const id = placed.jetfan.id;
+    const direction = placed.jetfan.direction;
+
     // Define arrow dimensions in real units (meters)
     const realArrowLength = 0.4; // 1 meter arrow length
     const realArrowRadius = 0.05;  // 0.1 meter arrow radius
     const realOffset = 0.2;       // 2 meter offset from vent
-    
+
     // Convert to normalized scale using normDelta
     const arrowLength = realArrowLength / this.helpersService.normDelta;
     const arrowRadius = realArrowRadius / this.helpersService.normDelta;
     const offset = realOffset / this.helpersService.normDelta;
-    
+
     // Create arrow shaft (cylinder)
     const shaft = BABYLON.MeshBuilder.CreateCylinder(
-      `arrow_shaft_${jetfan.id}`,
+      `arrow_shaft_${id}`,
       { height: arrowLength * 0.7, diameter: arrowRadius },
       this.babylonService.scene
     );
-    
+
     // Create arrow head (cone)
     const head = BABYLON.MeshBuilder.CreateCylinder(
-      `arrow_head_${jetfan.id}`,
+      `arrow_head_${id}`,
       { height: arrowLength * 0.3, diameterTop: 0, diameterBottom: arrowRadius * 2 },
       this.babylonService.scene
     );
-    
+
     // Position arrow head at the tip
-    switch (jetfan.direction) {
+    switch (direction) {
       case '+x':
         shaft.rotation.z = -Math.PI / 2;
         head.rotation.z = -Math.PI / 2;
@@ -226,16 +233,16 @@ export class JetfanService implements SceneScoped {
         head.position.z = -arrowLength * 0.35;
         break;
     }
-    
+
     // Merge shaft and head into single mesh
     const arrow = BABYLON.Mesh.MergeMeshes([shaft, head], true, true, undefined, false, true);
-    arrow.name = `flow_arrow_${jetfan.id}`;
-    
-    // Position arrow at vent_out center with offset
+    arrow.name = `flow_arrow_${id}`;
+
+    // Position arrow at the outlet centre with offset
     arrow.position.set(centerX, centerY, centerZ);
-    
+
     // Offset arrow outside the vent using normalized offset
-    switch (jetfan.direction) {
+    switch (direction) {
       case '+x':
         arrow.position.x += offset;
         break;
@@ -255,7 +262,7 @@ export class JetfanService implements SceneScoped {
         arrow.position.z -= offset;
         break;
     }
-    
+
     return arrow;
   }
 
@@ -267,7 +274,7 @@ export class JetfanService implements SceneScoped {
    * not say which of them was hit - and the ranges are per buffer, because a
    * face index only means anything inside the one it was counted in.
    */
-  public updateJetfansVertexData() {
+  private updateJetfansVertexData() {
     let jetfansFaces: FaceRange[] = [];
     let jetfansFacesTransparent: FaceRange[] = [];
 
@@ -284,47 +291,34 @@ export class JetfanService implements SceneScoped {
     let indexCount = 0;
     let indexCountTransparent = 0;
 
-    this.jetfans.forEach((jetfan) => {
-      if (jetfan.vis && jetfan.vis.colorNorm && jetfan.vis.xbNorm) {
-        
-        // Determine if jetfan is transparent
-        const alpha = jetfan.transparency;
-        const isTransparent = alpha < 1.0;
+    this.placed.forEach((placed: PlacedJetfan) => {
+      // A jetfan is drawn as a translucent box; its transparency is the alpha the
+      // app put in the colour
+      const isTransparent = placed.color[3] < 1.0;
 
-        // Use normalized coordinates for vertex data (like obsts)
-        const xbNorm = jetfan.vis.xbNorm;
-        
-        // Choose appropriate arrays
-        const vertices = isTransparent ? jetfansVerticesTransparent : jetfansVertices;
-        const indices = isTransparent ? jetfansIndicesTransparent : jetfansIndices;
-        const colors = isTransparent ? jetfansColorsTransparent : jetfansColors;
-        const normals = isTransparent ? jetfansNormalsTransparent : jetfansNormals;
-        const currentIndexCount = isTransparent ? indexCountTransparent : indexCount;
-        const faces = isTransparent ? jetfansFacesTransparent : jetfansFaces;
+      // Choose appropriate arrays
+      const vertices = isTransparent ? jetfansVerticesTransparent : jetfansVertices;
+      const indices = isTransparent ? jetfansIndicesTransparent : jetfansIndices;
+      const colors = isTransparent ? jetfansColorsTransparent : jetfansColors;
+      const faces = isTransparent ? jetfansFacesTransparent : jetfansFaces;
 
-        // Read afterwards rather than computed: nothing here may assume a fixed
-        // triangle count per jetfan.
-        const facesBefore = indices.length / 3;
+      // Read afterwards rather than computed: nothing here may assume a fixed
+      // triangle count per jetfan.
+      const facesBefore = indices.length / 3;
 
-        // Generate jetfan geometry (box like obst) - using exact same pattern as obst service
-        if (isTransparent) {
-          // Add to transparent mesh (same as obst service)
-          vertices.push(...this.helpersService.getVerticesFromXb(jetfan.vis.xbNorm));
-          colors.push(...this.helpersService.getColors(jetfan.vis.colorNorm));
-          indices.push(...this.helpersService.getIndices(indexCountTransparent));
-          indexCountTransparent++;
-        } else {
-          // Add to opaque mesh (same as obst service)
-          vertices.push(...this.helpersService.getVerticesFromXb(jetfan.vis.xbNorm));
-          colors.push(...this.helpersService.getColors(jetfan.vis.colorNorm));
-          indices.push(...this.helpersService.getIndices(indexCount));
-          indexCount++;
-        }
-
-        faces.push({
-          uuid: jetfan.uuid, first: facesBefore, count: indices.length / 3 - facesBefore
-        });
+      // Generate jetfan geometry (box like obst) - using exact same pattern as obst service
+      vertices.push(...this.helpersService.getVerticesFromXb(placed.xbNorm));
+      colors.push(...this.helpersService.getColors(placed.color));
+      indices.push(...this.helpersService.getIndices(isTransparent ? indexCountTransparent : indexCount));
+      if (isTransparent) {
+        indexCountTransparent++;
+      } else {
+        indexCount++;
       }
+
+      faces.push({
+        uuid: placed.jetfan.uuid, first: facesBefore, count: indices.length / 3 - facesBefore
+      });
     });
 
     // Store vertex data for both opaque and transparent jetfans
@@ -347,82 +341,20 @@ export class JetfanService implements SceneScoped {
   }
 
   /**
-   * Render jetfans from WizFDS format
-   */
-  public renderJetfans(wizJetfans: any[]) {
-    // Convert main app jetfans to library format
-    this.jetfans = wizJetfans.map(jetfan => {
-      // Convert Xb class to simple IXb interface
-      let xbInterface = {
-        x1: jetfan.xb.x1,
-        x2: jetfan.xb.x2,
-        y1: jetfan.xb.y1,
-        y2: jetfan.xb.y2,
-        z1: jetfan.xb.z1,
-        z2: jetfan.xb.z2
-      };
-      
-      // Check if jetfan has zero dimensions and use default size
-      const hasZeroDimensions = (xbInterface.x1 === xbInterface.x2 && 
-                               xbInterface.y1 === xbInterface.y2 && 
-                               xbInterface.z1 === xbInterface.z2 && 
-                               xbInterface.x1 === 0);
-      
-      if (hasZeroDimensions) {
-        // Use default jetfan dimensions
-        xbInterface = {
-          x1: 2.0,
-          x2: 8.0,
-          y1: 3.0,
-          y2: 5.0,
-          z1: 1.0,
-          z2: 3.0
-        };
-      }
-      
-      return {
-        id: jetfan.id,
-        uuid: jetfan.uuid,
-        idAC: jetfan.idAC,
-        xb: xbInterface,
-        surf: jetfan.surf || 'INERT',
-        elevation: jetfan.elevation,
-        direction: jetfan.direction,
-        color: jetfan.color,
-        transparency: jetfan.transparency || 0.5,
-        vis: {
-          xbNorm: { x1: 0, x2: 0, y1: 0, y2: 0, z1: 0, z2: 0 }, // Will be normalized
-          colorNorm: jetfan.color ? jetfan.color.rgb.concat([1]) : [1, 0, 0, 1]
-        },
-        flow: jetfan.flow,
-        vent_in: null,  // Will be generated by service
-        vent_out: null  // Will be generated by service
-      };
-    });
-    
-    this.render();
-  }
-
-  /**
    * Render jetfans with their vents and flow arrows
    */
   public async render() {
-    // First normalize jetfans like other objects
-    this.normalizeJetfans();
+    // Place the boxes and derive the planes air moves between
+    this.placed = this.placeJetfans();
 
-    // Generate vents for each jetfan
-    let allVents: IVent[] = [];
-    
-    this.jetfans.forEach((jetfan) => {
-      const vents = this.generateVentsFromJetfan(jetfan);
-      jetfan.vent_in = vents.vent_in;
-      jetfan.vent_out = vents.vent_out;
-      
-      allVents.push(vents.vent_in, vents.vent_out);
+    // Hand the derived planes to the vent service. They carry no identity - the
+    // jetfan body is what a pick resolves to.
+    const derivedVents: DerivedVent[] = [];
+    this.placed.forEach((placed: PlacedJetfan) => {
+      derivedVents.push({ xbNorm: placed.ventInXbNorm, color: VENT_IN_COLOR });
+      derivedVents.push({ xbNorm: placed.ventOutXbNorm, color: VENT_OUT_COLOR });
     });
-
-    // Add generated vents to vent service
-    this.ventService.vents = allVents;
+    this.ventService.vents = derivedVents;
     await this.ventService.render();
 
     // Get vertex data for jetfan boxes
@@ -446,17 +378,17 @@ export class JetfanService implements SceneScoped {
     // Create opaque jetfans mesh
     if (jetfanData.opaque.vertices.length > 0) {
       this.mesh = new BABYLON.Mesh('jetfans', this.babylonService.scene);
-      
+
       // Compute normals for opaque mesh (same as obst service)
       const computedNormals: number[] = [];
       BABYLON.VertexData.ComputeNormals(jetfanData.opaque.vertices, jetfanData.opaque.indices, computedNormals);
-      
+
       const vertexData = new BABYLON.VertexData();
       vertexData.positions = jetfanData.opaque.vertices;
       vertexData.indices = jetfanData.opaque.indices;
       vertexData.colors = jetfanData.opaque.colors;
       vertexData.normals = computedNormals; // Use computed normals
-      
+
       vertexData.applyToMesh(this.mesh);
 
       // Before the material, not after: which jetfan a face belongs to is
@@ -473,9 +405,9 @@ export class JetfanService implements SceneScoped {
       this.material.setFloat("clipZ", 1.1);
       this.material.backFaceCulling = false;
       this.material.freeze(); // Freeze material for performance like obst service
-      
+
       this.mesh.material = this.material;
-      
+
       // Enable edges rendering by default (consistent with obst service)
       this.mesh.enableEdgesRendering();
       this.mesh.edgesWidth = 0.05;
@@ -485,17 +417,17 @@ export class JetfanService implements SceneScoped {
     // Create transparent jetfans mesh
     if (jetfanData.transparent.vertices.length > 0) {
       this._meshTransparent = new BABYLON.Mesh('jetfansTransparent', this.babylonService.scene);
-      
+
       // Compute normals for transparent mesh (same as obst service)
       const computedNormalsTransparent: number[] = [];
       BABYLON.VertexData.ComputeNormals(jetfanData.transparent.vertices, jetfanData.transparent.indices, computedNormalsTransparent);
-      
+
       const vertexDataTransparent = new BABYLON.VertexData();
       vertexDataTransparent.positions = jetfanData.transparent.vertices;
       vertexDataTransparent.indices = jetfanData.transparent.indices;
       vertexDataTransparent.colors = jetfanData.transparent.colors;
       vertexDataTransparent.normals = computedNormalsTransparent; // Use computed normals
-      
+
       vertexDataTransparent.applyToMesh(this._meshTransparent);
 
       this.registerFaces(this._meshTransparent, jetfanData.transparent.faces);
@@ -511,9 +443,9 @@ export class JetfanService implements SceneScoped {
       this.materialTransparent.setFloat("clipZ", 1.1);
       this.materialTransparent.backFaceCulling = false;
       this.materialTransparent.freeze(); // Freeze material for performance like obst service
-      
+
       this._meshTransparent.material = this.materialTransparent;
-      
+
       // Enable edges rendering by default for transparent mesh too
       this._meshTransparent.enableEdgesRendering();
       this._meshTransparent.edgesWidth = 0.05;
@@ -526,8 +458,8 @@ export class JetfanService implements SceneScoped {
       shader: "arrow"
     });
 
-    this.jetfans.forEach((jetfan) => {
-      const arrow = this.createFlowArrow(jetfan);
+    this.placed.forEach((placed: PlacedJetfan) => {
+      const arrow = this.createFlowArrow(placed);
       arrow.material = this.arrowMaterial;
       this.arrowMeshes.push(arrow);
     });
@@ -548,7 +480,7 @@ export class JetfanService implements SceneScoped {
         this.mesh.edgesWidth = 0; // Set to 0 for button logic consistency
       }
     }
-    
+
     // Control edges for transparent mesh
     if (this._meshTransparent) {
       if (enabled) {
@@ -574,7 +506,7 @@ export class JetfanService implements SceneScoped {
       this.material.setFloat('clipY', this.clipY);
       this.material.setFloat('clipZ', this.clipZ);
     }
-    
+
     if (this.materialTransparent) {
       this.materialTransparent.setFloat('clipX', this.clipX);
       this.materialTransparent.setFloat('clipY', this.clipY);
@@ -589,105 +521,11 @@ export class JetfanService implements SceneScoped {
   }
 
   /**
-   * Normalize jetfans using the same system as obsts and meshes
-   */
-  private normalizeJetfans(): void {
-    let delta = this.helpersService.normDelta;
-    let xMin = this.helpersService.normXMin;
-    let yMin = this.helpersService.normYMin;
-    let zMin = this.helpersService.normZMin;
-
-    // If normalization parameters are not set (default values), calculate them from jetfans
-    if (delta === 1 && xMin === 0 && yMin === 0 && zMin === 0 && this.jetfans.length > 0) {
-      // Find min/max values from jetfans
-      let xMinLocal = this.jetfans[0].xb.x1;
-      let xMaxLocal = this.jetfans[0].xb.x2;
-      let yMinLocal = this.jetfans[0].xb.y1;
-      let yMaxLocal = this.jetfans[0].xb.y2;
-      let zMinLocal = this.jetfans[0].xb.z1;
-      let zMaxLocal = this.jetfans[0].xb.z2;
-
-      this.jetfans.forEach(jetfan => {
-        xMinLocal = Math.min(xMinLocal, jetfan.xb.x1);
-        xMaxLocal = Math.max(xMaxLocal, jetfan.xb.x2);
-        yMinLocal = Math.min(yMinLocal, jetfan.xb.y1);
-        yMaxLocal = Math.max(yMaxLocal, jetfan.xb.y2);
-        zMinLocal = Math.min(zMinLocal, jetfan.xb.z1);
-        zMaxLocal = Math.max(zMaxLocal, jetfan.xb.z2);
-      });
-
-      // Calculate deltas and set normalization parameters
-      const deltaX = xMaxLocal - xMinLocal;
-      const deltaY = yMaxLocal - yMinLocal;
-      const deltaZ = zMaxLocal - zMinLocal;
-      
-      xMin = xMinLocal;
-      yMin = yMinLocal;
-      zMin = zMinLocal;
-      delta = Math.max(deltaX, deltaY, deltaZ);
-
-      // Update helpers service with calculated values
-      this.helpersService.normXMin = xMin;
-      this.helpersService.normYMin = yMin;
-      this.helpersService.normZMin = zMin;
-      this.helpersService.normDelta = delta;
-    }
-
-    this.jetfans.forEach((jetfan) => {
-      // Ensure vis object exists
-      if (!jetfan.vis) {
-        jetfan.vis = { 
-          xbNorm: { x1: 0, x2: 0, y1: 0, y2: 0, z1: 0, z2: 0 }, 
-          colorNorm: [1, 0, 0, jetfan.transparency || 1] // Use jetfan transparency for alpha
-        };
-      }
-      if (!jetfan.vis.xbNorm) {
-        jetfan.vis.xbNorm = { x1: 0, x2: 0, y1: 0, y2: 0, z1: 0, z2: 0 };
-      }
-      if (!jetfan.vis.colorNorm) {
-        jetfan.vis.colorNorm = [1, 0, 0, jetfan.transparency || 1]; // Use jetfan transparency for alpha
-      }
-
-      // Normalize jetfan colors (same as obst service) - convert from 0-255 to 0-1 range
-      if (jetfan.color && jetfan.color.rgb) {
-        const alpha = jetfan.transparency || 1.0;
-        jetfan.vis.colorNorm = [
-          jetfan.color.rgb[0] / 255, 
-          jetfan.color.rgb[1] / 255, 
-          jetfan.color.rgb[2] / 255,
-          alpha
-        ];
-      }
-
-      // Normalize jetfan xb
-      const xb = { ...jetfan.xb };
-      
-      // Apply same normalization as obsts/meshes
-      xb.x1 += (xMin < 0) ? -xMin : xMin;
-      jetfan.vis.xbNorm.x1 = xb.x1 / delta;
-
-      xb.x2 += (xMin < 0) ? -xMin : xMin;
-      jetfan.vis.xbNorm.x2 = xb.x2 / delta;
-
-      xb.y1 += (yMin < 0) ? -yMin : yMin;
-      jetfan.vis.xbNorm.y1 = xb.y1 / delta;
-
-      xb.y2 += (yMin < 0) ? -yMin : yMin;
-      jetfan.vis.xbNorm.y2 = xb.y2 / delta;
-
-      xb.z1 += (zMin < 0) ? -zMin : zMin;
-      jetfan.vis.xbNorm.z1 = xb.z1 / delta;
-
-      xb.z2 += (zMin < 0) ? -zMin : zMin;
-      jetfan.vis.xbNorm.z2 = xb.z2 / delta;
-    });
-  }
-
-  /**
    * Clear jetfans
    */
   public clear() {
     this.jetfans = [];
+    this.placed.length = 0;
     this.forgetRegisteredFaces();
     if (this.mesh) {
       this.mesh.dispose();
@@ -697,11 +535,11 @@ export class JetfanService implements SceneScoped {
       this._meshTransparent.dispose();
       this._meshTransparent = null;
     }
-    
+
     // Clear arrows
     this.arrowMeshes.forEach(arrow => arrow.dispose());
     this.arrowMeshes = [];
-    
+
     // Clear vents
     this.ventService.clear();
   }

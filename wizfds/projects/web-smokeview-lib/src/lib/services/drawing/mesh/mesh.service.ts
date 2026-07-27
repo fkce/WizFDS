@@ -1,18 +1,30 @@
 import { Injectable } from '@angular/core';
 import { BabylonService } from '../../babylon/babylon.service';
 import { HelpersService } from '../../helpers/helpers.service';
-import { forEach, max, cloneDeep, toNumber } from 'lodash';
-import { IMesh } from '../interfaces';
+import { forEach } from 'lodash';
+import { SceneMesh, SceneXb } from '../scene-input';
 import * as BABYLON from 'babylonjs';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
+
+/** A mesh as the app gave it, paired with where the library puts it. */
+interface PlacedMesh {
+  readonly mesh: SceneMesh,
+  readonly xbNorm: SceneXb
+}
+
+/**
+ * Meshes are drawn as yellow outlines. The colour is the library's own choice -
+ * a &MESH has none in the FDS model - so it never crosses the boundary.
+ */
+const MESH_COLOR: number[] = [1, 0.815, 0, 0];
 
 @Injectable({
   providedIn: 'root'
 })
 export class MeshService implements SceneScoped {
 
-  meshes: IMesh[] = [];
+  meshes: readonly SceneMesh[] = [];
 
   vertices: number[] = [];
   normals: number[] = [];
@@ -34,6 +46,9 @@ export class MeshService implements SceneScoped {
     sceneLifecycle.register(this);
   }
 
+  /** Where each mesh of the last render went. Built here, never written back. */
+  private placed: PlacedMesh[] = [];
+
   /** Face ranges collected while building the buffer, registered in render(). */
   private readonly pendingRegistrations: { uuid: string, first: number, count: number }[] = [];
 
@@ -52,17 +67,18 @@ export class MeshService implements SceneScoped {
     this.normals.length = 0;
     this.colors.length = 0;
     this.indices.length = 0;
+    this.placed.length = 0;
   }
 
   /**
    * Reder meshes
    */
   public renderMeshes() {
-    // Prepare normalized geometry and colors
-    this.normalizeMeshes();
+    // Work out where every mesh goes
+    this.placed = this.placeMeshes();
 
     // If nothing valid to render, exit early
-    if (!this.meshes || this.meshes.length === 0) {
+    if (this.placed.length === 0) {
       return;
     }
 
@@ -79,87 +95,22 @@ export class MeshService implements SceneScoped {
   }
 
   /**
-   * Normalize meshes
+   * Place the meshes in the scene.
+   *
+   * The meshes span the whole model, so they are what the scene bounds are taken
+   * from - which is why this has to run before any other element type is placed.
    */
-  private normalizeMeshes(): void {
-    // Sanitize input list
-    const validMeshes = (this.meshes || []).filter((m: IMesh) => m && (m as any).xb);
-    if (validMeshes.length === 0) {
-      this.meshes = [];
-      return;
+  private placeMeshes(): PlacedMesh[] {
+    if (!this.meshes || this.meshes.length === 0) {
+      return [];
     }
 
-    // Ensure vis/xbNorm exists on each mesh
-    forEach(validMeshes, (mesh: IMesh) => {
-      (mesh as any).vis = (mesh as any).vis || { xbNorm: { x1: 0, x2: 0, y1: 0, y2: 0, z1: 0, z2: 0 }, colorNorm: [1, 0.815, 0, 0] };
-      (mesh as any).vis.xbNorm = (mesh as any).vis.xbNorm || { x1: 0, x2: 0, y1: 0, y2: 0, z1: 0, z2: 0 };
-    });
+    this.helperService.setBoundsFrom(this.meshes.map((mesh: SceneMesh) => mesh.xb));
 
-    // Firstly, find minimum and maximum values for each direction x, y, z
-    let xMin = validMeshes[0].xb.x1, yMin = validMeshes[0].xb.y1, zMin = validMeshes[0].xb.z1;
-    let xMax = validMeshes[0].xb.x2, yMax = validMeshes[0].xb.y2, zMax = validMeshes[0].xb.z2;
-    if (validMeshes.length > 1) {
-      forEach(validMeshes, (mesh: IMesh) => {
-        xMin = mesh.xb.x1 < xMin ? mesh.xb.x1 : xMin;
-        xMax = mesh.xb.x2 > xMax ? mesh.xb.x2 : xMax;
-
-        yMin = mesh.xb.y1 < yMin ? mesh.xb.y1 : yMin;
-        yMax = mesh.xb.y2 > yMax ? mesh.xb.y2 : yMax;
-
-        zMin = mesh.xb.z1 < zMin ? mesh.xb.z1 : zMin;
-        zMax = mesh.xb.z2 > zMax ? mesh.xb.z2 : zMax;
-      });
-    }
-
-    this.helperService.normXMin = xMin;
-    this.helperService.normYMin = yMin;
-    this.helperService.normZMin = zMin;
-
-    // Get deltas per each direction ...
-    let deltaX = xMax - xMin;
-    let deltaY = yMax - yMin;
-    let deltaZ = zMax - zMin;
-    this.helperService.normDelta = max([deltaX, deltaY, deltaZ]);
-
-    // Calculate normalized maximum values after transformation and scaling
-    let normXMax = ((xMax + (xMin < 0 ? -xMin : xMin)) / this.helperService.normDelta);
-    let normYMax = ((yMax + (yMin < 0 ? -yMin : yMin)) / this.helperService.normDelta);
-    let normZMax = ((zMax + (zMin < 0 ? -zMin : zMin)) / this.helperService.normDelta);
-
-    // Store the normalized maximum values for clip calculation
-    this.helperService.normXMax = normXMax;
-    this.helperService.normYMax = normYMax;
-    this.helperService.normZMax = normZMax;
-
-    // Normalize ...
-  forEach(validMeshes, (mesh: IMesh) => {
-
-      // Normalize xb
-      let xb = cloneDeep(mesh.xb);
-      forEach(xb, (o, key) => {
-        xb[key] = toNumber(o);
-      });
-
-      xb.x1 += (xMin < 0) ? -xMin : xMin;
-      mesh.vis.xbNorm.x1 = xb.x1 / this.helperService.normDelta;
-      xb.x2 += (xMin < 0) ? -xMin : xMin;
-      mesh.vis.xbNorm.x2 = xb.x2 / this.helperService.normDelta;
-
-      xb.y1 += (yMin < 0) ? -yMin : yMin;
-      mesh.vis.xbNorm.y1 = xb.y1 / this.helperService.normDelta;
-      xb.y2 += (yMin < 0) ? -yMin : yMin;
-      mesh.vis.xbNorm.y2 = xb.y2 / this.helperService.normDelta;
-
-      xb.z1 += (zMin < 0) ? -zMin : zMin;
-      mesh.vis.xbNorm.z1 = xb.z1 / this.helperService.normDelta;
-      xb.z2 += (zMin < 0) ? -zMin : zMin;
-      mesh.vis.xbNorm.z2 = xb.z2 / this.helperService.normDelta;
-
-      mesh.vis.colorNorm = [1, 0.815, 0, 0];
-    });
-
-  // Keep only valid meshes for subsequent steps
-  this.meshes = validMeshes as any;
+    return this.meshes.map((mesh: SceneMesh) => ({
+      mesh: mesh,
+      xbNorm: this.helperService.normalizeXb(mesh.xb)
+    }));
   }
 
   /**
@@ -169,19 +120,19 @@ export class MeshService implements SceneScoped {
 
     // Clear arrays
     this.vertices.length = 0;
-  this.normals.length = 0;
+    this.normals.length = 0;
     this.colors.length = 0;
     this.indices.length = 0;
 
     this.pendingRegistrations.length = 0;
 
-    forEach(this.meshes, (mesh: IMesh, index: number) => {
+    forEach(this.placed, (placed: PlacedMesh, index: number) => {
       const facesBefore = this.indices.length / 3;
-      this.vertices.push(...this.helperService.getVerticesFromXb(mesh.vis.xbNorm));
-      this.colors.push(...this.helperService.getColors(mesh.vis.colorNorm));
+      this.vertices.push(...this.helperService.getVerticesFromXb(placed.xbNorm));
+      this.colors.push(...this.helperService.getColors(MESH_COLOR));
       this.indices.push(...this.helperService.getIndices(index));
       this.pendingRegistrations.push({
-        uuid: mesh.uuid, first: facesBefore, count: this.indices.length / 3 - facesBefore
+        uuid: placed.mesh.uuid, first: facesBefore, count: this.indices.length / 3 - facesBefore
       });
     });
   }

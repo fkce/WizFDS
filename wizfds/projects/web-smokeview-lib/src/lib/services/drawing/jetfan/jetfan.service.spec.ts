@@ -2,35 +2,31 @@ import { TestBed } from '@angular/core/testing';
 import * as BABYLON from 'babylonjs';
 
 import { JetfanService } from './jetfan.service';
+import { VentService } from '../vent/vent.service';
 import { BabylonService } from '../../babylon/babylon.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
-import { IJetFan, IXb } from '../interfaces';
+import { SceneJetfan, SceneJetfanDirection, SceneXb } from '../scene-input';
 
-function makeJetfan(id: string, xb: IXb, transparency: number): IJetFan {
+function makeJetfan(
+  id: string, xb: SceneXb, transparency: number, direction: SceneJetfanDirection = '+x'
+): SceneJetfan {
   return {
     id: id,
     uuid: `${id}-uuid`,
-    idAC: 1,
     xb: xb,
-    surf: 'INERT',
-    elevation: 0,
-    direction: '+x',
-    color: { label: 'Red', value: 'red', rgb: [255, 0, 0], show: true },
-    transparency: transparency,
-    // Filled in by normalizeJetfans(), which writes into an existing object
-    vis: { xbNorm: { x1: 0, x2: 0, y1: 0, y2: 0, z1: 0, z2: 0 }, colorNorm: [1, 0, 0, 1] },
-    flow: { type: 'velocity', velocity: 5.0, volume_flow: 0, mass_flow: 0 },
-    vent_in: null,
-    vent_out: null
+    direction: direction,
+    // A jetfan is drawn as a translucent box; its transparency is the alpha
+    color: { r: 1, g: 0, b: 0, a: transparency }
   };
 }
 
-function box(x1: number, x2: number): IXb {
+function box(x1: number, x2: number): SceneXb {
   return { x1: x1, x2: x2, y1: 3.0, y2: 5.0, z1: 1.0, z2: 3.0 };
 }
 
 describe('JetfanService', () => {
   let service: JetfanService;
+  let ventService: VentService;
   let registry: SceneRegistryService;
   let engine: BABYLON.NullEngine;
   let scene: BABYLON.Scene;
@@ -55,6 +51,7 @@ describe('JetfanService', () => {
       }]
     });
     service = TestBed.inject(JetfanService);
+    ventService = TestBed.inject(VentService);
     registry = TestBed.inject(SceneRegistryService);
   });
 
@@ -129,6 +126,72 @@ describe('JetfanService', () => {
       service.clear();
 
       expect(registry.entryFor('JF1-uuid')).toBeUndefined();
+    });
+  });
+
+  describe('inlet and outlet planes', () => {
+    // They are derived from the box and the direction - there is no &VENT behind
+    // them, so nothing in the scenario has to carry them.
+
+    it('collapses each plane onto the face the air crosses', async () => {
+      service.jetfans = [makeJetfan('JF1', box(2, 8), 0.5, '+x')];
+
+      await service.render();
+
+      expect(ventService.vents.length).withContext('one inlet and one outlet').toBe(2);
+      const inlet = ventService.vents[0].xbNorm;
+      const outlet = ventService.vents[1].xbNorm;
+      expect(inlet.x1).toBe(inlet.x2);
+      expect(outlet.x1).toBe(outlet.x2);
+      expect(outlet.x1).withContext('+x blows out of the far face').toBeGreaterThan(inlet.x1);
+    });
+
+    it('swaps the two faces when the fan blows the other way', async () => {
+      service.jetfans = [makeJetfan('JF1', box(2, 8), 0.5, '-x')];
+
+      await service.render();
+
+      const inlet = ventService.vents[0].xbNorm;
+      const outlet = ventService.vents[1].xbNorm;
+      expect(outlet.x1).withContext('-x blows out of the near face').toBeLessThan(inlet.x1);
+    });
+
+    it('takes the vertical faces for a fan blowing up', async () => {
+      service.jetfans = [makeJetfan('JF1', box(2, 8), 0.5, '+z')];
+
+      await service.render();
+
+      const inlet = ventService.vents[0].xbNorm;
+      const outlet = ventService.vents[1].xbNorm;
+      expect(inlet.z1).toBe(inlet.z2);
+      expect(outlet.z1).toBe(outlet.z2);
+      expect(outlet.z1).toBeGreaterThan(inlet.z1);
+    });
+
+    it('gives up its planes when the jetfans are cleared', async () => {
+      service.jetfans = [makeJetfan('JF1', box(2, 8), 0.5)];
+      await service.render();
+
+      service.clear();
+
+      expect(ventService.vents.length).toBe(0);
+    });
+  });
+
+  describe('a jetfan that was never placed', () => {
+    it('draws a stand-in box rather than a degenerate point', async () => {
+      // Until a jetfan is placed in CAD the scenario holds all-zero coordinates,
+      // and there is nothing to draw at that position.
+      service.jetfans = [makeJetfan('JF1', { x1: 0, x2: 0, y1: 0, y2: 0, z1: 0, z2: 0 }, 0.5)];
+
+      await service.render();
+
+      const mesh = scene.getMeshByName('jetfansTransparent');
+      expect(mesh).toBeTruthy();
+      const size = mesh.getBoundingInfo().boundingBox.extendSize;
+      expect(size.x).toBeGreaterThan(0);
+      expect(size.y).toBeGreaterThan(0);
+      expect(size.z).toBeGreaterThan(0);
     });
   });
 
