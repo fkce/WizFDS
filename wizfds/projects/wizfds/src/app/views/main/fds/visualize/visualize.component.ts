@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 import { SmokeviewApiService } from '../../../../../../../web-smokeview-lib/src/lib/services/smokeview-api/smokeview-api.service';
 import { MainService } from '@services/main/main.service';
 import { Main } from '@services/main/main';
@@ -12,7 +12,7 @@ import { BabylonService } from '../../../../../../../web-smokeview-lib/src/lib/s
     styleUrls: ['./visualize.component.scss'],
     standalone: false
 })
-export class VisualizeComponent implements OnInit, AfterViewInit {
+export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   main: Main;
 
@@ -35,11 +35,14 @@ export class VisualizeComponent implements OnInit, AfterViewInit {
     // leaves the preview blank for the rest of the session. Drawing therefore
     // waits for both, in whichever order they arrive, and redraws if the user
     // switches to another scenario.
+    //
+    // scene$ emits null when the scene is disposed, so leaving the view stops
+    // this from drawing into a scene that no longer exists.
     this.readySub = combineLatest([
-      this.babylonService.ready$,
+      this.babylonService.scene$,
       this.mainService.currentFdsScenario$
     ]).pipe(
-      filter(([, fdsScenario]) => !!fdsScenario?.fdsObject)
+      filter(([scene, fdsScenario]) => !!scene && !!fdsScenario?.fdsObject)
     ).subscribe(() => this.renderScenario());
   }
 

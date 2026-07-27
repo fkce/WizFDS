@@ -5,11 +5,12 @@ import { forEach, max, find, cloneDeep, sortBy, toNumber } from 'lodash';
 import { HelpersService } from '../../helpers/helpers.service';
 import { HoleService } from '../hole/hole.service';
 import { IObst, IHole } from '../interfaces';
+import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
 
 @Injectable({
   providedIn: 'root'
 })
-export class ObstService {
+export class ObstService implements SceneScoped {
 
   obsts: any = [];
   surfs: any = [];
@@ -54,8 +55,36 @@ export class ObstService {
   constructor(
     private babylonService: BabylonService,
     private helperService: HelpersService,
-    private holeService: HoleService
+    private holeService: HoleService,
+    sceneLifecycle: SceneLifecycleService
   ) {
+    sceneLifecycle.register(this);
+  }
+
+  /**
+   * Drop everything that belonged to the scene that has just been disposed.
+   * The meshes and materials are already gone with it - this is about not
+   * holding references to them into the next scene.
+   */
+  public resetSceneState(): void {
+    this.mesh = null;
+    this.meshBackCap = null;
+    this._meshTransparent = null;
+    this.material = null;
+    this.materialBackCap = null;
+    this.materialTransparent = null;
+    this.vertexData = null;
+
+    this.pickedObst = undefined;
+    this.pickedObstMesh = undefined;
+    this.pickedObstMaterial = undefined;
+
+    this.vertices.length = 0;
+    this.normals.length = 0;
+    this.colors.length = 0;
+    this.indices.length = 0;
+    this.positions.length = 0;
+    this.standardObstRanges.length = 0;
   }
 
   /**

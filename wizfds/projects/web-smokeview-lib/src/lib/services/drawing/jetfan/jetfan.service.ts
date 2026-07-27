@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import * as BABYLON from 'babylonjs';
+import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
 
 import { BabylonService } from '../../babylon/babylon.service';
 import { HelpersService } from '../../helpers/helpers.service';
@@ -9,7 +10,7 @@ import { IJetFan, IVent, IXb } from '../interfaces';
 @Injectable({
   providedIn: 'root'
 })
-export class JetfanService {
+export class JetfanService implements SceneScoped {
 
   // Babylon.js objects
   public jetfans: IJetFan[] = [];
@@ -30,8 +31,21 @@ export class JetfanService {
   constructor(
     private babylonService: BabylonService,
     private helpersService: HelpersService,
-    private ventService: VentService
-  ) { }
+    private ventService: VentService,
+    sceneLifecycle: SceneLifecycleService
+  ) {
+    sceneLifecycle.register(this);
+  }
+
+  /** Release everything tied to the scene that has just been disposed. */
+  public resetSceneState(): void {
+    this.mesh = null;
+    this._meshTransparent = null;
+    this.material = null;
+    this.materialTransparent = null;
+    this.arrowMeshes.length = 0;
+    this.arrowMaterial = null;
+  }
 
   /**
    * Generate vent_in and vent_out from jetfan definition

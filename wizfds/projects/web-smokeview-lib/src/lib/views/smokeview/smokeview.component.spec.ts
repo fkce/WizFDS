@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
-import { ReplaySubject } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 
 import { BabylonService } from '../../services/babylon/babylon.service';
 import { SmokeviewComponent } from './smokeview.component';
@@ -22,8 +22,9 @@ describe('SmokeviewComponent', () => {
 
     const babylonStub: Partial<BabylonService> = {
       webGPUAvailable: hasGpu,
-      ready$: new ReplaySubject<void>(1),
+      scene$: new BehaviorSubject<any>(null),
       createScene: () => Promise.resolve(),
+      disposeScene: () => { },
       animate: () => { },
       engine: null,
       scene: null
@@ -79,8 +80,9 @@ describe('SmokeviewComponent', () => {
         provide: BabylonService,
         useValue: {
           webGPUAvailable: false,
-          ready$: new ReplaySubject<void>(1),
+          scene$: new BehaviorSubject<any>(null),
           createScene,
+          disposeScene: () => { },
           animate: () => { },
           engine: null,
           scene: null

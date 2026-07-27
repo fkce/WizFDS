@@ -1,7 +1,8 @@
 import { Injectable, NgZone, ElementRef, HostListener, isDevMode } from '@angular/core';
 import * as BABYLON from 'babylonjs';
 import 'babylonjs-materials';
-import { ReplaySubject } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
+import { SceneLifecycleService } from './scene-lifecycle.service';
 
 /** WGSL sources for one shader, plus the URLs they came from (for diagnostics). */
 export interface ShaderSources {
@@ -51,7 +52,18 @@ export class BabylonService {
   public engine: BABYLON.WebGPUEngine;
   public camera: BABYLON.ArcRotateCamera;
   public scene: BABYLON.Scene;
-  public readonly ready$ = new ReplaySubject<void>(1);
+
+  private readonly sceneSubject = new BehaviorSubject<BABYLON.Scene | null>(null);
+
+  /**
+   * The current scene, or null when there is none.
+   *
+   * A BehaviorSubject rather than a ReplaySubject on purpose: leaving the view
+   * emits null, so a consumer subscribing on re-entry is told there is nothing
+   * to draw into instead of replaying the previous scene's ready signal and
+   * rendering into a disposed scene.
+   */
+  public readonly scene$ = this.sceneSubject.asObservable();
   /**
    * False once createScene() has established that this browser cannot run the
    * WebGPU engine. There is no WebGL fallback - see docs/adr/0001-webgpu-only-wgsl.md.
@@ -61,7 +73,10 @@ export class BabylonService {
   /** Shader name -> in-flight or resolved sources. See loadShaderSources(). */
   private readonly shaderSources = new Map<string, Promise<ShaderSources>>();
 
-  public constructor(private ngZone: NgZone) { }
+  public constructor(
+    private ngZone: NgZone,
+    private sceneLifecycle: SceneLifecycleService
+  ) { }
 
   /**
    * Whether this browser exposes WebGPU at all. Callable before a scene exists,
@@ -89,8 +104,19 @@ export class BabylonService {
     }
   }
 
-  public async createScene(canvas: ElementRef<HTMLCanvasElement>): Promise<void> {
-    // Clean up existing resources
+  /**
+   * Tear the scene down and tell everything that depended on it.
+   *
+   * Disposing the scene takes its meshes and materials with it, but the drawing
+   * services are `providedIn: 'root'` and would otherwise keep pointing at
+   * them - hence the lifecycle reset. Subscribers are told before the teardown,
+   * so nobody draws into a scene that is halfway gone.
+   */
+  public disposeScene(): void {
+    if (!this.scene && !this.engine) { return; }
+
+    this.sceneSubject.next(null);
+
     if (this.scene) {
       this.scene.dispose();
       this.scene = null;
@@ -100,6 +126,13 @@ export class BabylonService {
       this.engine.dispose();
       this.engine = null;
     }
+
+    this.sceneLifecycle.reset();
+  }
+
+  public async createScene(canvas: ElementRef<HTMLCanvasElement>): Promise<void> {
+    // Clean up existing resources
+    this.disposeScene();
 
     // The first step is to get the reference of the canvas element from our HTML document
     this.canvas = canvas.nativeElement;
@@ -123,6 +156,13 @@ export class BabylonService {
       });
       await webgpu.initAsync();
       this.engine = webgpu;
+
+      // A WebGPU device can be lost - driver reset, GPU switch, a backgrounded
+      // tab reclaimed. Without this the canvas silently stops updating.
+      this.engine.onContextLostObservable.add(() => {
+        console.error('[BabylonService] The GPU device was lost - the scene can no longer be rendered.');
+        this.sceneSubject.next(null);
+      });
     } catch (e) {
       this.webGPUAvailable = false;
       console.error('[BabylonService] WebGPU engine failed to initialise', e);
@@ -171,8 +211,8 @@ export class BabylonService {
     // before anyone acts on ready$.
     await this.initializeCsg2();
 
-    // signal ready
-    this.ready$.next();
+    // Announce the scene only now that it is fully built
+    this.sceneSubject.next(this.scene);
   }
 
   /**

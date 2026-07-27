@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import * as BABYLON from 'babylonjs';
+import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
 import { forEach, cloneDeep, toNumber } from 'lodash';
 
 import { BabylonService } from '../../babylon/babylon.service';
@@ -9,7 +10,7 @@ import { IFire } from '../interfaces';
 @Injectable({
   providedIn: 'root'
 })
-export class FireService {
+export class FireService implements SceneScoped {
 
   public fires: IFire[] = [];
   public mesh: BABYLON.Mesh;
@@ -28,8 +29,17 @@ export class FireService {
 
   constructor(
     private babylonService: BabylonService,
-    private helpersService: HelpersService
-  ) { }
+    private helpersService: HelpersService,
+    sceneLifecycle: SceneLifecycleService
+  ) {
+    sceneLifecycle.register(this);
+  }
+
+  /** Release everything tied to the scene that has just been disposed. */
+  public resetSceneState(): void {
+    this.mesh = null;
+    this.material = null;
+  }
 
   /**
    * Normalize fire coordinates and colors using shared mesh bounds
