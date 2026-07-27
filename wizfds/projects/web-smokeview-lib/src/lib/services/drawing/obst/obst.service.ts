@@ -362,8 +362,16 @@ export class ObstService {
                 obstId: obst.id
               });
               
-              for (let i = 0; i < indices.length; i++) {
-                adjustedIndices.push(indices[i] + currentVertexCount);
+              // Manifold winds its triangles the opposite way from HelpersService
+              // .getIndices(). Both end up in one buffer feeding one back-cap mesh,
+              // which draws a single facing - mixed winding paints the outside of
+              // these obsts red instead of capping the cut. Flip them to match.
+              for (let i = 0; i < indices.length; i += 3) {
+                adjustedIndices.push(
+                  indices[i] + currentVertexCount,
+                  indices[i + 2] + currentVertexCount,
+                  indices[i + 1] + currentVertexCount
+                );
               }
               
               if (isDevMode()) console.log('[ObstService] Adjusted indices:', {

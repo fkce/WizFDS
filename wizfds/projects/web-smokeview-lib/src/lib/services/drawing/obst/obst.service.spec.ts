@@ -34,6 +34,24 @@ function makeHole(id: string, xb: IXb): IHole {
   };
 }
 
+/**
+ * Signed volume of the triangle soup. Its sign encodes the winding: the back cap
+ * draws only one facing, so geometry wound the other way shows its outside faces
+ * painted red instead of capping the cut.
+ */
+function signedVolume(positions: ArrayLike<number>, indices: ArrayLike<number>): number {
+  let v = 0;
+  for (let i = 0; i < indices.length; i += 3) {
+    const a = indices[i] * 3, b = indices[i + 1] * 3, c = indices[i + 2] * 3;
+    v += (
+      positions[a] * (positions[b + 1] * positions[c + 2] - positions[b + 2] * positions[c + 1]) -
+      positions[a + 1] * (positions[b] * positions[c + 2] - positions[b + 2] * positions[c]) +
+      positions[a + 2] * (positions[b] * positions[c + 1] - positions[b + 1] * positions[c])
+    ) / 6;
+  }
+  return v;
+}
+
 describe('ObstService', () => {
   let service: ObstService;
   let engine: BABYLON.NullEngine;
@@ -112,6 +130,39 @@ describe('ObstService', () => {
       lengths.forEach((len, i) => {
         expect(len).withContext(`normal ${i} must be a unit vector, got ${len}`).toBeCloseTo(1, 5);
       });
+    });
+  });
+
+  describe('triangle winding', () => {
+    const opaqueSurf = { id: 'SURF_1', color: { rgb: [255, 208, 0] }, transparency: 1 };
+    const wallXb = { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 };
+
+    beforeAll(async () => {
+      // Without the CSG backend the hole is skipped and the obst is drawn solid,
+      // so this test would compare a plain box against another plain box.
+      await BABYLON.InitializeCSG2Async({ manifoldUrl: '/assets/manifold' });
+    });
+
+    it('winds obsts carrying a hole the same way as plain ones', () => {
+      // The whole opaque buffer feeds one back-cap mesh with one material, so a
+      // mixed winding shows up as red exterior walls on the obsts with openings.
+      service.obsts = [makeObst('PLAIN', wallXb)];
+      service.holes = [];
+      service.surfs = [opaqueSurf];
+      service.renderObsts();
+      const plain = signedVolume(service.vertices, service.indices);
+
+      service.obsts = [makeObst('WITH_HOLE', wallXb)];
+      service.holes = [makeHole('DOOR', { x1: 1.0, x2: 2.0, y1: 1.9, y2: 2.3, z1: 0.0, z2: 2.1 })];
+      service.surfs = [opaqueSurf];
+      service.renderObsts();
+      const cut = signedVolume(service.vertices, service.indices);
+
+      expect(Math.abs(plain)).toBeGreaterThan(0);
+      expect(Math.abs(cut)).toBeGreaterThan(0);
+      expect(Math.sign(cut))
+        .withContext(`plain ${plain.toFixed(4)} vs cut ${cut.toFixed(4)} - opposite signs mean opposite winding`)
+        .toBe(Math.sign(plain));
     });
   });
 
