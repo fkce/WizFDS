@@ -2,15 +2,19 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "outDir": "../../out-tsc/spec",
+    "baseUrl": "./src",
+    "paths": {
+      "@services/*": [ "app/services/*" ],
+      "@directives/*": [ "app/directives/*" ],
+      "@enums/*": [ "app/enums/*" ],
+      "@pipes/*": [ "app/pipes/*" ],
+      "@env/*": [ "environments/*" ]
+    },
     "types": [
       "jasmine",
       "node"
     ]
   },
-  "files": [
-    "src/test.ts",
-    "src/polyfills.ts"
-  ],
   "include": [
     "src/**/*.spec.ts",
     "src/**/*.d.ts"

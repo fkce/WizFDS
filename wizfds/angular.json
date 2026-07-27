@@ -119,8 +119,10 @@
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
-            "main": "projects/wizfds/src/test.ts",
-            "polyfills": "projects/wizfds/src/polyfills.ts",
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ],
             "tsConfig": "projects/wizfds/tsconfig.spec.json",
             "karmaConfig": "projects/wizfds/karma.conf.js",
             "assets": [
