@@ -272,6 +272,15 @@
   }
 }
 
+// Off-canvas drawer geometry. The rotated tab's *visual* thickness is its
+// height, so the rail that reserves space for it ($-tab-thickness) must match
+// that height exactly — otherwise the tab floats away from the container's
+// right edge. `translateY(-6rem)` cancels the tab's own width, which therefore
+// has to be a border-box 6rem (padding included), not content-box 6rem.
+$-tab-thickness: 1.75rem;
+$-drawer-list-w: 17rem;
+$-drawer-w: $-drawer-list-w + $-tab-thickness;
+
 @mixin lib {
   .lib-wrapper {
     position: relative;
@@ -281,27 +290,32 @@
       flex-direction: row;
       position: absolute;
       align-items: flex-start;
-      width: 20rem;
+      width: $-drawer-w;
       height: 100%;
-      margin-left: -3rem;
+      margin-left: -$-tab-thickness;
     }
 
     .lib-drawer.opened {
       transition: margin-left 0.3s ease-in-out;
-      margin-left: -20rem;
+      margin-left: -$-drawer-w;
     }
 
     .lib-drawer.closed {
       transition: margin-left 0.3s ease-in-out;
-      margin-left: -3rem;
+      margin-left: -$-tab-thickness;
     }
 
     .lib-label-wrapper {
-      width: 3rem;
+      width: $-tab-thickness;
 
       .lib-label {
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         width: 6rem;
-        padding: 0.45rem;
+        height: $-tab-thickness;
+        padding: 0 0.45rem;
         transform: rotate(270deg) translateY(-6rem) translateX(-1rem);
         transform-origin: top right;
         background: var(--accent);
@@ -332,7 +346,7 @@
         display: grid;
         grid-template-rows: 2.5rem minmax(0, 1fr) auto;
         position: absolute;
-        width: 17rem;
+        width: $-drawer-list-w;
         height: 100%;
         background: var(--surface-1);
         border-right: 1px solid var(--border-muted);
@@ -353,27 +367,32 @@
       flex-direction: row;
       align-items: flex-start;
       position: absolute;
-      width: 20rem;
+      width: $-drawer-w;
       height: 100%;
-      margin-left: -3rem;
+      margin-left: -$-tab-thickness;
     }
 
     .help-drawer.opened {
       transition: margin-left 0.3s ease-in-out;
-      margin-left: -20rem;
+      margin-left: -$-drawer-w;
     }
 
     .help-drawer.closed {
       transition: margin-left 0.3s ease-in-out;
-      margin-left: -3rem;
+      margin-left: -$-tab-thickness;
     }
 
     .help-label-wrapper {
-      width: 3rem;
+      width: $-tab-thickness;
 
       .help-label {
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         width: 6rem;
-        padding: 0.45rem;
+        height: $-tab-thickness;
+        padding: 0 0.45rem;
         transform: rotate(270deg) translateY(-6rem) translateX(-9rem);
         transform-origin: top right;
         background: var(--surface-3);
@@ -408,7 +427,7 @@
         border-left: 1px solid var(--border-muted);
         height: 100%;
         @include no-select;
-        width: 17rem;
+        width: $-drawer-list-w;
         .element {
           h3 {
             font-size: 0.8rem;
