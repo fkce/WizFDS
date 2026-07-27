@@ -26,7 +26,7 @@ export class ObstService {
   positions: BABYLON.Vector3[] = [];
   
   // Track ranges of standard obsts that need normal computation
-  standardObstRanges: {start: number, end: number, vertexStart: number, vertexEnd: number}[] = [];
+  standardObstRanges: {start: number, end: number, vertexStart: number, indexStart: number, indexEnd: number}[] = [];
 
   mesh;
   meshBackCap;
@@ -362,9 +362,26 @@ export class ObstService {
                 obstId: obst.id
               });
               
-              for (let i = 0; i < indices.length; i++) {
-                adjustedIndices.push(indices[i] + currentVertexCount);
+              // Manifold winds its triangles the opposite way from HelpersService
+              // .getIndices(). Both end up in one buffer feeding one back-cap mesh,
+              // which draws a single facing - mixed winding paints the outside of
+              // these obsts red instead of capping the cut. Flip them to match.
+              const flippedIndices: number[] = [];
+              for (let i = 0; i < indices.length; i += 3) {
+                flippedIndices.push(indices[i], indices[i + 2], indices[i + 1]);
+                adjustedIndices.push(
+                  indices[i] + currentVertexCount,
+                  indices[i + 2] + currentVertexCount,
+                  indices[i + 1] + currentVertexCount
+                );
               }
+
+              // Recompute rather than reuse Manifold's normals: those follow its
+              // own winding, and a normal facing away from its triangle zeroes the
+              // diffuse term in obst.fragment.wgsl, leaving the obst at ambient
+              // brightness only - visibly darker than everything around it.
+              const csgNormals = new Array(positions.length).fill(0);
+              BABYLON.VertexData.ComputeNormals(positions, flippedIndices, csgNormals);
               
               if (isDevMode()) console.log('[ObstService] Adjusted indices:', {
                 firstFewAdjusted: adjustedIndices.slice(0, 6),
@@ -381,7 +398,7 @@ export class ObstService {
                 this.vertices.push(...positions);
                 this.colors.push(...colorArray);
                 this.indices.push(...adjustedIndices);
-                this.normals.push(...normals); // Add normals from CSG mesh
+                this.normals.push(...csgNormals);
                 // Don't increment opaqueIndex for CSG meshes since they have variable vertex count
                 // opaqueIndex is used for standard box calculation which assumes 24 vertices per obst
               }
@@ -427,14 +444,17 @@ export class ObstService {
           // getIndices() returns indices for a single box (24 vertices), but we need to offset them
           const standardIndices = this.helperService.getIndices(0); // Get base indices for a single box
           const adjustedStandardIndices = standardIndices.map(index => index + currentVertexCount);
+          const currentIndexStart = this.indices.length;
           this.indices.push(...adjustedStandardIndices);
-          
-          // Track this range for normal computation later
+
+          // Track this range for normal computation later. Recording where this
+          // obst's indices land saves re-scanning the whole index array per obst.
           this.standardObstRanges.push({
             start: currentVertexStart,
             end: currentVertexEnd,
             vertexStart: currentVertexCount,
-            vertexEnd: currentVertexCount + 24 // Standard obst has 24 vertices
+            indexStart: currentIndexStart,
+            indexEnd: this.indices.length
           });
           
           // Add placeholder normals for this standard obst (will be computed later)
@@ -484,18 +504,17 @@ export class ObstService {
     if (this.vertices.length > 0) {
       // Compute normals only for standard obsts, preserve CSG mesh normals
       for (const range of this.standardObstRanges) {
-        // Extract vertices and indices for this standard obst
+        // Extract vertices and indices for this standard obst. Its indices were
+        // appended as one contiguous block, so read that block directly instead
+        // of scanning every index in the scene for each obst in turn.
         const obstVertices = this.vertices.slice(range.start, range.end);
         const obstIndices = [];
-        
-        // Find indices that belong to this vertex range
-        for (let i = 0; i < this.indices.length; i++) {
-          const index = this.indices[i];
-          if (index >= range.vertexStart && index < range.vertexEnd) {
-            obstIndices.push(index - range.vertexStart); // Make indices relative to this obst
-          }
+
+        for (let i = range.indexStart; i < range.indexEnd; i++) {
+          obstIndices.push(this.indices[i] - range.vertexStart); // Make indices relative to this obst
         }
-        
+
+
         // Compute normals for this standard obst
         const obstNormals = new Array(obstVertices.length).fill(0);
         BABYLON.VertexData.ComputeNormals(obstVertices, obstIndices, obstNormals);
