@@ -206,6 +206,47 @@ describe('ObstService', () => {
     });
   });
 
+  describe('UI actions before the shaders have arrived', () => {
+    // Materials are built inside a promise. Every control in the template is
+    // clickable from the first frame, so each of these runs against a service
+    // that has no mesh and no material yet.
+
+    it('toggles the wireframe without throwing', () => {
+      expect(() => service.toggleWireframe()).not.toThrow();
+    });
+
+    it('toggles the obst outline without throwing', () => {
+      expect(() => service.toggleEdgesRendering()).not.toThrow();
+    });
+
+    it('clears a selection that was never made without throwing', () => {
+      expect(() => service.clearSelection()).not.toThrow();
+    });
+
+    it('forgets the picked obst when the selection is cleared', () => {
+      service.pickedObst = makeObst('WALL', { x1: 0, x2: 1, y1: 0, y2: 1, z1: 0, z2: 1 });
+
+      service.clearSelection();
+
+      expect(service.pickedObst).toBeUndefined();
+    });
+
+    it('disposes the highlight box together with its material', () => {
+      // selectObst() builds a fresh StandardMaterial for every pick, so leaving
+      // it behind means one orphan per ctrl+click.
+      const mesh = BABYLON.MeshBuilder.CreateBox('pickedObst', {}, scene);
+      const material = new BABYLON.StandardMaterial('pickedObstMaterial', scene);
+      mesh.material = material;
+      service.pickedObstMesh = mesh;
+      service.pickedObstMaterial = material;
+
+      service.clearSelection();
+
+      expect(mesh.isDisposed()).toBe(true);
+      expect(scene.materials).not.toContain(material);
+    });
+  });
+
   describe('material lifetime', () => {
     const opaqueSurf = { id: 'SURF_1', color: { rgb: [255, 208, 0] }, transparency: 1 };
     const glazedSurf = { id: 'SURF_2', color: { rgb: [0, 128, 255] }, transparency: 0.4 };

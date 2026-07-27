@@ -635,15 +635,55 @@ export class ObstService {
       this.meshBackCap.freezeWorldMatrix();
     }
     
-    // Put somewhere else ...
-    this.babylonService.scene.freeActiveMeshes();
-
     // Uncomment when opacity - not working properly
     //this.mesh.material.needDepthPrePass = true;
     //this.mesh.mustDepthSortFacets = true;
     //this.babylonService.scene.registerBeforeRender(() => {
     //  this.mesh.updateFacetData();
     //});
+  }
+
+  /**
+   * Show the obsts as solid or as wireframe, back cap following along.
+   *
+   * The template calls this from the first frame, while the shader material is
+   * still being fetched - hence the guards rather than reaching into
+   * `material.wireframe` from the markup.
+   */
+  public toggleWireframe(): void {
+    if (this.material) {
+      // The material is frozen once built; wireframe is a render-state flag and
+      // may be flipped regardless.
+      this.material.wireframe = !this.material.wireframe;
+    }
+    if (this.meshBackCap) {
+      this.meshBackCap.isVisible = !this.meshBackCap.isVisible;
+    }
+  }
+
+  /**
+   * Flip obst outlines on or off. Edges live on the meshes, so this works even
+   * before the materials arrive - but not before the first render.
+   */
+  public toggleEdgesRendering(): void {
+    if (!this.mesh) { return; }
+    this.setEdgesRendering(this.mesh.edgesWidth == 0);
+  }
+
+  /**
+   * Drop the current selection. Called when a pick misses, which can happen
+   * before anything was ever selected.
+   */
+  public clearSelection(): void {
+    if (this.pickedObstMesh) {
+      this.pickedObstMesh.dispose();
+      this.pickedObstMesh = undefined;
+    }
+    if (this.pickedObstMaterial) {
+      this.pickedObstMaterial.dispose();
+      this.pickedObstMaterial = undefined;
+    }
+    this.pickedObst = undefined;
   }
 
   /**
@@ -725,11 +765,11 @@ export class ObstService {
     if (intersectInfo.length > 0) {
       // Find clicked obst - sort triangles by distance
       intersectInfo = sortBy(intersectInfo, ['distance']);
-      this.pickedObst = this.obsts[Math.floor(intersectInfo[0].faceId / 12)];
 
-      // Draw temporary obst
-      // Delete previous object
-      if (this.pickedObstMesh) this.pickedObstMesh.dispose();
+      // Drop the previous highlight box and the material built for it
+      this.clearSelection();
+
+      this.pickedObst = this.obsts[Math.floor(intersectInfo[0].faceId / 12)];
 
       // Create box
       let options = {
