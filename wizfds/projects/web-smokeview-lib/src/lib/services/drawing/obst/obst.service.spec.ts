@@ -206,6 +206,61 @@ describe('ObstService', () => {
     });
   });
 
+  describe('material lifetime', () => {
+    const opaqueSurf = { id: 'SURF_1', color: { rgb: [255, 208, 0] }, transparency: 1 };
+    const glazedSurf = { id: 'SURF_2', color: { rgb: [0, 128, 255] }, transparency: 0.4 };
+
+    beforeEach(() => {
+      // The suite-wide stub rejects, so no material is ever built and there is
+      // nothing to leak. Hand out real ones here to see what render() keeps.
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [{
+          provide: BabylonService,
+          useValue: {
+            scene: scene,
+            camera: { setPosition: () => { }, setTarget: () => { } },
+            loadShaderSources: () => Promise.reject(new Error('no shader assets under test')),
+            createShaderMaterial: (spec: { name: string }) => Promise.resolve(
+              new BABYLON.ShaderMaterial(spec.name, scene, { vertexSource: '', fragmentSource: '' }, {})
+            )
+          }
+        }]
+      });
+      service = TestBed.inject(ObstService);
+    });
+
+    /** Let the .then() chains that build the materials run. */
+    async function settleMaterials(): Promise<void> {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+
+    it('does not orphan a material on every render', async () => {
+      // One opaque and one glazed wall, so all three materials are in play:
+      // opaque, transparent and back cap.
+      service.obsts = [
+        makeObst('W1', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 }),
+        { ...makeObst('W2', { x1: 0.0, x2: 0.2, y1: 0.0, y2: 4.0, z1: 0.0, z2: 3.0 }), surf: { surf_id: { id: 'SURF_2' } } } as IObst
+      ];
+      service.holes = [];
+      service.surfs = [opaqueSurf, glazedSurf];
+
+      service.renderObsts();
+      await settleMaterials();
+      const afterFirst = scene.materials.length;
+
+      service.renderObsts();
+      await settleMaterials();
+      service.renderObsts();
+      await settleMaterials();
+
+      expect(afterFirst).toBeGreaterThan(0);
+      expect(scene.materials.length)
+        .withContext(`${afterFirst} materials after one render, ${scene.materials.length} after three`)
+        .toBe(afterFirst);
+    });
+  });
+
   describe('clipping back cap', () => {
     const opaqueSurf = { id: 'SURF_1', color: { rgb: [255, 208, 0] }, transparency: 1 };
 

@@ -497,8 +497,11 @@ export class ObstService {
    */
   public render() {
 
-    // Create opaque mesh
+    // Create opaque mesh. Babylon does not dispose a material along with its
+    // mesh, and every render builds a fresh set, so the old ones are released
+    // by hand - otherwise each render leaves three ShaderMaterials behind.
     if (this.mesh) { this.mesh.dispose(); }
+    if (this.material) { this.material.dispose(); this.material = null; }
     this.mesh = new BABYLON.Mesh("obstOpaque", this.babylonService.scene);
 
     if (this.vertices.length > 0) {
@@ -534,15 +537,19 @@ export class ObstService {
       this.vertexData.applyToMesh(this.mesh);
 
       // Opaque mesh never needs alpha blending
+      const opaqueMesh = this.mesh;
       this.babylonService.createShaderMaterial({ name: "opaqueShader", shader: "obst" })
         .then((material) => {
+          // A second render can land before this settles, leaving the material
+          // with no mesh to belong to.
+          if (opaqueMesh.isDisposed()) { material.dispose(); return; }
           this.material = material;
           this.material.setFloat("clipX", this.clipXNorm);
           this.material.setFloat("clipY", this.clipYNorm);
           this.material.setFloat("clipZ", this.clipZNorm);
           this.material.backFaceCulling = false;
           this.material.freeze();
-          this.mesh.material = this.material;
+          opaqueMesh.material = this.material;
         })
         .catch((e) => { if (isDevMode()) { try { console.error('[ObstService] Failed to create the opaque obst material', e); } catch {} } });
 
@@ -558,7 +565,11 @@ export class ObstService {
     const transparentIndices = (this as any).transparentIndices || [];
 
     if ((this as any)._meshTransparent) { (this as any)._meshTransparent.dispose(); }
-    
+    if ((this as any).materialTransparent) {
+      (this as any).materialTransparent.dispose();
+      (this as any).materialTransparent = null;
+    }
+
     if (transparentVertices.length > 0) {
       (this as any)._meshTransparent = new BABYLON.Mesh("obstTransparent", this.babylonService.scene);
       
@@ -576,15 +587,17 @@ export class ObstService {
       transparentVertexData.normals = transparentNormals;
       transparentVertexData.applyToMesh((this as any)._meshTransparent);
 
+      const transparentMesh = (this as any)._meshTransparent;
       this.babylonService.createShaderMaterial({ name: "transparentShader", shader: "obst", needAlphaBlending: true })
         .then((material) => {
+          if (transparentMesh.isDisposed()) { material.dispose(); return; }
           (this as any).materialTransparent = material;
           (this as any).materialTransparent.setFloat("clipX", this.clipXNorm);
           (this as any).materialTransparent.setFloat("clipY", this.clipYNorm);
           (this as any).materialTransparent.setFloat("clipZ", this.clipZNorm);
           (this as any).materialTransparent.backFaceCulling = false;
           (this as any).materialTransparent.freeze();
-          (this as any)._meshTransparent.material = (this as any).materialTransparent;
+          transparentMesh.material = (this as any).materialTransparent;
         })
         .catch((e) => { if (isDevMode()) { try { console.error('[ObstService] Failed to create the transparent obst material', e); } catch {} } });
 
@@ -598,6 +611,7 @@ export class ObstService {
     // It is applied the same vertexData as the opaque mesh - geometry produced
     // by CSG hole cutting included - so obsts carrying a &HOLE get a cap too.
     if (this.meshBackCap) { this.meshBackCap.dispose(); }
+    if (this.materialBackCap) { this.materialBackCap.dispose(); this.materialBackCap = null; }
 
     if (this.vertices.length > 0) {
       if (isDevMode()) console.log('[ObstService] Creating meshBackCap');
@@ -605,15 +619,17 @@ export class ObstService {
       this.vertexData.applyToMesh(this.meshBackCap);
 
       // Back-cap material for opaque mesh only
+      const backCapMesh = this.meshBackCap;
       this.babylonService.createShaderMaterial({ name: "opaqueBackCapShader", shader: "obstBackCap" })
         .then((material) => {
+          if (backCapMesh.isDisposed()) { material.dispose(); return; }
           this.materialBackCap = material;
           this.materialBackCap.setFloat("clipX", this.clipXNorm);
           this.materialBackCap.setFloat("clipY", this.clipYNorm);
           this.materialBackCap.setFloat("clipZ", this.clipZNorm);
           this.materialBackCap.zOffset = -0.01; // Always bring to front for clipping visualization
           this.materialBackCap.freeze();
-          this.meshBackCap.material = this.materialBackCap;
+          backCapMesh.material = this.materialBackCap;
         })
         .catch((e) => { if (isDevMode()) { try { console.error('[ObstService] Failed to create the obst back-cap material', e); } catch {} } });
       this.meshBackCap.freezeWorldMatrix();
