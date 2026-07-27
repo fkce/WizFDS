@@ -366,13 +366,22 @@ export class ObstService {
               // .getIndices(). Both end up in one buffer feeding one back-cap mesh,
               // which draws a single facing - mixed winding paints the outside of
               // these obsts red instead of capping the cut. Flip them to match.
+              const flippedIndices: number[] = [];
               for (let i = 0; i < indices.length; i += 3) {
+                flippedIndices.push(indices[i], indices[i + 2], indices[i + 1]);
                 adjustedIndices.push(
                   indices[i] + currentVertexCount,
                   indices[i + 2] + currentVertexCount,
                   indices[i + 1] + currentVertexCount
                 );
               }
+
+              // Recompute rather than reuse Manifold's normals: those follow its
+              // own winding, and a normal facing away from its triangle zeroes the
+              // diffuse term in obst.fragment.wgsl, leaving the obst at ambient
+              // brightness only - visibly darker than everything around it.
+              const csgNormals = new Array(positions.length).fill(0);
+              BABYLON.VertexData.ComputeNormals(positions, flippedIndices, csgNormals);
               
               if (isDevMode()) console.log('[ObstService] Adjusted indices:', {
                 firstFewAdjusted: adjustedIndices.slice(0, 6),
@@ -389,7 +398,7 @@ export class ObstService {
                 this.vertices.push(...positions);
                 this.colors.push(...colorArray);
                 this.indices.push(...adjustedIndices);
-                this.normals.push(...normals); // Add normals from CSG mesh
+                this.normals.push(...csgNormals);
                 // Don't increment opaqueIndex for CSG meshes since they have variable vertex count
                 // opaqueIndex is used for standard box calculation which assumes 24 vertices per obst
               }

@@ -164,6 +164,46 @@ describe('ObstService', () => {
         .withContext(`plain ${plain.toFixed(4)} vs cut ${cut.toFixed(4)} - opposite signs mean opposite winding`)
         .toBe(Math.sign(plain));
     });
+
+    /** Share of triangles whose vertex normal sits on the same side as their winding. */
+    function normalWindingAgreement(): number {
+      const p = service.vertices, n = service.normals, idx = service.indices;
+      let agreeing = 0, counted = 0;
+      for (let i = 0; i < idx.length; i += 3) {
+        const a = idx[i] * 3, b = idx[i + 1] * 3, c = idx[i + 2] * 3;
+        const ux = p[b] - p[a], uy = p[b + 1] - p[a + 1], uz = p[b + 2] - p[a + 2];
+        const vx = p[c] - p[a], vy = p[c + 1] - p[a + 1], vz = p[c + 2] - p[a + 2];
+        const fx = uy * vz - uz * vy, fy = uz * vx - ux * vz, fz = ux * vy - uy * vx;
+        if (fx === 0 && fy === 0 && fz === 0) { continue; }
+        counted++;
+        if (fx * n[a] + fy * n[a + 1] + fz * n[a + 2] >= 0) { agreeing++; }
+      }
+      return counted === 0 ? -1 : agreeing / counted;
+    }
+
+    it('relates normals to winding on a cut obst exactly as on a plain one', () => {
+      // obst.fragment.wgsl lights the surface with max(dot(normal, lightDir), 0)
+      // over a 0.5 ambient floor, so a normal on the wrong side of its triangle
+      // kills the diffuse term and the obst renders visibly darker than its
+      // neighbours. What matters is that both paths agree - the absolute sign is
+      // whatever VertexData.ComputeNormals settles on.
+      service.obsts = [makeObst('PLAIN', wallXb)];
+      service.holes = [];
+      service.surfs = [opaqueSurf];
+      service.renderObsts();
+      const plain = normalWindingAgreement();
+
+      service.obsts = [makeObst('WITH_HOLE', wallXb)];
+      service.holes = [makeHole('DOOR', { x1: 1.0, x2: 2.0, y1: 1.9, y2: 2.3, z1: 0.0, z2: 2.1 })];
+      service.surfs = [opaqueSurf];
+      service.renderObsts();
+      const cut = normalWindingAgreement();
+
+      expect(plain).toBeGreaterThanOrEqual(0);
+      expect(cut)
+        .withContext(`plain obst ${(plain * 100).toFixed(0)}% of triangles agree, cut obst ${(cut * 100).toFixed(0)}%`)
+        .toBeCloseTo(plain, 6);
+    });
   });
 
   describe('clipping back cap', () => {
