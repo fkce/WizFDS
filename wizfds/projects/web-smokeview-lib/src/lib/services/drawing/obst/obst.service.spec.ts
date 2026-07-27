@@ -87,6 +87,34 @@ describe('ObstService', () => {
     });
   });
 
+  describe('vertex normals', () => {
+    const opaqueSurf = { id: 'SURF_1', color: { rgb: [255, 208, 0] }, transparency: 1 };
+
+    it('computes a unit normal for every vertex of every obst', () => {
+      // Three walls so that per-obst normals cannot be confused with each other
+      service.obsts = [
+        makeObst('W1', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 }),
+        makeObst('W2', { x1: 0.0, x2: 0.2, y1: 0.0, y2: 4.0, z1: 0.0, z2: 3.0 }),
+        makeObst('W3', { x1: 6.0, x2: 8.0, y1: 6.0, y2: 6.2, z1: 0.0, z2: 2.5 })
+      ];
+      service.holes = [];
+      service.surfs = [opaqueSurf];
+
+      service.renderObsts();
+
+      expect(service.normals.length).toBe(service.vertices.length);
+
+      const lengths = [];
+      for (let i = 0; i < service.normals.length; i += 3) {
+        lengths.push(Math.hypot(service.normals[i], service.normals[i + 1], service.normals[i + 2]));
+      }
+      expect(lengths.length).toBe(3 * 24);
+      lengths.forEach((len, i) => {
+        expect(len).withContext(`normal ${i} must be a unit vector, got ${len}`).toBeCloseTo(1, 5);
+      });
+    });
+  });
+
   describe('clipping back cap', () => {
     const opaqueSurf = { id: 'SURF_1', color: { rgb: [255, 208, 0] }, transparency: 1 };
 
