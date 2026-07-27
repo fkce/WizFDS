@@ -1,15 +1,19 @@
-import { TestBed, inject } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 
 import { UiStateService } from './ui-state.service';
+import { appServiceProviders } from '../../../testing/app-service-testing';
 
 describe('UiStateService', () => {
+  let service: UiStateService;
+
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [UiStateService]
+      providers: [...appServiceProviders(), UiStateService]
     });
+    service = TestBed.inject(UiStateService);
   });
 
-  it('should be created', inject([UiStateService], (service: UiStateService) => {
+  it('should be created', () => {
     expect(service).toBeTruthy();
-  }));
+  });
 });
