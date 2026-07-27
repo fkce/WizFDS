@@ -11,12 +11,6 @@ export class HoleService {
   constructor(private helpersService: HelpersService) { }
 
   /**
-   * Process obst with holes using CSG operations
-   * @param obst The obst object that may contain holes
-   * @param scene Babylon scene
-   * @returns Processed mesh with holes cut and inner walls added
-   */
-  /**
    * Whether the CSG2 backend (Manifold) finished loading. Cutting is impossible
    * until it has - see BabylonService.initializeCsg2().
    */
@@ -24,6 +18,12 @@ export class HoleService {
     return BABYLON.IsCSG2Ready();
   }
 
+  /**
+   * Process obst with holes using CSG operations
+   * @param obst The obst object that may contain holes
+   * @param scene Babylon scene
+   * @returns Processed mesh with holes cut and inner walls added
+   */
   public processObstWithHoles(obst: IObst, scene: BABYLON.Scene): BABYLON.Mesh | null {
     // If no holes, return null (will use standard obst rendering)
     if (!obst.holes || obst.holes.length === 0) {

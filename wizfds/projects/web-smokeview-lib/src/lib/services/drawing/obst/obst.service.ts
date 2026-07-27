@@ -26,7 +26,7 @@ export class ObstService {
   positions: BABYLON.Vector3[] = [];
   
   // Track ranges of standard obsts that need normal computation
-  standardObstRanges: {start: number, end: number, vertexStart: number, vertexEnd: number, indexStart: number, indexEnd: number}[] = [];
+  standardObstRanges: {start: number, end: number, vertexStart: number, indexStart: number, indexEnd: number}[] = [];
 
   mesh;
   meshBackCap;
@@ -453,7 +453,6 @@ export class ObstService {
             start: currentVertexStart,
             end: currentVertexEnd,
             vertexStart: currentVertexCount,
-            vertexEnd: currentVertexCount + 24, // Standard obst has 24 vertices
             indexStart: currentIndexStart,
             indexEnd: this.indices.length
           });
