@@ -17,6 +17,21 @@ export interface SceneEntry {
 }
 
 /**
+ * One element's slice of a batched buffer, as collected while that buffer is
+ * built - before the mesh it will belong to exists.
+ *
+ * Services that batch several elements into one buffer return these from the
+ * method that builds it, and hand them to `register()` once the mesh is there.
+ * The range is read off the buffer rather than derived from a triangle count,
+ * which is what keeps it right for geometry that is not a plain box.
+ */
+export interface FaceRange {
+  uuid: string;
+  first: number;
+  count: number;
+}
+
+/**
  * The one place that knows which scene object is which FDS element.
  *
  * Identity is the `uuid` (ADR-0005). Before this, each drawing service worked
