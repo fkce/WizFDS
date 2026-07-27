@@ -4,11 +4,12 @@ import { HelpersService } from '../../helpers/helpers.service';
 import { forEach, max, cloneDeep, toNumber } from 'lodash';
 import { IMesh } from '../interfaces';
 import * as BABYLON from 'babylonjs';
+import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
 
 @Injectable({
   providedIn: 'root'
 })
-export class MeshService {
+export class MeshService implements SceneScoped {
 
   meshes: IMesh[] = [];
 
@@ -25,8 +26,25 @@ export class MeshService {
 
   constructor(
     private babylonService: BabylonService,
-    private helperService: HelpersService
-  ) { }
+    private helperService: HelpersService,
+    sceneLifecycle: SceneLifecycleService
+  ) {
+    sceneLifecycle.register(this);
+  }
+
+  /** Release everything tied to the scene that has just been disposed. */
+  public resetSceneState(): void {
+    this.mesh = null;
+    this.material = null;
+    this.vertexData = null;
+    // renderMeshes() does not restore this, so a stale value would leave the
+    // toggle one step out of phase with what is actually drawn
+    this.visibility = 1;
+    this.vertices.length = 0;
+    this.normals.length = 0;
+    this.colors.length = 0;
+    this.indices.length = 0;
+  }
 
   /**
    * Reder meshes

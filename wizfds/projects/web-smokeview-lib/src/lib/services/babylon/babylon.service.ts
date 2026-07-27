@@ -1,7 +1,8 @@
 import { Injectable, NgZone, ElementRef, HostListener, isDevMode } from '@angular/core';
 import * as BABYLON from 'babylonjs';
 import 'babylonjs-materials';
-import { ReplaySubject } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
+import { SceneLifecycleService } from './scene-lifecycle.service';
 
 /** WGSL sources for one shader, plus the URLs they came from (for diagnostics). */
 export interface ShaderSources {
@@ -51,7 +52,21 @@ export class BabylonService {
   public engine: BABYLON.WebGPUEngine;
   public camera: BABYLON.ArcRotateCamera;
   public scene: BABYLON.Scene;
-  public readonly ready$ = new ReplaySubject<void>(1);
+
+  private readonly sceneSubject = new BehaviorSubject<BABYLON.Scene | null>(null);
+
+  /**
+   * The current scene, or null when there is none.
+   *
+   * A BehaviorSubject rather than a ReplaySubject on purpose: leaving the view
+   * emits null, so a consumer subscribing on re-entry is told there is nothing
+   * to draw into instead of replaying the previous scene's ready signal and
+   * rendering into a disposed scene.
+   */
+  public readonly scene$ = this.sceneSubject.asObservable();
+
+  /** Held so it can be removed again - see animate(). */
+  private resizeListener: (() => void) | null = null;
   /**
    * False once createScene() has established that this browser cannot run the
    * WebGPU engine. There is no WebGL fallback - see docs/adr/0001-webgpu-only-wgsl.md.
@@ -61,7 +76,10 @@ export class BabylonService {
   /** Shader name -> in-flight or resolved sources. See loadShaderSources(). */
   private readonly shaderSources = new Map<string, Promise<ShaderSources>>();
 
-  public constructor(private ngZone: NgZone) { }
+  public constructor(
+    private ngZone: NgZone,
+    private sceneLifecycle: SceneLifecycleService
+  ) { }
 
   /**
    * Whether this browser exposes WebGPU at all. Callable before a scene exists,
@@ -89,17 +107,47 @@ export class BabylonService {
     }
   }
 
-  public async createScene(canvas: ElementRef<HTMLCanvasElement>): Promise<void> {
-    // Clean up existing resources
-    if (this.scene) {
-      this.scene.dispose();
+  /**
+   * Tear the scene down and tell everything that depended on it.
+   *
+   * Disposing the scene takes its meshes and materials with it, but the drawing
+   * services are `providedIn: 'root'` and would otherwise keep pointing at
+   * them - hence the lifecycle reset. Subscribers are told before the teardown,
+   * so nobody draws into a scene that is halfway gone.
+   */
+  public disposeScene(): void {
+    if (this.sceneSubject.value) {
+      this.sceneSubject.next(null);
+    }
+
+    // Every step runs even if an earlier one throws: a half-torn-down scene
+    // that still looks alive is what wedges the next createScene().
+    try {
+      if (this.scene) { this.scene.dispose(); }
+    } catch (e) {
+      console.error('[BabylonService] Disposing the scene failed', e);
+    } finally {
       this.scene = null;
     }
-    if (this.engine) {
-      this.engine.stopRenderLoop();
-      this.engine.dispose();
+
+    try {
+      if (this.engine) {
+        this.engine.stopRenderLoop();
+        this.engine.dispose();
+      }
+    } catch (e) {
+      console.error('[BabylonService] Disposing the engine failed', e);
+    } finally {
       this.engine = null;
     }
+
+    this.removeResizeListener();
+    this.sceneLifecycle.reset();
+  }
+
+  public async createScene(canvas: ElementRef<HTMLCanvasElement>): Promise<void> {
+    // Clean up existing resources
+    this.disposeScene();
 
     // The first step is to get the reference of the canvas element from our HTML document
     this.canvas = canvas.nativeElement;
@@ -123,6 +171,15 @@ export class BabylonService {
       });
       await webgpu.initAsync();
       this.engine = webgpu;
+
+      // A WebGPU device can be lost - driver reset, GPU switch, a backgrounded
+      // tab reclaimed. Without this the canvas silently stops updating.
+      this.engine.onContextLostObservable.add(() => {
+        console.error('[BabylonService] The GPU device was lost - tearing the scene down.');
+        // Not just a signal: the render loop would otherwise keep drawing into
+        // a lost device, and the services would keep holding its meshes.
+        this.disposeScene();
+      });
     } catch (e) {
       this.webGPUAvailable = false;
       console.error('[BabylonService] WebGPU engine failed to initialise', e);
@@ -171,8 +228,8 @@ export class BabylonService {
     // before anyone acts on ready$.
     await this.initializeCsg2();
 
-    // signal ready
-    this.ready$.next();
+    // Announce the scene only now that it is fully built
+    this.sceneSubject.next(this.scene);
   }
 
   /**
@@ -200,24 +257,36 @@ export class BabylonService {
     // We have to run this outside angular zones,
     // because it could trigger heavy changeDetection cycles.
     this.ngZone.runOutsideAngular(() => {
-      let frameCount = 0;
       const rendererLoopCallback = () => {
-        this.scene.render();
-        frameCount++;
+        // The loop is stopped on dispose, but a frame already in flight can
+        // still land after the scene is gone.
+        if (this.scene) { this.scene.render(); }
       };
 
       if (document.readyState !== 'loading') {
         this.engine.runRenderLoop(rendererLoopCallback);
       } else {
         window.addEventListener('DOMContentLoaded', () => {
-          this.engine.runRenderLoop(rendererLoopCallback);
-        });
+          if (this.engine) { this.engine.runRenderLoop(rendererLoopCallback); }
+        }, { once: true });
       }
 
-      window.addEventListener('resize', () => {
-        this.engine.resize();
-      });
+      // Kept so disposeScene() can take it off again - re-entering the view
+      // used to add another one, and after leaving they all fired against a
+      // null engine.
+      this.removeResizeListener();
+      this.resizeListener = () => {
+        if (this.engine) { this.engine.resize(); }
+      };
+      window.addEventListener('resize', this.resizeListener);
     });
+  }
+
+  private removeResizeListener(): void {
+    if (this.resizeListener) {
+      window.removeEventListener('resize', this.resizeListener);
+      this.resizeListener = null;
+    }
   }
 
   /**

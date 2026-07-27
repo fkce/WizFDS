@@ -206,6 +206,46 @@ describe('ObstService', () => {
     });
   });
 
+  describe('resetSceneState', () => {
+    const opaqueSurf = { id: 'SURF_1', color: { rgb: [255, 208, 0] }, transparency: 1 };
+
+    it('lets go of everything that belonged to the disposed scene', () => {
+      service.obsts = [makeObst('W1', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 })];
+      service.holes = [];
+      service.surfs = [opaqueSurf];
+      service.renderObsts();
+      service.pickedObst = makeObst('W1', { x1: 0, x2: 1, y1: 0, y2: 1, z1: 0, z2: 1 });
+
+      expect(service.mesh).withContext('precondition: a mesh was built').toBeTruthy();
+
+      service.resetSceneState();
+
+      expect(service.mesh).toBeNull();
+      expect(service.meshBackCap).toBeNull();
+      expect(service.meshTransparent).toBeFalsy();
+      expect(service.material).toBeNull();
+      expect(service.pickedObst).toBeUndefined();
+      expect(service.pickedObstMesh).toBeUndefined();
+      expect(service.vertices.length).toBe(0);
+      expect(service.indices.length).toBe(0);
+      expect(service.normals.length).toBe(0);
+      expect(service.positions.length).toBe(0);
+    });
+
+    it('leaves the service able to draw into the next scene', () => {
+      service.obsts = [makeObst('W1', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 })];
+      service.holes = [];
+      service.surfs = [opaqueSurf];
+      service.renderObsts();
+
+      service.resetSceneState();
+      service.renderObsts();
+
+      expect(service.mesh).toBeTruthy();
+      expect(service.vertices.length).toBeGreaterThan(0);
+    });
+  });
+
   describe('UI actions before the shaders have arrived', () => {
     // Materials are built inside a promise. Every control in the template is
     // clickable from the first frame, so each of these runs against a service

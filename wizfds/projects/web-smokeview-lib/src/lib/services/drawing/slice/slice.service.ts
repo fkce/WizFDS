@@ -1,6 +1,7 @@
 import { Injectable, isDevMode } from '@angular/core';
 import { BabylonService } from '../../babylon/babylon.service';
 import * as BABYLON from 'babylonjs';
+import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
 import { cloneDeep, forEach } from 'lodash';
 //import { environment } from '../../../environments/environment';
 import { colorbars as Colorbars } from '../../../consts/colorbars';
@@ -10,7 +11,7 @@ import { Slice } from './slice';
 @Injectable({
   providedIn: 'root'
 })
-export class SliceService {
+export class SliceService implements SceneScoped {
 
   vertices = [];
   indices = [];
@@ -30,8 +31,32 @@ export class SliceService {
 
   constructor(
     private babylonService: BabylonService,
-    private playerService: PlayerService
-  ) { }
+    private playerService: PlayerService,
+    sceneLifecycle: SceneLifecycleService
+  ) {
+    sceneLifecycle.register(this);
+  }
+
+  /**
+   * Release everything tied to the scene that has just been disposed.
+   *
+   * `slices` matters as much as `mesh`: each Slice carries its own mesh, and
+   * playSlice()'s interval writes into all of them. PlayerService stops the
+   * interval from its own reset; this drops what it was writing into.
+   */
+  public resetSceneState(): void {
+    this.mesh = null;
+    this.material = null;
+    this.vertexData = null;
+    this.slices.length = 0;
+    this.tex = new Float32Array([]);
+    this.texData = new Float32Array([]);
+    this.isBlank = 1;
+    this.vertices.length = 0;
+    this.indices.length = 0;
+    this.normals.length = 0;
+    this.blank.length = 0;
+  }
 
   /**
    * Play slice ?? redefine it ... especially sliderInterval should be sliceInterval or something. Maybe put all result in one interval ...

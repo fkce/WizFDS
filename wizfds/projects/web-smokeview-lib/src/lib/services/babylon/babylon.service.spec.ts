@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import * as BABYLON from 'babylonjs';
 
 import { BabylonService } from './babylon.service';
+import { SceneLifecycleService } from './scene-lifecycle.service';
 
 describe('BabylonService', () => {
 
@@ -96,28 +97,114 @@ describe('BabylonService', () => {
   it('reports WebGPU as unavailable instead of falling back to WebGL', async () => {
     setNavigatorGpu(undefined);
     const service: BabylonService = TestBed.inject(BabylonService);
-    let ready = false;
-    service.ready$.subscribe(() => ready = true);
+    const seen: (BABYLON.Scene | null)[] = [];
+    service.scene$.subscribe(scene => seen.push(scene));
 
     await service.createScene(canvasRef());
 
     expect(service.webGPUAvailable).toBeFalse();
     expect(service.engine).toBeFalsy();
     expect(service.scene).toBeFalsy();
-    expect(ready).toBeFalse();
+    expect(seen).toEqual([null]);
   });
 
   it('reports WebGPU as unavailable when the engine fails to initialise', async () => {
     // navigator.gpu present but useless - requestAdapter() rejects inside initAsync()
     setNavigatorGpu({ requestAdapter: () => Promise.reject(new Error('no adapter')) });
     const service: BabylonService = TestBed.inject(BabylonService);
-    let ready = false;
-    service.ready$.subscribe(() => ready = true);
+    const seen: (BABYLON.Scene | null)[] = [];
+    service.scene$.subscribe(scene => seen.push(scene));
 
     await service.createScene(canvasRef());
 
     expect(service.webGPUAvailable).toBeFalse();
     expect(service.scene).toBeFalsy();
-    expect(ready).toBeFalse();
+    expect(seen).toEqual([null]);
+  });
+
+  describe('scene lifecycle', () => {
+    let service: BabylonService;
+    let engine: BABYLON.NullEngine;
+
+    beforeEach(() => {
+      service = TestBed.inject(BabylonService);
+      engine = new BABYLON.NullEngine();
+    });
+
+    afterEach(() => {
+      engine.dispose();
+    });
+
+    it('tells subscribers there is no scene before one is built', () => {
+      const seen: (BABYLON.Scene | null)[] = [];
+
+      service.scene$.subscribe(scene => seen.push(scene));
+
+      expect(seen).toEqual([null]);
+    });
+
+    /**
+     * Put the service in the state createScene() leaves behind. That method
+     * needs a real WebGPU adapter, which the suite has no way to provide, so
+     * the scene is announced through the subject directly.
+     */
+    const announceScene = (scene: BABYLON.Scene) => {
+      service.scene = scene;
+      service.engine = engine as any;
+      (service as any).sceneSubject.next(scene);
+    };
+
+    it('emits null when the scene is disposed', () => {
+      const scene = new BABYLON.Scene(engine);
+      announceScene(scene);
+      const seen: (BABYLON.Scene | null)[] = [];
+      service.scene$.subscribe(s => seen.push(s));
+
+      service.disposeScene();
+
+      expect(seen).toEqual([scene, null]);
+      expect(service.scene).toBeNull();
+    });
+
+    it('does not emit twice when disposed twice', () => {
+      announceScene(new BABYLON.Scene(engine));
+      service.disposeScene();
+      const seen: (BABYLON.Scene | null)[] = [];
+      service.scene$.subscribe(s => seen.push(s));
+
+      service.disposeScene();
+
+      expect(seen).toEqual([null]);
+    });
+
+    it('does not replay a disposed scene to a late subscriber', () => {
+      // The bug this fixes: ready$ was a ReplaySubject(1), so re-entering the
+      // view replayed the previous scene's signal and drawing started against a
+      // scene that no longer existed.
+      service.scene = new BABYLON.Scene(engine);
+      service.engine = engine as any;
+      service.disposeScene();
+
+      const seen: (BABYLON.Scene | null)[] = [];
+      service.scene$.subscribe(scene => seen.push(scene));
+
+      expect(seen).toEqual([null]);
+    });
+
+    it('resets the scene-scoped services when the scene is disposed', () => {
+      const lifecycle = TestBed.inject(SceneLifecycleService);
+      let resets = 0;
+      lifecycle.register({ resetSceneState: () => resets++ });
+      service.scene = new BABYLON.Scene(engine);
+      service.engine = engine as any;
+
+      service.disposeScene();
+
+      expect(resets).toBe(1);
+    });
+
+    it('is safe to dispose when there is no scene', () => {
+      expect(() => service.disposeScene()).not.toThrow();
+    });
   });
 });

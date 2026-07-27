@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
+import { SceneLifecycleService, SceneScoped } from '../babylon/scene-lifecycle.service';
 
 @Injectable({
   providedIn: 'root'
 })
-export class PlayerService {
+export class PlayerService implements SceneScoped {
 
   isPlay: boolean = false;
 
@@ -16,7 +17,24 @@ export class PlayerService {
   sliderWidth: number = 0;
   sliderInterval: any;
 
-  constructor() { }
+  constructor(sceneLifecycle: SceneLifecycleService) {
+    sceneLifecycle.register(this);
+  }
+
+  /**
+   * Stop playback and rewind.
+   *
+   * The playback interval writes vertex data into slice meshes every 50 ms.
+   * Leaving the view mid-playback without this keeps that interval alive,
+   * writing into meshes belonging to a scene that has been disposed.
+   */
+  public resetSceneState(): void {
+    this.stop();
+    this.sliderInterval = undefined;
+    this.frameNo = 0;
+    this.frameCur = 0;
+    this.sliderWidth = 0;
+  }
 
   /**
    * Changing current frame

@@ -3,11 +3,12 @@ import { BabylonService } from '../babylon.service';
 import * as BABYLON from 'babylonjs';
 import { cloneDeep, toNumber } from 'lodash';
 import { ObstService } from '../../drawing/obst/obst.service';
+import { SceneLifecycleService, SceneScoped } from '../scene-lifecycle.service';
 
 @Injectable({
   providedIn: 'root'
 })
-export class ViewCubeService {
+export class ViewCubeService implements SceneScoped {
 
   public cameraViewCube: BABYLON.ArcRotateCamera;
   public viewCube: BABYLON.Mesh;
@@ -47,8 +48,29 @@ export class ViewCubeService {
 
   constructor(
     private babylonService: BabylonService,
-    private obstService: ObstService
-  ) { }
+    private obstService: ObstService,
+    sceneLifecycle: SceneLifecycleService
+  ) {
+    sceneLifecycle.register(this);
+  }
+
+  /**
+   * Release the cube, its ground, all 26 hit boxes, the materials and the
+   * second camera - every one of them built in init() against the scene that
+   * has just been disposed.
+   *
+   * Cleared by type rather than by name: naming thirty-odd fields would be a
+   * list the next added face or box silently drops out of, which is the bug
+   * this method exists to prevent.
+   */
+  public resetSceneState(): void {
+    Object.keys(this).forEach(key => {
+      const value = (this as any)[key];
+      if (value instanceof BABYLON.Node || value instanceof BABYLON.Material) {
+        (this as any)[key] = undefined;
+      }
+    });
+  }
 
   /**
    * Create procedural texture for ViewCube with text labels

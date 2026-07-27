@@ -6,11 +6,12 @@ import { IMesh, IOpen } from '../interfaces';
 import * as BABYLON from 'babylonjs';
 import { MeshService } from '../mesh/mesh.service';
 import { Vector3 } from 'babylonjs';
+import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
 
 @Injectable({
   providedIn: 'root'
 })
-export class OpenService {
+export class OpenService implements SceneScoped {
   opens: IOpen[] = [];
 
   vertices: number[] = [];
@@ -27,8 +28,25 @@ export class OpenService {
   constructor(
     private babylonService: BabylonService,
     private helperService: HelpersService,
-    private meshService: MeshService
-  ) { }
+    private meshService: MeshService,
+    sceneLifecycle: SceneLifecycleService
+  ) {
+    sceneLifecycle.register(this);
+  }
+
+  /** Release everything tied to the scene that has just been disposed. */
+  public resetSceneState(): void {
+    this.meshes.length = 0;
+    this.material = null;
+    this.vertexData = null;
+    // render() does not restore this, so a stale value would leave the toggle
+    // one step out of phase with what is actually drawn
+    this.visibility = 1;
+    this.vertices.length = 0;
+    this.normals.length = 0;
+    this.colors.length = 0;
+    this.indices.length = 0;
+  }
 
   /**
    * Reder opens

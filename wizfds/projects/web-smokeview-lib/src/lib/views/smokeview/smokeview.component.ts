@@ -1,4 +1,6 @@
 import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, HostListener, isDevMode } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { filter } from 'rxjs/operators';
 import { ObstService } from '../../services/drawing/obst/obst.service';
 import { BabylonService } from '../../services/babylon/babylon.service';
 import { SliceService } from '../../services/drawing/slice/slice.service';
@@ -60,6 +62,11 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   webGPUAvailable: boolean = true;
 
+  private sceneSub: Subscription;
+
+  /** Set in ngOnDestroy - createScene() is awaited and can outlive the view. */
+  private destroyed = false;
+
   constructor(
     public obstService: ObstService,
     public meshService: MeshService,
@@ -86,21 +93,31 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!this.webGPUAvailable) return;
 
     await this.babylonService.createScene(this.rendererCanvas);
+
+    // Leaving the view while the engine was still initialising: ngOnDestroy
+    // already ran and found nothing to dispose, so tear down what just arrived.
+    if (this.destroyed) {
+      this.babylonService.disposeScene();
+      return;
+    }
+
     // The adapter request can still fail on a browser that advertises WebGPU
     this.webGPUAvailable = this.babylonService.webGPUAvailable;
     if (!this.webGPUAvailable) return;
 
-    this.babylonService.ready$.subscribe(() => {
-      this.babylonService.animate();
-      
-      // Initialize ViewCube after scene is ready
-      try {
-        this.viewCubeService.init();
-        if (isDevMode()) { try { console.debug('[SmokeviewComponent] ViewCube initialized'); } catch {} }
-      } catch (e) {
-        if (isDevMode()) { try { console.error('[SmokeviewComponent] Failed to initialize ViewCube', e); } catch {} }
-      }
-    });
+    this.sceneSub = this.babylonService.scene$
+      .pipe(filter(scene => !!scene))
+      .subscribe(() => {
+        this.babylonService.animate();
+
+        // Initialize ViewCube after scene is ready
+        try {
+          this.viewCubeService.init();
+          if (isDevMode()) { try { console.debug('[SmokeviewComponent] ViewCube initialized'); } catch {} }
+        } catch (e) {
+          if (isDevMode()) { try { console.error('[SmokeviewComponent] Failed to initialize ViewCube', e); } catch {} }
+        }
+      });
   }
 
   /**
@@ -121,15 +138,12 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   //}
 
   ngOnDestroy() {
-    if (this.babylonService.engine) {
-      this.babylonService.engine.stopRenderLoop();
+    this.destroyed = true;
+    if (this.sceneSub) {
+      this.sceneSub.unsubscribe();
     }
-    if (this.babylonService.scene) {
-      this.babylonService.scene.dispose();
-    }
-    if (this.babylonService.engine) {
-      this.babylonService.engine.dispose();
-    }
+    // Tears down scene and engine, and resets every scene-scoped service
+    this.babylonService.disposeScene();
   }
 
   /**
