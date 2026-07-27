@@ -1,5 +1,12 @@
 import { Injectable } from '@angular/core';
 
+/**
+ * Geometry for slice files (&SLCF drawn on an immersed body).
+ *
+ * Nothing draws it yet - the Three.js implementation it belonged to is gone and
+ * the WGSL one is Phase 6 (#89). Only the sample data below survived, kept as
+ * the reference frame layout to build that against.
+ */
 @Injectable({
   providedIn: 'root'
 })

@@ -33,6 +33,16 @@ export class ObstService {
   vertexData: BABYLON.VertexData;
   material: BABYLON.ShaderMaterial;
   materialBackCap: BABYLON.ShaderMaterial;
+  materialTransparent: BABYLON.ShaderMaterial;
+
+  /** Read through the meshTransparent getter. */
+  private _meshTransparent: BABYLON.Mesh;
+
+  /**
+   * Whether obsts are drawn as wireframe. Held here rather than read off the
+   * material, because the button is clickable before the material exists.
+   */
+  private wireframeOn = false;
 
   clipX: number = 0.0;
   clipY: number = 0.0;
@@ -63,43 +73,22 @@ export class ObstService {
       z: this.helperService.normZMax || 1
     };
     
-    if (direction == 'x') {
-      this.clipX = value;
-      let clip = (value == 100) ? 1.1 : globalBounds.x * (value / 100);
-      clip = (value == 0) ? -1.1 : clip;
-      this.mesh.material.setFloat("clipX", clip);
-      this.meshBackCap.material.setFloat("clipX", clip);
-      // Update transparent mesh material if it exists
-      if ((this as any).materialTransparent) {
-        (this as any).materialTransparent.setFloat("clipX", clip);
-      }
-      this.clipXNorm = clip;
+    if (!globalBounds.hasOwnProperty(direction)) { return; }
 
-    }
-    else if (direction == 'y') {
-      this.clipY = value;
-      let clip = (value == 100) ? 1.1 : globalBounds.y * (value / 100);
-      clip = (value == 0) ? -1.1 : clip;
-      this.mesh.material.setFloat("clipY", clip);
-      this.meshBackCap.material.setFloat("clipY", clip);
-      // Update transparent mesh material if it exists
-      if ((this as any).materialTransparent) {
-        (this as any).materialTransparent.setFloat("clipY", clip);
-      }
-      this.clipYNorm = clip;
-    }
-    else if (direction == 'z') {
-      this.clipZ = value;
-      let clip = (value == 100) ? 1.1 : globalBounds.z * (value / 100);
-      clip = (value == 0) ? -1.1 : clip;
-      this.mesh.material.setFloat("clipZ", clip);
-      this.meshBackCap.material.setFloat("clipZ", clip);
-      // Update transparent mesh material if it exists
-      if ((this as any).materialTransparent) {
-        (this as any).materialTransparent.setFloat("clipZ", clip);
-      }
-      this.clipZNorm = clip;
-    }
+    let clip = (value == 100) ? 1.1 : globalBounds[direction] * (value / 100);
+    clip = (value == 0) ? -1.1 : clip;
+
+    if (direction == 'x') { this.clipX = value; this.clipXNorm = clip; }
+    else if (direction == 'y') { this.clipY = value; this.clipYNorm = clip; }
+    else { this.clipZ = value; this.clipZNorm = clip; }
+
+    // The sliders are live from the first frame, while the materials are still
+    // being fetched. Push the value into whatever exists; the rest read the
+    // norms when they are built.
+    const uniform = `clip${direction.toUpperCase()}`;
+    forEach([this.material, this.materialBackCap, this.materialTransparent], (material: BABYLON.ShaderMaterial) => {
+      if (material) { material.setFloat(uniform, clip); }
+    });
   }
 
   /**
@@ -548,6 +537,8 @@ export class ObstService {
           this.material.setFloat("clipY", this.clipYNorm);
           this.material.setFloat("clipZ", this.clipZNorm);
           this.material.backFaceCulling = false;
+          // A wireframe toggled while this was still loading must not be lost
+          this.applyWireframe();
           this.material.freeze();
           opaqueMesh.material = this.material;
         })
@@ -564,14 +555,14 @@ export class ObstService {
     const transparentColors = (this as any).transparentColors || [];
     const transparentIndices = (this as any).transparentIndices || [];
 
-    if ((this as any)._meshTransparent) { (this as any)._meshTransparent.dispose(); }
-    if ((this as any).materialTransparent) {
-      (this as any).materialTransparent.dispose();
-      (this as any).materialTransparent = null;
+    if (this._meshTransparent) { this._meshTransparent.dispose(); }
+    if (this.materialTransparent) {
+      this.materialTransparent.dispose();
+      this.materialTransparent = null;
     }
 
     if (transparentVertices.length > 0) {
-      (this as any)._meshTransparent = new BABYLON.Mesh("obstTransparent", this.babylonService.scene);
+      this._meshTransparent = new BABYLON.Mesh("obstTransparent", this.babylonService.scene);
       
       if (isDevMode()) { try {
         console.debug('[ObstService] Creating transparent mesh with vertices:', transparentVertices.length);
@@ -585,26 +576,26 @@ export class ObstService {
       transparentVertexData.indices = transparentIndices;
       transparentVertexData.colors = transparentColors;
       transparentVertexData.normals = transparentNormals;
-      transparentVertexData.applyToMesh((this as any)._meshTransparent);
+      transparentVertexData.applyToMesh(this._meshTransparent);
 
-      const transparentMesh = (this as any)._meshTransparent;
+      const transparentMesh = this._meshTransparent;
       this.babylonService.createShaderMaterial({ name: "transparentShader", shader: "obst", needAlphaBlending: true })
         .then((material) => {
           if (transparentMesh.isDisposed()) { material.dispose(); return; }
-          (this as any).materialTransparent = material;
-          (this as any).materialTransparent.setFloat("clipX", this.clipXNorm);
-          (this as any).materialTransparent.setFloat("clipY", this.clipYNorm);
-          (this as any).materialTransparent.setFloat("clipZ", this.clipZNorm);
-          (this as any).materialTransparent.backFaceCulling = false;
-          (this as any).materialTransparent.freeze();
-          transparentMesh.material = (this as any).materialTransparent;
+          this.materialTransparent = material;
+          this.materialTransparent.setFloat("clipX", this.clipXNorm);
+          this.materialTransparent.setFloat("clipY", this.clipYNorm);
+          this.materialTransparent.setFloat("clipZ", this.clipZNorm);
+          this.materialTransparent.backFaceCulling = false;
+          this.materialTransparent.freeze();
+          transparentMesh.material = this.materialTransparent;
         })
         .catch((e) => { if (isDevMode()) { try { console.error('[ObstService] Failed to create the transparent obst material', e); } catch {} } });
 
-      (this as any)._meshTransparent.enableEdgesRendering();
-      (this as any)._meshTransparent.edgesWidth = 0.05;
-      (this as any)._meshTransparent.edgesColor = new BABYLON.Color4(0.4, 0.4, 0.4, 1);
-      (this as any)._meshTransparent.freezeWorldMatrix();
+      this._meshTransparent.enableEdgesRendering();
+      this._meshTransparent.edgesWidth = 0.05;
+      this._meshTransparent.edgesColor = new BABYLON.Color4(0.4, 0.4, 0.4, 1);
+      this._meshTransparent.freezeWorldMatrix();
     }
 
     // Create back cap mesh for opaque obsts (clipping visualization).
@@ -617,6 +608,7 @@ export class ObstService {
       if (isDevMode()) console.log('[ObstService] Creating meshBackCap');
       this.meshBackCap = new BABYLON.Mesh("obstBackCapOpaque", this.babylonService.scene);
       this.vertexData.applyToMesh(this.meshBackCap);
+      this.applyWireframe();
 
       // Back-cap material for opaque mesh only
       const backCapMesh = this.meshBackCap;
@@ -651,13 +643,27 @@ export class ObstService {
    * `material.wireframe` from the markup.
    */
   public toggleWireframe(): void {
+    this.wireframeOn = !this.wireframeOn;
+    this.applyWireframe();
+  }
+
+  /**
+   * Push the wireframe state onto whatever currently exists.
+   *
+   * Guarding the material and the back cap independently would let them drift
+   * apart: a click before the material lands would flip only the cap, and the
+   * two would stay inverted for the rest of the session.
+   */
+  private applyWireframe(): void {
     if (this.material) {
-      // The material is frozen once built; wireframe is a render-state flag and
-      // may be flipped regardless.
-      this.material.wireframe = !this.material.wireframe;
+      // The material is frozen once built; wireframe is a fill mode, not part
+      // of the shader, so it may be flipped regardless.
+      this.material.wireframe = this.wireframeOn;
     }
     if (this.meshBackCap) {
-      this.meshBackCap.isVisible = !this.meshBackCap.isVisible;
+      // The cap fills the clipped cross-section - in wireframe it would hide
+      // the triangles the user asked to see.
+      this.meshBackCap.isVisible = !this.wireframeOn;
     }
   }
 
@@ -703,14 +709,14 @@ export class ObstService {
     }
 
     // Control edges for transparent mesh
-    if ((this as any)._meshTransparent) {
+    if (this._meshTransparent) {
       if (enabled) {
-        (this as any)._meshTransparent.enableEdgesRendering();
-        (this as any)._meshTransparent.edgesWidth = 0.05;
-        (this as any)._meshTransparent.edgesColor = new BABYLON.Color4(0.4, 0.4, 0.4, 1);
+        this._meshTransparent.enableEdgesRendering();
+        this._meshTransparent.edgesWidth = 0.05;
+        this._meshTransparent.edgesColor = new BABYLON.Color4(0.4, 0.4, 0.4, 1);
       } else {
-        (this as any)._meshTransparent.disableEdgesRendering();
-        (this as any)._meshTransparent.edgesWidth = 0; // Set to 0 for button logic
+        this._meshTransparent.disableEdgesRendering();
+        this._meshTransparent.edgesWidth = 0; // Set to 0 for button logic
       }
     }
   }
@@ -719,7 +725,7 @@ export class ObstService {
    * Get transparent mesh for external access (e.g., for outline control)
    */
   public get meshTransparent(): BABYLON.Mesh | undefined {
-    return (this as any)._meshTransparent;
+    return this._meshTransparent;
   }
 
   /**

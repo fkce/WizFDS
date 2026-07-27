@@ -130,6 +130,9 @@ export class OpenService {
    * Toggle open visibility
    */
   public toogleVisibility() {
+    // The button is live from the first frame, before anything is rendered
+    if (!this.material) return;
+
     // Show only edges;
     if (this.visibility == 0) {
       this.material.alpha = 0.0;

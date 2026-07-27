@@ -200,6 +200,10 @@ export class MeshService {
    * Toggle mesh visibility
    */
   public toogleVisibility() {
+    // The button is live from the first frame, while the material is still
+    // being fetched - same guard FireService carries.
+    if (!this.mesh || !this.material) return;
+
     // Show only edges;
     if (this.visibility == 0) {
       this.material.setFloat('transparent', 0.0);

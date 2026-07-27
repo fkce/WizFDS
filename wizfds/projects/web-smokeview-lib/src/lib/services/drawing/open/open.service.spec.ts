@@ -43,6 +43,10 @@ describe('OpenService', () => {
     expect(service).toBeTruthy();
   });
 
+  it('tolerates the visibility button being clicked before anything is rendered', () => {
+    expect(() => service.toogleVisibility()).not.toThrow();
+  });
+
   describe('renderOpens', () => {
     // A vent on the y = 0 plane, so getPlaneDimFromXb() produces a plane
     const wall: IXb = { x1: 0, x2: 2, y1: 0, y2: 0, z1: 0, z2: 3 };

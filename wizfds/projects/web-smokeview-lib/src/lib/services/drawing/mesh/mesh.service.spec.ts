@@ -13,4 +13,10 @@ describe('MeshService', () => {
   it('should be created', () => {
     expect(service).toBeTruthy();
   });
+
+  it('tolerates the visibility button being clicked before anything is rendered', () => {
+    // The control is live from the first frame, while the shader material is
+    // still being fetched - FireService already guards this way.
+    expect(() => service.toogleVisibility()).not.toThrow();
+  });
 });
