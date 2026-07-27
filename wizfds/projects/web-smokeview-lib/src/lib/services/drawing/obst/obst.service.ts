@@ -6,6 +6,7 @@ import { HelpersService } from '../../helpers/helpers.service';
 import { HoleService } from '../hole/hole.service';
 import { IObst, IHole } from '../interfaces';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
+import { SceneRegistryService } from '../../babylon/scene-registry.service';
 
 @Injectable({
   providedIn: 'root'
@@ -45,6 +46,15 @@ export class ObstService implements SceneScoped {
    */
   private wireframeOn = false;
 
+  /**
+   * Face ranges collected while the buffers are built, registered once the
+   * meshes they refer to exist.
+   */
+  private readonly pendingRegistrations: { uuid: string, transparent: boolean, first: number, count: number }[] = [];
+
+  /** What this service put in the registry, so a re-render can take it out. */
+  private registeredUuids: string[] = [];
+
   clipX: number = 0.0;
   clipY: number = 0.0;
   clipZ: number = 100.0;
@@ -56,9 +66,28 @@ export class ObstService implements SceneScoped {
     private babylonService: BabylonService,
     private helperService: HelpersService,
     private holeService: HoleService,
+    private sceneRegistry: SceneRegistryService,
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
+  }
+
+  /**
+   * Tell the registry where each obst ended up, now that the meshes exist.
+   *
+   * The previous render's entries go first: obsts removed from the scenario
+   * would otherwise keep naming faces of a buffer they are no longer in.
+   */
+  private registerWithScene(): void {
+    this.registeredUuids.forEach(uuid => this.sceneRegistry.forget(uuid));
+    this.registeredUuids = [];
+
+    this.pendingRegistrations.forEach(({ uuid, transparent, first, count }) => {
+      const mesh = transparent ? this._meshTransparent : this.mesh;
+      if (!mesh) { return; }
+      this.sceneRegistry.register(uuid, { mesh: mesh, faces: { first: first, count: count } });
+      this.registeredUuids.push(uuid);
+    });
   }
 
   /**
@@ -337,11 +366,19 @@ export class ObstService implements SceneScoped {
     // Track if we have any CSG meshes (for backCap compatibility)
     let hasCSGMeshes = false;
 
+    this.pendingRegistrations.length = 0;
+
     forEach(this.obsts, (obst: IObst) => {
       const surfId = (obst as any)?.surf?.surf_id?.id;
       const surf = surfId !== undefined ? find(this.surfs, (s: any) => s && s.id === surfId) : undefined;
       const isTransparent = surf && surf.transparency < 1;
       let processedWithHoles = false;
+
+      // Where this obst's faces start, whichever path below appends them. Read
+      // afterwards rather than computed, because an obst carrying a &HOLE has
+      // no fixed triangle count - which is what broke identity by position.
+      const opaqueFacesBefore = this.indices.length / 3;
+      const transparentFacesBefore = transparentIndices.length / 3;
 
       // Check if obst has holes and can have holes
       if (obst.holes && obst.holes.length > 0 && this.holeService.canHaveHoles(obst)) {
@@ -481,6 +518,18 @@ export class ObstService implements SceneScoped {
           
           opaqueIndex++;
         }
+      }
+
+      const opaqueFaces = this.indices.length / 3 - opaqueFacesBefore;
+      const transparentFaces = transparentIndices.length / 3 - transparentFacesBefore;
+      if (opaqueFaces > 0) {
+        this.pendingRegistrations.push({
+          uuid: obst.uuid, transparent: false, first: opaqueFacesBefore, count: opaqueFaces
+        });
+      } else if (transparentFaces > 0) {
+        this.pendingRegistrations.push({
+          uuid: obst.uuid, transparent: true, first: transparentFacesBefore, count: transparentFaces
+        });
       }
     });
 
@@ -656,6 +705,10 @@ export class ObstService implements SceneScoped {
       this.meshBackCap.freezeWorldMatrix();
     }
     
+    // Both meshes exist by now, so the face ranges collected while building the
+    // buffers have something to point at
+    this.registerWithScene();
+
     // Uncomment when opacity - not working properly
     //this.mesh.material.needDepthPrePass = true;
     //this.mesh.mustDepthSortFacets = true;
@@ -804,7 +857,13 @@ export class ObstService implements SceneScoped {
       // Drop the previous highlight box and the material built for it
       this.clearSelection();
 
-      this.pickedObst = this.obsts[Math.floor(intersectInfo[0].faceId / 12)];
+      // Ask the registry which obst owns the face that was hit. This used to be
+      // `this.obsts[Math.floor(faceId / 12)]`, which assumed every obst is
+      // twelve triangles - false for any obst carrying a &HOLE, and false for
+      // every obst after it in the buffer.
+      const uuid = this.sceneRegistry.uuidAt(this.mesh, intersectInfo[0].faceId);
+      this.pickedObst = find(this.obsts, (obst: IObst) => obst.uuid === uuid);
+      if (!this.pickedObst) { return; }
 
       // Create box
       let options = {

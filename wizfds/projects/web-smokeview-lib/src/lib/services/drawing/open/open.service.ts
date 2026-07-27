@@ -7,6 +7,7 @@ import * as BABYLON from 'babylonjs';
 import { MeshService } from '../mesh/mesh.service';
 import { Vector3 } from 'babylonjs';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
+import { SceneRegistryService } from '../../babylon/scene-registry.service';
 
 @Injectable({
   providedIn: 'root'
@@ -29,10 +30,14 @@ export class OpenService implements SceneScoped {
     private babylonService: BabylonService,
     private helperService: HelpersService,
     private meshService: MeshService,
+    private sceneRegistry: SceneRegistryService,
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
   }
+
+  /** What this service put in the registry, so a re-render can take it out. */
+  private registeredUuids: string[] = [];
 
   /** Release everything tied to the scene that has just been disposed. */
   public resetSceneState(): void {
@@ -69,6 +74,9 @@ export class OpenService implements SceneScoped {
    * rather than per mesh.
    */
   private disposePreviousOpens(): void {
+    this.registeredUuids.forEach(uuid => this.sceneRegistry.forget(uuid));
+    this.registeredUuids.length = 0;
+
     forEach(this.meshes, (mesh: BABYLON.Mesh) => mesh.dispose());
     this.meshes.length = 0;
 
@@ -140,6 +148,10 @@ export class OpenService implements SceneScoped {
         // Preformance optimization
         this.meshes[index].convertToUnIndexedMesh();
         this.meshes[index].freezeWorldMatrix();
+
+        // One plane per opening, so the mesh alone identifies it
+        this.sceneRegistry.register(open.uuid, { mesh: this.meshes[index] });
+        this.registeredUuids.push(open.uuid);
       });
     }
   }
