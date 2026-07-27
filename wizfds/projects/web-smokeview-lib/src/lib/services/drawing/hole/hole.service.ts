@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, isDevMode } from '@angular/core';
 import * as BABYLON from 'babylonjs';
 import { IHole, IObst, IXb } from '../interfaces';
 import { HelpersService } from '../../helpers/helpers.service';
@@ -16,9 +16,24 @@ export class HoleService {
    * @param scene Babylon scene
    * @returns Processed mesh with holes cut and inner walls added
    */
+  /**
+   * Whether the CSG2 backend (Manifold) finished loading. Cutting is impossible
+   * until it has - see BabylonService.initializeCsg2().
+   */
+  public isCsgReady(): boolean {
+    return BABYLON.IsCSG2Ready();
+  }
+
   public processObstWithHoles(obst: IObst, scene: BABYLON.Scene): BABYLON.Mesh | null {
     // If no holes, return null (will use standard obst rendering)
     if (!obst.holes || obst.holes.length === 0) {
+      return null;
+    }
+
+    // Manifold failing to load costs the openings, not the whole scene: the
+    // obst falls back to being drawn solid.
+    if (!this.isCsgReady()) {
+      if (isDevMode()) console.warn('[HoleService] CSG2 is not ready - drawing obst solid:', obst.id);
       return null;
     }
 
@@ -39,18 +54,27 @@ export class HoleService {
           holeMesh.isVisible = false;
           
           // Perform CSG subtraction to cut the hole
-          const obstCSG = BABYLON.CSG.FromMesh(resultMesh);
-          const holeCSG = BABYLON.CSG.FromMesh(holeMesh);
+          const obstCSG = BABYLON.CSG2.FromMesh(resultMesh);
+          const holeCSG = BABYLON.CSG2.FromMesh(holeMesh);
           const subtractedCSG = obstCSG.subtract(holeCSG);
-          
+
           // Clean up intermediate meshes
           if (resultMesh !== obstMesh) {
             resultMesh.dispose();
           }
           holeMesh.dispose();
-          
+
           // Create new mesh from CSG result
-          resultMesh = subtractedCSG.toMesh(`obstWithHole_${index}`, obstMesh.material, scene);
+          // centerMesh defaults to true and would move the cut geometry to the
+          // origin; obst positions are already baked into the vertices.
+          resultMesh = subtractedCSG.toMesh(`obstWithHole_${index}`, scene, {
+            centerMesh: false,
+            materialToUse: obstMesh.material
+          });
+
+          obstCSG.dispose();
+          holeCSG.dispose();
+          subtractedCSG.dispose();
           
           // Force mesh update
           resultMesh.refreshBoundingInfo();

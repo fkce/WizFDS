@@ -137,6 +137,12 @@ describe('HoleService', () => {
       return wall;
     }
 
+    beforeAll(async () => {
+      // Manifold is served from assets/manifold, never from a CDN - see
+      // BabylonService.initializeCsg2().
+      await BABYLON.InitializeCSG2Async({ manifoldUrl: '/assets/manifold' });
+    });
+
     beforeEach(() => {
       engine = new BABYLON.NullEngine();
       scene = new BABYLON.Scene(engine);
@@ -145,6 +151,10 @@ describe('HoleService', () => {
     afterEach(() => {
       scene.dispose();
       engine.dispose();
+    });
+
+    it('has the CSG2 backend ready', () => {
+      expect(BABYLON.IsCSG2Ready()).toBe(true);
     });
 
     it('cuts a doorway whose faces are coplanar with the wall', () => {
@@ -168,6 +178,29 @@ describe('HoleService', () => {
 
       expect(mesh).toBeTruthy();
       expect(meshVolume(mesh)).toBeCloseTo(WALL_VOLUME - DOORWAY_VOLUME, 3);
+    });
+
+    it('leaves the cut mesh standing where the wall is', () => {
+      // The cut geometry has to stay put. CSG2.toMesh() centres the result on
+      // the origin unless told otherwise, which would teleport every obst
+      // carrying a hole into the middle of the scene.
+      const mesh = service.processObstWithHoles(wallWithDoorway(), scene);
+      mesh.refreshBoundingInfo();
+      const box = mesh.getBoundingInfo().boundingBox;
+
+      expect(box.minimumWorld.x).toBeCloseTo(0.0, 3);
+      expect(box.maximumWorld.x).toBeCloseTo(4.0, 3);
+      expect(box.minimumWorld.y).toBeCloseTo(2.0, 3);
+      expect(box.maximumWorld.y).toBeCloseTo(2.2, 3);
+      expect(box.minimumWorld.z).toBeCloseTo(0.0, 3);
+      expect(box.maximumWorld.z).toBeCloseTo(3.0, 3);
+    });
+
+    it('falls back to standard rendering when the CSG2 backend is unavailable', () => {
+      // Manifold failing to load must cost the openings, not the whole scene.
+      spyOn(service, 'isCsgReady').and.returnValue(false);
+
+      expect(service.processObstWithHoles(wallWithDoorway(), scene)).toBeNull();
     });
 
     it('leaves an obst without holes to the standard rendering path', () => {

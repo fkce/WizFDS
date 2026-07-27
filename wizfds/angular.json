@@ -32,6 +32,11 @@
                 "glob": "**/*",
                 "input": "projects/web-smokeview-lib/src/assets",
                 "output": "assets"
+              },
+              {
+                "glob": "manifold.{js,wasm}",
+                "input": "node_modules/manifold-3d",
+                "output": "assets/manifold"
               }
             ],
             "styles": [
@@ -120,7 +125,12 @@
             "karmaConfig": "projects/wizfds/karma.conf.js",
             "assets": [
               "projects/wizfds/src/favicon.ico",
-              "projects/wizfds/src/assets"
+              "projects/wizfds/src/assets",
+              {
+                "glob": "manifold.{js,wasm}",
+                "input": "node_modules/manifold-3d",
+                "output": "assets/manifold"
+              }
             ],
             "styles": [
               "projects/wizfds/src/styles.scss"
@@ -168,7 +178,14 @@
               "zone.js/testing"
             ],
             "tsConfig": "projects/web-smokeview-lib/tsconfig.spec.json",
-            "karmaConfig": "projects/web-smokeview-lib/karma.conf.js"
+            "karmaConfig": "projects/web-smokeview-lib/karma.conf.js",
+            "assets": [
+              {
+                "glob": "manifold.{js,wasm}",
+                "input": "node_modules/manifold-3d",
+                "output": "assets/manifold"
+              }
+            ]
           }
         }
       }
@@ -320,6 +337,11 @@
                 "glob": "**/*",
                 "input": "projects/web-smokeview-lib/src/assets",
                 "output": "assets"
+              },
+              {
+                "glob": "manifold.{js,wasm}",
+                "input": "node_modules/manifold-3d",
+                "output": "assets/manifold"
               }
             ],
             "styles": [
@@ -393,7 +415,12 @@
             "karmaConfig": "projects/webSmokeview/karma.conf.js",
             "assets": [
               "projects/webSmokeview/src/favicon.ico",
-              "projects/webSmokeview/src/assets"
+              "projects/webSmokeview/src/assets",
+              {
+                "glob": "manifold.{js,wasm}",
+                "input": "node_modules/manifold-3d",
+                "output": "assets/manifold"
+              }
             ],
             "styles": [
               "projects/webSmokeview/src/styles.scss"
@@ -416,7 +443,6 @@
       }
     }
   },
-  
   "cli": {
     "analytics": "10bc89be-ee80-4df8-a644-b6d3b915254b"
   }

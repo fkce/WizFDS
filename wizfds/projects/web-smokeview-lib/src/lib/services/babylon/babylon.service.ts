@@ -167,8 +167,33 @@ export class BabylonService {
     this.engine.setHardwareScalingLevel(1 / window.devicePixelRatio);
     this.engine.resize();
 
+    // Holes are cut during the first render, so the CSG backend has to be up
+    // before anyone acts on ready$.
+    await this.initializeCsg2();
+
     // signal ready
     this.ready$.next();
+  }
+
+  /**
+   * Load the Manifold backend behind CSG2, used to cut &HOLE openings out of
+   * obsts. Babylon would otherwise pull Manifold from unpkg at first use; we
+   * serve it from our own assets so the preview works offline and does not
+   * depend on a third-party host.
+   *
+   * A failure here is not fatal: HoleService draws those obsts solid instead.
+   */
+  private async initializeCsg2(): Promise<void> {
+    if (BABYLON.IsCSG2Ready()) {
+      return;
+    }
+
+    try {
+      await BABYLON.InitializeCSG2Async({ manifoldUrl: this.resolveAssetPath('assets/manifold') });
+      if (isDevMode()) console.info('[BabylonService] CSG2 backend ready');
+    } catch (e) {
+      console.error('[BabylonService] Manifold failed to load - obst openings will not be cut', e);
+    }
   }
 
   public animate(): void {
