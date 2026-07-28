@@ -142,6 +142,27 @@ export class Xb {
         //this.calcArea();
     }
 
+    /**
+     * Whether this box stands anywhere at all.
+     *
+     * A CAD import can hand over an element that never got geometry: an empty
+     * bounding box comes back inverted, its minimum above its maximum, both at
+     * the 1e20 FDS writes for a coordinate it was never given. FDS ignores such
+     * an element and the preview refuses to measure the scene by it, so the only
+     * way the user can find it is if the editor says so.
+     *
+     * A zero-thickness box is not one of these - that is a thin obstruction, and
+     * a perfectly ordinary thing to draw.
+     */
+    public get hasGeometry(): boolean {
+        const values = [this.x1, this.x2, this.y1, this.y2, this.z1, this.z2];
+
+        // A fire model reaches nowhere near a thousand kilometres
+        if (values.some(value => !isFinite(value) || Math.abs(value) > 1e6)) { return false; }
+
+        return this.x2 >= this.x1 && this.y2 >= this.y1 && this.z2 >= this.z1;
+    }
+
     toJSON(): object {
         let xb: object = {
             x1: this.x1,
