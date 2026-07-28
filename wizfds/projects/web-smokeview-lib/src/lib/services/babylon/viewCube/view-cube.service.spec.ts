@@ -3,9 +3,11 @@ import * as BABYLON from 'babylonjs';
 
 import { ViewCubeService } from './view-cube.service';
 import { BabylonService } from '../babylon.service';
+import { SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 
 describe('ViewCubeService', () => {
   let service: ViewCubeService;
+  let bounds: SceneBoundsService;
   let engine: BABYLON.NullEngine;
   let scene: BABYLON.Scene;
   let camera: BABYLON.ArcRotateCamera;
@@ -21,11 +23,13 @@ describe('ViewCubeService', () => {
         useValue: {
           scene: scene,
           camera: camera,
+          engine: engine,
           canvas: document.createElement('canvas')
         }
       }]
     });
     service = TestBed.inject(ViewCubeService);
+    bounds = TestBed.inject(SceneBoundsService);
   });
 
   afterEach(() => {
@@ -35,6 +39,24 @@ describe('ViewCubeService', () => {
 
   it('should be created', () => {
     expect(service).toBeTruthy();
+  });
+
+  describe('flying the camera to a side', () => {
+    it('stands it back far enough to see the model, and no further', () => {
+      // Read off the measured model, not off the obst mesh's bounding sphere: an
+      // element parked at the FDS sentinel is drawn but deliberately not measured
+      // (ADR-0002), and that sphere is 1e20 metres across. Reading it sent the
+      // camera to the far radius limit and the model became a dot.
+      bounds.setFrom([
+        { x1: -39.9, x2: 27.6, y1: -25.5, y2: 10.8, z1: -4.2, z2: 6.9 },
+        { x1: -1e20, x2: 1e20, y1: -1e20, y2: 1e20, z1: -1e20, z2: 1e20 }
+      ]);
+
+      const radius = service.getRadius();
+
+      expect(radius).toBeGreaterThan(bounds.boundingRadius);
+      expect(radius).toBeLessThan(1000);
+    });
   });
 
   describe('keeping the cube out of the model, and the model out of the cube', () => {
@@ -61,6 +83,25 @@ describe('ViewCubeService', () => {
 
       const strays = scene.meshes.filter(mesh => (mesh.layerMask & camera.layerMask) !== 0);
       expect(strays.map(mesh => mesh.name)).toEqual([]);
+    });
+
+    it('picks only the cube, never geometry on another layer', () => {
+      // scene.pick() does not honour layer masks the way rendering does, so the
+      // cube's own pick has to say so. In the running app an obst at the FDS
+      // sentinel - a box surrounding the cube's camera on every side - answered
+      // first for most of the cube's corner of the screen, and clicking a face
+      // did nothing at all.
+      service.init();
+      BABYLON.MeshBuilder.CreateBox('sentinelObst', { size: 1e20 }, scene);
+      scene.pointerX = engine.getRenderWidth() * 0.95;
+      scene.pointerY = engine.getRenderHeight() * 0.1;
+
+      const picked = service.pickSide();
+
+      expect(picked).withContext('a face or corner of the cube').toBeTruthy();
+      expect(scene.getMeshByName(picked).layerMask & camera.layerMask)
+        .withContext(`${picked} must be part of the cube, not of the model`)
+        .toBe(0);
     });
 
     it('leaves the model to the main camera alone', () => {

@@ -130,6 +130,62 @@ describe('SceneBoundsService', () => {
     });
   });
 
+  describe('coordinates a scenario has no business holding', () => {
+    // FDS writes 1e20 for a coordinate that was never given one, and a scenario
+    // imported from CAD can carry an element that kept it. Measuring that element
+    // makes the model twenty orders of magnitude too big: the camera's near plane
+    // lands past everything real, and the scene goes black but for the sentinel
+    // box itself - drawn red by the clipping back cap.
+
+    /** A ~68 x 36 x 11 m building, as an actual scenario measures. */
+    const BUILDING = { x1: -39.9, x2: 27.6, y1: -25.5, y2: 10.8, z1: -4.2, z2: 6.9 };
+
+    /** An element that was never given coordinates. */
+    const UNSET = { x1: -1e20, x2: 1e20, y1: -1e20, y2: 1e20, z1: -1e20, z2: 1e20 };
+
+    it('measures the model past an element parked at the sentinel', () => {
+      service.setFrom([BUILDING, UNSET]);
+
+      expect(service.extent).toBeLessThan(1000);
+      expect(service.box).toEqual(BUILDING);
+    });
+
+    it('measures it past a box carrying NaN or Infinity', () => {
+      service.setFrom([
+        BUILDING,
+        { x1: NaN, x2: NaN, y1: 0, y2: 1, z1: 0, z2: 1 },
+        { x1: 0, x2: Infinity, y1: 0, y2: 1, z1: 0, z2: 1 }
+      ]);
+
+      expect(service.box).toEqual(BUILDING);
+    });
+
+    it('keeps a model that is merely large', () => {
+      // A four-hundred-metre tunnel is a real scenario, not a broken one.
+      service.setFrom([{ x1: 0, x2: 400, y1: -20, y2: 20, z1: 0, z2: 8 }]);
+
+      expect(service.extent).toBe(400);
+    });
+
+    it('stands on the default box when every element is nonsense', () => {
+      service.setFrom([UNSET]);
+
+      expect(service.extent).toBeLessThan(1000);
+      expect(service.extent).toBeGreaterThan(0);
+    });
+
+    it('measures a vertex buffer past the same nonsense', () => {
+      service.setFromPositions([
+        -39.9, -25.5, -4.2,
+        27.6, 10.8, 6.9,
+        1e20, 1e20, 1e20
+      ]);
+
+      expect(service.extent).toBeLessThan(1000);
+      expect(service.box.x2).toBe(27.6);
+    });
+  });
+
   describe('measuring a raw vertex buffer', () => {
     // The standalone viewer reads geometry straight out of a Smokeview export
     // and has no scenario to hand over - see ADR-0004.
@@ -187,12 +243,22 @@ describe('SceneBoundsService', () => {
       // A four-hundred-metre tunnel and a five-metre room both get a slider that
       // is worth dragging - a fixed step would be useless at one end or the other.
       service.setFrom([{ x1: 0, x2: 400, y1: 0, y2: 100, z1: 0, z2: 30 }]);
-      const coarse = service.clipStep;
+      const coarse = service.clipStep('x');
 
       service.setFrom([{ x1: 0, x2: 5, y1: 0, y2: 4, z1: 0, z2: 3 }]);
 
-      expect(coarse).toBeGreaterThan(service.clipStep);
-      expect(service.clipStep).toBeGreaterThan(0);
+      expect(coarse).toBeGreaterThan(service.clipStep('x'));
+      expect(service.clipStep('x')).toBeGreaterThan(0);
+    });
+
+    it('lands a whole number of steps on the far end of the travel', () => {
+      // A range input only stops on multiples of its step, so a travel that is
+      // not a whole number of them comes up short of its own maximum - the knob
+      // sits just below the top while the readout claims it is there.
+      (['x', 'y', 'z'] as const).forEach(axis => {
+        const steps = (service.clipMax(axis) - service.clipMin(axis)) / service.clipStep(axis);
+        expect(steps).withContext(`${axis} travel in whole steps`).toBeCloseTo(Math.round(steps), 6);
+      });
     });
   });
 

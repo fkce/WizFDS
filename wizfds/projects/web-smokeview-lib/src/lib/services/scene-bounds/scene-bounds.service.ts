@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, isDevMode } from '@angular/core';
 import { SceneInput, SceneXb } from '../drawing/scene-input';
 import { jetfanDrawnBox } from '../drawing/jetfan/jetfan-box';
 import { SceneLifecycleService, SceneScoped } from '../babylon/scene-lifecycle.service';
@@ -38,6 +38,21 @@ const CLIP_MARGIN_RATIO = 0.1;
 
 /** How many positions a clip slider offers across its whole travel. */
 const CLIP_SLIDER_STEPS = 1000;
+
+/**
+ * The largest coordinate the scene is measured against, in metres.
+ *
+ * FDS writes 1e20 for a coordinate that was never given one, and a scenario
+ * imported from CAD can carry an element that kept it. Measured, that element
+ * sets the scale of everything: the camera's near plane lands past the whole
+ * model and the scene goes black but for the sentinel box itself. Such an
+ * element is still drawn - it is the user's, and seeing it is how they find it -
+ * it just does not get to say how big the scene is.
+ *
+ * A thousand kilometres is fourteen orders of magnitude clear of the sentinel
+ * and further than any fire model reaches.
+ */
+const MEASURABLE_LIMIT = 1e6;
 
 /**
  * The box the scene occupies, in FDS metres, and everything sized against it.
@@ -82,6 +97,16 @@ export class SceneBoundsService implements SceneScoped {
     return longest > 0 ? longest : 1;
   }
 
+  /**
+   * Radius of the sphere that contains the whole model, in metres - what a
+   * camera has to fit in view to show all of it.
+   */
+  public get boundingRadius(): number {
+    const box = this.current;
+    const dx = box.x2 - box.x1, dy = box.y2 - box.y1, dz = box.z2 - box.z1;
+    return Math.sqrt(dx * dx + dy * dy + dz * dz) / 2;
+  }
+
   /** The middle of the box - where the camera looks. */
   public get center(): ScenePoint {
     const box = this.current;
@@ -118,9 +143,15 @@ export class SceneBoundsService implements SceneScoped {
     return this.maxOn(axis) + CLIP_MARGIN_RATIO * this.extent;
   }
 
-  /** How finely a clip slider moves, in metres. */
-  public get clipStep(): number {
-    return this.extent / CLIP_SLIDER_STEPS;
+  /**
+   * How finely a clip slider moves, in metres.
+   *
+   * A whole number of steps across the travel, so that the far end is a position
+   * the slider can actually reach - a range input only stops on multiples of its
+   * step, and would otherwise come up short of its own maximum.
+   */
+  public clipStep(axis: SceneAxis): number {
+    return (this.clipMax(axis) - this.clipMin(axis)) / CLIP_SLIDER_STEPS;
   }
 
   /**
@@ -160,17 +191,24 @@ export class SceneBoundsService implements SceneScoped {
   /**
    * Measure the scene from a set of boxes, in metres.
    *
-   * An empty list leaves the bounds alone: a scenario with nothing in it is
-   * still drawn somewhere, and collapsing the scene onto a point would take
-   * the camera and the clip sliders with it.
+   * Nothing measurable leaves the bounds alone: a scenario with nothing in it is
+   * still drawn somewhere, and collapsing the scene onto a point - or blowing it
+   * up to the sentinel - would take the camera and the clip sliders with it.
    */
   public setFrom(boxes: readonly SceneXb[]): void {
-    if (!boxes || boxes.length === 0) { return; }
+    const measurable = (boxes || []).filter(xb => this.isMeasurable(xb));
+    if (measurable.length === 0) { return; }
 
-    let xMin = boxes[0].x1, yMin = boxes[0].y1, zMin = boxes[0].z1;
-    let xMax = boxes[0].x2, yMax = boxes[0].y2, zMax = boxes[0].z2;
+    if (isDevMode() && measurable.length < boxes.length) {
+      console.warn('[SceneBoundsService] Ignoring ' + (boxes.length - measurable.length) +
+        ' element(s) whose coordinates are past ' + MEASURABLE_LIMIT +
+        ' m when measuring the scene - they are still drawn.');
+    }
 
-    boxes.forEach((xb: SceneXb) => {
+    let xMin = measurable[0].x1, yMin = measurable[0].y1, zMin = measurable[0].z1;
+    let xMax = measurable[0].x2, yMax = measurable[0].y2, zMax = measurable[0].z2;
+
+    measurable.forEach((xb: SceneXb) => {
       xMin = Math.min(xMin, xb.x1, xb.x2);
       xMax = Math.max(xMax, xb.x1, xb.x2);
       yMin = Math.min(yMin, xb.y1, xb.y2);
@@ -183,6 +221,22 @@ export class SceneBoundsService implements SceneScoped {
   }
 
   /**
+   * Whether a box says anything usable about how big the scene is.
+   *
+   * See MEASURABLE_LIMIT: an element that was never given coordinates carries
+   * the FDS sentinel, and one of those decides the scale of everything else.
+   */
+  private isMeasurable(xb: SceneXb): boolean {
+    if (!xb) { return false; }
+    return [xb.x1, xb.x2, xb.y1, xb.y2, xb.z1, xb.z2]
+      .every(value => this.isMeasurableCoordinate(value));
+  }
+
+  private isMeasurableCoordinate(value: number): boolean {
+    return Number.isFinite(value) && Math.abs(value) <= MEASURABLE_LIMIT;
+  }
+
+  /**
    * Measure the scene from a flat position buffer, as the standalone viewer
    * hands it over - it reads geometry out of a Smokeview export and has no
    * scenario to measure (ADR-0004).
@@ -192,19 +246,26 @@ export class SceneBoundsService implements SceneScoped {
    * object apiece is a lot of garbage for a bounding box.
    */
   public setFromPositions(positions: readonly number[]): void {
-    if (!positions || positions.length < 3) { return; }
+    if (!positions) { return; }
 
-    let xMin = positions[0], yMin = positions[1], zMin = positions[2];
-    let xMax = xMin, yMax = yMin, zMax = zMin;
+    let xMin = Infinity, yMin = Infinity, zMin = Infinity;
+    let xMax = -Infinity, yMax = -Infinity, zMax = -Infinity;
+    let measured = false;
 
-    for (let i = 3; i + 2 < positions.length; i += 3) {
-      xMin = Math.min(xMin, positions[i]);
-      xMax = Math.max(xMax, positions[i]);
-      yMin = Math.min(yMin, positions[i + 1]);
-      yMax = Math.max(yMax, positions[i + 1]);
-      zMin = Math.min(zMin, positions[i + 2]);
-      zMax = Math.max(zMax, positions[i + 2]);
+    for (let i = 0; i + 2 < positions.length; i += 3) {
+      const x = positions[i], y = positions[i + 1], z = positions[i + 2];
+      // Same sentinel, one vertex at a time - see MEASURABLE_LIMIT
+      if (!this.isMeasurableCoordinate(x) ||
+        !this.isMeasurableCoordinate(y) ||
+        !this.isMeasurableCoordinate(z)) { continue; }
+
+      xMin = Math.min(xMin, x); xMax = Math.max(xMax, x);
+      yMin = Math.min(yMin, y); yMax = Math.max(yMax, y);
+      zMin = Math.min(zMin, z); zMax = Math.max(zMax, z);
+      measured = true;
     }
+
+    if (!measured) { return; }
 
     this.current = { x1: xMin, x2: xMax, y1: yMin, y2: yMax, z1: zMin, z2: zMax };
   }

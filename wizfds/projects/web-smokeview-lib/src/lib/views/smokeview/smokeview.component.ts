@@ -34,8 +34,8 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!this.babylonService.scene) return;
 
     // Control camera
-    let pickInfoViewCube = this.babylonService.scene.pick(this.babylonService.scene.pointerX, this.babylonService.scene.pointerY, null, null, this.viewCubeService.cameraViewCube);
-    if (pickInfoViewCube.hit) { this.viewCubeService.zoomToSide(pickInfoViewCube.pickedMesh.name); }
+    const side = this.viewCubeService.pickSide();
+    if (side) { this.viewCubeService.zoomToSide(side); }
 
     // Select obst
     if (event.ctrlKey) {
@@ -96,7 +96,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   public clipMin(axis: SceneAxis): number { return this.sceneBounds.clipMin(axis); }
   public clipMax(axis: SceneAxis): number { return this.sceneBounds.clipMax(axis); }
-  public get clipStep(): number { return this.sceneBounds.clipStep; }
+  public clipStep(axis: SceneAxis): number { return this.sceneBounds.clipStep(axis); }
 
   /** Where a clipping plane currently cuts, in metres. */
   public clipPlane(axis: SceneAxis): number {

@@ -48,11 +48,11 @@
 
     <div class="clip">
         <p>x:&nbsp;<input type="range" [ngModel]="clipPlane('x')" (ngModelChange)="setClip('x', $event)"
-                [min]="clipMin('x')" [max]="clipMax('x')" [step]="clipStep" />&nbsp;{{clipLabel('x')}}</p>
+                [min]="clipMin('x')" [max]="clipMax('x')" [step]="clipStep('x')" />&nbsp;{{clipLabel('x')}}</p>
         <p>y:&nbsp;<input type="range" [ngModel]="clipPlane('y')" (ngModelChange)="setClip('y', $event)"
-                [min]="clipMin('y')" [max]="clipMax('y')" [step]="clipStep" />&nbsp;{{clipLabel('y')}}</p>
+                [min]="clipMin('y')" [max]="clipMax('y')" [step]="clipStep('y')" />&nbsp;{{clipLabel('y')}}</p>
         <p>z:&nbsp;<input type="range" [ngModel]="clipPlane('z')" (ngModelChange)="setClip('z', $event)"
-                [min]="clipMin('z')" [max]="clipMax('z')" [step]="clipStep" />&nbsp;{{clipLabel('z')}}</p>
+                [min]="clipMin('z')" [max]="clipMax('z')" [step]="clipStep('z')" />&nbsp;{{clipLabel('z')}}</p>
     </div>
     <div class="player" *ngIf="playerService.frameNo > 0">
         <div class="time">Frame: {{playerService.frameCur}}</div>
