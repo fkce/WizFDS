@@ -50,7 +50,28 @@ Powyżej napisano, że hybryda otwiera drogę do `snapshotRendering` i `scene.pe
 | `ScenePerformancePriority.Aggressive` | **psuje**. Po zmianie `thinInstanceCount` pula przestaje być rysowana w ogóle — zostają same krawędzie — a `scene.resetDrawCache()` tego nie cofa. |
 | `engine.snapshotRendering` (tryb STANDARD) | **psuje**. Ten sam objaw po tym samym wyzwalaczu, a `snapshotRenderingReset()` go nie naprawia. Dodatkowo `reset()` to w Babylonie `enabled = false; enabled = true`, więc nie da się go użyć nawet jako bezpiecznego no-opa na silniku, który nigdy nie włączył snapshotów. |
 
-Zmiany uniformów (suwaki przycinania, kamera) przechodzą przez snapshot poprawnie — pęka wyłącznie zmiana strukturalna puli. Ponieważ promocja i degradacja obiektu (rdzeń tej decyzji) jest właśnie taką zmianą, włączone zostaje wyłącznie `Intermediate`. Do tematu można wrócić, gdy Babylon to naprawi.
+Zmiany uniformów (suwaki przycinania, kamera) przechodzą przez snapshot poprawnie — pęka wyłącznie zmiana strukturalna puli. Ponieważ promocja i degradacja obiektu (rdzeń tej decyzji) jest właśnie taką zmianą, włączone zostaje wyłącznie `Intermediate`.
+
+### Ile te mechanizmy w ogóle mogłyby dać
+
+Zmierzone na GPU tą samą bryłą bazową, tymi samymi shaderami i tą samą konstrukcją instancji co `BoxInstancePool`. Cała siatka w kadrze — nic nie jest odsiewane, każda instancja rasteryzowana w każdej klatce, kamera w ruchu:
+
+| OBST-ów | trójkątów | klatka (mediana) | CPU w `scene.render()` | meshy w scenie |
+|---:|---:|---:|---:|---:|
+| 10 000 | 240 tys. | 8,4 ms | 0,6 ms | 2 |
+| 50 000 | 1,2 mln | 8,4 ms | 0,5 ms | 2 |
+| 100 000 | 2,4 mln | 8,4 ms | 0,4 ms | 2 |
+| 400 000 | 9,6 mln | 8,3 ms | 0,4 ms | 2 |
+
+8,3 ms to sufit odświeżania monitora (120 Hz) — przy czterdziestokrotności skali z Definition of Done scena nadal go trzyma, a progu nie znaleziono. Wyłączenie krawędzi i back capa przy 200 000 nie zmienia mediany; wcześniejsze przypuszczenie, że krawędzie będą wąskim gardłem, okazało się błędne.
+
+Kolumna CPU jest tu jedyną istotną, bo **`snapshotRendering` i `Aggressive` skracają wyłącznie ją** — składanie bufora poleceń, sortowanie, bindowanie stanu. Wynosi 0,4–0,6 ms przy każdej wielkości, w budżecie 8,3 ms. Gdyby oba działały i wycięły ją do zera, zysk to około 6% klatki.
+
+Powód jest ten sam, dla którego podjęto tę decyzję: oba mechanizmy skalują się z **liczbą meshy**, a ta wynosi dwa niezależnie od tego, czy rysowany jest tysiąc czy czterysta tysięcy prostopadłościanów. Thin instances zlikwidowały to, co te ustawienia optymalizują — miałyby sens przy projekcie „osobny `Mesh` na każdy obiekt", który ta ADR odrzuca.
+
+**Wniosek: `snapshotRendering` i `Aggressive` zostają wyłączone na stałe** — nie dlatego, że są zepsute (choć są), lecz dlatego, że przy tej reprezentacji ich zysk jest nieodróżnialny od zera. Nie ma po co do nich wracać, dopóki liczba meshy w scenie pozostaje stała.
+
+*Zastrzeżenie: vsync ukrywa zapas — powyższe nie mówi, ile z tych 8,3 ms zużywa GPU. Dla tej decyzji nie ma to znaczenia, bo czas CPU zmierzono bezpośrednio.*
 
 ### Które elementy trafiły do puli
 
