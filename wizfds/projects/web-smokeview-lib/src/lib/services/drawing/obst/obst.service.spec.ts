@@ -387,7 +387,6 @@ describe('ObstService', () => {
       service.obsts = [makeObst('W1', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 })];
       service.holes = [];
       service.renderObsts();
-      service.pickedObst = makeObst('W1', { x1: 0, x2: 1, y1: 0, y2: 1, z1: 0, z2: 1 });
 
       expect(service.opaqueMesh).withContext('precondition: a pool was built').toBeTruthy();
 
@@ -396,8 +395,6 @@ describe('ObstService', () => {
       expect(service.opaqueMesh).toBeUndefined();
       expect(service.transparentMesh).toBeUndefined();
       expect(service.jsonMesh).toBeNull();
-      expect(service.pickedObst).toBeUndefined();
-      expect(service.pickedObsts).toEqual([]);
       expect(service.vertices.length).toBe(0);
       expect(service.indices.length).toBe(0);
       expect(service.positions.length).toBe(0);
@@ -429,21 +426,10 @@ describe('ObstService', () => {
       expect(() => service.toggleEdgesRendering()).not.toThrow();
     });
 
-    it('clears a selection that was never made without throwing', () => {
-      expect(() => service.clearSelection()).not.toThrow();
-    });
-
     it('moves a clip slider without throwing', () => {
       expect(() => service.clip(50, 'x')).not.toThrow();
       expect(() => service.clip(50, 'y')).not.toThrow();
       expect(() => service.clip(50, 'z')).not.toThrow();
-    });
-
-    it('picks against a scene that has not been drawn yet without throwing', () => {
-      const ray = new BABYLON.Ray(BABYLON.Vector3.Zero(), new BABYLON.Vector3(1, 0, 0), 10);
-
-      expect(() => service.selectObst(ray)).not.toThrow();
-      expect(() => service.hoverObst(ray)).not.toThrow();
     });
   });
 

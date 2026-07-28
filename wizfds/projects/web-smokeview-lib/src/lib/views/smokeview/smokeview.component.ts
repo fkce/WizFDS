@@ -2,6 +2,7 @@ import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, Hos
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { ObstService } from '../../services/drawing/obst/obst.service';
+import { ObstSelectionService } from '../../services/drawing/obst/obst-selection.service';
 import { BabylonService } from '../../services/babylon/babylon.service';
 import { SliceService } from '../../services/drawing/slice/slice.service';
 import { PlayerService } from '../../services/player/player.service';
@@ -40,7 +41,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     // Select obst. Holding shift as well adds to the selection instead of
     // replacing it, so several obsts can be picked out in turn.
     if (event.ctrlKey) {
-      this.obstService.selectObst(this.pickingRay(), { add: event.shiftKey });
+      this.obstSelection.selectObst(this.pickingRay(), { add: event.shiftKey });
     }
   }
 
@@ -58,7 +59,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (!event.ctrlKey) {
       this.hoverQueued = false;
-      this.obstService.clearHover();
+      this.obstSelection.clearHover();
       return;
     }
 
@@ -69,7 +70,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
       this.hoverQueued = false;
       // The pointer can have left, or the view been torn down, since the move
       if (this.destroyed || !this.babylonService.scene) { return; }
-      this.obstService.hoverObst(this.pickingRay());
+      this.obstSelection.hoverObst(this.pickingRay());
     });
   }
 
@@ -105,6 +106,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
 
   constructor(
     public obstService: ObstService,
+    public obstSelection: ObstSelectionService,
     public meshService: MeshService,
     public openService: OpenService,
     public ventService: VentService,

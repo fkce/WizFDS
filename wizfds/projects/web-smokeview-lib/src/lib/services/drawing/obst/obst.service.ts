@@ -10,6 +10,7 @@ import { SceneRegistryService } from '../../babylon/scene-registry.service';
 import { SceneAxis, SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 import { PooledBox, isTranslucent } from '../box-instance-pool';
 import { BoxPoolPair } from '../box-pool-pair';
+import { ObstScene, ObstSelectionService } from './obst-selection.service';
 import { SOLID_EDGE_COLOR } from '../../../consts/drawing';
 
 /**
@@ -58,20 +59,10 @@ const HOVERED_COLOR = new BABYLON.Color4(0.55, 0.72, 1, 1);
 @Injectable({
   providedIn: 'root'
 })
-export class ObstService implements SceneScoped {
+export class ObstService implements SceneScoped, ObstScene {
 
   obsts: readonly SceneObst[] = [];
   holes: readonly SceneHole[] = [];
-
-  /**
-   * The obsts under the current selection, as the app described them.
-   * `pickedObst` is the last of them - what the pick panel shows.
-   */
-  pickedObsts: SceneObst[] = [];
-  pickedObst: SceneObst;
-
-  /** The obst under the pointer, if the pointer is over one. */
-  hoveredObst: SceneObst;
 
   /**
    * The buffers of the raw-geometry path - see renderJson().
@@ -96,12 +87,6 @@ export class ObstService implements SceneScoped {
 
   /** Obsts that could not be instanced, by uuid. */
   private readonly ownMeshes = new Map<string, OwnMesh>();
-
-  /** The highlight boxes drawn over the selection, and the one over the hover. */
-  private readonly selectionMeshes = new Map<string, BABYLON.Mesh>();
-  private hoverMesh: BABYLON.Mesh;
-  private selectionMaterial: BABYLON.StandardMaterial;
-  private hoverMaterial: BABYLON.StandardMaterial;
 
   /**
    * The six shader materials, built once for the scene rather than once per
@@ -143,9 +128,14 @@ export class ObstService implements SceneScoped {
     private holeService: HoleService,
     private sceneBounds: SceneBoundsService,
     private sceneRegistry: SceneRegistryService,
+    private selection: ObstSelectionService,
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
+    // The selection asks this service where the obsts are; injecting it the
+    // other way round would be a cycle, and this is the side that knows a
+    // re-render has to drop whatever was chosen.
+    this.selection.bind(this);
     this.resetClipping();
   }
 
@@ -163,6 +153,16 @@ export class ObstService implements SceneScoped {
   public ownMeshFor(uuid: string): BABYLON.Mesh | undefined {
     const own = this.ownMeshes.get(uuid);
     return own ? own.solid : undefined;
+  }
+
+  /**
+   * The obst behind a uuid, as the app described it - one of the four questions
+   * a selection asks (see ObstScene). Only obsts of the last render are known:
+   * a pick can only land on something that was drawn.
+   */
+  public obstFor(uuid: string): SceneObst | undefined {
+    const placed = find(this.placed, (candidate: PlacedObst) => candidate.obst.uuid === uuid);
+    return placed ? placed.obst : undefined;
   }
 
   /**
@@ -204,7 +204,7 @@ export class ObstService implements SceneScoped {
    * a pick agree with what is on screen rather than reach into geometry the user
    * has clipped away.
    */
-  private isVisible(point: BABYLON.Vector3): boolean {
+  public isVisible(point: BABYLON.Vector3): boolean {
     return point.x > this.clipX && point.y > this.clipY && point.z < this.clipZ;
   }
 
@@ -217,20 +217,12 @@ export class ObstService implements SceneScoped {
     this.pool = null;
     this.opaqueCap = null;
     this.ownMeshes.clear();
-    this.selectionMeshes.clear();
-    this.hoverMesh = undefined;
-    this.selectionMaterial = undefined;
-    this.hoverMaterial = undefined;
 
     this.jsonMesh = null;
     this.jsonBackCapMesh = null;
 
     this.materials = {};
     this.materialsPending = null;
-
-    this.pickedObst = undefined;
-    this.pickedObsts = [];
-    this.hoveredObst = undefined;
 
     this.vertices.length = 0;
     this.normals.length = 0;
@@ -301,8 +293,8 @@ export class ObstService implements SceneScoped {
     // A selection made against the previous scenario names obsts that may no
     // longer be there, and holds meshes promoted out of a pool that is about to
     // be rebuilt.
-    this.clearSelection();
-    this.clearHover();
+    this.selection.clearSelection();
+    this.selection.clearHover();
 
     this.placed = this.placeObsts();
     this.ensurePools();
@@ -671,7 +663,7 @@ export class ObstService implements SceneScoped {
   }
 
   /** Every mesh currently drawing obst geometry the user can see and pick. */
-  private solidMeshes(): BABYLON.Mesh[] {
+  public pickableMeshes(): BABYLON.Mesh[] {
     const meshes: BABYLON.Mesh[] = [];
     if (this.pool) { meshes.push(...this.pool.meshes); }
     if (this.jsonMesh) { meshes.push(this.jsonMesh); }
@@ -700,7 +692,7 @@ export class ObstService implements SceneScoped {
   }
 
   private applyEdgesToAll(): void {
-    this.solidMeshes().forEach(mesh => this.applyEdges(mesh, this.sceneBounds.edgeWidth));
+    this.pickableMeshes().forEach(mesh => this.applyEdges(mesh, this.sceneBounds.edgeWidth));
   }
 
   private applyEdges(mesh: BABYLON.Mesh, width: number): void {
@@ -714,165 +706,4 @@ export class ObstService implements SceneScoped {
     }
   }
 
-  // ==========================================
-  // Picking
-  // ==========================================
-
-  /**
-   * Select the obst a ray reaches, through Babylon's own picking.
-   *
-   * What this replaces walked `this.indices` in JS, testing every triangle in
-   * the scene against the ray - which saw the opaque buffer only, so a glazed
-   * obst could not be clicked, and cost a pass over the whole model per click.
-   *
-   * @param ray a picking ray, in scene coordinates
-   * @param options `add` extends the selection instead of replacing it
-   */
-  public selectObst(ray: BABYLON.Ray, options: { add?: boolean } = {}): void {
-    const uuid = this.pickUuid(ray);
-
-    if (!uuid) {
-      if (!options.add) { this.clearSelection(); }
-      return;
-    }
-
-    if (options.add && this.selectionMeshes.has(uuid)) {
-      this.deselect(uuid);
-      return;
-    }
-
-    if (!options.add) { this.clearSelection(); }
-    this.select(uuid);
-  }
-
-  /**
-   * Mark the obst a ray reaches as hovered.
-   *
-   * Hovering does not single the obst out: the pointer crosses hundreds of them
-   * on the way anywhere, and promoting each in turn would be pure churn.
-   */
-  public hoverObst(ray: BABYLON.Ray): void {
-    const uuid = this.pickUuid(ray);
-    if (uuid && this.hoveredObst && this.hoveredObst.uuid === uuid) { return; }
-
-    this.clearHover();
-    if (!uuid) { return; }
-
-    const placed = find(this.placed, (candidate: PlacedObst) => candidate.obst.uuid === uuid);
-    if (!placed) { return; }
-
-    this.hoveredObst = placed.obst;
-    this.hoverMesh = this.outlineBox(placed.obst.xb, `hoveredObst`, HOVERED_COLOR, 0.15);
-  }
-
-  /** Which obst a ray reaches first, among the ones actually on screen. */
-  private pickUuid(ray: BABYLON.Ray): string | undefined {
-    const scene = this.babylonService.scene;
-    if (!scene) { return undefined; }
-
-    const drawn = new Set<BABYLON.AbstractMesh>(this.solidMeshes());
-    const hits = scene.multiPickWithRay(ray, (mesh) => drawn.has(mesh));
-    if (!hits || hits.length === 0) { return undefined; }
-
-    // Nearest first, and nothing the clipping planes have taken off the screen:
-    // a click has to land on what the user can see.
-    const visible = hits
-      .filter(hit => hit.pickedPoint && this.isVisible(hit.pickedPoint))
-      .sort((a, b) => a.distance - b.distance);
-
-    for (const hit of visible) {
-      const uuid = this.sceneRegistry.uuidForPick(
-        hit.pickedMesh, hit.faceId, hit.thinInstanceIndex ?? -1);
-      if (uuid) { return uuid; }
-    }
-    return undefined;
-  }
-
-  /** Add one obst to the selection, singling it out of its pool. */
-  private select(uuid: string): void {
-    const placed = find(this.placed, (candidate: PlacedObst) => candidate.obst.uuid === uuid);
-    if (!placed) { return; }
-
-    // A selected obst is next in line to be edited, so it leaves the pool
-    this.promote(uuid);
-
-    this.pickedObsts.push(placed.obst);
-    this.pickedObst = placed.obst;
-    this.selectionMeshes.set(
-      uuid, this.outlineBox(placed.obst.xb, `pickedObst_${uuid}`, SELECTED_COLOR, 0.4));
-  }
-
-  /** Take one obst back out of the selection. */
-  private deselect(uuid: string): void {
-    const mesh = this.selectionMeshes.get(uuid);
-    if (mesh) { mesh.dispose(); }
-    this.selectionMeshes.delete(uuid);
-
-    this.demote(uuid);
-
-    this.pickedObsts = this.pickedObsts.filter(obst => obst.uuid !== uuid);
-    this.pickedObst = this.pickedObsts[this.pickedObsts.length - 1];
-  }
-
-  /**
-   * Drop the current selection. Called when a pick misses, which can happen
-   * before anything was ever selected.
-   */
-  public clearSelection(): void {
-    Array.from(this.selectionMeshes.keys()).forEach(uuid => this.deselect(uuid));
-    this.pickedObsts = [];
-    this.pickedObst = undefined;
-  }
-
-  /** Drop the hover highlight - the pointer left the canvas, or ctrl came up. */
-  public clearHover(): void {
-    if (this.hoverMesh) {
-      this.hoverMesh.dispose();
-      this.hoverMesh = undefined;
-    }
-    this.hoveredObst = undefined;
-  }
-
-  /**
-   * A translucent box drawn over an obst, outlined so it reads through whatever
-   * is in front of it.
-   */
-  private outlineBox(
-    xb: SceneXb, name: string, color: BABYLON.Color4, alpha: number
-  ): BABYLON.Mesh {
-    const mesh = BABYLON.MeshBuilder.CreateBox(name, {
-      width: xb.x2 - xb.x1, height: xb.y2 - xb.y1, depth: xb.z2 - xb.z1
-    }, this.babylonService.scene);
-
-    mesh.material = this.highlightMaterial(color === SELECTED_COLOR, alpha);
-    // It sits exactly on the obst it marks; picking it would shadow the obst
-    mesh.isPickable = false;
-    mesh.enableEdgesRendering();
-    mesh.edgesWidth = this.sceneBounds.outlineWidth;
-    mesh.edgesColor = color;
-    mesh.position = new BABYLON.Vector3(
-      (xb.x1 + xb.x2) / 2, (xb.y1 + xb.y2) / 2, (xb.z1 + xb.z2) / 2
-    );
-    return mesh;
-  }
-
-  /**
-   * The material every highlight box shares.
-   *
-   * One apiece is what left a StandardMaterial behind on every ctrl+click, and
-   * a multi-selection would have made that one per selected obst.
-   */
-  private highlightMaterial(selected: boolean, alpha: number): BABYLON.StandardMaterial {
-    const existing = selected ? this.selectionMaterial : this.hoverMaterial;
-    if (existing) { return existing; }
-
-    const material = new BABYLON.StandardMaterial(
-      selected ? 'pickedObstMaterial' : 'hoveredObstMaterial', this.babylonService.scene);
-    material.ambientColor = new BABYLON.Color3(1, 1, 1);
-    material.alpha = alpha;
-    material.zOffset = -0.05;
-
-    if (selected) { this.selectionMaterial = material; } else { this.hoverMaterial = material; }
-    return material;
-  }
 }

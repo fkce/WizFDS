@@ -4,6 +4,7 @@ import * as BABYLON from 'babylonjs';
 import { ObstService } from './obst.service';
 import { BabylonService } from '../../babylon/babylon.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
+import { ObstSelectionService } from './obst-selection.service';
 import { SceneColor, SceneHole, SceneObst, SceneXb } from '../scene-input';
 
 /**
@@ -40,6 +41,7 @@ function rayAlongX(from = -5): BABYLON.Ray {
 
 describe('ObstService - the hybrid representation', () => {
   let service: ObstService;
+  let selection: ObstSelectionService;
   let registry: SceneRegistryService;
   let engine: BABYLON.NullEngine;
   let scene: BABYLON.Scene;
@@ -66,6 +68,7 @@ describe('ObstService - the hybrid representation', () => {
       }]
     });
     service = TestBed.inject(ObstService);
+    selection = TestBed.inject(ObstSelectionService);
     registry = TestBed.inject(SceneRegistryService);
   });
 
@@ -146,126 +149,12 @@ describe('ObstService - the hybrid representation', () => {
     });
   });
 
-  describe('picking', () => {
-    it('selects the obst the ray reaches first', () => {
-      render([makeObst('W', WEST), makeObst('M', MIDDLE), makeObst('E', EAST)]);
 
-      service.selectObst(rayAlongX());
 
-      expect(service.pickedObst.id).toBe('W');
-    });
-
-    it('selects an obst behind one the clipping plane has hidden', () => {
-      // The shader keeps what is above the plane on x, so a plane at 2 m hides
-      // the west wall - and a click has to reach the wall behind it, not stop at
-      // geometry that is not on screen.
-      render([makeObst('W', WEST), makeObst('M', MIDDLE), makeObst('E', EAST)]);
-      service.clip(2, 'x');
-
-      service.selectObst(rayAlongX());
-
-      expect(service.pickedObst.id).toBe('M');
-    });
-
-    it('selects a transparent obst', () => {
-      // The manual raycast this replaces walked the opaque buffer only, so a
-      // glazed wall could not be clicked at all.
-      render([makeObst('GLASS', MIDDLE, GLAZED)]);
-
-      service.selectObst(rayAlongX());
-
-      expect(service.pickedObst.id).toBe('GLASS');
-    });
-
-    it('selects an obst with an opening', () => {
-      render(
-        [makeObst('DOOR', MIDDLE)],
-        [makeHole('H', { x1: 4.9, x2: 5.3, y1: 0, y2: 1, z1: 0, z2: 2.1 })]
-      );
-
-      // Aimed at y = 3, well clear of the doorway at y = 0..1
-      service.selectObst(rayAlongX());
-
-      expect(service.pickedObst.id).toBe('DOOR');
-    });
-
-    it('reaches through the doorway to the wall behind', () => {
-      render(
-        [makeObst('DOOR', MIDDLE), makeObst('E', EAST)],
-        [makeHole('H', { x1: 4.9, x2: 5.3, y1: 2, y2: 4, z1: 0, z2: 2.1 })]
-      );
-
-      // Straight through the opening: y = 3 and z = 1.5 are both inside it
-      service.selectObst(rayAlongX());
-
-      expect(service.pickedObst.id).toBe('E');
-    });
-
-    it('drops the selection when the ray hits nothing', () => {
-      render([makeObst('W', WEST)]);
-      service.selectObst(rayAlongX());
-
-      service.selectObst(new BABYLON.Ray(
-        new BABYLON.Vector3(-5, 3, 50), new BABYLON.Vector3(1, 0, 0), 100));
-
-      expect(service.pickedObst).toBeUndefined();
-    });
-  });
-
-  describe('hovering', () => {
-    it('names the obst under the pointer without selecting it', () => {
-      render([makeObst('W', WEST)]);
-
-      service.hoverObst(rayAlongX());
-
-      expect(service.hoveredObst.id).toBe('W');
-      expect(service.pickedObst).toBeUndefined();
-    });
-
-    it('forgets it once the pointer moves off', () => {
-      render([makeObst('W', WEST)]);
-      service.hoverObst(rayAlongX());
-
-      service.hoverObst(new BABYLON.Ray(
-        new BABYLON.Vector3(-5, 3, 50), new BABYLON.Vector3(1, 0, 0), 100));
-
-      expect(service.hoveredObst).toBeUndefined();
-    });
-  });
-
-  describe('selecting more than one', () => {
-    it('replaces the selection by default', () => {
-      render([makeObst('W', WEST), makeObst('E', EAST)]);
-      service.selectObst(rayAlongX());
-
-      service.selectObst(new BABYLON.Ray(
-        new BABYLON.Vector3(15, 3, 1.5), new BABYLON.Vector3(-1, 0, 0), 100));
-
-      expect(service.pickedObsts.map(obst => obst.id)).toEqual(['E']);
-    });
-
-    it('adds to it when asked to', () => {
-      render([makeObst('W', WEST), makeObst('E', EAST)]);
-      service.selectObst(rayAlongX());
-
-      service.selectObst(new BABYLON.Ray(
-        new BABYLON.Vector3(15, 3, 1.5), new BABYLON.Vector3(-1, 0, 0), 100), { add: true });
-
-      expect(service.pickedObsts.map(obst => obst.id).sort()).toEqual(['E', 'W']);
-    });
-
-    it('takes an obst back out when it is picked again', () => {
-      render([makeObst('W', WEST), makeObst('E', EAST)]);
-      service.selectObst(rayAlongX(), { add: true });
-
-      service.selectObst(rayAlongX(), { add: true });
-
-      expect(service.pickedObsts).toEqual([]);
-      expect(service.pickedObst).toBeUndefined();
-    });
-  });
 
   describe('promotion and demotion', () => {
+    // Driven through the selection, because being chosen is what promotes an
+    // obst - see ObstSelectionService.
     /** The box an obst is actually drawn as, whichever path it is on. */
     function drawnBounds(uuid: string): { min: BABYLON.Vector3, max: BABYLON.Vector3 } {
       const own = service.ownMeshFor(uuid);
@@ -286,7 +175,7 @@ describe('ObstService - the hybrid representation', () => {
       // thousand would rewrite the buffer of all the others (ADR-0006).
       render([makeObst('W', WEST), makeObst('E', EAST)]);
 
-      service.selectObst(rayAlongX());
+      selection.selectObst(rayAlongX());
 
       expect(service.ownMeshFor('W-uuid')).toBeTruthy();
       expect(service.opaqueMesh.thinInstanceCount)
@@ -298,7 +187,7 @@ describe('ObstService - the hybrid representation', () => {
       render([makeObst('W', WEST), makeObst('E', EAST)]);
       const before = drawnBounds('W-uuid');
 
-      service.selectObst(rayAlongX());
+      selection.selectObst(rayAlongX());
 
       const after = drawnBounds('W-uuid');
       ['x', 'y', 'z'].forEach(axis => {
@@ -311,7 +200,7 @@ describe('ObstService - the hybrid representation', () => {
       render([makeObst('W', WEST), makeObst('E', EAST), makeObst('M', MIDDLE)]);
       const before = drawnBounds('E-uuid');
 
-      service.selectObst(rayAlongX());
+      selection.selectObst(rayAlongX());
 
       const after = drawnBounds('E-uuid');
       expect(after.min.x).toBeCloseTo(before.min.x, 5);
@@ -320,18 +209,18 @@ describe('ObstService - the hybrid representation', () => {
 
     it('still answers a pick while the obst is promoted', () => {
       render([makeObst('W', WEST), makeObst('E', EAST)]);
-      service.selectObst(rayAlongX());
+      selection.selectObst(rayAlongX());
 
-      service.selectObst(rayAlongX());
+      selection.selectObst(rayAlongX());
 
-      expect(service.pickedObst.id).toBe('W');
+      expect(selection.pickedObst.id).toBe('W');
     });
 
     it('puts it back in the pool when the selection is dropped', () => {
       render([makeObst('W', WEST), makeObst('E', EAST)]);
-      service.selectObst(rayAlongX());
+      selection.selectObst(rayAlongX());
 
-      service.clearSelection();
+      selection.clearSelection();
 
       expect(service.ownMeshFor('W-uuid')).toBeUndefined();
       expect(service.opaqueMesh.thinInstanceCount).toBe(2);
@@ -345,7 +234,7 @@ describe('ObstService - the hybrid representation', () => {
       );
       const cut = service.ownMeshFor('DOOR-uuid');
 
-      service.selectObst(rayAlongX());
+      selection.selectObst(rayAlongX());
 
       expect(service.ownMeshFor('DOOR-uuid'))
         .withContext('an obst with an opening is already off the pool')
@@ -354,7 +243,7 @@ describe('ObstService - the hybrid representation', () => {
 
     it('does not leave a promoted obst behind when the scenario is drawn again', () => {
       render([makeObst('W', WEST), makeObst('E', EAST)]);
-      service.selectObst(rayAlongX());
+      selection.selectObst(rayAlongX());
 
       render([makeObst('W', WEST), makeObst('E', EAST)]);
 

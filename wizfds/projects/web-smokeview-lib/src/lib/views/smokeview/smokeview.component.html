@@ -16,12 +16,12 @@
     </div>
 
     <ng-container *ngIf="webGPUAvailable">
-    <div class="info" *ngIf="obstService.pickedObst">
+    <div class="info" *ngIf="obstSelection.pickedObst">
         <p>
-            id: {{ obstService.pickedObst.id }}<br>
-            surf_id: {{ obstService.pickedObst.surfId }}
-            <span *ngIf="obstService.pickedObsts.length > 1">
-                <br>and {{ obstService.pickedObsts.length - 1 }} more selected
+            id: {{ obstSelection.pickedObst.id }}<br>
+            surf_id: {{ obstSelection.pickedObst.surfId }}
+            <span *ngIf="obstSelection.pickedObsts.length > 1">
+                <br>and {{ obstSelection.pickedObsts.length - 1 }} more selected
             </span>
         </p>
     </div>
