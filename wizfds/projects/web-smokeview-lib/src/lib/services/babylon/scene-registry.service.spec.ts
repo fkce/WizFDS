@@ -135,6 +135,30 @@ describe('SceneRegistryService', () => {
     });
   });
 
+  describe('forgetting a whole mesh at once', () => {
+    it('drops every element drawn on it', () => {
+      // What a pool does when the scenario is drawn again. One call rather than
+      // one per box: forget() has to scan the mesh's list to find its entry, so
+      // ten thousand of them is a hundred million comparisons.
+      registry.register('obst-1', { mesh: mesh, instance: 0 });
+      registry.register('obst-2', { mesh: mesh, instance: 1 });
+      registry.register('vent-1', { mesh: otherMesh, faces: { first: 0, count: 2 } });
+
+      registry.forgetMesh(mesh);
+
+      expect(registry.entryFor('obst-1')).toBeUndefined();
+      expect(registry.entryFor('obst-2')).toBeUndefined();
+      expect(registry.uuidAtInstance(mesh, 0)).toBeUndefined();
+      expect(registry.entryFor('vent-1'))
+        .withContext('another mesh is none of its business')
+        .toBeTruthy();
+    });
+
+    it('is safe on a mesh nothing was ever drawn on', () => {
+      expect(() => registry.forgetMesh(otherMesh)).not.toThrow();
+    });
+  });
+
   describe('answering a pick', () => {
     // What a pick hands over is a mesh plus a face, and a thin instance index
     // that is -1 for anything not instanced. One question, both representations.
@@ -158,6 +182,17 @@ describe('SceneRegistryService', () => {
       registry.register('obst-cut', { mesh: otherMesh });
 
       expect(registry.uuidForPick(otherMesh, 40, -1)).toBe('obst-cut');
+    });
+
+    it('names nobody when a face lands on a mesh whose elements are instances', () => {
+      // Every instance draws the same twelve faces, so a face index cannot tell
+      // them apart. Answering with the first of them would select an obst the
+      // user never clicked on.
+      registry.register('obst-1', { mesh: mesh, instance: 0 });
+      registry.register('obst-2', { mesh: mesh, instance: 1 });
+
+      expect(registry.uuidAt(mesh, 5)).toBeUndefined();
+      expect(registry.uuidForPick(mesh, 5, -1)).toBeUndefined();
     });
   });
 

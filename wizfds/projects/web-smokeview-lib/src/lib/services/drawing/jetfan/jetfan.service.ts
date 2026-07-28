@@ -3,13 +3,14 @@ import * as BABYLON from 'babylonjs';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
 
-import { BabylonService } from '../../babylon/babylon.service';
+import { BabylonService, tryCreateShaderMaterial } from '../../babylon/babylon.service';
 import { HelpersService } from '../../helpers/helpers.service';
 import { DerivedVent, VentService } from '../vent/vent.service';
 import { SceneJetfan, SceneJetfanDirection, SceneXb } from '../scene-input';
 import { jetfanDrawnBox } from './jetfan-box';
 import { SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 import { BoxInstancePool, PooledBox } from '../box-instance-pool';
+import { SOLID_EDGE_COLOR } from '../../../consts/drawing';
 
 /**
  * A jetfan as the app gave it, paired with everything the library worked out
@@ -335,16 +336,9 @@ export class JetfanService implements SceneScoped {
     if (this.materialsPending) { return this.materialsPending; }
 
     const build = (name: string, shader: string, fragmentShader: string, alpha = false) =>
-      this.babylonService
-        .createShaderMaterial({
-          name: name, shader: shader, fragmentShader: fragmentShader, needAlphaBlending: alpha
-        })
-        .catch((e) => {
-          if (isDevMode()) {
-            try { console.error(`[JetfanService] Failed to create ${name}`, e); } catch { }
-          }
-          return null as BABYLON.ShaderMaterial;
-        });
+      tryCreateShaderMaterial(this.babylonService, {
+        name: name, shader: shader, fragmentShader: fragmentShader, needAlphaBlending: alpha
+      }, 'JetfanService');
 
     this.materialsPending = Promise.all([
       build('jetfanShader', 'obstInstanced', 'obst'),
@@ -400,7 +394,7 @@ export class JetfanService implements SceneScoped {
       if (this.edgesOn) {
         mesh.enableEdgesRendering();
         mesh.edgesWidth = this.sceneBounds.edgeWidth;
-        mesh.edgesColor = new BABYLON.Color4(0.4, 0.4, 0.4, 1);
+        mesh.edgesColor = SOLID_EDGE_COLOR;
       } else {
         mesh.disableEdgesRendering();
         mesh.edgesWidth = 0; // Set to 0 for button logic consistency

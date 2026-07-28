@@ -1,4 +1,4 @@
-import { Injectable, isDevMode } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { BabylonService } from '../../babylon/babylon.service';
 import { HelpersService } from '../../helpers/helpers.service';
 import { SceneMesh } from '../scene-input';
@@ -138,7 +138,5 @@ export class MeshService implements SceneScoped {
       this.mesh.edgesWidth = 0.0;
       this.visibility = 0;
     }
-
-    if (isDevMode()) { try { console.debug('[MeshService] visibility', this.visibility); } catch { } }
   }
 }

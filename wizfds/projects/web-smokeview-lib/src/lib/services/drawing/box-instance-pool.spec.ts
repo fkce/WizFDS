@@ -274,4 +274,29 @@ describe('BoxInstancePool', () => {
       expect(registry.entryFor('b')).toBeUndefined();
     });
   });
+
+  describe('re-filling at scale', () => {
+    it('does not walk the whole pool once per box when it is refilled', () => {
+      // Re-entering the view redraws what is already there. Forgetting the boxes
+      // one at a time costs a scan of the pool's registry list apiece; measured
+      // at ten thousand boxes that was 528 ms of frozen UI against 6 ms for the
+      // one call this now makes. The bound is loose enough for a busy machine
+      // and two orders of magnitude below what the quadratic version took.
+      const many: PooledBox[] = [];
+      for (let i = 0; i < 10000; i++) {
+        many.push(box(`b${i}`, { x1: i, x2: i + 0.5, y1: 0, y2: 1, z1: 0, z2: 1 }));
+      }
+      pool.setBoxes(many);
+
+      const started = performance.now();
+      pool.setBoxes(many);
+      const elapsed = performance.now() - started;
+
+      expect(pool.count).toBe(10000);
+      expect(registry.uuidAtInstance(pool.mesh, 9999)).toBe('b9999');
+      expect(elapsed)
+        .withContext(`a second setBoxes of 10 000 boxes took ${elapsed.toFixed(0)} ms`)
+        .toBeLessThan(150);
+    });
+  });
 });

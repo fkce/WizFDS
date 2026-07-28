@@ -105,6 +105,10 @@ export class SceneRegistryService implements SceneScoped {
     if (!candidates) { return undefined; }
 
     for (const { uuid, entry } of candidates) {
+      // An instance is identified by its slot, never by a face: every instance
+      // draws the same twelve faces of the same box, so answering here would
+      // name whichever of them happens to come first.
+      if (entry.instance !== undefined) { continue; }
       if (!entry.faces) { return uuid; }
       if (faceId >= entry.faces.first && faceId < entry.faces.first + entry.faces.count) {
         return uuid;
@@ -138,6 +142,23 @@ export class SceneRegistryService implements SceneScoped {
       return this.uuidAtInstance(mesh, thinInstanceIndex);
     }
     return this.uuidAt(mesh, faceId);
+  }
+
+  /**
+   * Forget everything drawn on one mesh.
+   *
+   * What a pool does when the scenario is drawn again. One call rather than one
+   * `forget()` per box, because each of those has to scan the mesh's own list to
+   * find its entry - which at ten thousand boxes is a hundred million
+   * comparisons, the very cost #87 was opened to remove.
+   */
+  public forgetMesh(mesh: BABYLON.AbstractMesh): void {
+    const drawn = this.byMesh.get(mesh);
+    if (!drawn) { return; }
+
+    drawn.forEach(({ uuid }) => this.byUuid.delete(uuid));
+    this.byMesh.delete(mesh);
+    this.byInstance.delete(mesh);
   }
 
   /** Forget one element, e.g. when it is removed from the scenario. */

@@ -1,5 +1,5 @@
 import { Injectable, isDevMode } from '@angular/core';
-import { BabylonService } from '../../babylon/babylon.service';
+import { BabylonService, tryCreateShaderMaterial } from '../../babylon/babylon.service';
 import * as BABYLON from 'babylonjs';
 import { forEach, find } from 'lodash';
 import { HelpersService } from '../../helpers/helpers.service';
@@ -9,6 +9,7 @@ import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycl
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
 import { SceneAxis, SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 import { BoxInstancePool, PooledBox } from '../box-instance-pool';
+import { SOLID_EDGE_COLOR } from '../../../consts/drawing';
 
 /**
  * An obst as the app gave it, paired with everything the library worked out
@@ -38,9 +39,6 @@ interface OwnMesh {
   /** The pool entry to hand back on demotion; null for an obst with openings. */
   readonly promotedFrom: PooledBox | null
 }
-
-/** Colour of the outline every obst is drawn with. */
-const EDGE_COLOR = new BABYLON.Color4(0.4, 0.4, 0.4, 1);
 
 /** Colour of the outline around a selected obst. */
 const SELECTED_COLOR = new BABYLON.Color4(0.09, 0.49, 0.99, 1);
@@ -477,8 +475,7 @@ export class ObstService implements SceneScoped {
     const pool = this.poolHolding(uuid);
     if (!pool) { return; }
 
-    const index = this.sceneRegistry.entryFor(uuid).instance;
-    const box = pool.boxAt(index);
+    const box = pool.boxFor(uuid);
     if (!box) { return; }
 
     pool.remove(uuid);
@@ -540,17 +537,10 @@ export class ObstService implements SceneScoped {
 
     const build = (
       name: string, shader: string, fragmentShader: string, needAlphaBlending = false
-    ) => this.babylonService
-      .createShaderMaterial({
-        name: name, shader: shader, fragmentShader: fragmentShader,
-        needAlphaBlending: needAlphaBlending
-      })
-      .catch((e) => {
-        if (isDevMode()) {
-          try { console.error(`[ObstService] Failed to create ${name}`, e); } catch { }
-        }
-        return null as BABYLON.ShaderMaterial;
-      });
+    ) => tryCreateShaderMaterial(this.babylonService, {
+      name: name, shader: shader, fragmentShader: fragmentShader,
+      needAlphaBlending: needAlphaBlending
+    }, 'ObstService');
 
     this.materialsPending = Promise.all([
       build('obstInstancedShader', 'obstInstanced', 'obst'),
@@ -721,7 +711,7 @@ export class ObstService implements SceneScoped {
     if (this.edgesOn) {
       mesh.enableEdgesRendering();
       mesh.edgesWidth = width;
-      mesh.edgesColor = EDGE_COLOR;
+      mesh.edgesColor = SOLID_EDGE_COLOR;
     } else {
       mesh.disableEdgesRendering();
       mesh.edgesWidth = 0;

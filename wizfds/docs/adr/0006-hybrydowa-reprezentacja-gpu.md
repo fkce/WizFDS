@@ -52,6 +52,10 @@ Powyżej napisano, że hybryda otwiera drogę do `snapshotRendering` i `scene.pe
 
 Zmiany uniformów (suwaki przycinania, kamera) przechodzą przez snapshot poprawnie — pęka wyłącznie zmiana strukturalna puli. Ponieważ promocja i degradacja obiektu (rdzeń tej decyzji) jest właśnie taką zmianą, włączone zostaje wyłącznie `Intermediate`. Do tematu można wrócić, gdy Babylon to naprawi.
 
+### Które elementy trafiły do puli
+
+`OBST`, `MESH` i korpusy jetfanów. **`VENT` nie** — mimo że decyzja wymienia „bryły VENT-ów": w modelu FDS `&VENT` jest płaszczyzną, a `HelpersService.generateVentGeometry()` obsługuje wyłącznie przypadki `x1==x2`, `y1==y2` i `z1==z2`. Nie ma tam bryły do instancjonowania, więc `VentService` zostaje na wspólnym buforze z zakresami ścian.
+
 ## Rozważone alternatywy
 
 - **Wyłącznie osobne meshe.** Najprostsze i całkowicie wystarczające przy setkach obiektów — ale nie przy dziesięciu tysiącach.

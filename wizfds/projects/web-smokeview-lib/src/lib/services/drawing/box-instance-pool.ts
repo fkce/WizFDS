@@ -82,6 +82,14 @@ export class BoxInstancePool {
   }
 
   /**
+   * The box drawn for an element, or undefined when this pool does not hold it.
+   * Which slot it occupies is the pool's business, not its caller's.
+   */
+  public boxFor(uuid: string): PooledBox | undefined {
+    return this.boxes.find(box => box.uuid === uuid);
+  }
+
+  /**
    * Draw exactly these boxes, in this order, replacing whatever was there.
    *
    * A whole-pool rebuild - what a re-render of the scenario is. Singling one box
@@ -125,7 +133,7 @@ export class BoxInstancePool {
     }
     this.boxes.length = last;
 
-    this.syncCount();
+    this.syncBuffers();
     // Only the moved box changed address; everything before it is untouched
     if (index !== last) { this.registerFrom(index, index + 1); }
     return true;
@@ -138,18 +146,17 @@ export class BoxInstancePool {
    */
   public add(box: PooledBox): number {
     const index = this.boxes.length;
-    if ((index + 1) * 16 > this.matrixData.length) {
+    const grown = (index + 1) * 16 > this.matrixData.length;
+    if (grown) {
       this.matrixData = growTo(this.matrixData, (index + 1) * 16);
       this.colorData = growTo(this.colorData, (index + 1) * 4);
-      this.boxes.push(box);
-      this.writeInstance(index, box);
-      // A longer array is a different buffer, so Babylon has to be handed it
-      this.assignBuffers();
-    } else {
-      this.boxes.push(box);
-      this.writeInstance(index, box);
-      this.syncCount();
     }
+
+    this.boxes.push(box);
+    this.writeInstance(index, box);
+
+    // A longer array is a different buffer, so Babylon has to be handed it
+    if (grown) { this.assignBuffers(); } else { this.syncBuffers(); }
 
     this.registerFrom(index);
     return index;
@@ -248,8 +255,11 @@ export class BoxInstancePool {
     mesh.thinInstanceCount = this.boxes.length;
   }
 
-  /** Push an in-place edit of the raw buffers through to the GPU. */
-  private syncCount(): void {
+  /**
+   * Push an in-place edit of the raw buffers through to the GPU, along with how
+   * many of them the pool now draws.
+   */
+  private syncBuffers(): void {
     [this.mesh, ...this.twins].forEach(mesh => {
       mesh.setEnabled(this.boxes.length > 0);
       mesh.thinInstanceCount = this.boxes.length;
@@ -268,8 +278,14 @@ export class BoxInstancePool {
     }
   }
 
+  /**
+   * Forget every box this pool drew.
+   *
+   * In one call rather than one per box: nothing else is ever drawn on the base
+   * mesh, and forgetting them singly costs a scan of the mesh's own list apiece.
+   */
   private forgetAll(): void {
-    this.boxes.forEach(box => this.registry.forget(box.uuid));
+    this.registry.forgetMesh(this.mesh);
   }
 }
 

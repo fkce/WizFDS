@@ -558,3 +558,29 @@ export class BabylonService {
   }
 
 }
+
+/**
+ * Build a shader material, or nothing if its sources cannot be fetched.
+ *
+ * A missing shader costs the elements it draws, not the whole scene: a drawing
+ * service that awaited several of them would otherwise stop at the first, and
+ * every one of them was catching that the same way.
+ *
+ * A free function rather than a method, so that it stays available to a service
+ * under test whose BabylonService is a stub - what it needs is
+ * `createShaderMaterial`, which every such stub already provides.
+ *
+ * @param owner who to name in the log - the calling service
+ */
+export async function tryCreateShaderMaterial(
+  babylonService: BabylonService, spec: ShaderMaterialSpec, owner: string
+): Promise<BABYLON.ShaderMaterial | null> {
+  try {
+    return await babylonService.createShaderMaterial(spec);
+  } catch (e) {
+    if (isDevMode()) {
+      try { console.error(`[${owner}] Failed to create ${spec.name}`, e); } catch { }
+    }
+    return null;
+  }
+}

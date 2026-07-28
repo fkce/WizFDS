@@ -381,5 +381,23 @@ describe('ObstService - the hybrid representation', () => {
         .withContext('one base box, one back cap, and nothing per obst')
         .toBeLessThan(10);
     });
+
+    it('draws the same scenario a second time without a quadratic pass', () => {
+      // Re-entering the view redraws what is already there. What that costs is
+      // pinned in box-instance-pool.spec.ts; this is about the whole scenario
+      // still resolving to the same pool afterwards.
+      const obsts: SceneObst[] = [];
+      for (let i = 0; i < 10000; i++) {
+        obsts.push(makeObst(`W${i}`, {
+          x1: i * 0.5, x2: i * 0.5 + 0.4, y1: 0, y2: 4, z1: 0, z2: 3
+        }));
+      }
+
+      render(obsts);
+      render(obsts);
+
+      expect(service.opaqueMesh.thinInstanceCount).toBe(10000);
+      expect(registry.entryFor('W9999-uuid').mesh).toBe(service.opaqueMesh);
+    });
   });
 });

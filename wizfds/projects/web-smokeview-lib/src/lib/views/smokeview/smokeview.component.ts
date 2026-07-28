@@ -47,19 +47,30 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   /**
    * Mark what a ctrl+click would select, while ctrl is held.
    *
-   * Only while it is held: picking runs against every obst in the scene, and a
-   * scenario at the scale this module is built for holds ten thousand of them -
-   * far too much to redo on every movement of an idle pointer.
+   * Only while it is held, and at most once a frame: a pick runs against every
+   * obst in the scene, and a scenario at the scale this module is built for
+   * holds ten thousand of them. A pointer emits far more moves than there are
+   * frames to show the result in, so the rest of them are dropped.
    */
   @HostListener('pointermove', ['$event'])
   onPointerMove(event: PointerEvent): void {
     if (!this.babylonService.scene) return;
 
-    if (event.ctrlKey) {
-      this.obstService.hoverObst(this.pickingRay());
-    } else {
+    if (!event.ctrlKey) {
+      this.hoverQueued = false;
       this.obstService.clearHover();
+      return;
     }
+
+    if (this.hoverQueued) { return; }
+    this.hoverQueued = true;
+    requestAnimationFrame(() => {
+      if (!this.hoverQueued) { return; }
+      this.hoverQueued = false;
+      // The pointer can have left, or the view been torn down, since the move
+      if (this.destroyed || !this.babylonService.scene) { return; }
+      this.obstService.hoverObst(this.pickingRay());
+    });
   }
 
   /**
@@ -88,6 +99,9 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /** Set in ngOnDestroy - createScene() is awaited and can outlive the view. */
   private destroyed = false;
+
+  /** A hover pick is already waiting for the next frame - see onPointerMove(). */
+  private hoverQueued = false;
 
   constructor(
     public obstService: ObstService,
