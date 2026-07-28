@@ -75,37 +75,47 @@ describe('JetfanService', () => {
       expect(registry.entryFor('JF1-uuid').mesh).toBe(scene.getMeshByName('jetfansTransparent'));
     });
 
-    it('maps a face back to the jetfan that owns it', async () => {
+    it('maps an instance back to the jetfan that occupies it', async () => {
+      // Every instance draws the same twelve faces of the same base box, so the
+      // slot is the whole of the identity (ADR-0006).
       service.jetfans = [makeJetfan('JF1', box(2, 8), 0.5), makeJetfan('JF2', box(12, 18), 0.5)];
 
       await service.render();
 
-      const mesh = scene.getMeshByName('jetfansTransparent');
-      const first = registry.entryFor('JF1-uuid').faces;
-      const second = registry.entryFor('JF2-uuid').faces;
-      expect(registry.uuidAt(mesh, first.first)).toBe('JF1-uuid');
-      expect(registry.uuidAt(mesh, first.first + first.count - 1)).toBe('JF1-uuid');
-      expect(registry.uuidAt(mesh, second.first)).toBe('JF2-uuid');
-      expect(registry.uuidAt(mesh, second.first + second.count - 1)).toBe('JF2-uuid');
+      const mesh = service.meshTransparent;
+      expect(registry.uuidAtInstance(mesh, 0)).toBe('JF1-uuid');
+      expect(registry.uuidAtInstance(mesh, 1)).toBe('JF2-uuid');
+      expect(registry.uuidAtInstance(mesh, 2)).toBeUndefined();
     });
 
-    it('counts faces within the buffer the jetfan actually landed in', async () => {
-      // Opaque and transparent jetfans go into separate buffers, so a face index
-      // only means anything inside its own - a range counted across both would
-      // name the transparent jetfan by an offset the opaque mesh uses.
+    it('counts instances within the pool the jetfan actually landed in', async () => {
+      // Opaque and translucent jetfans go into separate pools, so a slot index
+      // only means anything inside its own - a slot counted across both would
+      // name the translucent jetfan by an offset the opaque pool uses.
       service.jetfans = [makeJetfan('SOLID', box(2, 8), 1), makeJetfan('GLAZED', box(12, 18), 0.5)];
 
       await service.render();
 
-      const opaque = scene.getMeshByName('jetfans');
-      const transparent = scene.getMeshByName('jetfansTransparent');
-      expect(registry.entryFor('SOLID-uuid').mesh).toBe(opaque);
-      expect(registry.entryFor('GLAZED-uuid').mesh).toBe(transparent);
-      expect(registry.entryFor('GLAZED-uuid').faces.first)
-        .withContext('the transparent jetfan starts at the head of its own buffer')
+      expect(registry.entryFor('SOLID-uuid').mesh).toBe(service.mesh);
+      expect(registry.entryFor('GLAZED-uuid').mesh).toBe(service.meshTransparent);
+      expect(registry.entryFor('GLAZED-uuid').instance)
+        .withContext('the translucent jetfan starts at the head of its own pool')
         .toBe(0);
-      expect(registry.uuidAt(transparent, 0)).toBe('GLAZED-uuid');
-      expect(registry.uuidAt(opaque, 0)).toBe('SOLID-uuid');
+      expect(registry.uuidAtInstance(service.meshTransparent, 0)).toBe('GLAZED-uuid');
+      expect(registry.uuidAtInstance(service.mesh, 0)).toBe('SOLID-uuid');
+    });
+
+    it('draws every jetfan body from one base box', async () => {
+      service.jetfans = [
+        makeJetfan('JF1', box(2, 8), 0.5),
+        makeJetfan('JF2', box(12, 18), 0.5),
+        makeJetfan('JF3', box(22, 28), 0.5)
+      ];
+
+      await service.render();
+
+      expect(service.meshTransparent.thinInstanceCount).toBe(3);
+      expect(service.meshTransparent.getTotalVertices()).toBe(24);
     });
 
     it('forgets the previous render rather than stacking entries', async () => {

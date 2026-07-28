@@ -1,14 +1,17 @@
 import { Injectable } from '@angular/core';
 import * as BABYLON from 'babylonjs';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
-import { FaceRange, SceneRegistryService } from '../../babylon/scene-registry.service';
+import { SceneRegistryService } from '../../babylon/scene-registry.service';
 
-import { BabylonService } from '../../babylon/babylon.service';
+import { BabylonService, tryCreateShaderMaterial } from '../../babylon/babylon.service';
 import { HelpersService } from '../../helpers/helpers.service';
 import { DerivedVent, VentService } from '../vent/vent.service';
 import { SceneJetfan, SceneJetfanDirection, SceneXb } from '../scene-input';
 import { jetfanDrawnBox } from './jetfan-box';
 import { SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
+import { PooledBox } from '../box-instance-pool';
+import { BoxPoolPair } from '../box-pool-pair';
+import { SOLID_EDGE_COLOR } from '../../../consts/drawing';
 
 /**
  * A jetfan as the app gave it, paired with everything the library worked out
@@ -49,10 +52,18 @@ export class JetfanService implements SceneScoped {
 
   // Babylon.js objects
   public jetfans: readonly SceneJetfan[] = [];
-  public mesh: BABYLON.Mesh;
-  private _meshTransparent: BABYLON.Mesh;
   public material: BABYLON.ShaderMaterial;
   public materialTransparent: BABYLON.ShaderMaterial;
+
+  /**
+   * A jetfan body is a box, so the bodies are drawn as thin instances of one -
+   * the same representation, and the same pair of pools, as the obsts
+   * (ADR-0006).
+   */
+  private pool: BoxPoolPair;
+
+  /** In flight while the shader sources are being fetched. */
+  private materialsPending: Promise<void> | null = null;
 
   // Flow arrows
   public arrowMeshes: BABYLON.Mesh[] = [];
@@ -63,8 +74,8 @@ export class JetfanService implements SceneScoped {
   public clipY: number;
   public clipZ: number;
 
-  /** What this service put in the registry, so a re-render can take it out. */
-  private registeredUuids: string[] = [];
+  /** Whether jetfan outlines are drawn. Meshes come and go; this does not. */
+  private edgesOn = true;
 
   /** Where each jetfan of the last render went. Built here, never written back. */
   private placed: PlacedJetfan[] = [];
@@ -93,39 +104,25 @@ export class JetfanService implements SceneScoped {
     this.clip();
   }
 
+  /** The base box the fully opaque jetfan bodies are drawn from. */
+  public get mesh(): BABYLON.Mesh | undefined {
+    return this.pool ? this.pool.opaque.mesh : undefined;
+  }
+
+  /** The base box the translucent jetfan bodies are drawn from. */
+  public get meshTransparent(): BABYLON.Mesh | undefined {
+    return this.pool ? this.pool.transparent.mesh : undefined;
+  }
+
   /** Release everything tied to the scene that has just been disposed. */
   public resetSceneState(): void {
-    this.mesh = null;
-    this._meshTransparent = null;
+    this.pool = null;
     this.material = null;
     this.materialTransparent = null;
+    this.materialsPending = null;
     this.arrowMeshes.length = 0;
     this.arrowMaterial = null;
     this.placed.length = 0;
-    // The registry empties itself with the scene - this is only about not
-    // holding on to uuids that named meshes of a scene that is gone.
-    this.registeredUuids.length = 0;
-  }
-
-  /**
-   * Tell the registry where a batch of jetfans ended up, now that its mesh
-   * exists. The bodies share one buffer, so identity is a face range within it.
-   */
-  private registerFaces(mesh: BABYLON.Mesh, faces: FaceRange[]): void {
-    faces.forEach(({ uuid, first, count }) => {
-      this.sceneRegistry.register(uuid, { mesh: mesh, faces: { first: first, count: count } });
-      this.registeredUuids.push(uuid);
-    });
-  }
-
-  /**
-   * Drop the entries of the previous render, together with the meshes they
-   * name: a jetfan taken out of the scenario would otherwise keep answering for
-   * faces of a buffer it is no longer in.
-   */
-  private forgetRegisteredFaces(): void {
-    this.registeredUuids.forEach(uuid => this.sceneRegistry.forget(uuid));
-    this.registeredUuids.length = 0;
   }
 
   /**
@@ -271,80 +268,6 @@ export class JetfanService implements SceneScoped {
   }
 
   /**
-   * Update jetfans vertex data (similar to obsts)
-   *
-   * `faces` says which triangles of each buffer belong to which jetfan. Both
-   * buffers batch several jetfans into one mesh, so naming the mesh alone would
-   * not say which of them was hit - and the ranges are per buffer, because a
-   * face index only means anything inside the one it was counted in.
-   */
-  private updateJetfansVertexData() {
-    let jetfansFaces: FaceRange[] = [];
-    let jetfansFacesTransparent: FaceRange[] = [];
-
-    let jetfansVertices: number[] = [];
-    let jetfansIndices: number[] = [];
-    let jetfansColors: number[] = [];
-    let jetfansNormals: number[] = [];
-
-    let jetfansVerticesTransparent: number[] = [];
-    let jetfansIndicesTransparent: number[] = [];
-    let jetfansColorsTransparent: number[] = [];
-    let jetfansNormalsTransparent: number[] = [];
-
-    let indexCount = 0;
-    let indexCountTransparent = 0;
-
-    this.placed.forEach((placed: PlacedJetfan) => {
-      // A jetfan is drawn as a translucent box; its transparency is the alpha the
-      // app put in the colour
-      const isTransparent = placed.color[3] < 1.0;
-
-      // Choose appropriate arrays
-      const vertices = isTransparent ? jetfansVerticesTransparent : jetfansVertices;
-      const indices = isTransparent ? jetfansIndicesTransparent : jetfansIndices;
-      const colors = isTransparent ? jetfansColorsTransparent : jetfansColors;
-      const faces = isTransparent ? jetfansFacesTransparent : jetfansFaces;
-
-      // Read afterwards rather than computed: nothing here may assume a fixed
-      // triangle count per jetfan.
-      const facesBefore = indices.length / 3;
-
-      // Generate jetfan geometry (box like obst) - using exact same pattern as obst service
-      vertices.push(...this.helpersService.getVerticesFromXb(placed.xb));
-      colors.push(...this.helpersService.getColors(placed.color));
-      indices.push(...this.helpersService.getIndices(isTransparent ? indexCountTransparent : indexCount));
-      if (isTransparent) {
-        indexCountTransparent++;
-      } else {
-        indexCount++;
-      }
-
-      faces.push({
-        uuid: placed.jetfan.uuid, first: facesBefore, count: indices.length / 3 - facesBefore
-      });
-    });
-
-    // Store vertex data for both opaque and transparent jetfans
-    return {
-      opaque: {
-        vertices: jetfansVertices,
-        indices: jetfansIndices,
-        colors: jetfansColors,
-        normals: jetfansNormals,
-        faces: jetfansFaces
-      },
-      transparent: {
-        vertices: jetfansVerticesTransparent,
-        indices: jetfansIndicesTransparent,
-        colors: jetfansColorsTransparent,
-        normals: jetfansNormalsTransparent,
-        faces: jetfansFacesTransparent
-      }
-    };
-  }
-
-  /**
    * Render jetfans with their vents and flow arrows
    */
   public async render() {
@@ -361,140 +284,114 @@ export class JetfanService implements SceneScoped {
     this.ventService.vents = derivedVents;
     await this.ventService.render();
 
-    // Get vertex data for jetfan boxes
-    const jetfanData = this.updateJetfansVertexData();
+    this.ensurePools();
 
-    // Dispose existing meshes, and the registry entries that named them
-    this.forgetRegisteredFaces();
-    if (this.mesh) {
-      this.mesh.dispose();
-      this.mesh = null;
-    }
-    if (this._meshTransparent) {
-      this._meshTransparent.dispose();
-      this._meshTransparent = null;
-    }
+    // A jetfan is drawn as a box; its transparency is the alpha the app put in
+    // the colour, and the pair is what turns that into a choice of pool.
+    const boxes: PooledBox[] = this.placed.map((placed: PlacedJetfan) => ({
+      uuid: placed.jetfan.uuid, xb: placed.xb, color: placed.color
+    }));
+
+    this.pool.setBoxes(boxes);
 
     // Dispose existing arrows
     this.arrowMeshes.forEach(arrow => arrow.dispose());
     this.arrowMeshes = [];
 
-    // Create opaque jetfans mesh
-    if (jetfanData.opaque.vertices.length > 0) {
-      this.mesh = new BABYLON.Mesh('jetfans', this.babylonService.scene);
-
-      // Compute normals for opaque mesh (same as obst service)
-      const computedNormals: number[] = [];
-      BABYLON.VertexData.ComputeNormals(jetfanData.opaque.vertices, jetfanData.opaque.indices, computedNormals);
-
-      const vertexData = new BABYLON.VertexData();
-      vertexData.positions = jetfanData.opaque.vertices;
-      vertexData.indices = jetfanData.opaque.indices;
-      vertexData.colors = jetfanData.opaque.colors;
-      vertexData.normals = computedNormals; // Use computed normals
-
-      vertexData.applyToMesh(this.mesh);
-
-      // Before the material, not after: which jetfan a face belongs to is
-      // settled by the buffer, and stays true even if the shader never arrives.
-      this.registerFaces(this.mesh, jetfanData.opaque.faces);
-
-      // Create material for opaque jetfans (jetfan boxes reuse the obst shader)
-      this.material = await this.babylonService.createShaderMaterial({
-        name: "jetfanShader",
-        shader: "obst"
-      });
-      this.applyClipTo(this.material);
-      this.material.backFaceCulling = false;
-      this.material.freeze(); // Freeze material for performance like obst service
-
-      this.mesh.material = this.material;
-
-      // Enable edges rendering by default (consistent with obst service)
-      this.mesh.enableEdgesRendering();
-      this.mesh.edgesWidth = this.sceneBounds.edgeWidth;
-      this.mesh.edgesColor = new BABYLON.Color4(0.4, 0.4, 0.4, 1);
-    }
-
-    // Create transparent jetfans mesh
-    if (jetfanData.transparent.vertices.length > 0) {
-      this._meshTransparent = new BABYLON.Mesh('jetfansTransparent', this.babylonService.scene);
-
-      // Compute normals for transparent mesh (same as obst service)
-      const computedNormalsTransparent: number[] = [];
-      BABYLON.VertexData.ComputeNormals(jetfanData.transparent.vertices, jetfanData.transparent.indices, computedNormalsTransparent);
-
-      const vertexDataTransparent = new BABYLON.VertexData();
-      vertexDataTransparent.positions = jetfanData.transparent.vertices;
-      vertexDataTransparent.indices = jetfanData.transparent.indices;
-      vertexDataTransparent.colors = jetfanData.transparent.colors;
-      vertexDataTransparent.normals = computedNormalsTransparent; // Use computed normals
-
-      vertexDataTransparent.applyToMesh(this._meshTransparent);
-
-      this.registerFaces(this._meshTransparent, jetfanData.transparent.faces);
-
-      // Create material for transparent jetfans
-      this.materialTransparent = await this.babylonService.createShaderMaterial({
-        name: "jetfanTransparentShader",
-        shader: "obst",
-        needAlphaBlending: true
-      });
-      this.applyClipTo(this.materialTransparent);
-      this.materialTransparent.backFaceCulling = false;
-      this.materialTransparent.freeze(); // Freeze material for performance like obst service
-
-      this._meshTransparent.material = this.materialTransparent;
-
-      // Enable edges rendering by default for transparent mesh too
-      this._meshTransparent.enableEdgesRendering();
-      this._meshTransparent.edgesWidth = this.sceneBounds.edgeWidth;
-      this._meshTransparent.edgesColor = new BABYLON.Color4(0.4, 0.4, 0.4, 1);
-    }
-
-    // Create flow arrows for each jetfan
-    this.arrowMaterial = await this.babylonService.createShaderMaterial({
-      name: "arrowShader",
-      shader: "arrow"
-    });
+    await this.ensureMaterials();
+    this.applyEdges();
 
     this.placed.forEach((placed: PlacedJetfan) => {
       const arrow = this.createFlowArrow(placed);
-      arrow.material = this.arrowMaterial;
+      if (this.arrowMaterial) { arrow.material = this.arrowMaterial; }
       this.arrowMeshes.push(arrow);
     });
   }
 
+  /** Build the two pools, once per scene. */
+  private ensurePools(): void {
+    if (this.pool) { return; }
+
+    this.pool = new BoxPoolPair(
+      'jetfans', 'jetfansTransparent',
+      this.babylonService.scene, this.helpersService, this.sceneRegistry);
+  }
+
   /**
-   * Set edges rendering for jetfans (consistent with obst service)
+   * Build the shader materials, once for the scene rather than once per render.
+   *
+   * The jetfan bodies borrow the obst shaders - a box lit and clipped the same
+   * way - but with clipping planes of their own, so they need materials of their
+   * own rather than the obst service's.
+   */
+  private ensureMaterials(): Promise<void> {
+    if (this.materialsPending) { return this.materialsPending; }
+
+    const build = (name: string, shader: string, fragmentShader: string, alpha = false) =>
+      tryCreateShaderMaterial(this.babylonService, {
+        name: name, shader: shader, fragmentShader: fragmentShader, needAlphaBlending: alpha
+      }, 'JetfanService');
+
+    this.materialsPending = Promise.all([
+      build('jetfanShader', 'obstInstanced', 'obst'),
+      build('jetfanTransparentShader', 'obstInstanced', 'obst', true),
+      build('arrowShader', 'arrow', 'arrow')
+    ]).then(([material, materialTransparent, arrowMaterial]) => {
+      if (!this.babylonService.scene) {
+        [material, materialTransparent, arrowMaterial]
+          .forEach(m => { if (m) { m.dispose(); } });
+        return;
+      }
+
+      this.material = material;
+      this.materialTransparent = materialTransparent;
+      this.arrowMaterial = arrowMaterial;
+
+      [material, materialTransparent].forEach(m => {
+        if (!m) { return; }
+        m.backFaceCulling = false;
+        m.freeze();
+      });
+      this.clip();
+
+      if (this.pool && material) { this.pool.opaque.mesh.material = material; }
+      if (this.pool && materialTransparent) {
+        this.pool.transparent.mesh.material = materialTransparent;
+      }
+      if (arrowMaterial) {
+        this.arrowMeshes.forEach(arrow => { arrow.material = arrowMaterial; });
+      }
+    });
+
+    return this.materialsPending;
+  }
+
+  /**
+   * Set edges rendering for jetfans (consistent with obst service).
+   *
+   * Babylon's edges renderer binds world0..world3 off the base mesh and draws
+   * one outline per thin instance, so one call covers the whole pool.
    */
   public setEdgesRendering(enabled: boolean) {
-    // Control edges for opaque mesh
-    if (this.mesh) {
-      if (enabled) {
-        this.mesh.enableEdgesRendering();
-        this.mesh.edgesWidth = this.sceneBounds.edgeWidth;
-        this.mesh.edgesColor = new BABYLON.Color4(0.4, 0.4, 0.4, 1);
-      } else {
-        this.mesh.disableEdgesRendering();
-        this.mesh.edgesWidth = 0; // Set to 0 for button logic consistency
-      }
-    }
-
-    // Control edges for transparent mesh
-    if (this._meshTransparent) {
-      if (enabled) {
-        this._meshTransparent.enableEdgesRendering();
-        this._meshTransparent.edgesWidth = this.sceneBounds.edgeWidth;
-        this._meshTransparent.edgesColor = new BABYLON.Color4(0.4, 0.4, 0.4, 1);
-      } else {
-        this._meshTransparent.disableEdgesRendering();
-        this._meshTransparent.edgesWidth = 0; // Set to 0 for button logic consistency
-      }
-    }
+    this.edgesOn = enabled;
+    this.applyEdges();
 
     // Note: Vents (vent_in and vent_out) are handled separately by VentService
     // and should render unchanged as requested
+  }
+
+  private applyEdges(): void {
+    (this.pool ? this.pool.meshes : []).forEach((mesh: BABYLON.Mesh) => {
+      if (this.edgesOn) {
+        mesh.enableEdgesRendering();
+        mesh.edgesWidth = this.sceneBounds.edgeWidth;
+        mesh.edgesColor = SOLID_EDGE_COLOR;
+      } else {
+        mesh.disableEdgesRendering();
+        mesh.edgesWidth = 0; // Set to 0 for button logic consistency
+      }
+    });
+
   }
 
   /**
@@ -531,15 +428,8 @@ export class JetfanService implements SceneScoped {
   public clear() {
     this.jetfans = [];
     this.placed.length = 0;
-    this.forgetRegisteredFaces();
-    if (this.mesh) {
-      this.mesh.dispose();
-      this.mesh = null;
-    }
-    if (this._meshTransparent) {
-      this._meshTransparent.dispose();
-      this._meshTransparent = null;
-    }
+    // Emptying the pools takes their registry entries with them
+    if (this.pool) { this.pool.setBoxes([]); }
 
     // Clear arrows
     this.arrowMeshes.forEach(arrow => arrow.dispose());

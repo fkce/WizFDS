@@ -101,6 +101,101 @@ describe('SceneRegistryService', () => {
     });
   });
 
+  describe('by thin instance', () => {
+    beforeEach(() => {
+      // The bulk of the boxes share one base mesh; identity is the slot each of
+      // them occupies in the instance buffer - see docs/adr/0006-*.md.
+      registry.register('obst-1', { mesh: mesh, instance: 0 });
+      registry.register('obst-2', { mesh: mesh, instance: 1 });
+      registry.register('obst-3', { mesh: mesh, instance: 2 });
+    });
+
+    it('names the element an instance belongs to', () => {
+      expect(registry.uuidAtInstance(mesh, 0)).toBe('obst-1');
+      expect(registry.uuidAtInstance(mesh, 2)).toBe('obst-3');
+    });
+
+    it('has nothing to say about a slot nothing was put in', () => {
+      expect(registry.uuidAtInstance(mesh, 3)).toBeUndefined();
+    });
+
+    it('keeps base meshes apart', () => {
+      registry.register('jetfan-1', { mesh: otherMesh, instance: 0 });
+
+      expect(registry.uuidAtInstance(otherMesh, 0)).toBe('jetfan-1');
+      expect(registry.uuidAtInstance(mesh, 0)).toBe('obst-1');
+    });
+
+    it('lets go of a slot when the element moves elsewhere', () => {
+      // Promotion to a mesh of its own is exactly this: the box leaves the pool
+      registry.register('obst-2', { mesh: otherMesh });
+
+      expect(registry.uuidAtInstance(mesh, 1)).toBeUndefined();
+      expect(registry.entryFor('obst-2').mesh).toBe(otherMesh);
+    });
+  });
+
+  describe('forgetting a whole mesh at once', () => {
+    it('drops every element drawn on it', () => {
+      // What a pool does when the scenario is drawn again. One call rather than
+      // one per box: forget() has to scan the mesh's list to find its entry, so
+      // ten thousand of them is a hundred million comparisons.
+      registry.register('obst-1', { mesh: mesh, instance: 0 });
+      registry.register('obst-2', { mesh: mesh, instance: 1 });
+      registry.register('vent-1', { mesh: otherMesh, faces: { first: 0, count: 2 } });
+
+      registry.forgetMesh(mesh);
+
+      expect(registry.entryFor('obst-1')).toBeUndefined();
+      expect(registry.entryFor('obst-2')).toBeUndefined();
+      expect(registry.uuidAtInstance(mesh, 0)).toBeUndefined();
+      expect(registry.entryFor('vent-1'))
+        .withContext('another mesh is none of its business')
+        .toBeTruthy();
+    });
+
+    it('is safe on a mesh nothing was ever drawn on', () => {
+      expect(() => registry.forgetMesh(otherMesh)).not.toThrow();
+    });
+  });
+
+  describe('answering a pick', () => {
+    // What a pick hands over is a mesh plus a face, and a thin instance index
+    // that is -1 for anything not instanced. One question, both representations.
+
+    it('reads a face range when the hit was not an instance', () => {
+      registry.register('obst-1', { mesh: mesh, faces: { first: 0, count: 12 } });
+
+      expect(registry.uuidForPick(mesh, 5, -1)).toBe('obst-1');
+    });
+
+    it('reads the instance slot when the hit was one', () => {
+      registry.register('obst-1', { mesh: mesh, instance: 0 });
+      registry.register('obst-2', { mesh: mesh, instance: 1 });
+
+      // Every instance is the same twelve faces of the base box, so the face is
+      // no help at all here - only the slot says which obst was hit.
+      expect(registry.uuidForPick(mesh, 5, 1)).toBe('obst-2');
+    });
+
+    it('names an element that owns its whole mesh', () => {
+      registry.register('obst-cut', { mesh: otherMesh });
+
+      expect(registry.uuidForPick(otherMesh, 40, -1)).toBe('obst-cut');
+    });
+
+    it('names nobody when a face lands on a mesh whose elements are instances', () => {
+      // Every instance draws the same twelve faces, so a face index cannot tell
+      // them apart. Answering with the first of them would select an obst the
+      // user never clicked on.
+      registry.register('obst-1', { mesh: mesh, instance: 0 });
+      registry.register('obst-2', { mesh: mesh, instance: 1 });
+
+      expect(registry.uuidAt(mesh, 5)).toBeUndefined();
+      expect(registry.uuidForPick(mesh, 5, -1)).toBeUndefined();
+    });
+  });
+
   describe('scene lifecycle', () => {
     it('is emptied when the scene goes away', () => {
       registry.register('obst-1', { mesh: mesh, faces: { first: 0, count: 12 } });

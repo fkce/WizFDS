@@ -2,6 +2,7 @@ import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, Hos
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { ObstService } from '../../services/drawing/obst/obst.service';
+import { ObstSelectionService } from '../../services/drawing/obst/obst-selection.service';
 import { BabylonService } from '../../services/babylon/babylon.service';
 import { SliceService } from '../../services/drawing/slice/slice.service';
 import { PlayerService } from '../../services/player/player.service';
@@ -37,23 +38,53 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     const side = this.viewCubeService.pickSide();
     if (side) { this.viewCubeService.zoomToSide(side); }
 
-    // Select obst
+    // Select obst. Holding shift as well adds to the selection instead of
+    // replacing it, so several obsts can be picked out in turn.
     if (event.ctrlKey) {
-      let pickInfo;
-      pickInfo = this.babylonService.scene.pick(this.babylonService.scene.pointerX, this.babylonService.scene.pointerY, null, null, this.babylonService.camera);
-      if (pickInfo.hit) {
-        // Long enough to cross the whole model from wherever the camera stands.
-        // A fixed length used to do, back when the scene was one unit across.
-        const reach = this.babylonService.camera.radius + 2 * this.sceneBounds.extent;
-        var ray = new BABYLON.Ray(pickInfo.ray.origin, pickInfo.ray.direction, reach);
-        //let rayHelper = new BABYLON.RayHelper(ray);
-        //rayHelper.show(this.babylonService.scene, new BABYLON.Color3(0, 0, 1));
-        this.obstService.selectObst(ray);
-      }
-      else {
-        this.obstService.clearSelection();
-      }
+      this.obstSelection.selectObst(this.pickingRay(), { add: event.shiftKey });
     }
+  }
+
+  /**
+   * Mark what a ctrl+click would select, while ctrl is held.
+   *
+   * Only while it is held, and at most once a frame: a pick runs against every
+   * obst in the scene, and a scenario at the scale this module is built for
+   * holds ten thousand of them. A pointer emits far more moves than there are
+   * frames to show the result in, so the rest of them are dropped.
+   */
+  @HostListener('pointermove', ['$event'])
+  onPointerMove(event: PointerEvent): void {
+    if (!this.babylonService.scene) return;
+
+    if (!event.ctrlKey) {
+      this.hoverQueued = false;
+      this.obstSelection.clearHover();
+      return;
+    }
+
+    if (this.hoverQueued) { return; }
+    this.hoverQueued = true;
+    requestAnimationFrame(() => {
+      if (!this.hoverQueued) { return; }
+      this.hoverQueued = false;
+      // The pointer can have left, or the view been torn down, since the move
+      if (this.destroyed || !this.babylonService.scene) { return; }
+      this.obstSelection.hoverObst(this.pickingRay());
+    });
+  }
+
+  /**
+   * A ray from the camera through the pointer, long enough to cross the whole
+   * model from wherever the camera stands. A fixed length used to do, back when
+   * the scene was squeezed into a cube one unit across.
+   */
+  private pickingRay(): BABYLON.Ray {
+    const scene = this.babylonService.scene;
+    const ray = scene.createPickingRay(
+      scene.pointerX, scene.pointerY, null, this.babylonService.camera);
+    ray.length = this.babylonService.camera.radius + 2 * this.sceneBounds.extent;
+    return ray;
   }
 
   showHelp: boolean = false;
@@ -70,8 +101,12 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Set in ngOnDestroy - createScene() is awaited and can outlive the view. */
   private destroyed = false;
 
+  /** A hover pick is already waiting for the next frame - see onPointerMove(). */
+  private hoverQueued = false;
+
   constructor(
     public obstService: ObstService,
+    public obstSelection: ObstSelectionService,
     public meshService: MeshService,
     public openService: OpenService,
     public ventService: VentService,
