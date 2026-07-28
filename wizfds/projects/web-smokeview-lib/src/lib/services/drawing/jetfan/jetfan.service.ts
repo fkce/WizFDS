@@ -1,4 +1,4 @@
-import { Injectable, isDevMode } from '@angular/core';
+import { Injectable } from '@angular/core';
 import * as BABYLON from 'babylonjs';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
@@ -9,7 +9,8 @@ import { DerivedVent, VentService } from '../vent/vent.service';
 import { SceneJetfan, SceneJetfanDirection, SceneXb } from '../scene-input';
 import { jetfanDrawnBox } from './jetfan-box';
 import { SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
-import { BoxInstancePool, PooledBox } from '../box-instance-pool';
+import { PooledBox } from '../box-instance-pool';
+import { BoxPoolPair } from '../box-pool-pair';
 import { SOLID_EDGE_COLOR } from '../../../consts/drawing';
 
 /**
@@ -56,11 +57,10 @@ export class JetfanService implements SceneScoped {
 
   /**
    * A jetfan body is a box, so the bodies are drawn as thin instances of one -
-   * the same representation the obsts use (ADR-0006). Two pools, because alpha
-   * blending is a property of the material.
+   * the same representation, and the same pair of pools, as the obsts
+   * (ADR-0006).
    */
-  private opaquePool: BoxInstancePool;
-  private transparentPool: BoxInstancePool;
+  private pool: BoxPoolPair;
 
   /** In flight while the shader sources are being fetched. */
   private materialsPending: Promise<void> | null = null;
@@ -106,18 +106,17 @@ export class JetfanService implements SceneScoped {
 
   /** The base box the fully opaque jetfan bodies are drawn from. */
   public get mesh(): BABYLON.Mesh | undefined {
-    return this.opaquePool ? this.opaquePool.mesh : undefined;
+    return this.pool ? this.pool.opaque.mesh : undefined;
   }
 
   /** The base box the translucent jetfan bodies are drawn from. */
   public get meshTransparent(): BABYLON.Mesh | undefined {
-    return this.transparentPool ? this.transparentPool.mesh : undefined;
+    return this.pool ? this.pool.transparent.mesh : undefined;
   }
 
   /** Release everything tied to the scene that has just been disposed. */
   public resetSceneState(): void {
-    this.opaquePool = null;
-    this.transparentPool = null;
+    this.pool = null;
     this.material = null;
     this.materialTransparent = null;
     this.materialsPending = null;
@@ -288,18 +287,12 @@ export class JetfanService implements SceneScoped {
     this.ensurePools();
 
     // A jetfan is drawn as a box; its transparency is the alpha the app put in
-    // the colour, and that is what decides which pool it goes into.
-    const opaqueBoxes: PooledBox[] = [];
-    const transparentBoxes: PooledBox[] = [];
-    this.placed.forEach((placed: PlacedJetfan) => {
-      const box: PooledBox = {
-        uuid: placed.jetfan.uuid, xb: placed.xb, color: placed.color
-      };
-      (placed.color[3] < 1 ? transparentBoxes : opaqueBoxes).push(box);
-    });
+    // the colour, and the pair is what turns that into a choice of pool.
+    const boxes: PooledBox[] = this.placed.map((placed: PlacedJetfan) => ({
+      uuid: placed.jetfan.uuid, xb: placed.xb, color: placed.color
+    }));
 
-    this.opaquePool.setBoxes(opaqueBoxes);
-    this.transparentPool.setBoxes(transparentBoxes);
+    this.pool.setBoxes(boxes);
 
     // Dispose existing arrows
     this.arrowMeshes.forEach(arrow => arrow.dispose());
@@ -317,12 +310,11 @@ export class JetfanService implements SceneScoped {
 
   /** Build the two pools, once per scene. */
   private ensurePools(): void {
-    if (this.opaquePool) { return; }
+    if (this.pool) { return; }
 
-    this.opaquePool = new BoxInstancePool(
-      'jetfans', this.babylonService.scene, this.helpersService, this.sceneRegistry);
-    this.transparentPool = new BoxInstancePool(
-      'jetfansTransparent', this.babylonService.scene, this.helpersService, this.sceneRegistry);
+    this.pool = new BoxPoolPair(
+      'jetfans', 'jetfansTransparent',
+      this.babylonService.scene, this.helpersService, this.sceneRegistry);
   }
 
   /**
@@ -362,9 +354,9 @@ export class JetfanService implements SceneScoped {
       });
       this.clip();
 
-      if (this.opaquePool && material) { this.opaquePool.mesh.material = material; }
-      if (this.transparentPool && materialTransparent) {
-        this.transparentPool.mesh.material = materialTransparent;
+      if (this.pool && material) { this.pool.opaque.mesh.material = material; }
+      if (this.pool && materialTransparent) {
+        this.pool.transparent.mesh.material = materialTransparent;
       }
       if (arrowMaterial) {
         this.arrowMeshes.forEach(arrow => { arrow.material = arrowMaterial; });
@@ -389,8 +381,7 @@ export class JetfanService implements SceneScoped {
   }
 
   private applyEdges(): void {
-    [this.mesh, this.meshTransparent].forEach((mesh: BABYLON.Mesh) => {
-      if (!mesh) { return; }
+    (this.pool ? this.pool.meshes : []).forEach((mesh: BABYLON.Mesh) => {
       if (this.edgesOn) {
         mesh.enableEdgesRendering();
         mesh.edgesWidth = this.sceneBounds.edgeWidth;
@@ -438,8 +429,7 @@ export class JetfanService implements SceneScoped {
     this.jetfans = [];
     this.placed.length = 0;
     // Emptying the pools takes their registry entries with them
-    if (this.opaquePool) { this.opaquePool.setBoxes([]); }
-    if (this.transparentPool) { this.transparentPool.setBoxes([]); }
+    if (this.pool) { this.pool.setBoxes([]); }
 
     // Clear arrows
     this.arrowMeshes.forEach(arrow => arrow.dispose());

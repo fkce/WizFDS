@@ -8,7 +8,8 @@ import { SceneHole, SceneObst, SceneXb } from '../scene-input';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
 import { SceneAxis, SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
-import { BoxInstancePool, PooledBox } from '../box-instance-pool';
+import { PooledBox, isTranslucent } from '../box-instance-pool';
+import { BoxPoolPair } from '../box-pool-pair';
 import { SOLID_EDGE_COLOR } from '../../../consts/drawing';
 
 /**
@@ -80,9 +81,8 @@ export class ObstService implements SceneScoped {
   jsonMesh: BABYLON.Mesh;
   jsonBackCapMesh: BABYLON.Mesh;
 
-  /** The pools the bulk of the obsts are drawn from. */
-  private opaquePool: BoxInstancePool;
-  private transparentPool: BoxInstancePool;
+  /** The pools the bulk of the obsts are drawn from - opaque and translucent. */
+  private pool: BoxPoolPair;
   /** Draws the opaque pool's boxes a second time, filled red where they are cut. */
   private opaqueCap: BABYLON.Mesh;
 
@@ -143,12 +143,12 @@ export class ObstService implements SceneScoped {
 
   /** The base box every plain opaque obst is drawn from. */
   public get opaqueMesh(): BABYLON.Mesh | undefined {
-    return this.opaquePool ? this.opaquePool.mesh : undefined;
+    return this.pool ? this.pool.opaque.mesh : undefined;
   }
 
   /** The base box the obsts short of fully opaque are drawn from. */
   public get transparentMesh(): BABYLON.Mesh | undefined {
-    return this.transparentPool ? this.transparentPool.mesh : undefined;
+    return this.pool ? this.pool.transparent.mesh : undefined;
   }
 
   /** The mesh an obst got to itself, if it has one. */
@@ -206,8 +206,7 @@ export class ObstService implements SceneScoped {
    * holding references to them into the next scene.
    */
   public resetSceneState(): void {
-    this.opaquePool = null;
-    this.transparentPool = null;
+    this.pool = null;
     this.opaqueCap = null;
     this.ownMeshes.clear();
     this.selectionMeshes.clear();
@@ -300,8 +299,7 @@ export class ObstService implements SceneScoped {
     this.placed = this.placeObsts();
     this.ensurePools();
 
-    const opaqueBoxes: PooledBox[] = [];
-    const transparentBoxes: PooledBox[] = [];
+    const boxes: PooledBox[] = [];
     const cut: { placed: PlacedObst, vertexData: BABYLON.VertexData }[] = [];
 
     forEach(this.placed, (placed: PlacedObst) => {
@@ -311,18 +309,17 @@ export class ObstService implements SceneScoped {
         return;
       }
 
-      const box: PooledBox = {
-        uuid: placed.obst.uuid, xb: placed.obst.xb, color: placed.color
-      };
-      (placed.color[3] < 1 ? transparentBoxes : opaqueBoxes).push(box);
+      boxes.push({ uuid: placed.obst.uuid, xb: placed.obst.xb, color: placed.color });
     });
 
     // Every mesh of the previous render goes, including the ones an opening no
     // longer justifies - an obst whose &HOLE was deleted belongs in the pool.
     this.disposeOwnMeshes();
 
-    this.opaquePool.setBoxes(opaqueBoxes);
-    this.transparentPool.setBoxes(transparentBoxes);
+    // The pair decides which of its two pools each box belongs in - alpha
+    // blending is a property of the material, so the split is not this
+    // service's rule to keep.
+    this.pool.setBoxes(boxes);
 
     cut.forEach(({ placed, vertexData }) => this.addOwnMesh(
       placed.obst.uuid, vertexData, placed.color[3] < 1, null
@@ -410,13 +407,12 @@ export class ObstService implements SceneScoped {
 
   /** Build the two pools and the opaque back cap, once per scene. */
   private ensurePools(): void {
-    if (this.opaquePool) { return; }
+    if (this.pool) { return; }
 
-    this.opaquePool = new BoxInstancePool(
-      'obstOpaque', this.babylonService.scene, this.helperService, this.sceneRegistry);
-    this.transparentPool = new BoxInstancePool(
-      'obstTransparent', this.babylonService.scene, this.helperService, this.sceneRegistry);
-    this.opaqueCap = this.opaquePool.createTwin('obstBackCapOpaque');
+    this.pool = new BoxPoolPair(
+      'obstOpaque', 'obstTransparent',
+      this.babylonService.scene, this.helperService, this.sceneRegistry);
+    this.opaqueCap = this.pool.opaque.createTwin('obstBackCapOpaque');
   }
 
   /**
@@ -472,14 +468,12 @@ export class ObstService implements SceneScoped {
   public promote(uuid: string): void {
     if (this.ownMeshes.has(uuid)) { return; }
 
-    const pool = this.poolHolding(uuid);
-    if (!pool) { return; }
+    if (!this.pool) { return; }
 
-    const box = pool.boxFor(uuid);
+    const box = this.pool.remove(uuid);
     if (!box) { return; }
 
-    pool.remove(uuid);
-    this.addOwnMesh(uuid, this.boxVertexData(box), pool === this.transparentPool, box);
+    this.addOwnMesh(uuid, this.boxVertexData(box), isTranslucent(box), box);
   }
 
   /** Put an obst that was singled out back into the pool it came from. */
@@ -492,17 +486,7 @@ export class ObstService implements SceneScoped {
     if (own.cap) { own.cap.dispose(); }
     this.ownMeshes.delete(uuid);
 
-    const pool = own.transparent ? this.transparentPool : this.opaquePool;
-    pool.add(own.promotedFrom);
-  }
-
-  /** Which pool currently draws this obst, if either does. */
-  private poolHolding(uuid: string): BoxInstancePool | null {
-    const entry = this.sceneRegistry.entryFor(uuid);
-    if (!entry || entry.instance === undefined) { return null; }
-    if (this.opaquePool && entry.mesh === this.opaquePool.mesh) { return this.opaquePool; }
-    if (this.transparentPool && entry.mesh === this.transparentPool.mesh) { return this.transparentPool; }
-    return null;
+    this.pool.add(own.promotedFrom);
   }
 
   /** The geometry a pooled box is drawn as, baked at its own coordinates. */
@@ -581,11 +565,11 @@ export class ObstService implements SceneScoped {
   private applyMaterials(): void {
     const materials = this.materials;
 
-    if (this.opaquePool && materials.instanced) {
-      this.opaquePool.mesh.material = materials.instanced;
+    if (this.pool && materials.instanced) {
+      this.pool.opaque.mesh.material = materials.instanced;
     }
-    if (this.transparentPool && materials.instancedTransparent) {
-      this.transparentPool.mesh.material = materials.instancedTransparent;
+    if (this.pool && materials.instancedTransparent) {
+      this.pool.transparent.mesh.material = materials.instancedTransparent;
     }
     if (this.opaqueCap && materials.instancedCap) {
       this.opaqueCap.material = materials.instancedCap;
@@ -676,8 +660,7 @@ export class ObstService implements SceneScoped {
   /** Every mesh currently drawing obst geometry the user can see and pick. */
   private solidMeshes(): BABYLON.Mesh[] {
     const meshes: BABYLON.Mesh[] = [];
-    if (this.opaquePool) { meshes.push(this.opaquePool.mesh); }
-    if (this.transparentPool) { meshes.push(this.transparentPool.mesh); }
+    if (this.pool) { meshes.push(...this.pool.meshes); }
     if (this.jsonMesh) { meshes.push(this.jsonMesh); }
     this.ownMeshes.forEach(own => meshes.push(own.solid));
     return meshes;

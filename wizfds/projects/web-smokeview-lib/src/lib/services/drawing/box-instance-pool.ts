@@ -15,6 +15,17 @@ export interface PooledBox {
 }
 
 /**
+ * Whether a box has to be drawn with alpha blending.
+ *
+ * The alpha is what the app resolved from the &SURF, and anything short of
+ * fully opaque decides which of a BoxPoolPair's two pools the box belongs in.
+ * One place says so, because the two paths must never disagree.
+ */
+export function isTranslucent(box: PooledBox): boolean {
+  return (box.color[3] ?? 1) < 1;
+}
+
+/**
  * The thinnest side a box is drawn with, in metres.
  *
  * An &OBST may be written as a sheet - `x1` equal to `x2` - and scaling the base
