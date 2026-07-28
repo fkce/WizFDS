@@ -37,23 +37,42 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     const side = this.viewCubeService.pickSide();
     if (side) { this.viewCubeService.zoomToSide(side); }
 
-    // Select obst
+    // Select obst. Holding shift as well adds to the selection instead of
+    // replacing it, so several obsts can be picked out in turn.
     if (event.ctrlKey) {
-      let pickInfo;
-      pickInfo = this.babylonService.scene.pick(this.babylonService.scene.pointerX, this.babylonService.scene.pointerY, null, null, this.babylonService.camera);
-      if (pickInfo.hit) {
-        // Long enough to cross the whole model from wherever the camera stands.
-        // A fixed length used to do, back when the scene was one unit across.
-        const reach = this.babylonService.camera.radius + 2 * this.sceneBounds.extent;
-        var ray = new BABYLON.Ray(pickInfo.ray.origin, pickInfo.ray.direction, reach);
-        //let rayHelper = new BABYLON.RayHelper(ray);
-        //rayHelper.show(this.babylonService.scene, new BABYLON.Color3(0, 0, 1));
-        this.obstService.selectObst(ray);
-      }
-      else {
-        this.obstService.clearSelection();
-      }
+      this.obstService.selectObst(this.pickingRay(), { add: event.shiftKey });
     }
+  }
+
+  /**
+   * Mark what a ctrl+click would select, while ctrl is held.
+   *
+   * Only while it is held: picking runs against every obst in the scene, and a
+   * scenario at the scale this module is built for holds ten thousand of them -
+   * far too much to redo on every movement of an idle pointer.
+   */
+  @HostListener('pointermove', ['$event'])
+  onPointerMove(event: PointerEvent): void {
+    if (!this.babylonService.scene) return;
+
+    if (event.ctrlKey) {
+      this.obstService.hoverObst(this.pickingRay());
+    } else {
+      this.obstService.clearHover();
+    }
+  }
+
+  /**
+   * A ray from the camera through the pointer, long enough to cross the whole
+   * model from wherever the camera stands. A fixed length used to do, back when
+   * the scene was squeezed into a cube one unit across.
+   */
+  private pickingRay(): BABYLON.Ray {
+    const scene = this.babylonService.scene;
+    const ray = scene.createPickingRay(
+      scene.pointerX, scene.pointerY, null, this.babylonService.camera);
+    ray.length = this.babylonService.camera.radius + 2 * this.sceneBounds.extent;
+    return ray;
   }
 
   showHelp: boolean = false;

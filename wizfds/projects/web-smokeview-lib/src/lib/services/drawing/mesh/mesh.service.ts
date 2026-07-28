@@ -1,18 +1,21 @@
-import { Injectable } from '@angular/core';
+import { Injectable, isDevMode } from '@angular/core';
 import { BabylonService } from '../../babylon/babylon.service';
 import { HelpersService } from '../../helpers/helpers.service';
-import { forEach } from 'lodash';
 import { SceneMesh } from '../scene-input';
 import * as BABYLON from 'babylonjs';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
 import { SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
+import { BoxInstancePool } from '../box-instance-pool';
 
 /**
  * Meshes are drawn as yellow outlines. The colour is the library's own choice -
  * a &MESH has none in the FDS model - so it never crosses the boundary.
  */
 const MESH_COLOR: number[] = [1, 0.815, 0, 0];
+
+/** The outline colour, as the edges renderer wants it. */
+const MESH_EDGE_COLOR = new BABYLON.Color4(1, 0.815, 0, 1);
 
 @Injectable({
   providedIn: 'root'
@@ -21,16 +24,18 @@ export class MeshService implements SceneScoped {
 
   meshes: readonly SceneMesh[] = [];
 
-  vertices: number[] = [];
-  normals: number[] = [];
-  colors: number[] = [];
-  indices: number[] = [];
-
-  mesh;
-  vertexData: BABYLON.VertexData;
   material: BABYLON.ShaderMaterial;
 
   visibility: number = 1;
+
+  /**
+   * Every &MESH is a box, so they are drawn as thin instances of one - the same
+   * representation the obsts use (ADR-0006).
+   */
+  private pool: BoxInstancePool;
+
+  /** In flight while the shader sources are being fetched. */
+  private materialPending: Promise<void> | null = null;
 
   constructor(
     private babylonService: BabylonService,
@@ -42,119 +47,69 @@ export class MeshService implements SceneScoped {
     sceneLifecycle.register(this);
   }
 
-  /** Face ranges collected while building the buffer, registered in render(). */
-  private readonly pendingRegistrations: { uuid: string, first: number, count: number }[] = [];
-
-  /** What this service put in the registry, so a re-render can take it out. */
-  private registeredUuids: string[] = [];
+  /** The base box every &MESH outline is drawn from. */
+  public get mesh(): BABYLON.Mesh | undefined {
+    return this.pool ? this.pool.mesh : undefined;
+  }
 
   /** Release everything tied to the scene that has just been disposed. */
   public resetSceneState(): void {
-    this.mesh = null;
+    this.pool = null;
     this.material = null;
-    this.vertexData = null;
+    this.materialPending = null;
     // renderMeshes() does not restore this, so a stale value would leave the
     // toggle one step out of phase with what is actually drawn
     this.visibility = 1;
-    this.vertices.length = 0;
-    this.normals.length = 0;
-    this.colors.length = 0;
-    this.indices.length = 0;
   }
 
   /**
-   * Reder meshes
+   * Draw the &MESHes of the current scenario.
+   *
+   * An empty list empties the pool rather than leaving the previous scenario's
+   * meshes on screen.
    */
-  public renderMeshes() {
-    // If nothing valid to render, exit early
-    if (!this.meshes || this.meshes.length === 0) {
-      return;
+  public renderMeshes(): void {
+    if (!this.pool) {
+      this.pool = new BoxInstancePool(
+        'meshes', this.babylonService.scene, this.helperService, this.sceneRegistry);
     }
 
-    // Update obsts vertex data
-    this.updateMeshesVertexData();
+    this.pool.setBoxes((this.meshes || []).map((mesh: SceneMesh) => ({
+      uuid: mesh.uuid, xb: mesh.xb, color: MESH_COLOR
+    })));
 
-    // If no geometry, skip render
-    if (!this.vertices.length || !this.indices.length) {
-      return;
-    }
+    this.ensureMaterial();
 
-    // Render data
-    this.render();
+    // Babylon's edges renderer binds world0..world3 off the base mesh and draws
+    // one outline per thin instance, so this covers every &MESH in the scenario.
+    this.pool.mesh.enableEdgesRendering();
+    this.pool.mesh.edgesWidth = this.sceneBounds.outlineWidth;
+    this.pool.mesh.edgesColor = MESH_EDGE_COLOR;
   }
 
   /**
-   * Update meshes vertex data
+   * Build the shader material, once for the scene: it does not depend on what is
+   * being drawn, and rebuilding it per render left orphans behind.
    */
-  private updateMeshesVertexData(): void {
+  private ensureMaterial(): void {
+    if (this.materialPending) { return; }
 
-    // Clear arrays
-    this.vertices.length = 0;
-    this.normals.length = 0;
-    this.colors.length = 0;
-    this.indices.length = 0;
-
-    this.pendingRegistrations.length = 0;
-
-    forEach(this.meshes, (mesh: SceneMesh, index: number) => {
-      const facesBefore = this.indices.length / 3;
-      this.vertices.push(...this.helperService.getVerticesFromXb(mesh.xb));
-      this.colors.push(...this.helperService.getColors(MESH_COLOR));
-      this.indices.push(...this.helperService.getIndices(index));
-      this.pendingRegistrations.push({
-        uuid: mesh.uuid, first: facesBefore, count: this.indices.length / 3 - facesBefore
-      });
-    });
-  }
-
-  /**
-   * Render current mesh geometry
-   */
-  private render() {
-
-    // Dispose existing mesh and material
-    if (this.mesh) { this.mesh.dispose(); }
-    if (this.material) { this.material.dispose(); }
-
-    // Create new custom mesh and vertex data
-    this.mesh = new BABYLON.Mesh("custom", this.babylonService.scene);
-
-    // All meshes share this one buffer, so identity is a face range within it
-    this.registeredUuids.forEach(uuid => this.sceneRegistry.forget(uuid));
-    this.registeredUuids = [];
-    this.pendingRegistrations.forEach(({ uuid, first, count }) => {
-      this.sceneRegistry.register(uuid, { mesh: this.mesh, faces: { first: first, count: count } });
-      this.registeredUuids.push(uuid);
-    });
-
-    // Compute normals
-    BABYLON.VertexData.ComputeNormals(this.vertices, this.indices, this.normals);
-    // Assign data
-    this.vertexData = new BABYLON.VertexData();
-    this.vertexData.positions = this.vertices;
-    this.vertexData.indices = this.indices;
-    this.vertexData.colors = this.colors;
-    this.vertexData.normals = this.normals;
-    this.vertexData.applyToMesh(this.mesh);
-
-    this.babylonService.createShaderMaterial({ name: "shader", shader: "mesh", needAlphaBlending: true })
+    this.materialPending = this.babylonService
+      .createShaderMaterial({
+        name: 'meshShader', shader: 'meshInstanced', fragmentShader: 'mesh',
+        needAlphaBlending: true
+      })
       .then((material) => {
+        if (!this.babylonService.scene) { material.dispose(); return; }
         this.material = material;
-        this.material.setFloat("transparent", 0.0);
+        this.material.setFloat('transparent', this.visibility === 2 ? 1.0 : 0.0);
         this.material.zOffset = 0.04;
         this.material.freeze();
-        this.mesh.material = this.material;
+        if (this.pool) { this.pool.mesh.material = this.material; }
       })
       .catch((e) => {
         console.error('[MeshService] Failed to create the mesh shader material', e);
       });
-    this.mesh.enableEdgesRendering();
-    this.mesh.edgesWidth = this.sceneBounds.outlineWidth;
-    this.mesh.edgesColor = new BABYLON.Color4(1, 0.815, 0, 1);
-
-    // Preformance optimization
-    this.mesh.convertToUnIndexedMesh();
-    this.mesh.freezeWorldMatrix();
   }
 
   /**
@@ -183,5 +138,7 @@ export class MeshService implements SceneScoped {
       this.mesh.edgesWidth = 0.0;
       this.visibility = 0;
     }
+
+    if (isDevMode()) { try { console.debug('[MeshService] visibility', this.visibility); } catch { } }
   }
 }

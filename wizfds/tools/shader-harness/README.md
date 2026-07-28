@@ -29,7 +29,7 @@ Po migracji #82 shadery leżą płasko w `assets/shaders/<nazwa>.<etap>.wgsl`, a
 
 ## Wynik odniesienia
 
-Oczekiwany wynik to `=== ALL 7 SHADERS OK ===`.
+Oczekiwany wynik to `=== ALL 10 SHADERS OK ===`.
 
 Zapis historyczny z audytu 2026-07-26, sprzed #82 — to on uzasadnił usunięcie ścieżki WebGL:
 
@@ -41,4 +41,9 @@ Zapis historyczny z audytu 2026-07-26, sprzed #82 — to on uzasadnił usunięci
 
 ## Dodanie nowego shadera
 
-Dopisz jego nazwę do tablicy `NAMES` w `index.html`. Jeśli shader czyta nietypowe atrybuty wierzchołków, dodaj je w `buildProbeMesh()` oraz na liście `attributes` — tak jak `texture_coordinate` i `blank` na potrzeby `slice`.
+Dopisz wpis do tablicy `SHADERS` w `index.html`. Jeśli shader czyta nietypowe atrybuty wierzchołków, dodaj je w `buildProbeMesh()` oraz na liście `attributes` — tak jak `texture_coordinate` i `blank` na potrzeby `slice`.
+
+Dwa pola opcjonalne:
+
+- `fragment` — nazwa stopnia fragmentu, gdy nie jest własnym. Ścieżka instancjonowana (ADR-0006) ma własny stopień wierzchołka, ale oświetla i przycina fragment dokładnie tak jak ścieżka na wspólnym buforze, więc dzieli z nią plik.
+- `instanced: true` — dokłada sondującemu meshowi jedną thin instance. Bez niej Babylon nigdy nie definiuje `INSTANCES`, atrybuty `world0..world3` i `instanceColor` nie powstają, a shader kompiluje się przeciwko czemuś, czego nie ma.

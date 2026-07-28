@@ -33,8 +33,28 @@
  * Results are also left on window.__RESULTS__ for programmatic inspection.
  */
 
-// Shader names requested by the library through BabylonService.loadShaderSources()
-const NAMES = ['obst', 'obstBackCap', 'mesh', 'vent', 'arrow', 'fire', 'slice'];
+/**
+ * Shaders requested by the library through BabylonService.loadShaderSources().
+ *
+ * `fragment` names the stage when it is not the shader's own: an instanced
+ * vertex stage shares the fragment stage of the buffer-based one, so there is
+ * one place that lights and clips an obst. `instanced` gives the probe mesh a
+ * thin instance, without which Babylon never defines INSTANCES and the shader
+ * compiles against attributes that are not there.
+ */
+const SHADERS = [
+  { name: 'obst' },
+  { name: 'obstBackCap' },
+  { name: 'obstInstanced', fragment: 'obst', instanced: true },
+  { name: 'obstBackCapInstanced', fragment: 'obstBackCap', instanced: true },
+  { name: 'mesh' },
+  { name: 'meshInstanced', fragment: 'mesh', instanced: true },
+  { name: 'vent' },
+  { name: 'arrow' },
+  { name: 'fire' },
+  { name: 'slice' },
+];
+const NAMES = SHADERS.map((shader) => shader.name);
 const COMPILE_TIMEOUT_MS = 6000;
 
 const RESULTS = { engine: null, availability: {}, compile: {} };
@@ -53,39 +73,59 @@ function shaderUrl(name, stage) {
   return `/assets/shaders/${name}.${stage}.wgsl`;
 }
 
+/** Every stage every shader actually reads, each fetched once. */
+function stagesToCheck() {
+  const stages = new Map();
+  for (const shader of SHADERS) {
+    stages.set(`${shader.name}.vertex`, { name: shader.name, stage: 'vertex' });
+    const fragment = shader.fragment || shader.name;
+    stages.set(`${fragment}.fragment`, { name: fragment, stage: 'fragment' });
+  }
+  return [...stages.values()];
+}
+
 async function checkAvailability() {
-  for (const name of NAMES) {
-    for (const stage of ['vertex', 'fragment']) {
-      const url = shaderUrl(name, stage);
-      const r = await fetch(url, { cache: 'no-cache' });
-      const body = await r.text();
-      const missing = body.trimStart().toLowerCase().startsWith('<!doctype');
-      RESULTS.availability[`${name}.${stage}`] = { status: r.status, missing, bytes: body.length };
-      if (missing) log(`MISSING (served index.html, status ${r.status}): ${url}`, 'fail');
-    }
+  for (const { name, stage } of stagesToCheck()) {
+    const url = shaderUrl(name, stage);
+    const r = await fetch(url, { cache: 'no-cache' });
+    const body = await r.text();
+    const missing = body.trimStart().toLowerCase().startsWith('<!doctype');
+    RESULTS.availability[`${name}.${stage}`] = { status: r.status, missing, bytes: body.length };
+    if (missing) log(`MISSING (served index.html, status ${r.status}): ${url}`, 'fail');
   }
 }
 
-async function loadSources(name) {
+async function loadSources(shader) {
   const [v, f] = await Promise.all([
-    fetch(shaderUrl(name, 'vertex'), { cache: 'no-cache' }),
-    fetch(shaderUrl(name, 'fragment'), { cache: 'no-cache' }),
+    fetch(shaderUrl(shader.name, 'vertex'), { cache: 'no-cache' }),
+    fetch(shaderUrl(shader.fragment || shader.name, 'fragment'), { cache: 'no-cache' }),
   ]);
   return { vertexSource: await v.text(), fragmentSource: await f.text() };
 }
 
-function buildProbeMesh(scene, name) {
-  const mesh = BABYLON.MeshBuilder.CreateBox('probe_' + name, { size: 1 }, scene);
+function buildProbeMesh(scene, shader) {
+  const mesh = BABYLON.MeshBuilder.CreateBox('probe_' + shader.name, { size: 1 }, scene);
   const vd = new BABYLON.VertexData();
   vd.positions = mesh.getVerticesData('position');
   vd.indices = mesh.getIndices();
   vd.normals = mesh.getVerticesData('normal');
-  vd.colors = new Array((vd.positions.length / 3) * 4).fill(1);
+  // An instanced shader takes its colour per instance, and a per-vertex one
+  // would have Babylon define VERTEXCOLOR and bind an attribute it never reads.
+  if (!shader.instanced) {
+    vd.colors = new Array((vd.positions.length / 3) * 4).fill(1);
+  }
   vd.applyToMesh(mesh);
   const perVertex = vd.positions.length / 3;
   // slice shaders read these two custom attributes
   mesh.setVerticesData('texture_coordinate', new Float32Array(perVertex), false, 1);
   mesh.setVerticesData('blank', new Float32Array(perVertex), false, 1);
+
+  if (shader.instanced) {
+    // world0..world3 and instanceColor exist only once the mesh has thin
+    // instances - without them an instanced shader compiles against nothing.
+    mesh.thinInstanceSetBuffer('matrix', new Float32Array(BABYLON.Matrix.Identity().asArray()), 16, false);
+    mesh.thinInstanceSetBuffer('color', new Float32Array([1, 1, 1, 1]), 4, false);
+  }
   return mesh;
 }
 
@@ -93,7 +133,8 @@ async function compileAll(scene) {
   // Mirrors what BabylonService does, so include resolution behaves identically
   BABYLON.Effect.ShadersRepository = `${location.origin}/assets/shaders/`;
 
-  for (const name of NAMES) {
+  for (const shader of SHADERS) {
+    const name = shader.name;
     const key = name;
     if (RESULTS.availability[`${name}.vertex`]?.missing) {
       RESULTS.compile[key] = 'SKIPPED (file missing)';
@@ -101,9 +142,9 @@ async function compileAll(scene) {
       continue;
     }
 
-    const sources = await loadSources(name);
+    const sources = await loadSources(shader);
 
-    const mesh = buildProbeMesh(scene, name);
+    const mesh = buildProbeMesh(scene, shader);
     const mat = new BABYLON.ShaderMaterial(name, scene, sources, {
       attributes: ['position', 'normal', 'color', 'texture_coordinate', 'blank'],
       uniforms: ['clipX', 'clipY', 'clipZ', 'transparent', 'is_blank'],

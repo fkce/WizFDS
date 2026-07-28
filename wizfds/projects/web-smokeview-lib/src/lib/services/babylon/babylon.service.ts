@@ -13,12 +13,26 @@ export interface ShaderSources {
   urls: { vertex: string; fragment: string };
 }
 
+/** One stage of one shader, as fetched. */
+interface ShaderStage {
+  source: string;
+  url: string;
+}
+
 /** What actually differs between the library's shader materials. */
 export interface ShaderMaterialSpec {
   /** Material name, as it appears in the scene and in Babylon's diagnostics */
   name: string;
   /** Shader base name under assets/shaders, e.g. 'obst' for obst.{vertex,fragment}.wgsl */
   shader: string;
+  /**
+   * Where the fragment stage comes from, when it is not `shader`.
+   *
+   * A pool of thin instances reads its transform and its colour per instance, so
+   * it needs a vertex stage of its own - but it lights and clips a fragment
+   * exactly as the shared buffers do, and a second copy of that would drift.
+   */
+  fragmentShader?: string;
   /** Defaults to SHADER_INTERFACES[shader].attributes */
   attributes?: string[];
   /** Defaults to SHADER_INTERFACES[shader].uniforms */
@@ -71,9 +85,15 @@ const FRAMING_DIRECTION = new BABYLON.Vector3(0.7, -0.8, 0.55);
 const SHADER_INTERFACES: Record<string, { attributes: string[]; uniforms: string[] }> = {
   obst: { attributes: ['position', 'normal', 'color'], uniforms: ['clipX', 'clipY', 'clipZ'] },
   obstBackCap: { attributes: ['position', 'normal', 'color'], uniforms: ['clipX', 'clipY', 'clipZ'] },
+  // The instanced pair asks for neither `color` nor the world matrix: Babylon
+  // adds world0..world3 and instanceColor itself once the mesh has thin
+  // instances, and listing them here would bind them a second time.
+  obstInstanced: { attributes: ['position', 'normal'], uniforms: ['clipX', 'clipY', 'clipZ'] },
+  obstBackCapInstanced: { attributes: ['position'], uniforms: ['clipX', 'clipY', 'clipZ'] },
   vent: { attributes: ['position', 'normal', 'color'], uniforms: ['clipX', 'clipY', 'clipZ'] },
   fire: { attributes: ['position', 'normal', 'color'], uniforms: ['clipX', 'clipY', 'clipZ', 'transparent'] },
   mesh: { attributes: ['position', 'normal', 'color'], uniforms: ['transparent'] },
+  meshInstanced: { attributes: ['position', 'normal'], uniforms: ['transparent'] },
   arrow: { attributes: ['position', 'normal'], uniforms: [] },
   slice: { attributes: ['position', 'normal', 'color', 'texture_coordinate', 'blank'], uniforms: ['is_blank'] }
 };
@@ -108,11 +128,12 @@ export class BabylonService {
    */
   public webGPUAvailable = true;
 
-  /** Shader name -> in-flight or resolved sources. See loadShaderSources(). */
-  private readonly shaderSources = new Map<string, Promise<ShaderSources>>();
+  /** '<name>.<stage>' -> in-flight or resolved source. See loadShaderSources(). */
+  private readonly shaderSources = new Map<string, Promise<ShaderStage>>();
 
   /** The three lines drawn at the origin, held so they can be redrawn to scale. */
   private worldAxes: BABYLON.LinesMesh[] = [];
+
 
   public constructor(
     private ngZone: NgZone,
@@ -260,12 +281,47 @@ export class BabylonService {
     this.engine.setHardwareScalingLevel(1 / window.devicePixelRatio);
     this.engine.resize();
 
+    // The preview is a viewer: outside an edit the same geometry is drawn frame
+    // after frame, which Babylon has to be told rather than rediscover.
+    this.tuneForStaticScene();
+
     // Holes are cut during the first render, so the CSG backend has to be up
     // before anyone acts on ready$.
     await this.initializeCsg2();
 
     // Announce the scene only now that it is fully built
     this.sceneSubject.next(this.scene);
+  }
+
+  /**
+   * Tell Babylon that the geometry only changes when the user asks it to.
+   *
+   * The preview draws the same scene frame after frame - the camera moves, the
+   * model does not - and #87 asked for the mechanisms Babylon offers for exactly
+   * that. Measured on a WebGPU device against a pool of thin instances, two of
+   * the three break the drawing they are meant to speed up:
+   *
+   * - `snapshotRendering`. As soon as the pool's instance count changes, the
+   *   recorded command buffer stops drawing the pool at all - only its outlines
+   *   survive - and `snapshotRenderingReset()` does not bring it back. That call
+   *   is also `enabled = false; enabled = true`, so it cannot even be used as a
+   *   safe no-op on an engine that never turned snapshot rendering on.
+   * - `ScenePerformancePriority.Aggressive`, which keeps the render state
+   *   between frames. Same symptom on the same trigger, and `resetDrawCache()`
+   *   does not recover it either.
+   *
+   * Intermediate is what is left, and it buys the one that matters at this
+   * scale: Babylon stops picking the whole scene on every pointer move.
+   */
+  public tuneForStaticScene(): void {
+    if (!this.scene) { return; }
+
+    this.scene.performancePriority = BABYLON.ScenePerformancePriority.Intermediate;
+
+    // Which also turns auto-clear off. That is right for a scene that covers the
+    // canvas; a model does not, and whatever it leaves uncovered would keep the
+    // previous frame and smear as the camera orbits.
+    this.scene.autoClear = true;
   }
 
   /**
@@ -332,7 +388,7 @@ export class BabylonService {
    * buffers, so callers describe only what actually differs between them.
    */
   public async createShaderMaterial(spec: ShaderMaterialSpec): Promise<BABYLON.ShaderMaterial> {
-    const sources = await this.loadShaderSources(spec.shader);
+    const sources = await this.loadShaderSources(spec.shader, spec.fragmentShader);
     const shaderInterface = SHADER_INTERFACES[spec.shader];
 
     // Cast: `entryPoint` is honoured at runtime but absent from IShaderMaterialOptions
@@ -357,46 +413,58 @@ export class BabylonService {
    * we fetch the right files - Babylon resolves unknown includes without an
    * error callback, so a wrong URL hangs silently instead of throwing.
    *
-   * Shaders are static assets and several services ask for the same one, so the
+   * The two stages are named separately because they are not always paired:
+   * `obstInstanced` has a vertex stage of its own and shares `obst`'s fragment
+   * stage. Caching per stage rather than per pair is what keeps that one file
+   * one fetch, however many vertex stages point at it.
+   *
+   * @param name shader base name, and the vertex stage's
+   * @param fragmentName where the fragment stage comes from; `name` by default
+   */
+  public loadShaderSources(name: string, fragmentName: string = name): Promise<ShaderSources> {
+    return Promise.all([
+      this.loadShaderStage(name, 'vertex'),
+      this.loadShaderStage(fragmentName, 'fragment')
+    ]).then(([vertex, fragment]) => ({
+      vertexSource: vertex.source,
+      fragmentSource: fragment.source,
+      shaderLanguage: BABYLON.ShaderLanguage.WGSL,
+      urls: { vertex: vertex.url, fragment: fragment.url }
+    }));
+  }
+
+  /**
+   * One stage of one shader, fetched at most once.
+   *
+   * Shaders are static assets and several materials ask for the same one, so the
    * in-flight promise is shared. A failure is not cached, to leave retries open.
    */
-  public loadShaderSources(name: string): Promise<ShaderSources> {
-    const cached = this.shaderSources.get(name);
+  private loadShaderStage(name: string, stage: 'vertex' | 'fragment'): Promise<ShaderStage> {
+    const key = `${name}.${stage}`;
+    const cached = this.shaderSources.get(key);
     if (cached) return cached;
 
-    const pending = this.fetchShaderSources(name);
-    this.shaderSources.set(name, pending);
-    pending.catch(() => this.shaderSources.delete(name));
+    const pending = this.fetchShaderStage(name, stage);
+    this.shaderSources.set(key, pending);
+    pending.catch(() => this.shaderSources.delete(key));
     return pending;
   }
 
-  private async fetchShaderSources(name: string): Promise<ShaderSources> {
-    const base = this.resolveAssetPath(`assets/shaders/${name}`);
-    const vUrl = `${base}.vertex.wgsl`;
-    const fUrl = `${base}.fragment.wgsl`;
+  private async fetchShaderStage(name: string, stage: 'vertex' | 'fragment'): Promise<ShaderStage> {
+    const url = `${this.resolveAssetPath(`assets/shaders/${name}`)}.${stage}.wgsl`;
 
     // Shaders are static assets copied verbatim by the build, so they carry no
     // content hash and their freshness is the server's cache headers to decide.
     // Forcing `no-cache` here only bought a revalidation round-trip per load.
-    const [vRes, fRes] = await Promise.all([
-      fetch(vUrl),
-      fetch(fUrl),
-    ]);
+    const response = await fetch(url);
 
-    if (!vRes.ok || !fRes.ok) {
-      const err = `[BabylonService] Failed to fetch shader(s): ${!vRes.ok ? vUrl : ''} ${!fRes.ok ? fUrl : ''}`;
-      if (isDevMode()) { try { console.error(err, { vStatus: vRes.status, fStatus: fRes.status }); } catch {} }
+    if (!response.ok) {
+      const err = `[BabylonService] Failed to fetch shader: ${url}`;
+      if (isDevMode()) { try { console.error(err, { status: response.status }); } catch {} }
       throw new Error(err);
     }
 
-    const [vertexSource, fragmentSource] = await Promise.all([vRes.text(), fRes.text()]);
-
-    return {
-      vertexSource,
-      fragmentSource,
-      shaderLanguage: BABYLON.ShaderLanguage.WGSL,
-      urls: { vertex: vUrl, fragment: fUrl }
-    };
+    return { source: await response.text(), url: url };
   }
 
   /**

@@ -68,6 +68,38 @@ describe('BabylonService', () => {
     expect(fetchSpy.calls.count()).toBe(2);
   });
 
+  it('pairs an instanced vertex stage with the fragment stage it shares', async () => {
+    // A pool of thin instances reads its colour and its transform per instance,
+    // so it needs a vertex stage of its own - but it lights and clips a fragment
+    // exactly as the shared buffers do, and copying that would let the two drift.
+    const fetchSpy = spyOn(window, 'fetch').and.callFake((input: RequestInfo | URL) =>
+      Promise.resolve(new Response(`// ${String(input)}`, { status: 200 })));
+    const service: BabylonService = TestBed.inject(BabylonService);
+
+    await service.loadShaderSources('obstInstanced', 'obst');
+
+    const urls = fetchSpy.calls.allArgs().map(args => String(args[0]));
+    expect(urls).toContain(jasmine.stringMatching(/\/obstInstanced\.vertex\.wgsl$/));
+    expect(urls).toContain(jasmine.stringMatching(/\/obst\.fragment\.wgsl$/));
+    expect(urls.some(url => url.endsWith('obstInstanced.fragment.wgsl'))).toBeFalse();
+  });
+
+  it('fetches a shared fragment stage once across the shaders that pair with it', async () => {
+    const fetchSpy = spyOn(window, 'fetch').and.callFake((input: RequestInfo | URL) =>
+      Promise.resolve(new Response(`// ${String(input)}`, { status: 200 })));
+    const service: BabylonService = TestBed.inject(BabylonService);
+
+    await Promise.all([
+      service.loadShaderSources('obst'),
+      service.loadShaderSources('obstInstanced', 'obst')
+    ]);
+
+    const fragments = fetchSpy.calls.allArgs()
+      .map(args => String(args[0]))
+      .filter(url => url.endsWith('obst.fragment.wgsl'));
+    expect(fragments.length).toBe(1);
+  });
+
   it('builds a shader material from a shader name', async () => {
     spyOn(window, 'fetch').and.callFake((input: RequestInfo | URL) =>
       Promise.resolve(new Response(`// ${String(input)}`, { status: 200 })));
@@ -179,6 +211,65 @@ describe('BabylonService', () => {
       expect(service.camera.target.x).toBeCloseTo(bounds.center.x, 6);
       expect(service.camera.target.y).toBeCloseTo(bounds.center.y, 6);
       expect(service.camera.target.z).toBeCloseTo(bounds.center.z, 6);
+    });
+  });
+
+  describe('a scene that only changes when the user edits it', () => {
+    // Outside an edit the preview draws the same geometry frame after frame -
+    // the "unused mechanisms for static scenes" part of #87. Two of the three
+    // Babylon offers break thin instances outright; see tuneForStaticScene().
+
+    let service: BabylonService;
+    let engine: BABYLON.NullEngine;
+    let scene: BABYLON.Scene;
+
+    beforeEach(() => {
+      service = TestBed.inject(BabylonService);
+      engine = new BABYLON.NullEngine();
+      scene = new BABYLON.Scene(engine);
+      service.scene = scene;
+      service.engine = engine as any;
+    });
+
+    afterEach(() => {
+      scene.dispose();
+      engine.dispose();
+    });
+
+    it('does not pick the whole scene on every movement of the pointer', () => {
+      // At ten thousand obsts that is ten thousand ray tests per mouse move.
+      // What the library needs picked, it picks itself.
+      service.tuneForStaticScene();
+
+      expect(scene.skipPointerMovePicking).toBe(true);
+    });
+
+    it('still clears the background', () => {
+      // The setting turns auto-clear off, which is right for a scene that covers
+      // the canvas. A model does not: whatever it leaves uncovered would keep the
+      // previous frame and smear as the camera orbits.
+      service.tuneForStaticScene();
+
+      expect(scene.autoClear)
+        .withContext('the background is the clear colour, not geometry')
+        .toBe(true);
+    });
+
+    it('does not keep the render state between frames', () => {
+      // Measured on a WebGPU device: with the aggressive setting, changing a
+      // pool's instance count stops the pool being drawn at all - only its
+      // outlines survive - and resetDrawCache() does not bring it back.
+      service.tuneForStaticScene();
+
+      expect(scene.performancePriority)
+        .not.toBe(BABYLON.ScenePerformancePriority.Aggressive);
+      expect(scene.renderingManager.maintainStateBetweenFrames).toBe(false);
+    });
+
+    it('is safe to call before there is a scene', () => {
+      service.scene = null;
+
+      expect(() => service.tuneForStaticScene()).not.toThrow();
     });
   });
 

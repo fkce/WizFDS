@@ -37,8 +37,20 @@ Pickowanie idzie przez mechanizmy Babylona (z obsługą pickowania thin instance
 
 **Negatywne / do obsłużenia**
 - Dwie ścieżki renderowania = dwie ścieżki do przetestowania; promocja i degradacja obiektu między nimi musi być bezszwowa wizualnie.
-- Rysowanie krawędzi (`enableEdgesRendering`), na którym opiera się dziś czytelność sceny, na thin instances zachowuje się inaczej niż na zwykłych meshach — wymaga własnego rozwiązania (osobna geometria krawędzi albo rysowanie obrysu w shaderze).
+- ~~Rysowanie krawędzi (`enableEdgesRendering`) na thin instances zachowuje się inaczej niż na zwykłych meshach~~ — nieaktualne od Babylona 9. `EdgesRenderer.render()` bindje `world0..world3` z mesha bazowego i rysuje `thinInstanceCount` instancji, więc jedno wywołanie obsługuje całą pulę. Osobna geometria krawędzi ani obrys w shaderze nie były potrzebne (#87).
 - Sortowanie przezroczystości przy instancjonowaniu jest trudniejsze; dzisiejszy podział na mesh nieprzezroczysty i przezroczysty trzeba odtworzyć na poziomie puli instancji.
+
+## Uzupełnienie po wdrożeniu (#87): mechanizmy „statycznej sceny"
+
+Powyżej napisano, że hybryda otwiera drogę do `snapshotRendering` i `scene.performancePriority`. Zmierzone na urządzeniu WebGPU (Babylon 9.18, `tools/shader-harness` + sterowanie Playwrightem) — **dwa z trzech ustawień psują właśnie to rysowanie, które mają przyspieszyć**:
+
+| Ustawienie | Wynik |
+|---|---|
+| `ScenePerformancePriority.Intermediate` | działa; wyłącza pickowanie całej sceny przy każdym ruchu myszy — przy 10 000 instancji to 10 000 testów promienia na `pointermove`. Wyłącza też `autoClear`, które trzeba przywrócić: model nie zakrywa całego kanwasu i tło rozmazywałoby się przy obrocie kamery. |
+| `ScenePerformancePriority.Aggressive` | **psuje**. Po zmianie `thinInstanceCount` pula przestaje być rysowana w ogóle — zostają same krawędzie — a `scene.resetDrawCache()` tego nie cofa. |
+| `engine.snapshotRendering` (tryb STANDARD) | **psuje**. Ten sam objaw po tym samym wyzwalaczu, a `snapshotRenderingReset()` go nie naprawia. Dodatkowo `reset()` to w Babylonie `enabled = false; enabled = true`, więc nie da się go użyć nawet jako bezpiecznego no-opa na silniku, który nigdy nie włączył snapshotów. |
+
+Zmiany uniformów (suwaki przycinania, kamera) przechodzą przez snapshot poprawnie — pęka wyłącznie zmiana strukturalna puli. Ponieważ promocja i degradacja obiektu (rdzeń tej decyzji) jest właśnie taką zmianą, włączone zostaje wyłącznie `Intermediate`. Do tematu można wrócić, gdy Babylon to naprawi.
 
 ## Rozważone alternatywy
 
