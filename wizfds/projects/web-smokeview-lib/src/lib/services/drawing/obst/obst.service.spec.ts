@@ -505,6 +505,22 @@ describe('ObstService', () => {
       expect(scene.getMeshByName('obstBackCapOpaque').isVisible).toBe(false);
     });
 
+    it('pushes the back cap in front of the surface it fills', async () => {
+      // The cap is drawn from the same triangles as the obst, so at equal depth
+      // the two z-fight and the cap's red bleeds through the whole model instead
+      // of showing only where a clipping plane cuts into it.
+      service.obsts = [makeObst('W1', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 })];
+      service.holes = [];
+      service.renderObsts();
+      await settleMaterials();
+
+      const cap = scene.getMeshByName('obstBackCapOpaque');
+      expect(cap.material.zOffset).toBeLessThan(0);
+      expect(service.opaqueMesh.material.zOffset)
+        .withContext('the solid surface itself stays where it is')
+        .toBe(0);
+    });
+
     it('carries clip values set before the materials arrived', async () => {
       TestBed.inject(SceneBoundsService).setFrom([{ x1: 0, x2: 10, y1: 0, y2: 8, z1: 0, z2: 4 }]);
       service.clip(5, 'x');

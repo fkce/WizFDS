@@ -41,6 +41,14 @@ interface OwnMesh {
   readonly promotedFrom: PooledBox | null
 }
 
+/**
+ * How far towards the camera a back cap is pushed.
+ *
+ * It is drawn from the same triangles as the surface it fills, so at equal
+ * depth the two z-fight and the cap's red bleeds through the whole model.
+ */
+const CAP_Z_OFFSET = -0.01;
+
 /** Colour of the outline around a selected obst. */
 const SELECTED_COLOR = new BABYLON.Color4(0.09, 0.49, 0.99, 1);
 
@@ -550,7 +558,12 @@ export class ObstService implements SceneScoped {
         if (!material) { return; }
         // Only the caps cull: they draw the inward-facing triangles a clipping
         // plane exposes, and the solid materials have to show both sides.
-        material.backFaceCulling = material === instancedCap || material === ownCap;
+        const isCap = material === instancedCap || material === ownCap;
+        material.backFaceCulling = isCap;
+        // A cap sits on exactly the same triangles as the surface it fills, so
+        // without this the two z-fight and the cap's red bleeds through the
+        // whole model rather than showing only where a plane cuts through it.
+        if (isCap) { material.zOffset = CAP_Z_OFFSET; }
         this.applyClipTo(material);
         material.freeze();
       });
