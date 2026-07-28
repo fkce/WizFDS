@@ -43,6 +43,7 @@ describe('drawing a scenario', () => {
         useValue: {
           scene: scene,
           camera: { setPosition: () => { }, setTarget: () => { } },
+          applySceneBounds: () => { },
           // No WGSL is served in the suite; the drawing services treat a missing
           // shader as non-fatal and still build their meshes.
           loadShaderSources: () => Promise.reject(new Error('no shader assets under test')),

@@ -36,7 +36,6 @@ export class Open {
         this.surf_id = base.surf_id || 'OPEN';
 
 		this.vis = {};
-		this.vis.xbNorm = (base.vis) ? new Xb(JSON.stringify(base.vis.xbNorm)) : new Xb(JSON.stringify({}));
 		this.vis.colorNorm = (base.vis) ? get(base, 'vis.colorNorm', [1, 1, 1, 1]) : [1, 1, 1, 1];
     }
 

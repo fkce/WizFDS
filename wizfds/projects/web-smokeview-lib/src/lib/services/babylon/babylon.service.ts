@@ -3,6 +3,7 @@ import * as BABYLON from 'babylonjs';
 import 'babylonjs-materials';
 import { BehaviorSubject } from 'rxjs';
 import { SceneLifecycleService } from './scene-lifecycle.service';
+import { SceneBoundsService } from '../scene-bounds/scene-bounds.service';
 
 /** WGSL sources for one shader, plus the URLs they came from (for diagnostics). */
 export interface ShaderSources {
@@ -24,6 +25,29 @@ export interface ShaderMaterialSpec {
   uniforms?: string[];
   needAlphaBlending?: boolean;
 }
+
+/**
+ * Camera settings, as multiples of the model's longest side.
+ *
+ * They used to be the literals below tuned for a scene squeezed into a unit
+ * cube, where that side measured exactly 1. Keeping them as ratios is what makes
+ * a five-metre room and a four-hundred-metre tunnel behave the same (ADR-0002) -
+ * including the near/far ratio, on which depth precision depends.
+ */
+const CAMERA = {
+  nearPlane: 0.01,
+  farPlane: 1000,
+  /** Wheel notches per unit of radius - hence divided by, not multiplied. */
+  wheelPrecision: 500,
+  /** Pixels per unit of pan - divided by as well. */
+  panningSensibility: 10000,
+  minRadius: 0.1,
+  maxRadius: 50,
+  /** How far back the camera stands when a model is first framed. */
+  framingRadius: 2,
+  /** Length of the world axes drawn at the origin. */
+  axisLength: 0.1
+};
 
 /**
  * The attributes and uniforms each shader in assets/shaders declares.
@@ -76,9 +100,13 @@ export class BabylonService {
   /** Shader name -> in-flight or resolved sources. See loadShaderSources(). */
   private readonly shaderSources = new Map<string, Promise<ShaderSources>>();
 
+  /** The three lines drawn at the origin, held so they can be redrawn to scale. */
+  private worldAxes: BABYLON.LinesMesh[] = [];
+
   public constructor(
     private ngZone: NgZone,
-    private sceneLifecycle: SceneLifecycleService
+    private sceneLifecycle: SceneLifecycleService,
+    private sceneBounds: SceneBoundsService
   ) { }
 
   /**
@@ -141,6 +169,9 @@ export class BabylonService {
       this.engine = null;
     }
 
+    // The scene took them with it; this is about not redrawing over corpses
+    this.worldAxes = [];
+
     this.removeResizeListener();
     this.sceneLifecycle.reset();
   }
@@ -198,22 +229,16 @@ export class BabylonService {
 
     // Parameters: alpha, beta, radius, target position, scene
     this.camera = new BABYLON.ArcRotateCamera("Camera", 0, 0, 2, BABYLON.Vector3.Zero(), this.scene);
-    this.camera.minZ = 0.01;
-    this.camera.maxZ = 1000;
-    this.camera.wheelPrecision = 500;
+    // Right-handed with Z up, as in FDS - see docs/adr/0002-wspolrzedne-w-metrach.md
     this.camera.upVector = new BABYLON.Vector3(0, 0, 1);
-    this.camera.lowerRadiusLimit = 0.1;
-    this.camera.upperRadiusLimit = 50; // Increased from 5 to allow wider view
-    this.camera.panningSensibility = 10000;
 
-    // Positions the camera overwriting alpha, beta, radius
-    this.camera.setPosition(new BABYLON.Vector3(1, 1, 1));
+    // Everything else about the camera, and the world axes, follows from how big
+    // the model is. Nothing has been measured yet, so this frames the default
+    // box; SmokeviewApiService calls it again once it knows the scenario.
+    this.applySceneBounds();
 
     // This attaches the camera to the canvas
     this.camera.attachControl(this.canvas, true);
-
-    // Generates the world x-y-z axis for better understanding
-    this.showWorldAxis(0.1);
 
     this.scene.activeCameras.push(this.camera);
 
@@ -364,33 +389,74 @@ export class BabylonService {
   }
 
   /**
-   * Create the world axes
-   * Source: https://doc.babylonjs.com/snippets/world_axes
-   * @param size number
+   * Point the camera at the model that has just been measured, and size
+   * everything that depends on how big it is.
+   *
+   * Called once when the scene is built - against the default box, so an empty
+   * scenario still has a usable camera - and again by SmokeviewApiService each
+   * time it knows what it is about to draw. Sizing the camera here rather than
+   * in a drawing service is what lets a scenario with no &OBST be framed at all.
    */
-  public showWorldAxis(size: number) {
+  public applySceneBounds(): void {
+    if (!this.scene || !this.camera) { return; }
 
-    const axisX = BABYLON.Mesh.CreateLines('axisX',
-      [
-        BABYLON.Vector3.Zero(),
-        new BABYLON.Vector3(size, 0, 0), new BABYLON.Vector3(size * 0.95, 0.05 * size, 0),
-        new BABYLON.Vector3(size, 0, 0), new BABYLON.Vector3(size * 0.95, -0.05 * size, 0)
-      ], this.scene, false);
-    axisX.color = new BABYLON.Color3(1, 0, 0);
+    const extent = this.sceneBounds.extent;
+    const center = this.sceneBounds.center;
 
-    const axisY = BABYLON.Mesh.CreateLines('axisY',
-      [
-        BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, size, 0), new BABYLON.Vector3(-0.05 * size, size * 0.95, 0),
-        new BABYLON.Vector3(0, size, 0), new BABYLON.Vector3(0.05 * size, size * 0.95, 0)
-      ], this.scene, false);
-    axisY.color = new BABYLON.Color3(0, 1, 0);
+    this.camera.minZ = CAMERA.nearPlane * extent;
+    this.camera.maxZ = CAMERA.farPlane * extent;
+    this.camera.wheelPrecision = CAMERA.wheelPrecision / extent;
+    this.camera.panningSensibility = CAMERA.panningSensibility / extent;
+    this.camera.lowerRadiusLimit = CAMERA.minRadius * extent;
+    this.camera.upperRadiusLimit = CAMERA.maxRadius * extent;
 
-    const axisZ = BABYLON.Mesh.CreateLines('axisZ',
-      [
-        BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, 0, size), new BABYLON.Vector3(0, -0.05 * size, size * 0.95),
-        new BABYLON.Vector3(0, 0, size), new BABYLON.Vector3(0, 0.05 * size, size * 0.95)
-      ], this.scene, false);
-    axisZ.color = new BABYLON.Color3(0, 0, 1);
+    // Position first, then target: setTarget() rebuilds alpha, beta and radius
+    // from wherever the camera currently stands.
+    const target = new BABYLON.Vector3(center.x, center.y, center.z);
+    this.camera.setPosition(new BABYLON.Vector3(
+      center.x, center.y, center.z + CAMERA.framingRadius * extent
+    ));
+    this.camera.setTarget(target);
+
+    this.drawWorldAxes(CAMERA.axisLength * extent);
+  }
+
+  /**
+   * Draw the x-y-z axes at the FDS origin, at a length the model can be seen
+   * against. Redrawn rather than scaled, because there is one set per scene and
+   * it is cheap.
+   *
+   * Source: https://doc.babylonjs.com/snippets/world_axes
+   */
+  private drawWorldAxes(size: number): void {
+    this.worldAxes.forEach(axis => axis.dispose());
+    this.worldAxes = [];
+
+    const arrow = (name: string, points: BABYLON.Vector3[], color: BABYLON.Color3) => {
+      const axis = BABYLON.MeshBuilder.CreateLines(name, { points: points }, this.scene);
+      axis.color = color;
+      // A ctrl+click near the origin must reach the geometry behind them
+      axis.isPickable = false;
+      this.worldAxes.push(axis);
+    };
+
+    arrow('axisX', [
+      BABYLON.Vector3.Zero(),
+      new BABYLON.Vector3(size, 0, 0), new BABYLON.Vector3(size * 0.95, 0.05 * size, 0),
+      new BABYLON.Vector3(size, 0, 0), new BABYLON.Vector3(size * 0.95, -0.05 * size, 0)
+    ], new BABYLON.Color3(1, 0, 0));
+
+    arrow('axisY', [
+      BABYLON.Vector3.Zero(),
+      new BABYLON.Vector3(0, size, 0), new BABYLON.Vector3(-0.05 * size, size * 0.95, 0),
+      new BABYLON.Vector3(0, size, 0), new BABYLON.Vector3(0.05 * size, size * 0.95, 0)
+    ], new BABYLON.Color3(0, 1, 0));
+
+    arrow('axisZ', [
+      BABYLON.Vector3.Zero(),
+      new BABYLON.Vector3(0, 0, size), new BABYLON.Vector3(0, -0.05 * size, size * 0.95),
+      new BABYLON.Vector3(0, 0, size), new BABYLON.Vector3(0, 0.05 * size, size * 0.95)
+    ], new BABYLON.Color3(0, 0, 1));
   }
 
 }

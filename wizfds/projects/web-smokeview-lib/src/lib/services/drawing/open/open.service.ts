@@ -2,16 +2,11 @@ import { Injectable } from '@angular/core';
 import { BabylonService } from '../../babylon/babylon.service';
 import { HelpersService } from '../../helpers/helpers.service';
 import { forEach } from 'lodash';
-import { SceneOpen, SceneXb } from '../scene-input';
+import { SceneOpen } from '../scene-input';
 import * as BABYLON from 'babylonjs';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
-
-/** An opening as the app gave it, paired with where the library puts it. */
-interface PlacedOpen {
-  readonly open: SceneOpen,
-  readonly xbNorm: SceneXb
-}
+import { SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 
 @Injectable({
   providedIn: 'root'
@@ -33,6 +28,7 @@ export class OpenService implements SceneScoped {
   constructor(
     private babylonService: BabylonService,
     private helperService: HelpersService,
+    private sceneBounds: SceneBoundsService,
     private sceneRegistry: SceneRegistryService,
     sceneLifecycle: SceneLifecycleService
   ) {
@@ -42,13 +38,9 @@ export class OpenService implements SceneScoped {
   /** What this service put in the registry, so a re-render can take it out. */
   private registeredUuids: string[] = [];
 
-  /** Where each opening of the last render went. Built here, never written back. */
-  private placed: PlacedOpen[] = [];
-
   /** Release everything tied to the scene that has just been disposed. */
   public resetSceneState(): void {
     this.meshes.length = 0;
-    this.placed.length = 0;
     this.material = null;
     this.vertexData = null;
     // render() does not restore this, so a stale value would leave the toggle
@@ -66,9 +58,6 @@ export class OpenService implements SceneScoped {
   public renderOpens() {
 
     this.disposePreviousOpens();
-
-    // Work out where every opening goes
-    this.placed = this.placeOpens();
 
     // Render data
     this.render();
@@ -94,20 +83,11 @@ export class OpenService implements SceneScoped {
   }
 
   /**
-   * Place the openings in the scene.
+   * Render current open geometry
    *
    * Openings are drawn green - the colour is the library's own choice, an `OPEN`
-   * vent has none in the FDS model - so it never crosses the boundary.
-   */
-  private placeOpens(): PlacedOpen[] {
-    return (this.opens || []).map((open: SceneOpen) => ({
-      open: open,
-      xbNorm: this.helperService.normalizeXb(open.xb)
-    }));
-  }
-
-  /**
-   * Render current open geometry
+   * vent has none in the FDS model - so it never crosses the boundary. Their
+   * boxes need no placing: the scene is in FDS metres 1:1 (ADR-0002).
    */
   private render() {
 
@@ -116,25 +96,23 @@ export class OpenService implements SceneScoped {
     this.material.alpha = 0.0;
     this.material.zOffset = -0.06;
 
-    if (this.placed.length > 0) {
-      forEach(this.placed, (placed: PlacedOpen, index: number) => {
-        let options: any = this.helperService.getPlaneDimFromXb(placed.xbNorm);
-        this.meshes.push(BABYLON.MeshBuilder.CreatePlane("plane", { height: options.height, width: options.width, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, this.babylonService.scene));
-        this.meshes[index].material = this.material;
-        this.meshes[index].rotate(options.rotate, Math.PI / 2);
-        this.meshes[index].position = options.center;
-        this.meshes[index].enableEdgesRendering();
-        this.meshes[index].edgesWidth = 0.1;
-        this.meshes[index].edgesColor = new BABYLON.Color4(0, 1, 0, 1);
-        // Preformance optimization
-        this.meshes[index].convertToUnIndexedMesh();
-        this.meshes[index].freezeWorldMatrix();
+    forEach(this.opens, (open: SceneOpen, index: number) => {
+      let options: any = this.helperService.getPlaneDimFromXb(open.xb);
+      this.meshes.push(BABYLON.MeshBuilder.CreatePlane("plane", { height: options.height, width: options.width, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, this.babylonService.scene));
+      this.meshes[index].material = this.material;
+      this.meshes[index].rotate(options.rotate, Math.PI / 2);
+      this.meshes[index].position = options.center;
+      this.meshes[index].enableEdgesRendering();
+      this.meshes[index].edgesWidth = this.sceneBounds.outlineWidth;
+      this.meshes[index].edgesColor = new BABYLON.Color4(0, 1, 0, 1);
+      // Preformance optimization
+      this.meshes[index].convertToUnIndexedMesh();
+      this.meshes[index].freezeWorldMatrix();
 
-        // One plane per opening, so the mesh alone identifies it
-        this.sceneRegistry.register(placed.open.uuid, { mesh: this.meshes[index] });
-        this.registeredUuids.push(placed.open.uuid);
-      });
-    }
+      // One plane per opening, so the mesh alone identifies it
+      this.sceneRegistry.register(open.uuid, { mesh: this.meshes[index] });
+      this.registeredUuids.push(open.uuid);
+    });
   }
 
   /**
@@ -149,7 +127,7 @@ export class OpenService implements SceneScoped {
       this.material.alpha = 0.0;
       forEach(this.meshes, (mesh: BABYLON.Mesh) => {
         //mesh.material.alpha = 0.0;
-        mesh.edgesWidth = 0.1;
+        mesh.edgesWidth = this.sceneBounds.outlineWidth;
       });
       this.visibility = 1;
     }
@@ -158,7 +136,7 @@ export class OpenService implements SceneScoped {
       this.material.alpha = 0.3;
       forEach(this.meshes, (mesh: BABYLON.Mesh) => {
         //mesh.material.alpha = 0.3;
-        mesh.edgesWidth = 0.1;
+        mesh.edgesWidth = this.sceneBounds.outlineWidth;
       });
       this.visibility = 2;
     }

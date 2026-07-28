@@ -12,12 +12,11 @@
  */
 
 /**
- * An axis-aligned box.
+ * An axis-aligned box, in FDS metres.
  *
- * The same shape serves for the FDS coordinates that cross the boundary and for
- * the unit-cube coordinates the library normalises them into. Squeezing the scene
- * into a unit cube is the library's own business, and it goes away in Phase 2
- * (#86) - at which point the two are the same thing (ADR-0002).
+ * There is no second coordinate system: the scene is drawn in metres 1:1 with
+ * its origin at the FDS origin (ADR-0002), so this is both what crosses the
+ * boundary and what the library draws.
  */
 export interface SceneXb {
     readonly x1: number,

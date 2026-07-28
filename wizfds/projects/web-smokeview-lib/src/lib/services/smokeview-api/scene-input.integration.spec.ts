@@ -96,6 +96,7 @@ describe('rendering a scene input', () => {
         useValue: {
           scene: scene,
           camera: { setPosition: () => { }, setTarget: () => { } },
+          applySceneBounds: () => { },
           loadShaderSources: () => Promise.reject(new Error('no shader assets under test')),
           createShaderMaterial: (spec: { name: string }) => Promise.resolve(
             new BABYLON.ShaderMaterial(spec.name, scene, { vertexSource: '', fragmentSource: '' }, {})

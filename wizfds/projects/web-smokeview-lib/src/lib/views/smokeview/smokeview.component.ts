@@ -15,6 +15,7 @@ import { OpenService } from '../../services/drawing/open/open.service';
 import { VentService } from '../../services/drawing/vent/vent.service';
 import { JetfanService } from '../../services/drawing/jetfan/jetfan.service';
 import { FireService } from '../../services/drawing/fire/fire.service';
+import { SceneAxis, SceneBoundsService } from '../../services/scene-bounds/scene-bounds.service';
 
 @Component({
     selector: 'lib-smokeview',
@@ -33,15 +34,18 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!this.babylonService.scene) return;
 
     // Control camera
-    let pickInfoViewCube = this.babylonService.scene.pick(this.babylonService.scene.pointerX, this.babylonService.scene.pointerY, null, null, this.viewCubeService.cameraViewCube);
-    if (pickInfoViewCube.hit) { this.viewCubeService.zoomToSide(pickInfoViewCube.pickedMesh.name); }
+    const side = this.viewCubeService.pickSide();
+    if (side) { this.viewCubeService.zoomToSide(side); }
 
     // Select obst
     if (event.ctrlKey) {
       let pickInfo;
       pickInfo = this.babylonService.scene.pick(this.babylonService.scene.pointerX, this.babylonService.scene.pointerY, null, null, this.babylonService.camera);
       if (pickInfo.hit) {
-        var ray = new BABYLON.Ray(pickInfo.ray.origin, pickInfo.ray.direction, 4);
+        // Long enough to cross the whole model from wherever the camera stands.
+        // A fixed length used to do, back when the scene was one unit across.
+        const reach = this.babylonService.camera.radius + 2 * this.sceneBounds.extent;
+        var ray = new BABYLON.Ray(pickInfo.ray.origin, pickInfo.ray.direction, reach);
         //let rayHelper = new BABYLON.RayHelper(ray);
         //rayHelper.show(this.babylonService.scene, new BABYLON.Color3(0, 0, 1));
         this.obstService.selectObst(ray);
@@ -78,9 +82,43 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     public playerService: PlayerService,
     public inputService: InputService,
     public viewCubeService: ViewCubeService,
+    private sceneBounds: SceneBoundsService,
     private smokeviewApiService: SmokeviewApiService
   ) { }
 
+  /**
+   * The clip sliders run in FDS metres, over the model's own extent.
+   *
+   * The value they carry is the coordinate of the cutting plane - the number the
+   * user can read off and type straight into a `.fds` file (ADR-0002). Where a
+   * slider can be dragged to follows from the model, so a five-metre room and a
+   * four-hundred-metre tunnel both get a slider worth dragging.
+   */
+  public clipMin(axis: SceneAxis): number { return this.sceneBounds.clipMin(axis); }
+  public clipMax(axis: SceneAxis): number { return this.sceneBounds.clipMax(axis); }
+  public clipStep(axis: SceneAxis): number { return this.sceneBounds.clipStep(axis); }
+
+  /** Where a clipping plane currently cuts, in metres. */
+  public clipPlane(axis: SceneAxis): number {
+    return this.obstService.clipPlane(axis);
+  }
+
+  /** Rounded to a centimetre - finer than any geometry FDS is given. */
+  public clipLabel(axis: SceneAxis): string {
+    return `${this.clipPlane(axis).toFixed(2)} m`;
+  }
+
+  /**
+   * Move one clipping plane, across every element type it cuts through.
+   *
+   * Each drawing service owns its own materials, so each has to be told; the
+   * plane is the same coordinate for all of them.
+   */
+  public setClip(axis: SceneAxis, metres: number): void {
+    this.obstService.clip(metres, axis);
+    this.fireService.clip(metres, axis);
+    this.ventService.clipBasic(metres, axis);
+  }
 
   ngOnInit() {
     // Decided on first paint, so an unsupported browser sees the message

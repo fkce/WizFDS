@@ -64,7 +64,6 @@ export class Mesh {
         this.calcIjk();
 
 		this.vis = {};
-		this.vis.xbNorm = (base.vis) ? new Xb(JSON.stringify(base.vis.xbNorm)) : new Xb(JSON.stringify({}));
 		this.vis.colorNorm = (base.vis) ? get(base, 'vis.colorNorm', [1, 1, 1, 1]) : [1, 1, 1, 1];
     }
 

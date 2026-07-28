@@ -7,6 +7,8 @@ import { BabylonService } from '../../babylon/babylon.service';
 import { HelpersService } from '../../helpers/helpers.service';
 import { DerivedVent, VentService } from '../vent/vent.service';
 import { SceneJetfan, SceneJetfanDirection, SceneXb } from '../scene-input';
+import { jetfanDrawnBox } from './jetfan-box';
+import { SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 
 /**
  * A jetfan as the app gave it, paired with everything the library worked out
@@ -15,25 +17,30 @@ import { SceneJetfan, SceneJetfanDirection, SceneXb } from '../scene-input';
  */
 interface PlacedJetfan {
   readonly jetfan: SceneJetfan,
-  readonly xbNorm: SceneXb,
+  /** The box it is actually drawn as - see jetfanDrawnBox(). */
+  readonly xb: SceneXb,
   /** The colour as a flat rgba array, ready for the vertex buffer. */
   readonly color: number[],
-  readonly ventInXbNorm: SceneXb,
-  readonly ventOutXbNorm: SceneXb
+  readonly ventInXb: SceneXb,
+  readonly ventOutXb: SceneXb
 }
-
-/**
- * The box drawn for a jetfan whose coordinates are all zero.
- *
- * A jetfan is normally placed in CAD; until it is, the scenario holds no
- * geometry for it and there is nothing to draw. Rather than a degenerate point,
- * the preview shows a stand-in box - which is how it has always behaved.
- */
-const UNPLACED_JETFAN_XB: SceneXb = { x1: 2.0, x2: 8.0, y1: 3.0, y2: 5.0, z1: 1.0, z2: 3.0 };
 
 /** The inlet plane is blue, the outlet red. Both are the library's own choice. */
 const VENT_IN_COLOR: number[] = [0.0, 0.0, 1.0, 0.8];
 const VENT_OUT_COLOR: number[] = [1.0, 0.0, 0.0, 0.8];
+
+/**
+ * The flow arrow, in metres.
+ *
+ * Physical sizes rather than fractions of the model: a jetfan is a piece of
+ * equipment of a known size, and its arrow reads as part of it. They used to be
+ * divided by the normalisation factor to reach the same result the long way
+ * round.
+ */
+const ARROW_LENGTH = 0.4;
+const ARROW_RADIUS = 0.05;
+/** How far outside the outlet plane the arrow stands. */
+const ARROW_OFFSET = 0.2;
 
 @Injectable({
   providedIn: 'root'
@@ -51,10 +58,10 @@ export class JetfanService implements SceneScoped {
   public arrowMeshes: BABYLON.Mesh[] = [];
   public arrowMaterial: BABYLON.ShaderMaterial;
 
-  // Clipping
-  public clipX: number = 0;
-  public clipY: number = 0;
-  public clipZ: number = 0;
+  /** Where the three clipping planes stand, in FDS metres. */
+  public clipX: number;
+  public clipY: number;
+  public clipZ: number;
 
   /** What this service put in the registry, so a re-render can take it out. */
   private registeredUuids: string[] = [];
@@ -66,10 +73,24 @@ export class JetfanService implements SceneScoped {
     private babylonService: BabylonService,
     private helpersService: HelpersService,
     private ventService: VentService,
+    private sceneBounds: SceneBoundsService,
     private sceneRegistry: SceneRegistryService,
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
+    this.resetClipping();
+  }
+
+  /**
+   * Pull the clipping planes back to showing the whole model - the planes are
+   * coordinates, so they mean nothing once the model changes. See
+   * SmokeviewApiService.render().
+   */
+  public resetClipping(): void {
+    this.clipX = this.sceneBounds.openClipAt('x');
+    this.clipY = this.sceneBounds.openClipAt('y');
+    this.clipZ = this.sceneBounds.openClipAt('z');
+    this.clip();
   }
 
   /** Release everything tied to the scene that has just been disposed. */
@@ -108,33 +129,21 @@ export class JetfanService implements SceneScoped {
   }
 
   /**
-   * Place the jetfans in the scene, and with them the two planes each one blows
-   * between.
+   * Work out how each jetfan is drawn, and with it the two planes it blows
+   * between. The boxes are FDS metres, which is what the scene is in (ADR-0002).
    */
   private placeJetfans(): PlacedJetfan[] {
-    const boxes = (this.jetfans || []).map((jetfan: SceneJetfan) => this.boxFor(jetfan));
-
-    // A scenario with neither &MESH nor &OBST still has to be drawn somewhere
-    this.helpersService.ensureBounds(boxes);
-
-    return (this.jetfans || []).map((jetfan: SceneJetfan, index: number) => {
-      const xbNorm = this.helpersService.normalizeXb(boxes[index]);
-      const faces = this.ventFaces(xbNorm, jetfan.direction);
+    return (this.jetfans || []).map((jetfan: SceneJetfan) => {
+      const xb = jetfanDrawnBox(jetfan);
+      const faces = this.ventFaces(xb, jetfan.direction);
       return {
         jetfan: jetfan,
-        xbNorm: xbNorm,
+        xb: xb,
         color: this.helpersService.toRgba(jetfan.color),
-        ventInXbNorm: faces.in,
-        ventOutXbNorm: faces.out
+        ventInXb: faces.in,
+        ventOutXb: faces.out
       };
     });
-  }
-
-  /** The box to draw a jetfan as, standing in for one that was never placed. */
-  private boxFor(jetfan: SceneJetfan): SceneXb {
-    const xb = jetfan.xb;
-    const isUnplaced = xb.x1 === xb.x2 && xb.y1 === xb.y2 && xb.z1 === xb.z2 && xb.x1 === 0;
-    return isUnplaced ? UNPLACED_JETFAN_XB : xb;
   }
 
   /**
@@ -143,24 +152,24 @@ export class JetfanService implements SceneScoped {
    * Both are degenerate boxes - one pair of coordinates collapsed onto the other -
    * which is exactly what HelpersService.generateVentGeometry() draws as a plane.
    */
-  private ventFaces(xbNorm: SceneXb, direction: SceneJetfanDirection): { in: SceneXb, out: SceneXb } {
+  private ventFaces(xb: SceneXb, direction: SceneJetfanDirection): { in: SceneXb, out: SceneXb } {
     switch (direction) {
       case '+x':
-        return { in: { ...xbNorm, x2: xbNorm.x1 }, out: { ...xbNorm, x1: xbNorm.x2 } };
+        return { in: { ...xb, x2: xb.x1 }, out: { ...xb, x1: xb.x2 } };
       case '-x':
-        return { in: { ...xbNorm, x1: xbNorm.x2 }, out: { ...xbNorm, x2: xbNorm.x1 } };
+        return { in: { ...xb, x1: xb.x2 }, out: { ...xb, x2: xb.x1 } };
       case '+y':
-        return { in: { ...xbNorm, y2: xbNorm.y1 }, out: { ...xbNorm, y1: xbNorm.y2 } };
+        return { in: { ...xb, y2: xb.y1 }, out: { ...xb, y1: xb.y2 } };
       case '-y':
-        return { in: { ...xbNorm, y1: xbNorm.y2 }, out: { ...xbNorm, y2: xbNorm.y1 } };
+        return { in: { ...xb, y1: xb.y2 }, out: { ...xb, y2: xb.y1 } };
       case '+z':
-        return { in: { ...xbNorm, z2: xbNorm.z1 }, out: { ...xbNorm, z1: xbNorm.z2 } };
+        return { in: { ...xb, z2: xb.z1 }, out: { ...xb, z1: xb.z2 } };
       case '-z':
-        return { in: { ...xbNorm, z1: xbNorm.z2 }, out: { ...xbNorm, z2: xbNorm.z1 } };
+        return { in: { ...xb, z1: xb.z2 }, out: { ...xb, z2: xb.z1 } };
       default:
         // The contract narrows direction to the six above; a scenario carrying
         // anything else is normalised on the way in - see the app's mapper.
-        return { in: { ...xbNorm, x2: xbNorm.x1 }, out: { ...xbNorm, x1: xbNorm.x2 } };
+        return { in: { ...xb, x2: xb.x1 }, out: { ...xb, x1: xb.x2 } };
     }
   }
 
@@ -169,23 +178,18 @@ export class JetfanService implements SceneScoped {
    */
   private createFlowArrow(placed: PlacedJetfan): BABYLON.Mesh {
     // Calculate arrow position at the center of the outlet plane
-    const xbNorm = placed.ventOutXbNorm;
-    const centerX = (xbNorm.x1 + xbNorm.x2) / 2;
-    const centerY = (xbNorm.y1 + xbNorm.y2) / 2;
-    const centerZ = (xbNorm.z1 + xbNorm.z2) / 2;
+    const xb = placed.ventOutXb;
+    const centerX = (xb.x1 + xb.x2) / 2;
+    const centerY = (xb.y1 + xb.y2) / 2;
+    const centerZ = (xb.z1 + xb.z2) / 2;
 
     const id = placed.jetfan.id;
     const direction = placed.jetfan.direction;
 
-    // Define arrow dimensions in real units (meters)
-    const realArrowLength = 0.4; // 1 meter arrow length
-    const realArrowRadius = 0.05;  // 0.1 meter arrow radius
-    const realOffset = 0.2;       // 2 meter offset from vent
-
-    // Convert to normalized scale using normDelta
-    const arrowLength = realArrowLength / this.helpersService.normDelta;
-    const arrowRadius = realArrowRadius / this.helpersService.normDelta;
-    const offset = realOffset / this.helpersService.normDelta;
+    // Metres, straight into the scene - it is drawn 1:1 (ADR-0002)
+    const arrowLength = ARROW_LENGTH;
+    const arrowRadius = ARROW_RADIUS;
+    const offset = ARROW_OFFSET;
 
     // Create arrow shaft (cylinder)
     const shaft = BABYLON.MeshBuilder.CreateCylinder(
@@ -307,7 +311,7 @@ export class JetfanService implements SceneScoped {
       const facesBefore = indices.length / 3;
 
       // Generate jetfan geometry (box like obst) - using exact same pattern as obst service
-      vertices.push(...this.helpersService.getVerticesFromXb(placed.xbNorm));
+      vertices.push(...this.helpersService.getVerticesFromXb(placed.xb));
       colors.push(...this.helpersService.getColors(placed.color));
       indices.push(...this.helpersService.getIndices(isTransparent ? indexCountTransparent : indexCount));
       if (isTransparent) {
@@ -351,8 +355,8 @@ export class JetfanService implements SceneScoped {
     // jetfan body is what a pick resolves to.
     const derivedVents: DerivedVent[] = [];
     this.placed.forEach((placed: PlacedJetfan) => {
-      derivedVents.push({ xbNorm: placed.ventInXbNorm, color: VENT_IN_COLOR });
-      derivedVents.push({ xbNorm: placed.ventOutXbNorm, color: VENT_OUT_COLOR });
+      derivedVents.push({ xb: placed.ventInXb, color: VENT_IN_COLOR });
+      derivedVents.push({ xb: placed.ventOutXb, color: VENT_OUT_COLOR });
     });
     this.ventService.vents = derivedVents;
     await this.ventService.render();
@@ -400,9 +404,7 @@ export class JetfanService implements SceneScoped {
         name: "jetfanShader",
         shader: "obst"
       });
-      this.material.setFloat("clipX", -1.1);  // Default clipping values like obst service
-      this.material.setFloat("clipY", -1.1);
-      this.material.setFloat("clipZ", 1.1);
+      this.applyClipTo(this.material);
       this.material.backFaceCulling = false;
       this.material.freeze(); // Freeze material for performance like obst service
 
@@ -410,7 +412,7 @@ export class JetfanService implements SceneScoped {
 
       // Enable edges rendering by default (consistent with obst service)
       this.mesh.enableEdgesRendering();
-      this.mesh.edgesWidth = 0.05;
+      this.mesh.edgesWidth = this.sceneBounds.edgeWidth;
       this.mesh.edgesColor = new BABYLON.Color4(0.4, 0.4, 0.4, 1);
     }
 
@@ -438,9 +440,7 @@ export class JetfanService implements SceneScoped {
         shader: "obst",
         needAlphaBlending: true
       });
-      this.materialTransparent.setFloat("clipX", -1.1);  // Default clipping values like obst service
-      this.materialTransparent.setFloat("clipY", -1.1);
-      this.materialTransparent.setFloat("clipZ", 1.1);
+      this.applyClipTo(this.materialTransparent);
       this.materialTransparent.backFaceCulling = false;
       this.materialTransparent.freeze(); // Freeze material for performance like obst service
 
@@ -448,7 +448,7 @@ export class JetfanService implements SceneScoped {
 
       // Enable edges rendering by default for transparent mesh too
       this._meshTransparent.enableEdgesRendering();
-      this._meshTransparent.edgesWidth = 0.05;
+      this._meshTransparent.edgesWidth = this.sceneBounds.edgeWidth;
       this._meshTransparent.edgesColor = new BABYLON.Color4(0.4, 0.4, 0.4, 1);
     }
 
@@ -473,7 +473,7 @@ export class JetfanService implements SceneScoped {
     if (this.mesh) {
       if (enabled) {
         this.mesh.enableEdgesRendering();
-        this.mesh.edgesWidth = 0.05;
+        this.mesh.edgesWidth = this.sceneBounds.edgeWidth;
         this.mesh.edgesColor = new BABYLON.Color4(0.4, 0.4, 0.4, 1);
       } else {
         this.mesh.disableEdgesRendering();
@@ -485,7 +485,7 @@ export class JetfanService implements SceneScoped {
     if (this._meshTransparent) {
       if (enabled) {
         this._meshTransparent.enableEdgesRendering();
-        this._meshTransparent.edgesWidth = 0.05;
+        this._meshTransparent.edgesWidth = this.sceneBounds.edgeWidth;
         this._meshTransparent.edgesColor = new BABYLON.Color4(0.4, 0.4, 0.4, 1);
       } else {
         this._meshTransparent.disableEdgesRendering();
@@ -501,23 +501,28 @@ export class JetfanService implements SceneScoped {
    * Apply clipping to jetfans and their vents
    */
   public clip() {
-    if (this.material) {
-      this.material.setFloat('clipX', this.clipX);
-      this.material.setFloat('clipY', this.clipY);
-      this.material.setFloat('clipZ', this.clipZ);
-    }
-
-    if (this.materialTransparent) {
-      this.materialTransparent.setFloat('clipX', this.clipX);
-      this.materialTransparent.setFloat('clipY', this.clipY);
-      this.materialTransparent.setFloat('clipZ', this.clipZ);
-    }
+    this.applyClipTo(this.material);
+    this.applyClipTo(this.materialTransparent);
 
     // Apply clipping to vents as well
     this.ventService.clipX = this.clipX;
     this.ventService.clipY = this.clipY;
     this.ventService.clipZ = this.clipZ;
     this.ventService.clip();
+  }
+
+  /**
+   * Push the clipping planes onto a material.
+   *
+   * A material built while the planes sat where they are has to start out
+   * agreeing with them, which is why this runs on creation too - otherwise it
+   * would start from the shader's own defaults and clip half the model away.
+   */
+  private applyClipTo(material: BABYLON.ShaderMaterial): void {
+    if (!material) { return; }
+    material.setFloat('clipX', this.clipX);
+    material.setFloat('clipY', this.clipY);
+    material.setFloat('clipZ', this.clipZ);
   }
 
   /**

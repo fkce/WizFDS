@@ -5,12 +5,12 @@ import { SceneRegistryService } from '../../babylon/scene-registry.service';
 
 import { BabylonService } from '../../babylon/babylon.service';
 import { HelpersService } from '../../helpers/helpers.service';
-import { SceneFire, SceneXb } from '../scene-input';
+import { SceneFire } from '../scene-input';
+import { SceneAxis, SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 
-/** A fire as the app gave it, paired with where the library puts it. */
+/** A fire as the app gave it, paired with the colour it is drawn in. */
 interface PlacedFire {
   readonly fire: SceneFire,
-  readonly xbNorm: SceneXb,
   /** The colour as a flat rgba array, ready for the vertex buffer. */
   readonly color: number[]
 }
@@ -24,13 +24,10 @@ export class FireService implements SceneScoped {
   public mesh: BABYLON.Mesh;
   public material: BABYLON.ShaderMaterial;
 
-  // Clipping
-  public clipX: number = 0;
-  public clipY: number = 0;
-  public clipZ: number = 100;
-  private clipXNorm: number = -1.1;
-  private clipYNorm: number = -1.1;
-  private clipZNorm: number = 1.1;
+  /** Where the three clipping planes stand, in FDS metres. */
+  public clipX: number;
+  public clipY: number;
+  public clipZ: number;
 
   // 3-state visibility toggle: 0=edges only, 1=edges+semi-transparent, 2=hidden
   public visibility: number = 0;
@@ -38,10 +35,36 @@ export class FireService implements SceneScoped {
   constructor(
     private babylonService: BabylonService,
     private helpersService: HelpersService,
+    private sceneBounds: SceneBoundsService,
     private sceneRegistry: SceneRegistryService,
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
+    this.resetClipping();
+  }
+
+  /**
+   * Pull the clipping planes back to showing the whole model - the planes are
+   * coordinates, so they mean nothing once the model changes. See
+   * SmokeviewApiService.render().
+   */
+  public resetClipping(): void {
+    this.clipX = this.sceneBounds.openClipAt('x');
+    this.clipY = this.sceneBounds.openClipAt('y');
+    this.clipZ = this.sceneBounds.openClipAt('z');
+    this.applyClipTo(this.material);
+  }
+
+  /**
+   * Push the planes onto a material. The sliders are live from the first frame,
+   * while the material is still being fetched, so a material built afterwards
+   * reads them back rather than starting from the shader's defaults.
+   */
+  private applyClipTo(material: BABYLON.ShaderMaterial): void {
+    if (!material) { return; }
+    material.setFloat("clipX", this.clipX);
+    material.setFloat("clipY", this.clipY);
+    material.setFloat("clipZ", this.clipZ);
   }
 
   /** Face ranges collected while building the buffer, registered in renderFires(). */
@@ -58,15 +81,15 @@ export class FireService implements SceneScoped {
   }
 
   /**
-   * Place the fires in the scene, against the bounds the meshes established.
+   * Work out how each fire is drawn.
    *
    * A fire is drawn as the plane of its &VENT in the colour of its &SURF; both
-   * arrive resolved, so there is nothing to look up here.
+   * arrive resolved, so there is nothing to look up here, and the plane stands
+   * exactly where the scenario puts it (ADR-0002).
    */
   private placeFires(): PlacedFire[] {
     return (this.fires || []).map((fire: SceneFire) => ({
       fire: fire,
-      xbNorm: this.helpersService.normalizeXb(fire.xb),
       color: this.helpersService.toRgba(fire.color)
     }));
   }
@@ -85,7 +108,7 @@ export class FireService implements SceneScoped {
 
     placed.forEach((placedFire: PlacedFire) => {
       const facesBefore = indices.length / 3;
-      const geom = this.helpersService.generateVentGeometry(placedFire.xbNorm);
+      const geom = this.helpersService.generateVentGeometry(placedFire.fire.xb);
 
       vertices.push(...geom.vertices);
       normals.push(...geom.normals);
@@ -158,9 +181,7 @@ export class FireService implements SceneScoped {
 
     this.material.backFaceCulling = false;
     this.material.zOffset = -0.02;
-    this.material.setFloat("clipX", this.clipXNorm);
-    this.material.setFloat("clipY", this.clipYNorm);
-    this.material.setFloat("clipZ", this.clipZNorm);
+    this.applyClipTo(this.material);
     // Initial state: edges only (transparent=0.0)
     this.material.setFloat("transparent", 0.0);
 
@@ -168,7 +189,7 @@ export class FireService implements SceneScoped {
 
     // Red edges
     this.mesh.enableEdgesRendering();
-    this.mesh.edgesWidth = 0.1;
+    this.mesh.edgesWidth = this.sceneBounds.outlineWidth;
     this.mesh.edgesColor = new BABYLON.Color4(1, 0, 0, 1);
 
     this.mesh.freezeWorldMatrix();
@@ -189,7 +210,7 @@ export class FireService implements SceneScoped {
     if (this.visibility == 0) {
       // Show edges + semi-transparent fill
       this.material.setFloat('transparent', 0.6);
-      this.mesh.edgesWidth = 0.1;
+      this.mesh.edgesWidth = this.sceneBounds.outlineWidth;
       this.visibility = 1;
     } else if (this.visibility == 1) {
       // Hide all
@@ -199,44 +220,22 @@ export class FireService implements SceneScoped {
     } else if (this.visibility == 2) {
       // Show edges only
       this.material.setFloat('transparent', 0.0);
-      this.mesh.edgesWidth = 0.1;
+      this.mesh.edgesWidth = this.sceneBounds.outlineWidth;
       this.visibility = 0;
     }
   }
 
   /**
-   * Clip fire mesh
-   * @param value percentage 0-100
+   * Move a clipping plane
+   * @param value the plane's coordinate, in FDS metres
    * @param direction x, y, z
    */
-  public clip(value: number, direction: string) {
-    if (!this.material) return;
+  public clip(value: number, direction: SceneAxis) {
+    if (direction == 'x') { this.clipX = value; }
+    else if (direction == 'y') { this.clipY = value; }
+    else { this.clipZ = value; }
 
-    const globalBounds = {
-      x: this.helpersService.normXMax || 1,
-      y: this.helpersService.normYMax || 1,
-      z: this.helpersService.normZMax || 1
-    };
-
-    if (direction == 'x') {
-      this.clipX = value;
-      let clip = (value == 100) ? 1.1 : globalBounds.x * (value / 100);
-      clip = (value == 0) ? -1.1 : clip;
-      this.material.setFloat("clipX", clip);
-      this.clipXNorm = clip;
-    } else if (direction == 'y') {
-      this.clipY = value;
-      let clip = (value == 100) ? 1.1 : globalBounds.y * (value / 100);
-      clip = (value == 0) ? -1.1 : clip;
-      this.material.setFloat("clipY", clip);
-      this.clipYNorm = clip;
-    } else if (direction == 'z') {
-      this.clipZ = value;
-      let clip = (value == 100) ? 1.1 : globalBounds.z * (value / 100);
-      clip = (value == 0) ? -1.1 : clip;
-      this.material.setFloat("clipZ", clip);
-      this.clipZNorm = clip;
-    }
+    this.applyClipTo(this.material);
   }
 
   /**

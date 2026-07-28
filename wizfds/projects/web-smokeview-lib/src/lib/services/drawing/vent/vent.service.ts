@@ -6,25 +6,34 @@ import { FaceRange, SceneRegistryService } from '../../babylon/scene-registry.se
 import { BabylonService } from '../../babylon/babylon.service';
 import { HelpersService } from '../../helpers/helpers.service';
 import { SceneVent, SceneXb } from '../scene-input';
+import { SceneAxis, SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 
 /**
  * A plane the library draws in its own right, rather than an element of the
  * scenario.
  *
  * The inlet and the outlet of a jetfan are derived from its box and its
- * direction: there is no &VENT behind them, nothing identifies them, and they
- * are handed over in scene coordinates already.
+ * direction: there is no &VENT behind them and nothing identifies them.
  */
 export interface DerivedVent {
-  readonly xbNorm: SceneXb,
+  readonly xb: SceneXb,
   /** The colour as a flat rgba array, ready for the vertex buffer. */
   readonly color: number[]
 }
 
-/** A &VENT as the app gave it, paired with where the library puts it. */
+/**
+ * How heavily the jetfan planes are outlined, as a fraction of the model's
+ * longest side.
+ *
+ * Far heavier than anything else in the scene, and deliberately so - this is the
+ * old constant 2, which meant exactly this much back when the scene was squeezed
+ * into a cube one unit across.
+ */
+const DERIVED_VENT_EDGE_RATIO = 2;
+
+/** A &VENT as the app gave it, paired with the colour it is drawn in. */
 interface PlacedVent {
   readonly vent: SceneVent,
-  readonly xbNorm: SceneXb,
   /** The colour as a flat rgba array, ready for the vertex buffer. */
   readonly color: number[]
 }
@@ -41,18 +50,20 @@ export class VentService implements SceneScoped {
   public material: BABYLON.ShaderMaterial;
   public materialTransparent: BABYLON.ShaderMaterial;
 
-  // Clipping (jetfan vents)
-  public clipX: number = 0;
-  public clipY: number = 0;
-  public clipZ: number = 0;
+  /** Where the clipping planes stand for the jetfan planes, in FDS metres. */
+  public clipX: number;
+  public clipY: number;
+  public clipZ: number;
 
   // Basic vents (separate from jetfan vents)
   public basicVents: readonly SceneVent[] = [];
   public basicMeshGroups: { mesh: BABYLON.Mesh, material: BABYLON.ShaderMaterial, edgeColor: BABYLON.Color4 }[] = [];
   public basicVisibility: number = 0; // 0=edges only, 1=edges+semi-transparent, 2=hidden
-  private basicClipXNorm: number = -1.1;
-  private basicClipYNorm: number = -1.1;
-  private basicClipZNorm: number = 1.1;
+
+  /** Where the three clipping planes stand for the &VENTs, in FDS metres. */
+  private basicClipX: number;
+  private basicClipY: number;
+  private basicClipZ: number;
 
   /** What this service put in the registry, so a re-render can take it out. */
   private registeredBasicUuids: string[] = [];
@@ -60,10 +71,25 @@ export class VentService implements SceneScoped {
   constructor(
     private babylonService: BabylonService,
     private helpersService: HelpersService,
+    private sceneBounds: SceneBoundsService,
     private sceneRegistry: SceneRegistryService,
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
+    this.resetClipping();
+  }
+
+  /**
+   * Pull the clipping planes back to showing the whole model - the planes are
+   * coordinates, so they mean nothing once the model changes. See
+   * SmokeviewApiService.render().
+   */
+  public resetClipping(): void {
+    this.clipX = this.basicClipX = this.sceneBounds.openClipAt('x');
+    this.clipY = this.basicClipY = this.sceneBounds.openClipAt('y');
+    this.clipZ = this.basicClipZ = this.sceneBounds.openClipAt('z');
+    this.clip();
+    this.pushBasicClipToMaterials();
   }
 
   /** Release everything tied to the scene that has just been disposed. */
@@ -136,7 +162,7 @@ export class VentService implements SceneScoped {
       const currentIndexCount = isTransparent ? indexCountTransparent : indexCount;
 
       // Generate vent geometry (plane)
-      const ventGeometry = this.helpersService.generateVentGeometry(vent.xbNorm);
+      const ventGeometry = this.helpersService.generateVentGeometry(vent.xb);
 
       // Add vertices
       vertices.push(...ventGeometry.vertices);
@@ -257,7 +283,7 @@ export class VentService implements SceneScoped {
     if (this.mesh) {
       if (show) {
         this.mesh.enableEdgesRendering();
-        this.mesh.edgesWidth = 2;
+        this.mesh.edgesWidth = DERIVED_VENT_EDGE_RATIO * this.sceneBounds.extent;
         this.mesh.edgesColor = BABYLON.Color4.FromInts(0, 0, 0, 255);
       } else {
         this.mesh.disableEdgesRendering();
@@ -267,7 +293,7 @@ export class VentService implements SceneScoped {
     if (this._meshTransparent) {
       if (show) {
         this._meshTransparent.enableEdgesRendering();
-        this._meshTransparent.edgesWidth = 2;
+        this._meshTransparent.edgesWidth = DERIVED_VENT_EDGE_RATIO * this.sceneBounds.extent;
         this._meshTransparent.edgesColor = BABYLON.Color4.FromInts(0, 0, 0, 255);
       } else {
         this._meshTransparent.disableEdgesRendering();
@@ -279,17 +305,12 @@ export class VentService implements SceneScoped {
    * Apply clipping to vents
    */
   public clip() {
-    if (this.material) {
-      this.material.setFloat('clipX', this.clipX);
-      this.material.setFloat('clipY', this.clipY);
-      this.material.setFloat('clipZ', this.clipZ);
-    }
-
-    if (this.materialTransparent) {
-      this.materialTransparent.setFloat('clipX', this.clipX);
-      this.materialTransparent.setFloat('clipY', this.clipY);
-      this.materialTransparent.setFloat('clipZ', this.clipZ);
-    }
+    [this.material, this.materialTransparent].forEach((material: BABYLON.ShaderMaterial) => {
+      if (!material) { return; }
+      material.setFloat('clipX', this.clipX);
+      material.setFloat('clipY', this.clipY);
+      material.setFloat('clipZ', this.clipZ);
+    });
   }
 
   /**
@@ -312,14 +333,13 @@ export class VentService implements SceneScoped {
   // ==========================================
 
   /**
-   * Place the ventilation vents in the scene, against the bounds the meshes
-   * established. Their colours arrive resolved from the &SURF, so there is
-   * nothing to look up here.
+   * Work out how each ventilation vent is drawn. Their colours arrive resolved
+   * from the &SURF, so there is nothing to look up here, and the planes stand
+   * exactly where the scenario puts them (ADR-0002).
    */
   private placeBasicVents(): PlacedVent[] {
     return (this.basicVents || []).map((vent: SceneVent) => ({
       vent: vent,
-      xbNorm: this.helpersService.normalizeXb(vent.xb),
       color: this.helpersService.toRgba(vent.color)
     }));
   }
@@ -346,7 +366,7 @@ export class VentService implements SceneScoped {
       // Read afterwards rather than computed: nothing here may assume a fixed
       // triangle count per vent.
       const facesBefore = indices.length / 3;
-      const geom = this.helpersService.generateVentGeometry(placedVent.xbNorm);
+      const geom = this.helpersService.generateVentGeometry(placedVent.vent.xb);
 
       vertices.push(...geom.vertices);
       normals.push(...geom.normals);
@@ -428,9 +448,9 @@ export class VentService implements SceneScoped {
 
       material.backFaceCulling = false;
       material.zOffset = -0.015;
-      material.setFloat("clipX", this.basicClipXNorm);
-      material.setFloat("clipY", this.basicClipYNorm);
-      material.setFloat("clipZ", this.basicClipZNorm);
+      material.setFloat("clipX", this.basicClipX);
+      material.setFloat("clipY", this.basicClipY);
+      material.setFloat("clipZ", this.basicClipZ);
       material.setFloat("transparent", 0.0);
 
       mesh.material = material;
@@ -440,7 +460,7 @@ export class VentService implements SceneScoped {
       const edgeColor = new BABYLON.Color4(cn[0], cn[1], cn[2], 1);
 
       mesh.enableEdgesRendering();
-      mesh.edgesWidth = 0.1;
+      mesh.edgesWidth = this.sceneBounds.outlineWidth;
       mesh.edgesColor = edgeColor;
 
       mesh.freezeWorldMatrix();
@@ -465,7 +485,7 @@ export class VentService implements SceneScoped {
     if (this.basicVisibility == 0) {
       this.basicMeshGroups.forEach(g => {
         g.material.setFloat('transparent', 0.6);
-        g.mesh.edgesWidth = 0.1;
+        g.mesh.edgesWidth = this.sceneBounds.outlineWidth;
       });
       this.basicVisibility = 1;
     } else if (this.basicVisibility == 1) {
@@ -477,48 +497,35 @@ export class VentService implements SceneScoped {
     } else if (this.basicVisibility == 2) {
       this.basicMeshGroups.forEach(g => {
         g.material.setFloat('transparent', 0.0);
-        g.mesh.edgesWidth = 0.1;
+        g.mesh.edgesWidth = this.sceneBounds.outlineWidth;
       });
       this.basicVisibility = 0;
     }
   }
 
   /**
-   * Clip basic vent meshes
-   * @param value percentage 0-100
+   * Move a clipping plane for the &VENTs
+   * @param value the plane's coordinate, in FDS metres
    * @param direction x, y, z
    */
-  public clipBasic(value: number, direction: string) {
-    if (this.basicMeshGroups.length === 0) return;
+  public clipBasic(value: number, direction: SceneAxis) {
+    if (direction == 'x') { this.basicClipX = value; }
+    else if (direction == 'y') { this.basicClipY = value; }
+    else { this.basicClipZ = value; }
 
-    const globalBounds = {
-      x: this.helpersService.normXMax || 1,
-      y: this.helpersService.normYMax || 1,
-      z: this.helpersService.normZMax || 1
-    };
+    this.pushBasicClipToMaterials();
+  }
 
-    let clip: number;
-    let uniform: string;
-
-    if (direction == 'x') {
-      clip = (value == 100) ? 1.1 : globalBounds.x * (value / 100);
-      clip = (value == 0) ? -1.1 : clip;
-      uniform = "clipX";
-      this.basicClipXNorm = clip;
-    } else if (direction == 'y') {
-      clip = (value == 100) ? 1.1 : globalBounds.y * (value / 100);
-      clip = (value == 0) ? -1.1 : clip;
-      uniform = "clipY";
-      this.basicClipYNorm = clip;
-    } else if (direction == 'z') {
-      clip = (value == 100) ? 1.1 : globalBounds.z * (value / 100);
-      clip = (value == 0) ? -1.1 : clip;
-      uniform = "clipZ";
-      this.basicClipZNorm = clip;
-    }
-
+  /**
+   * Push the planes onto every group that exists. The slider is live before
+   * anything is drawn; renderBasicVents() reads them back when it builds a
+   * material.
+   */
+  private pushBasicClipToMaterials(): void {
     this.basicMeshGroups.forEach(g => {
-      g.material.setFloat(uniform, clip);
+      g.material.setFloat('clipX', this.basicClipX);
+      g.material.setFloat('clipY', this.basicClipY);
+      g.material.setFloat('clipZ', this.basicClipZ);
     });
   }
 

@@ -20,20 +20,20 @@ export class HoleService {
   /**
    * Cut a set of openings out of an obst and return the resulting mesh.
    *
-   * Everything here is in scene coordinates, worked out by the caller: the obst
-   * and the holes are the app's elements and are never written to (ADR-0004), so
-   * where they landed is not something this service can read off them.
+   * Everything here is in FDS metres, which is what the scene is drawn in
+   * (ADR-0002). The caller passes the boxes rather than the elements: they belong
+   * to the app and are never written to (ADR-0004).
    *
    * @param id the obst's FDS name, used to name the temporary meshes
-   * @param obstXbNorm the obst's box in scene coordinates
-   * @param holeXbsNorm the boxes to subtract from it, in scene coordinates
+   * @param obstXb the obst's box, in metres
+   * @param holeXbs the boxes to subtract from it, in metres
    * @returns the cut mesh, or null when the obst should be drawn solid instead
    */
   public cutHoles(
-    id: string, obstXbNorm: SceneXb, holeXbsNorm: readonly SceneXb[], scene: BABYLON.Scene
+    id: string, obstXb: SceneXb, holeXbs: readonly SceneXb[], scene: BABYLON.Scene
   ): BABYLON.Mesh | null {
     // If no holes, return null (will use standard obst rendering)
-    if (!holeXbsNorm || holeXbsNorm.length === 0) {
+    if (!holeXbs || holeXbs.length === 0) {
       return null;
     }
 
@@ -46,17 +46,17 @@ export class HoleService {
 
     try {
       // Create base obst geometry
-      const obstMesh = this.createBox(`obstBase_${id}`, obstXbNorm, scene);
+      const obstMesh = this.createBox(`obstBase_${id}`, obstXb, scene);
       // Make the obstMesh invisible during processing (it will be disposed anyway)
       obstMesh.isVisible = false;
 
       let resultMesh = obstMesh;
 
       // Process each hole
-      holeXbsNorm.forEach((holeXbNorm, index) => {
+      holeXbs.forEach((holeXb, index) => {
         try {
           // Create hole geometry
-          const holeMesh = this.createBox(`hole_${id}_${index}`, holeXbNorm, scene);
+          const holeMesh = this.createBox(`hole_${id}_${index}`, holeXb, scene);
           // Make hole mesh invisible (it's only used for CSG, not rendering)
           holeMesh.isVisible = false;
 
@@ -105,7 +105,7 @@ export class HoleService {
     }
   }
 
-  /** A box standing exactly where its scene coordinates put it. */
+  /** A box standing exactly where its FDS coordinates put it. */
   private createBox(name: string, xb: SceneXb, scene: BABYLON.Scene): BABYLON.Mesh {
     const width = xb.x2 - xb.x1;
     const height = xb.y2 - xb.y1;
@@ -150,10 +150,6 @@ export class HoleService {
 
   /**
    * Check if a hole intersects with an obst.
-   *
-   * Works on the FDS coordinates rather than on the scene ones: holes are matched
-   * to obsts before either has been placed in the scene. Normalisation is a
-   * translation plus a positive scaling, so it preserves intersection anyway.
    *
    * A &HOLE normally cuts all the way through a wall and overhangs its outline -
    * that is how doors and windows are written - so this is an overlap test, not a

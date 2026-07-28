@@ -178,10 +178,10 @@ describe('VentService', () => {
 
   describe('derived vents', () => {
     // The inlet and outlet planes of a jetfan are drawings, not elements of the
-    // scenario, so they arrive in scene coordinates and carry no identity.
+    // scenario, so they carry no identity.
 
     it('draws a translucent derived vent into the transparent buffer', async () => {
-      service.vents = [{ xbNorm: plane(0, 0.2, 0, 0.2, 0.1), color: [0, 0, 1, 0.8] }];
+      service.vents = [{ xb: plane(0, 0.2, 0, 0.2, 0.1), color: [0, 0, 1, 0.8] }];
 
       await service.render();
 
@@ -190,7 +190,7 @@ describe('VentService', () => {
     });
 
     it('draws an opaque derived vent into the opaque buffer', async () => {
-      service.vents = [{ xbNorm: plane(0, 0.2, 0, 0.2, 0.1), color: [0, 0, 1, 1] }];
+      service.vents = [{ xb: plane(0, 0.2, 0, 0.2, 0.1), color: [0, 0, 1, 1] }];
 
       await service.render();
 

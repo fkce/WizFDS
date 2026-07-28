@@ -2,8 +2,20 @@ import { Injectable, isDevMode } from '@angular/core';
 import { BabylonService } from '../babylon.service';
 import * as BABYLON from 'babylonjs';
 import { cloneDeep, toNumber } from 'lodash';
-import { ObstService } from '../../drawing/obst/obst.service';
+import { SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 import { SceneLifecycleService, SceneScoped } from '../scene-lifecycle.service';
+
+/**
+ * The layer the cube and its hit boxes live on.
+ *
+ * A bit outside the default mask, so the main camera - which keeps the default -
+ * draws none of them, and the cube's own camera draws nothing else. The cube used
+ * to be hidden from the main view by standing a thousand units away instead;
+ * that only worked while the whole scene was one unit across, and stopped once
+ * the scene became metres 1:1 (ADR-0002), which is when a hundred-metre model
+ * started showing up behind the cube.
+ */
+const VIEW_CUBE_LAYER = 0x10000000;
 
 @Injectable({
   providedIn: 'root'
@@ -48,7 +60,7 @@ export class ViewCubeService implements SceneScoped {
 
   constructor(
     private babylonService: BabylonService,
-    private obstService: ObstService,
+    private sceneBounds: SceneBoundsService,
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
@@ -210,6 +222,26 @@ export class ViewCubeService implements SceneScoped {
     this.createFrontLeftBox();
     this.createBackRightBox();
     this.createBackLeftBox();
+
+    this.isolateOnOwnLayer();
+  }
+
+  /**
+   * Put everything this service built on its own rendering layer.
+   *
+   * Assigned by type rather than by name, for the same reason resetSceneState()
+   * is: naming thirty-odd meshes would be a list the next added face or box
+   * silently drops out of - and one missing entry is a box floating in the middle
+   * of the model.
+   */
+  private isolateOnOwnLayer(): void {
+    Object.keys(this).forEach(key => {
+      const value = (this as any)[key];
+      if (value instanceof BABYLON.AbstractMesh) {
+        value.layerMask = VIEW_CUBE_LAYER;
+      }
+    });
+    this.cameraViewCube.layerMask = VIEW_CUBE_LAYER;
   }
 
   /**
@@ -311,6 +343,28 @@ export class ViewCubeService implements SceneScoped {
   }
 
   /**
+   * Which face or corner of the cube is under the pointer, if any.
+   *
+   * Restricted to the cube's own layer, because scene.pick() does not honour
+   * layer masks the way rendering does: the obst mesh would otherwise answer
+   * first for most of the cube's corner of the screen - and it does, for any
+   * scenario carrying an element at the FDS sentinel, whose box surrounds the
+   * cube's camera on every side.
+   */
+  public pickSide(): string | null {
+    const scene = this.babylonService.scene;
+    if (!scene || !this.cameraViewCube) { return null; }
+
+    const hit = scene.pick(scene.pointerX, scene.pointerY,
+      (mesh: BABYLON.AbstractMesh) =>
+        mesh.isPickable && mesh.isEnabled() && mesh.isVisible &&
+        (mesh.layerMask & VIEW_CUBE_LAYER) !== 0,
+      null, this.cameraViewCube);
+
+    return (hit && hit.hit && hit.pickedMesh) ? hit.pickedMesh.name : null;
+  }
+
+  /**
    * Zoom to side
    */
   public zoomToSide(side: string) {
@@ -402,10 +456,17 @@ export class ViewCubeService implements SceneScoped {
    */
   public animate(cameraVector: BABYLON.Vector3) {
 
-    let bounding = cloneDeep(this.obstService.mesh.getBoundingInfo().boundingSphere);
+    // The model as it was measured, not the bounding sphere of the obst mesh:
+    // one element left at the FDS sentinel would otherwise decide where the
+    // camera flies to, and it is drawn but deliberately not measured (ADR-0002).
+    const modelCenter = this.sceneBounds.center;
+    const center = new BABYLON.Vector3(modelCenter.x, modelCenter.y, modelCenter.z);
     let boundingViewBox = cloneDeep(this.viewCube.getBoundingInfo().boundingSphere);
 
-    let vector = new BABYLON.Vector3(bounding.centerWorld.x + cameraVector.x, bounding.centerWorld.y + cameraVector.y, bounding.centerWorld.z + cameraVector.z);
+    // The direction is a unit-ish vector, so how far along it the camera stands
+    // has to come from the model
+    const reach = this.sceneBounds.extent;
+    let vector = new BABYLON.Vector3(center.x + cameraVector.x * reach, center.y + cameraVector.y * reach, center.z + cameraVector.z * reach);
     let vectorViewCube = new BABYLON.Vector3(boundingViewBox.centerWorld.x + cameraVector.x, boundingViewBox.centerWorld.y + cameraVector.y, boundingViewBox.centerWorld.z + cameraVector.z);
 
     var cameraPosition = new BABYLON.Animation("animCameraPostion", "position", 30, BABYLON.Animation.ANIMATIONTYPE_VECTOR3, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
@@ -423,7 +484,7 @@ export class ViewCubeService implements SceneScoped {
     cameraPositionKeys.push({ frame: 0, value: this.babylonService.camera.position.clone() }, { frame: 15, value: vector });
     cameraRadiusKeys = [{ frame: 0, value: this.babylonService.camera.radius }, { frame: 15, value: this.getRadius() }];
     cameraAlphaKeys = [{ frame: 0, value: this.babylonService.camera.alpha }, { frame: 15, value: this.getAlpha(this.babylonService.camera.alpha, cameraVector) }];
-    cameraTargetKeys.push({ frame: 0, value: this.babylonService.camera.target.clone() }, { frame: 15, value: bounding.centerWorld });
+    cameraTargetKeys.push({ frame: 0, value: this.babylonService.camera.target.clone() }, { frame: 15, value: center });
 
     var cameraViewCubeKeys = [];
     var cameraViewCubeAlphaKeys = [];
@@ -1029,12 +1090,16 @@ export class ViewCubeService implements SceneScoped {
   }
 
   /**
-   * Get radius parameter from obst mesh
+   * How far the camera has to stand to fit the whole model in view.
+   *
+   * Taken from the measured model rather than from the obst mesh's bounding
+   * sphere: an element parked at the FDS sentinel is drawn but not measured
+   * (ADR-0002), and reading the mesh would put the camera 1e20 metres away.
    */
   public getRadius(): number {
 
-    // Zoom in/out to mesh
-    let radius = this.obstService.mesh.getBoundingInfo().boundingSphere.radiusWorld;
+    // Zoom in/out to the model
+    let radius = this.sceneBounds.boundingRadius;
     let aspectRatio = this.babylonService.engine.getAspectRatio(this.babylonService.camera);
     let halfMinFov = this.babylonService.camera.fov / 2;
     if (aspectRatio < 1) {

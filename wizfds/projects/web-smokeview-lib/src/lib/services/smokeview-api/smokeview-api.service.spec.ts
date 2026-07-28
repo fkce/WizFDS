@@ -8,6 +8,8 @@ import { OpenService } from '../drawing/open/open.service';
 import { JetfanService } from '../drawing/jetfan/jetfan.service';
 import { FireService } from '../drawing/fire/fire.service';
 import { VentService } from '../drawing/vent/vent.service';
+import { BabylonService } from '../babylon/babylon.service';
+import { SceneBoundsService } from '../scene-bounds/scene-bounds.service';
 
 /** A scene with nothing in it, to be spread over with whatever a test needs. */
 function emptyScene(): SceneInput {
@@ -29,7 +31,11 @@ describe('SmokeviewApiService', () => {
         },
         {
           provide: ObstService,
-          useValue: { obsts: [], holes: [], renderObsts: () => { drawn.push('obsts'); } }
+          useValue: {
+            obsts: [], holes: [],
+            renderObsts: () => { drawn.push('obsts'); },
+            resetClipping: () => { drawn.push('clipping'); }
+          }
         },
         {
           provide: OpenService,
@@ -37,15 +43,31 @@ describe('SmokeviewApiService', () => {
         },
         {
           provide: JetfanService,
-          useValue: { jetfans: [], render: () => Promise.reject(new Error('render failed')) }
+          useValue: {
+            jetfans: [],
+            render: () => Promise.reject(new Error('render failed')),
+            resetClipping: () => { }
+          }
         },
         {
           provide: FireService,
-          useValue: { fires: [], renderFires: () => Promise.reject(new Error('render failed')) }
+          useValue: {
+            fires: [],
+            renderFires: () => Promise.reject(new Error('render failed')),
+            resetClipping: () => { }
+          }
         },
         {
           provide: VentService,
-          useValue: { basicVents: [], renderBasicVents: () => Promise.reject(new Error('render failed')) }
+          useValue: {
+            basicVents: [],
+            renderBasicVents: () => Promise.reject(new Error('render failed')),
+            resetClipping: () => { }
+          }
+        },
+        {
+          provide: BabylonService,
+          useValue: { applySceneBounds: () => { drawn.push('camera'); } }
         }
       ]
     });
@@ -56,14 +78,23 @@ describe('SmokeviewApiService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('draws the meshes before anything that is placed against them', async () => {
-    // The meshes span the whole model and set the bounds every other element type
-    // is normalised against, so the order is part of the contract rather than
-    // something a caller has to know.
+  it('sizes the scene before it draws anything into it', async () => {
+    // Edge widths, clip ranges and the camera are all multiples of how big the
+    // model is (ADR-0002), so measuring it is the first thing that happens - not
+    // something whichever drawing service ran first used to do. The clip planes
+    // are coordinates in that same model, so they follow immediately.
     await service.render(emptyScene());
 
-    expect(drawn.indexOf('meshes')).toBe(0);
-    expect(drawn).toEqual(['meshes', 'obsts', 'opens']);
+    expect(drawn[0]).toBe('camera');
+    expect(drawn).toEqual(['camera', 'clipping', 'meshes', 'obsts', 'opens']);
+  });
+
+  it('measures the model from the scenario it is about to draw', async () => {
+    const meshes = [{ uuid: 'm', id: 'M1', xb: { x1: 0, x2: 40, y1: 0, y2: 10, z1: 0, z2: 4 } }];
+
+    await service.render({ ...emptyScene(), meshes: meshes });
+
+    expect(TestBed.inject(SceneBoundsService).extent).toBe(40);
   });
 
   it('hands the holes to the obst service, which is what cuts them', async () => {
