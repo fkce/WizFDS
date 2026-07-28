@@ -50,20 +50,20 @@ export class VentService implements SceneScoped {
   public material: BABYLON.ShaderMaterial;
   public materialTransparent: BABYLON.ShaderMaterial;
 
-  /** Where the clip sliders stand for the jetfan planes, as a percentage. */
-  public clipX: number = 0;
-  public clipY: number = 0;
-  public clipZ: number = 100;
+  /** Where the clipping planes stand for the jetfan planes, in FDS metres. */
+  public clipX: number;
+  public clipY: number;
+  public clipZ: number;
 
   // Basic vents (separate from jetfan vents)
   public basicVents: readonly SceneVent[] = [];
   public basicMeshGroups: { mesh: BABYLON.Mesh, material: BABYLON.ShaderMaterial, edgeColor: BABYLON.Color4 }[] = [];
   public basicVisibility: number = 0; // 0=edges only, 1=edges+semi-transparent, 2=hidden
 
-  /** Where the three clip sliders stand, as a percentage of the model. */
-  private basicClipX: number = 0;
-  private basicClipY: number = 0;
-  private basicClipZ: number = 100;
+  /** Where the three clipping planes stand for the &VENTs, in FDS metres. */
+  private basicClipX: number;
+  private basicClipY: number;
+  private basicClipZ: number;
 
   /** What this service put in the registry, so a re-render can take it out. */
   private registeredBasicUuids: string[] = [];
@@ -76,6 +76,20 @@ export class VentService implements SceneScoped {
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
+    this.resetClipping();
+  }
+
+  /**
+   * Pull the clipping planes back to showing the whole model - the planes are
+   * coordinates, so they mean nothing once the model changes. See
+   * SmokeviewApiService.render().
+   */
+  public resetClipping(): void {
+    this.clipX = this.basicClipX = this.sceneBounds.openClipAt('x');
+    this.clipY = this.basicClipY = this.sceneBounds.openClipAt('y');
+    this.clipZ = this.basicClipZ = this.sceneBounds.openClipAt('z');
+    this.clip();
+    this.pushBasicClipToMaterials();
   }
 
   /** Release everything tied to the scene that has just been disposed. */
@@ -289,20 +303,13 @@ export class VentService implements SceneScoped {
 
   /**
    * Apply clipping to vents
-   *
-   * The slider positions are percentages of the model; what the shader wants is
-   * the plane in metres (ADR-0002).
    */
   public clip() {
-    const clipX = this.sceneBounds.clipAt('x', this.clipX);
-    const clipY = this.sceneBounds.clipAt('y', this.clipY);
-    const clipZ = this.sceneBounds.clipAt('z', this.clipZ);
-
     [this.material, this.materialTransparent].forEach((material: BABYLON.ShaderMaterial) => {
       if (!material) { return; }
-      material.setFloat('clipX', clipX);
-      material.setFloat('clipY', clipY);
-      material.setFloat('clipZ', clipZ);
+      material.setFloat('clipX', this.clipX);
+      material.setFloat('clipY', this.clipY);
+      material.setFloat('clipZ', this.clipZ);
     });
   }
 
@@ -441,9 +448,9 @@ export class VentService implements SceneScoped {
 
       material.backFaceCulling = false;
       material.zOffset = -0.015;
-      material.setFloat("clipX", this.sceneBounds.clipAt('x', this.basicClipX));
-      material.setFloat("clipY", this.sceneBounds.clipAt('y', this.basicClipY));
-      material.setFloat("clipZ", this.sceneBounds.clipAt('z', this.basicClipZ));
+      material.setFloat("clipX", this.basicClipX);
+      material.setFloat("clipY", this.basicClipY);
+      material.setFloat("clipZ", this.basicClipZ);
       material.setFloat("transparent", 0.0);
 
       mesh.material = material;
@@ -497,12 +504,8 @@ export class VentService implements SceneScoped {
   }
 
   /**
-   * Clip basic vent meshes
-   *
-   * The slider spans the whole scene, not the vents alone: it has to mean the
-   * same coordinate whichever element type it is cutting through.
-   *
-   * @param value percentage 0-100
+   * Move a clipping plane for the &VENTs
+   * @param value the plane's coordinate, in FDS metres
    * @param direction x, y, z
    */
   public clipBasic(value: number, direction: SceneAxis) {
@@ -510,11 +513,19 @@ export class VentService implements SceneScoped {
     else if (direction == 'y') { this.basicClipY = value; }
     else { this.basicClipZ = value; }
 
-    // The slider is live before anything is drawn; renderBasicVents() reads the
-    // positions back when it builds the materials.
-    const clip = this.sceneBounds.clipAt(direction, value);
+    this.pushBasicClipToMaterials();
+  }
+
+  /**
+   * Push the planes onto every group that exists. The slider is live before
+   * anything is drawn; renderBasicVents() reads them back when it builds a
+   * material.
+   */
+  private pushBasicClipToMaterials(): void {
     this.basicMeshGroups.forEach(g => {
-      g.material.setFloat(`clip${direction.toUpperCase()}`, clip);
+      g.material.setFloat('clipX', this.basicClipX);
+      g.material.setFloat('clipY', this.basicClipY);
+      g.material.setFloat('clipZ', this.basicClipZ);
     });
   }
 

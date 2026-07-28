@@ -154,29 +154,45 @@ describe('SceneBoundsService', () => {
       service.setFrom([{ x1: 0, x2: 20, y1: -10, y2: 10, z1: 0, z2: 5 }]);
     });
 
-    it('puts the middle of the slider in the middle of the model', () => {
-      expect(service.clipAt('x', 50)).toBe(10);
-      expect(service.clipAt('y', 50)).toBe(0);
-      expect(service.clipAt('z', 50)).toBe(2.5);
-    });
-
-    it('reads a slider position as a coordinate in metres', () => {
-      expect(service.clipAt('x', 25)).toBe(5);
+    it('spans the model, in metres, so the slider reads as a coordinate', () => {
+      expect(service.clipMin('x')).toBeLessThan(0);
+      expect(service.clipMax('x')).toBeGreaterThan(20);
+      expect(service.clipMin('y')).toBeLessThan(-10);
+      expect(service.clipMax('z')).toBeGreaterThan(5);
     });
 
     it('clears the model at either end, so the slider can hide nothing at all', () => {
-      // The shader compares a fragment's own coordinate against these, so an
+      // The shader compares a fragment's own coordinate against the plane, so an
       // endpoint landing exactly on the face would clip that face away.
-      expect(service.clipAt('x', 0)).toBeLessThan(0);
-      expect(service.clipAt('x', 100)).toBeGreaterThan(20);
-      expect(service.clipAt('z', 0)).toBeLessThan(0);
-      expect(service.clipAt('z', 100)).toBeGreaterThan(5);
+      expect(service.clipMin('x')).toBeLessThan(0);
+      expect(service.clipMax('x')).toBeGreaterThan(20);
     });
 
-    it('scales the slider with the model rather than with a fixed range', () => {
+    it('names the end of each axis at which a plane hides nothing', () => {
+      // x and y keep what is above the plane, z keeps what is below it, so the
+      // open end is not the same end on all three axes.
+      expect(service.openClipAt('x')).toBe(service.clipMin('x'));
+      expect(service.openClipAt('y')).toBe(service.clipMin('y'));
+      expect(service.openClipAt('z')).toBe(service.clipMax('z'));
+    });
+
+    it('scales its travel with the model rather than with a fixed range', () => {
       service.setFrom([{ x1: 0, x2: 400, y1: 0, y2: 100, z1: 0, z2: 30 }]);
 
-      expect(service.clipAt('x', 50)).toBe(200);
+      expect(service.clipMin('x')).toBeCloseTo(-40, 6);
+      expect(service.clipMax('x')).toBeCloseTo(440, 6);
+    });
+
+    it('moves in steps fine enough to place a plane anywhere in the model', () => {
+      // A four-hundred-metre tunnel and a five-metre room both get a slider that
+      // is worth dragging - a fixed step would be useless at one end or the other.
+      service.setFrom([{ x1: 0, x2: 400, y1: 0, y2: 100, z1: 0, z2: 30 }]);
+      const coarse = service.clipStep;
+
+      service.setFrom([{ x1: 0, x2: 5, y1: 0, y2: 4, z1: 0, z2: 3 }]);
+
+      expect(coarse).toBeGreaterThan(service.clipStep);
+      expect(service.clipStep).toBeGreaterThan(0);
     });
   });
 

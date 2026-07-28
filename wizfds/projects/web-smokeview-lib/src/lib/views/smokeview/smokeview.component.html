@@ -47,12 +47,12 @@
     </div>
 
     <div class="clip">
-        <p>x:&nbsp;<input type="range" [ngModel]="obstService.clipX" (ngModelChange)="obstService.clip($event, 'x'); fireService.clip($event, 'x'); ventService.clipBasic($event, 'x')"
-                min="0" max="100" />&nbsp;{{clipLabel('x')}}</p>
-        <p>y:&nbsp;<input type="range" [ngModel]="obstService.clipY" (ngModelChange)="obstService.clip($event, 'y'); fireService.clip($event, 'y'); ventService.clipBasic($event, 'y')"
-                min="0" max="100" />&nbsp;{{clipLabel('y')}}</p>
-        <p>z:&nbsp;<input type="range" [ngModel]="obstService.clipZ" (ngModelChange)="obstService.clip($event, 'z'); fireService.clip($event, 'z'); ventService.clipBasic($event, 'z')"
-                min="0" max="100" />&nbsp;{{clipLabel('z')}}</p>
+        <p>x:&nbsp;<input type="range" [ngModel]="clipPlane('x')" (ngModelChange)="setClip('x', $event)"
+                [min]="clipMin('x')" [max]="clipMax('x')" [step]="clipStep" />&nbsp;{{clipLabel('x')}}</p>
+        <p>y:&nbsp;<input type="range" [ngModel]="clipPlane('y')" (ngModelChange)="setClip('y', $event)"
+                [min]="clipMin('y')" [max]="clipMax('y')" [step]="clipStep" />&nbsp;{{clipLabel('y')}}</p>
+        <p>z:&nbsp;<input type="range" [ngModel]="clipPlane('z')" (ngModelChange)="setClip('z', $event)"
+                [min]="clipMin('z')" [max]="clipMax('z')" [step]="clipStep" />&nbsp;{{clipLabel('z')}}</p>
     </div>
     <div class="player" *ngIf="playerService.frameNo > 0">
         <div class="time">Frame: {{playerService.frameCur}}</div>

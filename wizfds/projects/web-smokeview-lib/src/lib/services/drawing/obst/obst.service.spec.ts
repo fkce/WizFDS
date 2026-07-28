@@ -152,6 +152,41 @@ describe('ObstService', () => {
     });
   });
 
+  describe('clipping', () => {
+    let bounds: SceneBoundsService;
+
+    beforeEach(() => {
+      bounds = TestBed.inject(SceneBoundsService);
+    });
+
+    it('starts out showing the whole model, whatever its extent', () => {
+      // The shader keeps what is above the plane on x and y and what is below it
+      // on z, so "show everything" is not the same end on all three axes.
+      bounds.setFrom([{ x1: -20, x2: 400, y1: 0, y2: 100, z1: 0, z2: 30 }]);
+
+      service.resetClipping();
+
+      expect(service.clipPlane('x')).toBeLessThan(-20);
+      expect(service.clipPlane('y')).toBeLessThan(0);
+      expect(service.clipPlane('z')).toBeGreaterThan(30);
+    });
+
+    it('pulls the planes back when a different model is measured', () => {
+      // A plane is a coordinate now, so it means nothing once the model changes:
+      // z = 2 m is head height in a room and the floor of a tunnel.
+      bounds.setFrom([{ x1: 0, x2: 10, y1: 0, y2: 8, z1: 0, z2: 4 }]);
+      service.resetClipping();
+      service.clip(2, 'z');
+
+      bounds.setFrom([{ x1: 0, x2: 400, y1: 0, y2: 100, z1: 0, z2: 30 }]);
+      service.resetClipping();
+
+      expect(service.clipPlane('z'))
+        .withContext('a 2 m ceiling would hide all but the floor of a tunnel')
+        .toBeGreaterThan(30);
+    });
+  });
+
   describe('vertex normals', () => {
     it('computes a unit normal for every vertex of every obst', () => {
       // Three walls so that per-obst normals cannot be confused with each other
@@ -489,16 +524,16 @@ describe('ObstService', () => {
 
     it('carries clip values set before the materials arrived', async () => {
       TestBed.inject(SceneBoundsService).setFrom([{ x1: 0, x2: 10, y1: 0, y2: 8, z1: 0, z2: 4 }]);
-      service.clip(50, 'x');
+      service.clip(5, 'x');
 
       service.obsts = [makeObst('W1', { x1: 0.0, x2: 4.0, y1: 2.0, y2: 2.2, z1: 0.0, z2: 3.0 })];
       service.holes = [];
       service.renderObsts();
       await settleMaterials();
 
-      // Halfway along a ten-metre model is five metres - the shader is handed the
-      // coordinate, not a fraction (ADR-0002). ShaderMaterial exposes no getter
-      // for a uniform, hence the private read.
+      // The slider carries the coordinate itself, not a fraction (ADR-0002), so
+      // the shader is handed five metres. ShaderMaterial exposes no getter for a
+      // uniform, hence the private read.
       expect(service.clipPlane('x')).toBe(5);
       expect((service.material as any)._floats.clipX)
         .withContext('the material built afterwards must pick up the slider position')

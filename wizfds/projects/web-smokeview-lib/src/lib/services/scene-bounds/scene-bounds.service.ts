@@ -36,6 +36,9 @@ const OUTLINE_WIDTH_RATIO = 0.1;
  */
 const CLIP_MARGIN_RATIO = 0.1;
 
+/** How many positions a clip slider offers across its whole travel. */
+const CLIP_SLIDER_STEPS = 1000;
+
 /**
  * The box the scene occupies, in FDS metres, and everything sized against it.
  *
@@ -100,25 +103,35 @@ export class SceneBoundsService implements SceneScoped {
   }
 
   /**
-   * Where a clip slider at `percent` puts its plane, in metres.
+   * The far end a clip slider can be dragged to, in metres.
    *
-   * The slider spans the model: the ends clear it entirely so that a slider
-   * pushed all the way hides nothing (or everything), and everything between
-   * interpolates across the bounding box. Holding the sliders as percentages and
-   * resolving them here is what lets a scenario of a different size be drawn
-   * without moving them - half way along is half way along whatever is on screen.
-   *
-   * Which end hides nothing is not the same on all three axes - the shaders keep
-   * what is above the plane on x and y, and what is below it on z - which is why
-   * the drawing services start their sliders at 0, 0 and 100.
+   * A margin past the model at either end, so that a slider pushed all the way
+   * hides nothing (or everything): the shader compares a fragment's own
+   * coordinate against the plane, so a plane sitting exactly on the outermost
+   * face would clip that face away.
    */
-  public clipAt(axis: SceneAxis, percent: number): number {
-    const min = this.minOn(axis);
-    const max = this.maxOn(axis);
+  public clipMin(axis: SceneAxis): number {
+    return this.minOn(axis) - CLIP_MARGIN_RATIO * this.extent;
+  }
 
-    if (percent <= 0) { return min - CLIP_MARGIN_RATIO * this.extent; }
-    if (percent >= 100) { return max + CLIP_MARGIN_RATIO * this.extent; }
-    return min + (max - min) * percent / 100;
+  public clipMax(axis: SceneAxis): number {
+    return this.maxOn(axis) + CLIP_MARGIN_RATIO * this.extent;
+  }
+
+  /** How finely a clip slider moves, in metres. */
+  public get clipStep(): number {
+    return this.extent / CLIP_SLIDER_STEPS;
+  }
+
+  /**
+   * Where a clip plane hides nothing, in metres.
+   *
+   * Not the same end on all three axes: the shaders keep what is above the plane
+   * on x and y, and what is below it on z. Saying so once here keeps every
+   * drawing service from having to know it.
+   */
+  public openClipAt(axis: SceneAxis): number {
+    return axis === 'z' ? this.clipMax(axis) : this.clipMin(axis);
   }
 
   /**

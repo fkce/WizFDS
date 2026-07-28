@@ -31,7 +31,11 @@ describe('SmokeviewApiService', () => {
         },
         {
           provide: ObstService,
-          useValue: { obsts: [], holes: [], renderObsts: () => { drawn.push('obsts'); } }
+          useValue: {
+            obsts: [], holes: [],
+            renderObsts: () => { drawn.push('obsts'); },
+            resetClipping: () => { drawn.push('clipping'); }
+          }
         },
         {
           provide: OpenService,
@@ -39,15 +43,27 @@ describe('SmokeviewApiService', () => {
         },
         {
           provide: JetfanService,
-          useValue: { jetfans: [], render: () => Promise.reject(new Error('render failed')) }
+          useValue: {
+            jetfans: [],
+            render: () => Promise.reject(new Error('render failed')),
+            resetClipping: () => { }
+          }
         },
         {
           provide: FireService,
-          useValue: { fires: [], renderFires: () => Promise.reject(new Error('render failed')) }
+          useValue: {
+            fires: [],
+            renderFires: () => Promise.reject(new Error('render failed')),
+            resetClipping: () => { }
+          }
         },
         {
           provide: VentService,
-          useValue: { basicVents: [], renderBasicVents: () => Promise.reject(new Error('render failed')) }
+          useValue: {
+            basicVents: [],
+            renderBasicVents: () => Promise.reject(new Error('render failed')),
+            resetClipping: () => { }
+          }
         },
         {
           provide: BabylonService,
@@ -65,11 +81,12 @@ describe('SmokeviewApiService', () => {
   it('sizes the scene before it draws anything into it', async () => {
     // Edge widths, clip ranges and the camera are all multiples of how big the
     // model is (ADR-0002), so measuring it is the first thing that happens - not
-    // something whichever drawing service ran first used to do.
+    // something whichever drawing service ran first used to do. The clip planes
+    // are coordinates in that same model, so they follow immediately.
     await service.render(emptyScene());
 
     expect(drawn[0]).toBe('camera');
-    expect(drawn).toEqual(['camera', 'meshes', 'obsts', 'opens']);
+    expect(drawn).toEqual(['camera', 'clipping', 'meshes', 'obsts', 'opens']);
   });
 
   it('measures the model from the scenario it is about to draw', async () => {

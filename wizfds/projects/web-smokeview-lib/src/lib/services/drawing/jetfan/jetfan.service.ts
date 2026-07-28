@@ -58,10 +58,10 @@ export class JetfanService implements SceneScoped {
   public arrowMeshes: BABYLON.Mesh[] = [];
   public arrowMaterial: BABYLON.ShaderMaterial;
 
-  /** Where the three clip sliders stand, as a percentage of the model. */
-  public clipX: number = 0;
-  public clipY: number = 0;
-  public clipZ: number = 100;
+  /** Where the three clipping planes stand, in FDS metres. */
+  public clipX: number;
+  public clipY: number;
+  public clipZ: number;
 
   /** What this service put in the registry, so a re-render can take it out. */
   private registeredUuids: string[] = [];
@@ -78,6 +78,19 @@ export class JetfanService implements SceneScoped {
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
+    this.resetClipping();
+  }
+
+  /**
+   * Pull the clipping planes back to showing the whole model - the planes are
+   * coordinates, so they mean nothing once the model changes. See
+   * SmokeviewApiService.render().
+   */
+  public resetClipping(): void {
+    this.clipX = this.sceneBounds.openClipAt('x');
+    this.clipY = this.sceneBounds.openClipAt('y');
+    this.clipZ = this.sceneBounds.openClipAt('z');
+    this.clip();
   }
 
   /** Release everything tied to the scene that has just been disposed. */
@@ -499,17 +512,17 @@ export class JetfanService implements SceneScoped {
   }
 
   /**
-   * Push the current slider positions onto a material, as planes in metres.
+   * Push the clipping planes onto a material.
    *
-   * The sliders are percentages of the model; the shader wants the coordinate
-   * (ADR-0002). A material built while the sliders sat at their defaults still
-   * has to start out showing everything, which is why this runs on creation too.
+   * A material built while the planes sat where they are has to start out
+   * agreeing with them, which is why this runs on creation too - otherwise it
+   * would start from the shader's own defaults and clip half the model away.
    */
   private applyClipTo(material: BABYLON.ShaderMaterial): void {
     if (!material) { return; }
-    material.setFloat('clipX', this.sceneBounds.clipAt('x', this.clipX));
-    material.setFloat('clipY', this.sceneBounds.clipAt('y', this.clipY));
-    material.setFloat('clipZ', this.sceneBounds.clipAt('z', this.clipZ));
+    material.setFloat('clipX', this.clipX);
+    material.setFloat('clipY', this.clipY);
+    material.setFloat('clipZ', this.clipZ);
   }
 
   /**

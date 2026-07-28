@@ -24,10 +24,10 @@ export class FireService implements SceneScoped {
   public mesh: BABYLON.Mesh;
   public material: BABYLON.ShaderMaterial;
 
-  /** Where the three clip sliders stand, as a percentage of the model. */
-  public clipX: number = 0;
-  public clipY: number = 0;
-  public clipZ: number = 100;
+  /** Where the three clipping planes stand, in FDS metres. */
+  public clipX: number;
+  public clipY: number;
+  public clipZ: number;
 
   // 3-state visibility toggle: 0=edges only, 1=edges+semi-transparent, 2=hidden
   public visibility: number = 0;
@@ -40,6 +40,31 @@ export class FireService implements SceneScoped {
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
+    this.resetClipping();
+  }
+
+  /**
+   * Pull the clipping planes back to showing the whole model - the planes are
+   * coordinates, so they mean nothing once the model changes. See
+   * SmokeviewApiService.render().
+   */
+  public resetClipping(): void {
+    this.clipX = this.sceneBounds.openClipAt('x');
+    this.clipY = this.sceneBounds.openClipAt('y');
+    this.clipZ = this.sceneBounds.openClipAt('z');
+    this.applyClipTo(this.material);
+  }
+
+  /**
+   * Push the planes onto a material. The sliders are live from the first frame,
+   * while the material is still being fetched, so a material built afterwards
+   * reads them back rather than starting from the shader's defaults.
+   */
+  private applyClipTo(material: BABYLON.ShaderMaterial): void {
+    if (!material) { return; }
+    material.setFloat("clipX", this.clipX);
+    material.setFloat("clipY", this.clipY);
+    material.setFloat("clipZ", this.clipZ);
   }
 
   /** Face ranges collected while building the buffer, registered in renderFires(). */
@@ -156,9 +181,7 @@ export class FireService implements SceneScoped {
 
     this.material.backFaceCulling = false;
     this.material.zOffset = -0.02;
-    this.material.setFloat("clipX", this.sceneBounds.clipAt('x', this.clipX));
-    this.material.setFloat("clipY", this.sceneBounds.clipAt('y', this.clipY));
-    this.material.setFloat("clipZ", this.sceneBounds.clipAt('z', this.clipZ));
+    this.applyClipTo(this.material);
     // Initial state: edges only (transparent=0.0)
     this.material.setFloat("transparent", 0.0);
 
@@ -203,12 +226,8 @@ export class FireService implements SceneScoped {
   }
 
   /**
-   * Clip fire mesh
-   *
-   * The slider spans the whole scene, not the fires alone: it has to mean the
-   * same coordinate whichever element type it is cutting through.
-   *
-   * @param value percentage 0-100
+   * Move a clipping plane
+   * @param value the plane's coordinate, in FDS metres
    * @param direction x, y, z
    */
   public clip(value: number, direction: SceneAxis) {
@@ -216,10 +235,7 @@ export class FireService implements SceneScoped {
     else if (direction == 'y') { this.clipY = value; }
     else { this.clipZ = value; }
 
-    // The slider is live from the first frame, while the material is still being
-    // fetched; renderFires() reads the positions back when it builds one.
-    if (!this.material) return;
-    this.material.setFloat(`clip${direction.toUpperCase()}`, this.sceneBounds.clipAt(direction, value));
+    this.applyClipTo(this.material);
   }
 
   /**

@@ -87,14 +87,37 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   ) { }
 
   /**
-   * Where a clip slider currently cuts, as the user reads it.
+   * The clip sliders run in FDS metres, over the model's own extent.
    *
-   * The slider is a percentage of the model; what it means is a coordinate in
-   * metres, and that is the number the user can type into a `.fds` file
-   * (ADR-0002). Rounded to a centimetre - finer than any geometry FDS is given.
+   * The value they carry is the coordinate of the cutting plane - the number the
+   * user can read off and type straight into a `.fds` file (ADR-0002). Where a
+   * slider can be dragged to follows from the model, so a five-metre room and a
+   * four-hundred-metre tunnel both get a slider worth dragging.
    */
+  public clipMin(axis: SceneAxis): number { return this.sceneBounds.clipMin(axis); }
+  public clipMax(axis: SceneAxis): number { return this.sceneBounds.clipMax(axis); }
+  public get clipStep(): number { return this.sceneBounds.clipStep; }
+
+  /** Where a clipping plane currently cuts, in metres. */
+  public clipPlane(axis: SceneAxis): number {
+    return this.obstService.clipPlane(axis);
+  }
+
+  /** Rounded to a centimetre - finer than any geometry FDS is given. */
   public clipLabel(axis: SceneAxis): string {
-    return `${this.obstService.clipPlane(axis).toFixed(2)} m`;
+    return `${this.clipPlane(axis).toFixed(2)} m`;
+  }
+
+  /**
+   * Move one clipping plane, across every element type it cuts through.
+   *
+   * Each drawing service owns its own materials, so each has to be told; the
+   * plane is the same coordinate for all of them.
+   */
+  public setClip(axis: SceneAxis, metres: number): void {
+    this.obstService.clip(metres, axis);
+    this.fireService.clip(metres, axis);
+    this.ventService.clipBasic(metres, axis);
   }
 
   ngOnInit() {

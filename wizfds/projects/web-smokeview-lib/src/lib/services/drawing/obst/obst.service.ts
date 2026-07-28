@@ -77,10 +77,10 @@ export class ObstService implements SceneScoped {
   /** What this service put in the registry, so a re-render can take it out. */
   private registeredUuids: string[] = [];
 
-  /** Where the three clip sliders stand, as a percentage of the model. */
-  clipX: number = 0.0;
-  clipY: number = 0.0;
-  clipZ: number = 100.0;
+  /** Where the three clipping planes stand, in FDS metres. */
+  clipX: number;
+  clipY: number;
+  clipZ: number;
 
   constructor(
     private babylonService: BabylonService,
@@ -91,19 +91,26 @@ export class ObstService implements SceneScoped {
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
+    this.resetClipping();
   }
 
   /**
-   * Where a clipping plane currently stands, in FDS metres.
+   * Pull the clipping planes back to showing the whole model.
    *
-   * Worked out on demand rather than stored, so that a scenario drawn at a
-   * different scale moves the planes with it: a slider left at 50% means the
-   * middle of whatever is on screen now, not the middle of the model it was last
-   * dragged over.
+   * The planes are coordinates, so they mean nothing once the model changes:
+   * z = 4 m is the ceiling of a room and the floor of a tunnel. Whoever measures
+   * the scene calls this - see SmokeviewApiService.render().
    */
+  public resetClipping(): void {
+    this.clipX = this.sceneBounds.openClipAt('x');
+    this.clipY = this.sceneBounds.openClipAt('y');
+    this.clipZ = this.sceneBounds.openClipAt('z');
+    this.pushClipToMaterials();
+  }
+
+  /** Where a clipping plane currently stands, in FDS metres. */
   public clipPlane(axis: SceneAxis): number {
-    const percent = axis === 'x' ? this.clipX : axis === 'y' ? this.clipY : this.clipZ;
-    return this.sceneBounds.clipAt(axis, percent);
+    return axis === 'x' ? this.clipX : axis === 'y' ? this.clipY : this.clipZ;
   }
 
   /**
@@ -113,9 +120,22 @@ export class ObstService implements SceneScoped {
    * sliders became clickable, so each of them starts life by reading them back.
    */
   private applyClipTo(material: BABYLON.ShaderMaterial): void {
-    material.setFloat("clipX", this.clipPlane('x'));
-    material.setFloat("clipY", this.clipPlane('y'));
-    material.setFloat("clipZ", this.clipPlane('z'));
+    material.setFloat("clipX", this.clipX);
+    material.setFloat("clipY", this.clipY);
+    material.setFloat("clipZ", this.clipZ);
+  }
+
+  /**
+   * Push the planes onto every material that exists.
+   *
+   * The sliders are live from the first frame, while the materials are still
+   * being fetched; whatever is not there yet reads them back when it is built.
+   */
+  private pushClipToMaterials(): void {
+    forEach([this.material, this.materialBackCap, this.materialTransparent],
+      (material: BABYLON.ShaderMaterial) => {
+        if (material) { this.applyClipTo(material); }
+      });
   }
 
   /**
@@ -167,28 +187,16 @@ export class ObstService implements SceneScoped {
   }
 
   /**
-   * Clip obst mesh
-   * @param value percentage
+   * Move a clipping plane
+   * @param value the plane's coordinate, in FDS metres
    * @param direction x, y, z direction
    */
   public clip(value: number, direction: SceneAxis) {
-
-    // The sliders span the model, which is the bounding box of the whole scene
-    // rather than of the obsts alone: a slider has to mean the same coordinate
-    // whichever element type it is cutting through.
     if (direction == 'x') { this.clipX = value; }
     else if (direction == 'y') { this.clipY = value; }
     else { this.clipZ = value; }
 
-    const clip = this.sceneBounds.clipAt(direction, value);
-
-    // The sliders are live from the first frame, while the materials are still
-    // being fetched. Push the value into whatever exists; the rest read the
-    // plane positions back when they are built.
-    const uniform = `clip${direction.toUpperCase()}`;
-    forEach([this.material, this.materialBackCap, this.materialTransparent], (material: BABYLON.ShaderMaterial) => {
-      if (material) { material.setFloat(uniform, clip); }
-    });
+    this.pushClipToMaterials();
   }
 
   /**
@@ -733,7 +741,7 @@ export class ObstService implements SceneScoped {
 
     // The clipping planes, read once: they are the same for every triangle and
     // the loop below runs over the whole scene.
-    const clipX = this.clipPlane('x'), clipY = this.clipPlane('y'), clipZ = this.clipPlane('z');
+    const clipX = this.clipX, clipY = this.clipY, clipZ = this.clipZ;
 
     for (let i = 0; i < this.indices.length; i += 3) {
       faceId += 1;

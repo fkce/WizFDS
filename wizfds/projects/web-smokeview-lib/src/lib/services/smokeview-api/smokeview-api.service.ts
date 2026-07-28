@@ -45,6 +45,7 @@ export class SmokeviewApiService {
     // makes the answer the same however little the scenario contains.
     this.sceneBounds.setFromScene(scene);
     this.babylonService.applySceneBounds();
+    this.resetClipping();
 
     this.meshService.meshes = scene.meshes;
     this.meshService.renderMeshes();
@@ -78,7 +79,22 @@ export class SmokeviewApiService {
   public renderJsonObsts(data: any) {
     this.sceneBounds.setFromPositions((data && data.vertices) || []);
     this.babylonService.applySceneBounds();
+    this.resetClipping();
     this.obstService.renderJson(data);
+  }
+
+  /**
+   * Pull every clip slider back to showing the whole model.
+   *
+   * The planes are coordinates in metres (ADR-0002), so they mean nothing once
+   * the model changes: z = 4 m is the ceiling of a room and the floor of a
+   * tunnel. Drawing a scenario is the moment that can happen.
+   */
+  private resetClipping(): void {
+    this.obstService.resetClipping();
+    this.fireService.resetClipping();
+    this.ventService.resetClipping();
+    this.jetfanService.resetClipping();
   }
 
   /** Run one drawing step, keeping a failure from taking the rest down with it. */
