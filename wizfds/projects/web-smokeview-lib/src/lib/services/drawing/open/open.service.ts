@@ -1,29 +1,51 @@
 import { Injectable } from '@angular/core';
-import { BabylonService } from '../../babylon/babylon.service';
-import { HelpersService } from '../../helpers/helpers.service';
-import { forEach } from 'lodash';
-import { SceneOpen } from '../scene-input';
 import * as BABYLON from 'babylonjs';
+
+import { BabylonService, tryCreateShaderMaterial } from '../../babylon/babylon.service';
+import { HelpersService } from '../../helpers/helpers.service';
+import { SceneOpen } from '../scene-input';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
-import { SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
+import { SceneAxis, SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
+import { PlaneBatch } from '../plane-batch';
+
+/**
+ * Openings are drawn green. The colour is the library's own choice - an `OPEN`
+ * vent has none in the FDS model - so it never crosses the boundary.
+ */
+const OPEN_COLOR: number[] = [0, 1, 0, 1];
+
+/** The outline colour, as the edges renderer wants it. */
+const OPEN_EDGE_COLOR = new BABYLON.Color4(0, 1, 0, 1);
+
+/** How solid the fill is in the state that shows one. */
+const OPEN_FILL_ALPHA = 0.3;
 
 @Injectable({
   providedIn: 'root'
 })
 export class OpenService implements SceneScoped {
+
   opens: readonly SceneOpen[] = [];
 
-  vertices: number[] = [];
-  normals: number[] = [];
-  colors: number[] = [];
-  indices: number[] = [];
+  material: BABYLON.ShaderMaterial;
 
-  meshes: BABYLON.Mesh[] = [];
-  vertexData: BABYLON.VertexData;
-  material: BABYLON.StandardMaterial;
-
+  /** 3-state visibility toggle: 1 = edges only, 2 = edges + fill, 0 = hidden. */
   visibility: number = 1;
+
+  /** Where the three clipping planes stand, in FDS metres. */
+  clipX: number;
+  clipY: number;
+  clipZ: number;
+
+  /**
+   * Every opening is a rectangle, so they share one buffer with their identity
+   * held as a range of faces - the same representation the &VENTs use (ADR-0006).
+   */
+  private batch: PlaneBatch;
+
+  /** In flight while the shader sources are being fetched. */
+  private materialPending: Promise<void> | null = null;
 
   constructor(
     private babylonService: BabylonService,
@@ -33,121 +55,141 @@ export class OpenService implements SceneScoped {
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
+    this.resetClipping();
   }
 
-  /** What this service put in the registry, so a re-render can take it out. */
-  private registeredUuids: string[] = [];
+  /** The mesh every opening is drawn on, once there is a scene to draw into. */
+  public get mesh(): BABYLON.Mesh | undefined {
+    return this.batch ? this.batch.mesh : undefined;
+  }
+
+  /**
+   * Pull the clipping planes back to showing the whole model - the planes are
+   * coordinates, so they mean nothing once the model changes. See
+   * SmokeviewApiService.render().
+   */
+  public resetClipping(): void {
+    this.clipX = this.sceneBounds.openClipAt('x');
+    this.clipY = this.sceneBounds.openClipAt('y');
+    this.clipZ = this.sceneBounds.openClipAt('z');
+    this.applyClipTo(this.material);
+  }
+
+  /**
+   * Move a clipping plane
+   * @param value the plane's coordinate, in FDS metres
+   * @param direction x, y, z
+   */
+  public clip(value: number, direction: SceneAxis): void {
+    if (direction == 'x') { this.clipX = value; }
+    else if (direction == 'y') { this.clipY = value; }
+    else { this.clipZ = value; }
+
+    this.applyClipTo(this.material);
+  }
+
+  /**
+   * Push the planes onto a material. The sliders are live from the first frame,
+   * while the material is still being fetched, so a material built afterwards
+   * reads them back rather than starting from the shader's defaults.
+   */
+  private applyClipTo(material: BABYLON.ShaderMaterial): void {
+    if (!material) { return; }
+    material.setFloat('clipX', this.clipX);
+    material.setFloat('clipY', this.clipY);
+    material.setFloat('clipZ', this.clipZ);
+  }
 
   /** Release everything tied to the scene that has just been disposed. */
   public resetSceneState(): void {
-    this.meshes.length = 0;
+    this.batch = null;
     this.material = null;
-    this.vertexData = null;
-    // render() does not restore this, so a stale value would leave the toggle
-    // one step out of phase with what is actually drawn
+    this.materialPending = null;
+    // renderOpens() does not restore this, so a stale value would leave the
+    // toggle one step out of phase with what is actually drawn
     this.visibility = 1;
-    this.vertices.length = 0;
-    this.normals.length = 0;
-    this.colors.length = 0;
-    this.indices.length = 0;
   }
 
   /**
-   * Reder opens
-   */
-  public renderOpens() {
-
-    this.disposePreviousOpens();
-
-    // Render data
-    this.render();
-  }
-
-  /**
-   * Release what the previous render put in the scene.
+   * Draw the `OPEN` vents of the current scenario.
    *
-   * One StandardMaterial is shared by every open plane, so it is disposed once
-   * rather than per mesh.
+   * An empty list empties the batch rather than leaving the previous scenario's
+   * openings on screen. Their boxes need no placing: the scene is in FDS metres
+   * 1:1 (ADR-0002).
    */
-  private disposePreviousOpens(): void {
-    this.registeredUuids.forEach(uuid => this.sceneRegistry.forget(uuid));
-    this.registeredUuids.length = 0;
-
-    forEach(this.meshes, (mesh: BABYLON.Mesh) => mesh.dispose());
-    this.meshes.length = 0;
-
-    if (this.material) {
-      this.material.dispose();
-      this.material = null;
+  public async renderOpens(): Promise<void> {
+    if (!this.batch) {
+      this.batch = new PlaneBatch(
+        'opens', this.babylonService.scene, this.helperService, this.sceneRegistry);
     }
+
+    this.batch.setPlanes((this.opens || []).map((open: SceneOpen) => ({
+      uuid: open.uuid, xb: open.xb, color: OPEN_COLOR
+    })));
+
+    // After the buffer, not before: the edges renderer reads the geometry it is
+    // given at the moment it is enabled
+    this.applyEdges();
+
+    await this.ensureMaterial();
   }
 
   /**
-   * Render current open geometry
+   * Build the shader material, once for the scene: it does not depend on what is
+   * being drawn, and rebuilding it per render left orphans behind.
    *
-   * Openings are drawn green - the colour is the library's own choice, an `OPEN`
-   * vent has none in the FDS model - so it never crosses the boundary. Their
-   * boxes need no placing: the scene is in FDS metres 1:1 (ADR-0002).
+   * Openings borrow the fire shader - it clips in metres and carries the
+   * `transparent` uniform the visibility toggle turns.
    */
-  private render() {
+  private ensureMaterial(): Promise<void> {
+    if (this.materialPending) { return this.materialPending; }
 
-    this.material = new BABYLON.StandardMaterial("material", this.babylonService.scene);
-    this.material.ambientColor = new BABYLON.Color3(0, 1, 0);
-    this.material.alpha = 0.0;
-    this.material.zOffset = -0.06;
+    this.materialPending = tryCreateShaderMaterial(this.babylonService, {
+      name: 'openShader', shader: 'fire', needAlphaBlending: true
+    }, 'OpenService').then((material: BABYLON.ShaderMaterial) => {
+      // The scene can be gone by the time the sources arrive
+      if (!material) { return; }
+      if (!this.babylonService.scene || !this.batch) { material.dispose(); return; }
 
-    forEach(this.opens, (open: SceneOpen, index: number) => {
-      let options: any = this.helperService.getPlaneDimFromXb(open.xb);
-      this.meshes.push(BABYLON.MeshBuilder.CreatePlane("plane", { height: options.height, width: options.width, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, this.babylonService.scene));
-      this.meshes[index].material = this.material;
-      this.meshes[index].rotate(options.rotate, Math.PI / 2);
-      this.meshes[index].position = options.center;
-      this.meshes[index].enableEdgesRendering();
-      this.meshes[index].edgesWidth = this.sceneBounds.outlineWidth;
-      this.meshes[index].edgesColor = new BABYLON.Color4(0, 1, 0, 1);
-      // Preformance optimization
-      this.meshes[index].convertToUnIndexedMesh();
-      this.meshes[index].freezeWorldMatrix();
-
-      // One plane per opening, so the mesh alone identifies it
-      this.sceneRegistry.register(open.uuid, { mesh: this.meshes[index] });
-      this.registeredUuids.push(open.uuid);
+      this.material = material;
+      this.material.backFaceCulling = false;
+      this.material.zOffset = -0.06;
+      this.applyClipTo(this.material);
+      this.applyFill();
+      this.batch.mesh.material = this.material;
     });
+
+    return this.materialPending;
   }
 
   /**
-   * Toggle open visibility
+   * Toggle open visibility (3 states):
+   * 1 → edges only
+   * 2 → edges + semi-transparent fill
+   * 0 → hidden
    */
-  public toogleVisibility() {
+  public toogleVisibility(): void {
     // The button is live from the first frame, before anything is rendered
-    if (!this.material) return;
+    if (!this.batch) { return; }
 
-    // Show only edges;
-    if (this.visibility == 0) {
-      this.material.alpha = 0.0;
-      forEach(this.meshes, (mesh: BABYLON.Mesh) => {
-        //mesh.material.alpha = 0.0;
-        mesh.edgesWidth = this.sceneBounds.outlineWidth;
-      });
-      this.visibility = 1;
-    }
-    // Show edges and backface
-    else if (this.visibility == 1) {
-      this.material.alpha = 0.3;
-      forEach(this.meshes, (mesh: BABYLON.Mesh) => {
-        //mesh.material.alpha = 0.3;
-        mesh.edgesWidth = this.sceneBounds.outlineWidth;
-      });
-      this.visibility = 2;
-    }
-    // Hide all
-    else if (this.visibility == 2) {
-      this.material.alpha = 0.0;
-      forEach(this.meshes, (mesh: BABYLON.Mesh) => {
-        //mesh.material.alpha = 0.0;
-        mesh.edgesWidth = 0.0;
-      });
-      this.visibility = 0;
-    }
+    this.visibility = this.visibility === 1 ? 2 : this.visibility === 2 ? 0 : 1;
+    this.applyFill();
+    this.applyEdges();
+  }
+
+  /** Push the current state's fill onto the material, if it has arrived. */
+  private applyFill(): void {
+    if (!this.material) { return; }
+    this.material.setFloat('transparent', this.visibility === 2 ? OPEN_FILL_ALPHA : 0.0);
+  }
+
+  /** Outline every opening, except in the state that hides them. */
+  private applyEdges(): void {
+    if (!this.batch) { return; }
+
+    const mesh = this.batch.mesh;
+    mesh.enableEdgesRendering();
+    mesh.edgesWidth = this.visibility === 0 ? 0 : this.sceneBounds.outlineWidth;
+    mesh.edgesColor = OPEN_EDGE_COLOR;
   }
 }

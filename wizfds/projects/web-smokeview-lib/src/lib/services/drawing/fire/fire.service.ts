@@ -3,17 +3,17 @@ import * as BABYLON from 'babylonjs';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
 
-import { BabylonService } from '../../babylon/babylon.service';
+import { BabylonService, tryCreateShaderMaterial } from '../../babylon/babylon.service';
 import { HelpersService } from '../../helpers/helpers.service';
 import { SceneFire } from '../scene-input';
 import { SceneAxis, SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
+import { PlaneBatch } from '../plane-batch';
 
-/** A fire as the app gave it, paired with the colour it is drawn in. */
-interface PlacedFire {
-  readonly fire: SceneFire,
-  /** The colour as a flat rgba array, ready for the vertex buffer. */
-  readonly color: number[]
-}
+/** Fires are outlined in red - the library's own choice, not the &SURF's. */
+const FIRE_EDGE_COLOR = new BABYLON.Color4(1, 0, 0, 1);
+
+/** How solid the fill is in the state that shows one. */
+const FIRE_FILL_ALPHA = 0.6;
 
 @Injectable({
   providedIn: 'root'
@@ -21,7 +21,6 @@ interface PlacedFire {
 export class FireService implements SceneScoped {
 
   public fires: readonly SceneFire[] = [];
-  public mesh: BABYLON.Mesh;
   public material: BABYLON.ShaderMaterial;
 
   /** Where the three clipping planes stand, in FDS metres. */
@@ -32,6 +31,15 @@ export class FireService implements SceneScoped {
   // 3-state visibility toggle: 0=edges only, 1=edges+semi-transparent, 2=hidden
   public visibility: number = 0;
 
+  /**
+   * A fire is drawn as the plane of its &VENT, so the fires share one buffer
+   * with their identity held as a range of faces (ADR-0006).
+   */
+  private batch: PlaneBatch;
+
+  /** In flight while the shader sources are being fetched. */
+  private materialPending: Promise<void> | null = null;
+
   constructor(
     private babylonService: BabylonService,
     private helpersService: HelpersService,
@@ -41,6 +49,11 @@ export class FireService implements SceneScoped {
   ) {
     sceneLifecycle.register(this);
     this.resetClipping();
+  }
+
+  /** The mesh every fire is drawn on, once there is a scene to draw into. */
+  public get mesh(): BABYLON.Mesh | undefined {
+    return this.batch ? this.batch.mesh : undefined;
   }
 
   /**
@@ -67,135 +80,67 @@ export class FireService implements SceneScoped {
     material.setFloat("clipZ", this.clipZ);
   }
 
-  /** Face ranges collected while building the buffer, registered in renderFires(). */
-  private readonly pendingRegistrations: { uuid: string, first: number, count: number }[] = [];
-
-  /** What this service put in the registry, so a re-render can take it out. */
-  private registeredUuids: string[] = [];
-
   /** Release everything tied to the scene that has just been disposed. */
   public resetSceneState(): void {
-    this.mesh = null;
+    this.batch = null;
     this.material = null;
+    this.materialPending = null;
     this.visibility = 0;
   }
 
   /**
-   * Work out how each fire is drawn.
+   * Draw the fires of the current scenario.
    *
    * A fire is drawn as the plane of its &VENT in the colour of its &SURF; both
    * arrive resolved, so there is nothing to look up here, and the plane stands
    * exactly where the scenario puts it (ADR-0002).
+   *
+   * An empty list empties the batch rather than leaving the previous scenario's
+   * fires on screen.
    */
-  private placeFires(): PlacedFire[] {
-    return (this.fires || []).map((fire: SceneFire) => ({
-      fire: fire,
-      color: this.helpersService.toRgba(fire.color)
-    }));
-  }
+  public async renderFires(): Promise<void> {
+    if (!this.batch) {
+      this.batch = new PlaneBatch(
+        'fires', this.babylonService.scene, this.helpersService, this.sceneRegistry);
+    }
 
-  /**
-   * Build batched vertex data for all fires using vent geometry (planes)
-   */
-  private updateFiresVertexData(placed: readonly PlacedFire[]) {
-    let vertices: number[] = [];
-    let indices: number[] = [];
-    let colors: number[] = [];
-    let normals: number[] = [];
-    let indexCount = 0;
-
-    this.pendingRegistrations.length = 0;
-
-    placed.forEach((placedFire: PlacedFire) => {
-      const facesBefore = indices.length / 3;
-      const geom = this.helpersService.generateVentGeometry(placedFire.fire.xb);
-
-      vertices.push(...geom.vertices);
-      normals.push(...geom.normals);
-
+    this.batch.setPlanes((this.fires || []).map((fire: SceneFire) => {
+      const color = this.helpersService.toRgba(fire.color);
       // Fires are always drawn opaque, whatever the &SURF says
-      const fireColor = [placedFire.color[0], placedFire.color[1], placedFire.color[2], 1.0];
-      for (let i = 0; i < geom.vertices.length / 3; i++) {
-        colors.push(...fireColor);
-      }
+      return { uuid: fire.uuid, xb: fire.xb, color: [color[0], color[1], color[2], 1.0] };
+    }));
 
-      for (let i = 0; i < geom.indices.length; i++) {
-        indices.push(geom.indices[i] + indexCount);
-      }
-      indexCount += geom.vertices.length / 3;
+    // After the buffer, not before: the edges renderer reads the geometry it is
+    // given at the moment it is enabled
+    this.applyEdges();
 
-      this.pendingRegistrations.push({
-        uuid: placedFire.fire.uuid, first: facesBefore, count: indices.length / 3 - facesBefore
-      });
-    });
-
-    return { vertices, indices, colors, normals };
+    await this.ensureMaterial();
   }
 
   /**
-   * Render fires
+   * Build the shader material, once for the scene: it does not depend on what is
+   * being drawn, and rebuilding it per render orphaned one ShaderMaterial per
+   * re-render of the scenario.
    */
-  public async renderFires() {
-    if (!this.fires || this.fires.length === 0) {
-      return;
-    }
+  private ensureMaterial(): Promise<void> {
+    if (this.materialPending) { return this.materialPending; }
 
-    // Place them against the bounds the meshes established
-    const placed = this.placeFires();
+    this.materialPending = tryCreateShaderMaterial(this.babylonService, {
+      name: 'fireShader', shader: 'fire', needAlphaBlending: true
+    }, 'FireService').then((material: BABYLON.ShaderMaterial) => {
+      // The scene can be gone by the time the sources arrive
+      if (!material) { return; }
+      if (!this.babylonService.scene || !this.batch) { material.dispose(); return; }
 
-    // Build vertex data
-    const data = this.updateFiresVertexData(placed);
-
-    if (data.vertices.length === 0) {
-      return;
-    }
-
-    // Dispose existing mesh
-    if (this.mesh) {
-      this.mesh.dispose();
-      this.mesh = null;
-    }
-
-    this.mesh = new BABYLON.Mesh('fires', this.babylonService.scene);
-
-    // All fires share this buffer, so identity is a face range within it
-    this.registeredUuids.forEach(uuid => this.sceneRegistry.forget(uuid));
-    this.registeredUuids = [];
-    this.pendingRegistrations.forEach(({ uuid, first, count }) => {
-      this.sceneRegistry.register(uuid, { mesh: this.mesh, faces: { first: first, count: count } });
-      this.registeredUuids.push(uuid);
+      this.material = material;
+      this.material.backFaceCulling = false;
+      this.material.zOffset = -0.02;
+      this.applyClipTo(this.material);
+      this.applyFill();
+      this.batch.mesh.material = this.material;
     });
 
-    const vertexData = new BABYLON.VertexData();
-    vertexData.positions = data.vertices;
-    vertexData.indices = data.indices;
-    vertexData.colors = data.colors;
-    vertexData.normals = data.normals;
-    vertexData.applyToMesh(this.mesh);
-
-    this.material = await this.babylonService.createShaderMaterial({
-      name: "fireShader",
-      shader: "fire",
-      needAlphaBlending: true
-    });
-
-    this.material.backFaceCulling = false;
-    this.material.zOffset = -0.02;
-    this.applyClipTo(this.material);
-    // Initial state: edges only (transparent=0.0)
-    this.material.setFloat("transparent", 0.0);
-
-    this.mesh.material = this.material;
-
-    // Red edges
-    this.mesh.enableEdgesRendering();
-    this.mesh.edgesWidth = this.sceneBounds.outlineWidth;
-    this.mesh.edgesColor = new BABYLON.Color4(1, 0, 0, 1);
-
-    this.mesh.freezeWorldMatrix();
-
-    // Reset visibility state
-    this.visibility = 0;
+    return this.materialPending;
   }
 
   /**
@@ -204,25 +149,29 @@ export class FireService implements SceneScoped {
    * 1 → edges + semi-transparent fill
    * 2 → hidden
    */
-  public toogleVisibility() {
-    if (!this.mesh || !this.material) return;
+  public toogleVisibility(): void {
+    // The button is live from the first frame, before anything is rendered
+    if (!this.batch) { return; }
 
-    if (this.visibility == 0) {
-      // Show edges + semi-transparent fill
-      this.material.setFloat('transparent', 0.6);
-      this.mesh.edgesWidth = this.sceneBounds.outlineWidth;
-      this.visibility = 1;
-    } else if (this.visibility == 1) {
-      // Hide all
-      this.material.setFloat('transparent', 0.0);
-      this.mesh.edgesWidth = 0.0;
-      this.visibility = 2;
-    } else if (this.visibility == 2) {
-      // Show edges only
-      this.material.setFloat('transparent', 0.0);
-      this.mesh.edgesWidth = this.sceneBounds.outlineWidth;
-      this.visibility = 0;
-    }
+    this.visibility = this.visibility === 0 ? 1 : this.visibility === 1 ? 2 : 0;
+    this.applyFill();
+    this.applyEdges();
+  }
+
+  /** Push the current state's fill onto the material, if it has arrived. */
+  private applyFill(): void {
+    if (!this.material) { return; }
+    this.material.setFloat('transparent', this.visibility === 1 ? FIRE_FILL_ALPHA : 0.0);
+  }
+
+  /** Outline every fire, except in the state that hides them. */
+  private applyEdges(): void {
+    if (!this.batch) { return; }
+
+    const mesh = this.batch.mesh;
+    mesh.enableEdgesRendering();
+    mesh.edgesWidth = this.visibility === 2 ? 0 : this.sceneBounds.outlineWidth;
+    mesh.edgesColor = FIRE_EDGE_COLOR;
   }
 
   /**
@@ -230,7 +179,7 @@ export class FireService implements SceneScoped {
    * @param value the plane's coordinate, in FDS metres
    * @param direction x, y, z
    */
-  public clip(value: number, direction: SceneAxis) {
+  public clip(value: number, direction: SceneAxis): void {
     if (direction == 'x') { this.clipX = value; }
     else if (direction == 'y') { this.clipY = value; }
     else { this.clipZ = value; }
@@ -238,14 +187,9 @@ export class FireService implements SceneScoped {
     this.applyClipTo(this.material);
   }
 
-  /**
-   * Clear fires
-   */
-  public clear() {
+  /** Clear fires */
+  public clear(): void {
     this.fires = [];
-    if (this.mesh) {
-      this.mesh.dispose();
-      this.mesh = null;
-    }
+    if (this.batch) { this.batch.setPlanes([]); }
   }
 }

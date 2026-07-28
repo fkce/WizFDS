@@ -15,14 +15,15 @@ export interface PooledBox {
 }
 
 /**
- * Whether a box has to be drawn with alpha blending.
+ * Whether something has to be drawn with alpha blending.
  *
  * The alpha is what the app resolved from the &SURF, and anything short of
- * fully opaque decides which of a BoxPoolPair's two pools the box belongs in.
- * One place says so, because the two paths must never disagree.
+ * fully opaque decides which of two buffers it belongs in - a BoxPoolPair's two
+ * pools for a body, the two derived-vent batches for a plane. One place says so,
+ * because those paths must never disagree about what counts as see-through.
  */
-export function isTranslucent(box: PooledBox): boolean {
-  return (box.color[3] ?? 1) < 1;
+export function isTranslucent(drawn: { readonly color: readonly number[] }): boolean {
+  return (drawn.color[3] ?? 1) < 1;
 }
 
 /**

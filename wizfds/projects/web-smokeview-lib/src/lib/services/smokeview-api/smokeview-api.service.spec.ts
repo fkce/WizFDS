@@ -39,7 +39,11 @@ describe('SmokeviewApiService', () => {
         },
         {
           provide: OpenService,
-          useValue: { opens: [], renderOpens: () => { drawn.push('opens'); } }
+          useValue: {
+            opens: [],
+            renderOpens: () => { drawn.push('opens'); return Promise.resolve(); },
+            resetClipping: () => { }
+          }
         },
         {
           provide: JetfanService,

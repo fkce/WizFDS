@@ -153,6 +153,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     this.obstService.clip(metres, axis);
     this.fireService.clip(metres, axis);
     this.ventService.clipBasic(metres, axis);
+    this.openService.clip(metres, axis);
   }
 
   ngOnInit() {

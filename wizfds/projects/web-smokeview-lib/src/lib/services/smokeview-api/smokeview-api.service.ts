@@ -57,7 +57,7 @@ export class SmokeviewApiService {
     this.obstService.renderObsts();
 
     this.openService.opens = scene.opens;
-    this.openService.renderOpens();
+    await this.settled('opens', () => this.openService.renderOpens());
 
     this.jetfanService.jetfans = scene.jetfans;
     await this.settled('jetfans', () => this.jetfanService.render());
@@ -95,6 +95,7 @@ export class SmokeviewApiService {
     this.fireService.resetClipping();
     this.ventService.resetClipping();
     this.jetfanService.resetClipping();
+    this.openService.resetClipping();
   }
 
   /** Run one drawing step, keeping a failure from taking the rest down with it. */

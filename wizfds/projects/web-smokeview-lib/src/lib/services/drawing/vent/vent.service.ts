@@ -1,12 +1,14 @@
-import { Injectable, isDevMode } from '@angular/core';
+import { Injectable } from '@angular/core';
 import * as BABYLON from 'babylonjs';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
-import { FaceRange, SceneRegistryService } from '../../babylon/scene-registry.service';
+import { SceneRegistryService } from '../../babylon/scene-registry.service';
 
-import { BabylonService } from '../../babylon/babylon.service';
+import { BabylonService, tryCreateShaderMaterial } from '../../babylon/babylon.service';
 import { HelpersService } from '../../helpers/helpers.service';
 import { SceneVent, SceneXb } from '../scene-input';
 import { SceneAxis, SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
+import { BatchedPlane, PlaneBatch } from '../plane-batch';
+import { isTranslucent } from '../box-instance-pool';
 
 /**
  * A plane the library draws in its own right, rather than an element of the
@@ -21,21 +23,13 @@ export interface DerivedVent {
   readonly color: number[]
 }
 
-/**
- * How heavily the jetfan planes are outlined, as a fraction of the model's
- * longest side.
- *
- * Far heavier than anything else in the scene, and deliberately so - this is the
- * old constant 2, which meant exactly this much back when the scene was squeezed
- * into a cube one unit across.
- */
-const DERIVED_VENT_EDGE_RATIO = 2;
+/** How solid a &VENT's fill is in the state that shows one. */
+const BASIC_FILL_ALPHA = 0.6;
 
-/** A &VENT as the app gave it, paired with the colour it is drawn in. */
-interface PlacedVent {
-  readonly vent: SceneVent,
-  /** The colour as a flat rgba array, ready for the vertex buffer. */
-  readonly color: number[]
+/** One colour of &VENT, and the batch drawing every vent that has it. */
+interface BasicVentGroup {
+  readonly batch: PlaneBatch,
+  readonly edgeColor: BABYLON.Color4
 }
 
 @Injectable({
@@ -43,10 +37,8 @@ interface PlacedVent {
 })
 export class VentService implements SceneScoped {
 
-  // Babylon.js objects (jetfan vents)
+  // The planes drawn for a jetfan, split by whether they need alpha blending
   public vents: DerivedVent[] = [];
-  public mesh: BABYLON.Mesh;
-  private _meshTransparent: BABYLON.Mesh;
   public material: BABYLON.ShaderMaterial;
   public materialTransparent: BABYLON.ShaderMaterial;
 
@@ -57,16 +49,38 @@ export class VentService implements SceneScoped {
 
   // Basic vents (separate from jetfan vents)
   public basicVents: readonly SceneVent[] = [];
-  public basicMeshGroups: { mesh: BABYLON.Mesh, material: BABYLON.ShaderMaterial, edgeColor: BABYLON.Color4 }[] = [];
   public basicVisibility: number = 0; // 0=edges only, 1=edges+semi-transparent, 2=hidden
+
+  /**
+   * The derived planes, batched the same way everything else is - opaque and
+   * translucent apart, because alpha blending is a property of the material.
+   */
+  private opaqueBatch: PlaneBatch;
+  private transparentBatch: PlaneBatch;
+
+  /**
+   * One batch per &VENT colour.
+   *
+   * Not one batch for all of them: the outline is a property of the mesh, and a
+   * vent is outlined in its own colour. Keyed by that colour so a re-render
+   * refills the batches it already has rather than building new ones.
+   */
+  private readonly basicGroups = new Map<string, BasicVentGroup>();
+
+  /**
+   * Shared by every colour group: they differ in how they are outlined, which
+   * the mesh carries, and in nothing the shader sees.
+   */
+  private basicMaterial: BABYLON.ShaderMaterial;
+
+  /** In flight while the shader sources are being fetched. */
+  private derivedPending: Promise<void> | null = null;
+  private basicPending: Promise<void> | null = null;
 
   /** Where the three clipping planes stand for the &VENTs, in FDS metres. */
   private basicClipX: number;
   private basicClipY: number;
   private basicClipZ: number;
-
-  /** What this service put in the registry, so a re-render can take it out. */
-  private registeredBasicUuids: string[] = [];
 
   constructor(
     private babylonService: BabylonService,
@@ -77,6 +91,25 @@ export class VentService implements SceneScoped {
   ) {
     sceneLifecycle.register(this);
     this.resetClipping();
+  }
+
+  /** The mesh the opaque jetfan planes are drawn on. */
+  public get mesh(): BABYLON.Mesh | undefined {
+    return this.opaqueBatch ? this.opaqueBatch.mesh : undefined;
+  }
+
+  /** The mesh the translucent jetfan planes are drawn on. */
+  public get meshTransparent(): BABYLON.Mesh | undefined {
+    return this.transparentBatch ? this.transparentBatch.mesh : undefined;
+  }
+
+  /**
+   * The batches the &VENTs are drawn on, one per colour, in the order the
+   * colours first appeared.
+   */
+  public get basicMeshGroups(): { mesh: BABYLON.Mesh, edgeColor: BABYLON.Color4 }[] {
+    return Array.from(this.basicGroups.values())
+      .map(group => ({ mesh: group.batch.mesh, edgeColor: group.edgeColor }));
   }
 
   /**
@@ -94,217 +127,91 @@ export class VentService implements SceneScoped {
 
   /** Release everything tied to the scene that has just been disposed. */
   public resetSceneState(): void {
-    this.mesh = null;
-    this._meshTransparent = null;
+    this.opaqueBatch = null;
+    this.transparentBatch = null;
     this.material = null;
     this.materialTransparent = null;
-    this.basicMeshGroups.length = 0;
-    this.basicVisibility = 0;
+    this.derivedPending = null;
+
     // The registry empties itself with the scene - this is only about not
-    // holding on to uuids that named meshes of a scene that is gone.
-    this.registeredBasicUuids.length = 0;
+    // holding on to batches of a scene that is gone.
+    this.basicGroups.clear();
+    this.basicMaterial = null;
+    this.basicPending = null;
+    this.basicVisibility = 0;
   }
 
-  /**
-   * Tell the registry where a batch of basic vents ended up, now that its mesh
-   * exists. A colour group shares one buffer, so identity is a face range
-   * within it.
-   */
-  private registerBasicFaces(mesh: BABYLON.Mesh, faces: FaceRange[]): void {
-    faces.forEach(({ uuid, first, count }) => {
-      this.sceneRegistry.register(uuid, { mesh: mesh, faces: { first: first, count: count } });
-      this.registeredBasicUuids.push(uuid);
-    });
-  }
+  // ==========================================
+  // Derived vents - the planes a jetfan blows between
+  // ==========================================
 
   /**
-   * Drop the entries of the previous render, together with the meshes they
-   * name: a vent taken out of the scenario would otherwise keep answering for
-   * faces of a buffer it is no longer in.
-   */
-  private forgetRegisteredBasicFaces(): void {
-    this.registeredBasicUuids.forEach(uuid => this.sceneRegistry.forget(uuid));
-    this.registeredBasicUuids.length = 0;
-  }
-
-  /**
-   * Update vents vertex data
+   * Draw the planes derived for the jetfans.
    *
-   * These are the inlet and outlet planes drawn for a jetfan, not vents from
-   * the FDS model: nothing in the scenario stands behind them, so there is no
-   * element for the registry to name. The jetfan body carries that identity -
-   * see JetfanService.
+   * These are drawings, not elements of the FDS model: nothing in the scenario
+   * stands behind them, so there is no identity for the registry to hold. The
+   * jetfan body carries it - see JetfanService.
    */
-  private updateVentsVertexData() {
-    let ventsVertices: number[] = [];
-    let ventsIndices: number[] = [];
-    let ventsColors: number[] = [];
-    let ventsNormals: number[] = [];
+  public async render(): Promise<void> {
+    this.ensureDerivedBatches();
 
-    let ventsVerticesTransparent: number[] = [];
-    let ventsIndicesTransparent: number[] = [];
-    let ventsColorsTransparent: number[] = [];
-    let ventsNormalsTransparent: number[] = [];
+    const planes: BatchedPlane[] = (this.vents || [])
+      .map((vent: DerivedVent) => ({ xb: vent.xb, color: vent.color }));
 
-    let indexCount = 0;
-    let indexCountTransparent = 0;
+    this.opaqueBatch.setPlanes(planes.filter(plane => !isTranslucent(plane)));
+    this.transparentBatch.setPlanes(planes.filter(plane => isTranslucent(plane)));
 
-    this.vents.forEach((vent: DerivedVent) => {
-      // Determine if vent is transparent
-      const alpha = vent.color.length > 3 ? vent.color[3] : 1.0;
-      const isTransparent = alpha < 1.0;
+    await this.ensureDerivedMaterials();
+  }
 
-      // Choose appropriate arrays
-      const vertices = isTransparent ? ventsVerticesTransparent : ventsVertices;
-      const indices = isTransparent ? ventsIndicesTransparent : ventsIndices;
-      const colors = isTransparent ? ventsColorsTransparent : ventsColors;
-      const normals = isTransparent ? ventsNormalsTransparent : ventsNormals;
-      const currentIndexCount = isTransparent ? indexCountTransparent : indexCount;
+  private ensureDerivedBatches(): void {
+    if (this.opaqueBatch) { return; }
 
-      // Generate vent geometry (plane)
-      const ventGeometry = this.helpersService.generateVentGeometry(vent.xb);
+    const scene = this.babylonService.scene;
+    this.opaqueBatch = new PlaneBatch('vents', scene, this.helpersService, this.sceneRegistry);
+    this.transparentBatch = new PlaneBatch(
+      'ventsTransparent', scene, this.helpersService, this.sceneRegistry);
+  }
 
-      // Add vertices
-      vertices.push(...ventGeometry.vertices);
+  /**
+   * Build the two materials, once for the scene rather than once per render -
+   * which is what used to leave a ShaderMaterial behind on every re-render.
+   */
+  private ensureDerivedMaterials(): Promise<void> {
+    if (this.derivedPending) { return this.derivedPending; }
 
-      // Add normals
-      normals.push(...ventGeometry.normals);
-
-      // Add colors with alpha
-      const ventColor = [vent.color[0], vent.color[1], vent.color[2], alpha];
-
-      for (let i = 0; i < ventGeometry.vertices.length / 3; i++) {
-        colors.push(...ventColor);
+    this.derivedPending = Promise.all([
+      tryCreateShaderMaterial(this.babylonService,
+        { name: 'ventShader', shader: 'vent' }, 'VentService'),
+      tryCreateShaderMaterial(this.babylonService,
+        { name: 'ventTransparentShader', shader: 'vent', needAlphaBlending: true }, 'VentService')
+    ]).then(([opaque, transparent]) => {
+      // The scene can be gone by the time the sources arrive
+      if (!this.babylonService.scene || !this.opaqueBatch) {
+        [opaque, transparent].forEach(material => { if (material) { material.dispose(); } });
+        return;
       }
 
-      // Add indices (offset by current vertex count)
-      for (let i = 0; i < ventGeometry.indices.length; i++) {
-        indices.push(ventGeometry.indices[i] + currentIndexCount);
-      }
+      [opaque, transparent].forEach((material: BABYLON.ShaderMaterial) => {
+        if (!material) { return; }
+        material.backFaceCulling = false;
+        // In front of the jetfan body, so the two do not z-fight
+        material.zOffset = -0.01;
+      });
 
-      // Update index counts
-      if (isTransparent) {
-        indexCountTransparent += ventGeometry.vertices.length / 3;
-      } else {
-        indexCount += ventGeometry.vertices.length / 3;
-      }
+      this.material = opaque;
+      this.materialTransparent = transparent;
+      this.clip();
+
+      if (opaque) { this.opaqueBatch.mesh.material = opaque; }
+      if (transparent) { this.transparentBatch.mesh.material = transparent; }
     });
 
-    // Store vertex data for both opaque and transparent vents
-    return {
-      opaque: {
-        vertices: ventsVertices,
-        indices: ventsIndices,
-        colors: ventsColors,
-        normals: ventsNormals
-      },
-      transparent: {
-        vertices: ventsVerticesTransparent,
-        indices: ventsIndicesTransparent,
-        colors: ventsColorsTransparent,
-        normals: ventsNormalsTransparent
-      }
-    };
+    return this.derivedPending;
   }
 
-  /**
-   * Render vents
-   */
-  public async render() {
-    if (isDevMode()) console.log('Rendering vents...', this.vents.length);
-
-    // Get vertex data for both opaque and transparent vents
-    const ventData = this.updateVentsVertexData();
-
-    // Dispose existing meshes
-    if (this.mesh) {
-      this.mesh.dispose();
-      this.mesh = null;
-    }
-    if (this._meshTransparent) {
-      this._meshTransparent.dispose();
-      this._meshTransparent = null;
-    }
-
-    // Create opaque vents mesh
-    if (ventData.opaque.vertices.length > 0) {
-      this.mesh = new BABYLON.Mesh('vents', this.babylonService.scene);
-
-      const vertexData = new BABYLON.VertexData();
-      vertexData.positions = ventData.opaque.vertices;
-      vertexData.indices = ventData.opaque.indices;
-      vertexData.colors = ventData.opaque.colors;
-      vertexData.normals = ventData.opaque.normals;
-
-      vertexData.applyToMesh(this.mesh);
-
-      // Create material for opaque vents
-      this.material = await this.babylonService.createShaderMaterial({
-        name: "ventShader",
-        shader: "vent"
-      });
-      this.material.backFaceCulling = false;
-      this.material.zOffset = -0.01; // Render vents in front of jetfan to prevent z-fighting
-
-      this.mesh.material = this.material;
-    }
-
-    // Create transparent vents mesh
-    if (ventData.transparent.vertices.length > 0) {
-      this._meshTransparent = new BABYLON.Mesh('ventsTransparent', this.babylonService.scene);
-
-      const vertexDataTransparent = new BABYLON.VertexData();
-      vertexDataTransparent.positions = ventData.transparent.vertices;
-      vertexDataTransparent.indices = ventData.transparent.indices;
-      vertexDataTransparent.colors = ventData.transparent.colors;
-      vertexDataTransparent.normals = ventData.transparent.normals;
-
-      vertexDataTransparent.applyToMesh(this._meshTransparent);
-
-      // Create material for transparent vents
-      this.materialTransparent = await this.babylonService.createShaderMaterial({
-        name: "ventTransparentShader",
-        shader: "vent",
-        needAlphaBlending: true
-      });
-      this.materialTransparent.backFaceCulling = false;
-      this.materialTransparent.zOffset = -0.01; // Render transparent vents in front of jetfan to prevent z-fighting
-
-      this._meshTransparent.material = this.materialTransparent;
-    }
-
-    if (isDevMode()) console.log('Vents rendered successfully');
-  }
-
-  /**
-   * Set edges rendering for vents
-   */
-  public setEdgesRendering(show: boolean) {
-    if (this.mesh) {
-      if (show) {
-        this.mesh.enableEdgesRendering();
-        this.mesh.edgesWidth = DERIVED_VENT_EDGE_RATIO * this.sceneBounds.extent;
-        this.mesh.edgesColor = BABYLON.Color4.FromInts(0, 0, 0, 255);
-      } else {
-        this.mesh.disableEdgesRendering();
-      }
-    }
-
-    if (this._meshTransparent) {
-      if (show) {
-        this._meshTransparent.enableEdgesRendering();
-        this._meshTransparent.edgesWidth = DERIVED_VENT_EDGE_RATIO * this.sceneBounds.extent;
-        this._meshTransparent.edgesColor = BABYLON.Color4.FromInts(0, 0, 0, 255);
-      } else {
-        this._meshTransparent.disableEdgesRendering();
-      }
-    }
-  }
-
-  /**
-   * Apply clipping to vents
-   */
-  public clip() {
+  /** Apply the clipping planes to the jetfan planes. */
+  public clip(): void {
     [this.material, this.materialTransparent].forEach((material: BABYLON.ShaderMaterial) => {
       if (!material) { return; }
       material.setFloat('clipX', this.clipX);
@@ -313,19 +220,11 @@ export class VentService implements SceneScoped {
     });
   }
 
-  /**
-   * Clear vents
-   */
-  public clear() {
+  /** Clear the derived vents. */
+  public clear(): void {
     this.vents = [];
-    if (this.mesh) {
-      this.mesh.dispose();
-      this.mesh = null;
-    }
-    if (this._meshTransparent) {
-      this._meshTransparent.dispose();
-      this._meshTransparent = null;
-    }
+    if (this.opaqueBatch) { this.opaqueBatch.setPlanes([]); }
+    if (this.transparentBatch) { this.transparentBatch.setPlanes([]); }
   }
 
   // ==========================================
@@ -333,144 +232,84 @@ export class VentService implements SceneScoped {
   // ==========================================
 
   /**
-   * Work out how each ventilation vent is drawn. Their colours arrive resolved
-   * from the &SURF, so there is nothing to look up here, and the planes stand
-   * exactly where the scenario puts them (ADR-0002).
-   */
-  private placeBasicVents(): PlacedVent[] {
-    return (this.basicVents || []).map((vent: SceneVent) => ({
-      vent: vent,
-      color: this.helpersService.toRgba(vent.color)
-    }));
-  }
-
-  /**
-   * Build batched vertex data for a group of basic vents
+   * Draw the &VENTs of the current scenario, one batch per colour.
    *
-   * `faces` says which triangles of this buffer belong to which vent. The whole
-   * group shares one mesh, so naming the mesh alone would not say which vent
-   * was hit - and the ranges are per group, because a face index only means
-   * anything inside the buffer it was counted in.
+   * Their colours arrive resolved from the &SURF, so there is nothing to look up
+   * here, and the planes stand exactly where the scenario puts them (ADR-0002).
+   *
+   * An empty list empties every batch rather than leaving the previous
+   * scenario's vents on screen.
    */
-  private buildBasicVentsVertexData(placed: readonly PlacedVent[]): {
-    vertices: number[], indices: number[], colors: number[], normals: number[], faces: FaceRange[]
-  } {
-    let vertices: number[] = [];
-    let indices: number[] = [];
-    let colors: number[] = [];
-    let normals: number[] = [];
-    let indexCount = 0;
-    const faces: FaceRange[] = [];
+  public async renderBasicVents(): Promise<void> {
+    const grouped = new Map<string, BatchedPlane[]>();
 
-    placed.forEach((placedVent: PlacedVent) => {
-      // Read afterwards rather than computed: nothing here may assume a fixed
-      // triangle count per vent.
-      const facesBefore = indices.length / 3;
-      const geom = this.helpersService.generateVentGeometry(placedVent.vent.xb);
-
-      vertices.push(...geom.vertices);
-      normals.push(...geom.normals);
-
-      const ventColor = [
-        placedVent.color[0],
-        placedVent.color[1],
-        placedVent.color[2],
-        placedVent.color[3] ?? 1.0
-      ];
-      for (let i = 0; i < geom.vertices.length / 3; i++) {
-        colors.push(...ventColor);
-      }
-
-      for (let i = 0; i < geom.indices.length; i++) {
-        indices.push(geom.indices[i] + indexCount);
-      }
-      indexCount += geom.vertices.length / 3;
-
-      faces.push({
-        uuid: placedVent.vent.uuid, first: facesBefore, count: indices.length / 3 - facesBefore
-      });
+    (this.basicVents || []).forEach((vent: SceneVent) => {
+      const color = this.helpersService.toRgba(vent.color);
+      const key = `${color[0].toFixed(3)},${color[1].toFixed(3)},${color[2].toFixed(3)}`;
+      if (!grouped.has(key)) { grouped.set(key, []); }
+      grouped.get(key).push({ uuid: vent.uuid, xb: vent.xb, color: color });
     });
 
-    return { vertices, indices, colors, normals, faces };
+    // A colour nobody uses any more takes its batch - and everything that batch
+    // put in the registry - with it
+    Array.from(this.basicGroups.keys())
+      .filter(key => !grouped.has(key))
+      .forEach(key => {
+        this.basicGroups.get(key).batch.dispose();
+        this.basicGroups.delete(key);
+      });
+
+    grouped.forEach((planes: BatchedPlane[], key: string) => {
+      const group = this.groupFor(key, planes[0].color);
+      group.batch.setPlanes(planes);
+    });
+
+    this.applyBasicEdges();
+
+    await this.ensureBasicMaterial();
+  }
+
+  /** The batch drawing a colour, built the first time that colour appears. */
+  private groupFor(key: string, color: readonly number[]): BasicVentGroup {
+    const existing = this.basicGroups.get(key);
+    if (existing) { return existing; }
+
+    const group: BasicVentGroup = {
+      batch: new PlaneBatch(
+        `basicVents_${this.basicGroups.size}`, this.babylonService.scene,
+        this.helpersService, this.sceneRegistry),
+      edgeColor: new BABYLON.Color4(color[0], color[1], color[2], 1)
+    };
+    if (this.basicMaterial) { group.batch.mesh.material = this.basicMaterial; }
+    this.basicGroups.set(key, group);
+    return group;
   }
 
   /**
-   * Render basic vents — grouped by edge color so each group gets correct edgesColor
+   * Build the material every colour group shares, once for the scene.
+   *
+   * &VENTs borrow the fire shader - it clips in metres and carries the
+   * `transparent` uniform the visibility toggle turns.
    */
-  public async renderBasicVents() {
-    // Dispose before the empty check, not after: deleting the last vent of a
-    // scenario arrives here as an empty list, and the meshes drawn for the
-    // previous one - along with the registry entries naming them - have to go
-    // with it rather than outlive the vents they stand for.
-    this.disposeBasicMeshGroups();
+  private ensureBasicMaterial(): Promise<void> {
+    if (this.basicPending) { return this.basicPending; }
 
-    if (!this.basicVents || this.basicVents.length === 0) {
-      return;
-    }
+    this.basicPending = tryCreateShaderMaterial(this.babylonService, {
+      name: 'basicVentShader', shader: 'fire', needAlphaBlending: true
+    }, 'VentService').then((material: BABYLON.ShaderMaterial) => {
+      if (!material) { return; }
+      if (!this.babylonService.scene) { material.dispose(); return; }
 
-    const placed = this.placeBasicVents();
-
-    // Group vents by edge color (RGB rounded to 3 decimals)
-    const colorGroups = new Map<string, PlacedVent[]>();
-    placed.forEach((placedVent: PlacedVent) => {
-      const cn = placedVent.color;
-      const key = `${cn[0].toFixed(3)},${cn[1].toFixed(3)},${cn[2].toFixed(3)}`;
-      if (!colorGroups.has(key)) {
-        colorGroups.set(key, []);
-      }
-      colorGroups.get(key).push(placedVent);
-    });
-
-    let groupIndex = 0;
-    for (const [, groupVents] of colorGroups) {
-      const data = this.buildBasicVentsVertexData(groupVents);
-      if (data.vertices.length === 0) continue;
-
-      const mesh = new BABYLON.Mesh(`basicVents_${groupIndex}`, this.babylonService.scene);
-
-      const vertexData = new BABYLON.VertexData();
-      vertexData.positions = data.vertices;
-      vertexData.indices = data.indices;
-      vertexData.colors = data.colors;
-      vertexData.normals = data.normals;
-      vertexData.applyToMesh(mesh);
-
-      // Before the material, not after: which vent a face belongs to is settled
-      // by the buffer, and stays true even if the shader never arrives.
-      this.registerBasicFaces(mesh, data.faces);
-
-      // Basic vents borrow the fire shader - it has clipping plus a transparent uniform
-      const material = await this.babylonService.createShaderMaterial({
-        name: `basicVentShader_${groupIndex}`,
-        shader: "fire",
-        needAlphaBlending: true
-      });
-
+      this.basicMaterial = material;
       material.backFaceCulling = false;
       material.zOffset = -0.015;
-      material.setFloat("clipX", this.basicClipX);
-      material.setFloat("clipY", this.basicClipY);
-      material.setFloat("clipZ", this.basicClipZ);
-      material.setFloat("transparent", 0.0);
+      this.pushBasicClipToMaterials();
+      this.applyBasicFill();
 
-      mesh.material = material;
+      this.basicGroups.forEach(group => { group.batch.mesh.material = material; });
+    });
 
-      // Edge color from this group's vent color
-      const cn = groupVents[0].color;
-      const edgeColor = new BABYLON.Color4(cn[0], cn[1], cn[2], 1);
-
-      mesh.enableEdgesRendering();
-      mesh.edgesWidth = this.sceneBounds.outlineWidth;
-      mesh.edgesColor = edgeColor;
-
-      mesh.freezeWorldMatrix();
-
-      this.basicMeshGroups.push({ mesh, material, edgeColor });
-      groupIndex++;
-    }
-
-    // Reset visibility state
-    this.basicVisibility = 0;
+    return this.basicPending;
   }
 
   /**
@@ -479,28 +318,29 @@ export class VentService implements SceneScoped {
    * 1 → edges + semi-transparent fill
    * 2 → hidden
    */
-  public toogleBasicVisibility() {
-    if (this.basicMeshGroups.length === 0) return;
+  public toogleBasicVisibility(): void {
+    if (this.basicGroups.size === 0) { return; }
 
-    if (this.basicVisibility == 0) {
-      this.basicMeshGroups.forEach(g => {
-        g.material.setFloat('transparent', 0.6);
-        g.mesh.edgesWidth = this.sceneBounds.outlineWidth;
-      });
-      this.basicVisibility = 1;
-    } else if (this.basicVisibility == 1) {
-      this.basicMeshGroups.forEach(g => {
-        g.material.setFloat('transparent', 0.0);
-        g.mesh.edgesWidth = 0.0;
-      });
-      this.basicVisibility = 2;
-    } else if (this.basicVisibility == 2) {
-      this.basicMeshGroups.forEach(g => {
-        g.material.setFloat('transparent', 0.0);
-        g.mesh.edgesWidth = this.sceneBounds.outlineWidth;
-      });
-      this.basicVisibility = 0;
-    }
+    this.basicVisibility = this.basicVisibility === 0 ? 1 : this.basicVisibility === 1 ? 2 : 0;
+    this.applyBasicFill();
+    this.applyBasicEdges();
+  }
+
+  /** Push the current state's fill onto the shared material, if it has arrived. */
+  private applyBasicFill(): void {
+    if (!this.basicMaterial) { return; }
+    this.basicMaterial.setFloat(
+      'transparent', this.basicVisibility === 1 ? BASIC_FILL_ALPHA : 0.0);
+  }
+
+  /** Outline every vent in its own colour, except in the state that hides them. */
+  private applyBasicEdges(): void {
+    const width = this.basicVisibility === 2 ? 0 : this.sceneBounds.outlineWidth;
+    this.basicGroups.forEach(group => {
+      group.batch.mesh.enableEdgesRendering();
+      group.batch.mesh.edgesWidth = width;
+      group.batch.mesh.edgesColor = group.edgeColor;
+    });
   }
 
   /**
@@ -508,7 +348,7 @@ export class VentService implements SceneScoped {
    * @param value the plane's coordinate, in FDS metres
    * @param direction x, y, z
    */
-  public clipBasic(value: number, direction: SceneAxis) {
+  public clipBasic(value: number, direction: SceneAxis): void {
     if (direction == 'x') { this.basicClipX = value; }
     else if (direction == 'y') { this.basicClipY = value; }
     else { this.basicClipZ = value; }
@@ -517,38 +357,20 @@ export class VentService implements SceneScoped {
   }
 
   /**
-   * Push the planes onto every group that exists. The slider is live before
-   * anything is drawn; renderBasicVents() reads them back when it builds a
-   * material.
+   * Push the planes onto the material, if it exists. The slider is live before
+   * anything is drawn; ensureBasicMaterial() reads them back when it builds it.
    */
   private pushBasicClipToMaterials(): void {
-    this.basicMeshGroups.forEach(g => {
-      g.material.setFloat('clipX', this.basicClipX);
-      g.material.setFloat('clipY', this.basicClipY);
-      g.material.setFloat('clipZ', this.basicClipZ);
-    });
+    if (!this.basicMaterial) { return; }
+    this.basicMaterial.setFloat('clipX', this.basicClipX);
+    this.basicMaterial.setFloat('clipY', this.basicClipY);
+    this.basicMaterial.setFloat('clipZ', this.basicClipZ);
   }
 
-  /**
-   * Dispose all basic mesh groups
-   *
-   * The registry entries go with them: a vent left registered against a
-   * disposed mesh would keep answering for faces that no longer exist.
-   */
-  private disposeBasicMeshGroups() {
-    this.forgetRegisteredBasicFaces();
-
-    this.basicMeshGroups.forEach(g => {
-      g.mesh.dispose();
-    });
-    this.basicMeshGroups = [];
-  }
-
-  /**
-   * Clear basic vents
-   */
-  public clearBasic() {
+  /** Clear basic vents */
+  public clearBasic(): void {
     this.basicVents = [];
-    this.disposeBasicMeshGroups();
+    this.basicGroups.forEach(group => group.batch.dispose());
+    this.basicGroups.clear();
   }
 }
