@@ -1,1 +1,23 @@
 @use '../../../main.component.scss' as *;
+
+/**
+ * An element the CAD plugin handed over without geometry. FDS ignores it and the
+ * preview does not draw it, so the list is the only place it can be found.
+ */
+mat-icon.no-geometry {
+  color: var(--warning);
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
+  line-height: 1rem;
+  vertical-align: text-bottom;
+  margin-right: 0.25rem;
+}
+
+.no-geometry-note {
+  align-items: flex-start;
+  gap: 0.25rem;
+  color: var(--warning);
+
+  label { color: inherit; }
+}

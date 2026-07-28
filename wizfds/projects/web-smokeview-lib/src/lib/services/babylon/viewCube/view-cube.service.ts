@@ -9,11 +9,14 @@ import { SceneLifecycleService, SceneScoped } from '../scene-lifecycle.service';
  * The layer the cube and its hit boxes live on.
  *
  * A bit outside the default mask, so the main camera - which keeps the default -
- * draws none of them, and the cube's own camera draws nothing else. The cube used
- * to be hidden from the main view by standing a thousand units away instead;
- * that only worked while the whole scene was one unit across, and stopped once
- * the scene became metres 1:1 (ADR-0002), which is when a hundred-metre model
- * started showing up behind the cube.
+ * draws none of them, and the cube's own camera draws nothing else. That is what
+ * lets the cube sit at the origin, one unit across, in the middle of a model that
+ * may be hundreds of metres wide: the two never meet.
+ *
+ * It used to be hidden from the main view by standing a thousand units away
+ * instead, every one of its twenty-eight parts carrying that offset. It only
+ * worked while the whole scene was one unit across, and stopped once the scene
+ * became metres 1:1 (ADR-0002).
  */
 const VIEW_CUBE_LAYER = 0x10000000;
 
@@ -284,7 +287,7 @@ export class ViewCubeService implements SceneScoped {
     };
 
     this.viewCube = BABYLON.MeshBuilder.CreateBox("viewBox", options, this.babylonService.scene);
-    this.viewCube.position.y = -1000;
+    this.viewCube.position.y = 0;
     this.viewCube.material = multiMaterial;
     
     // Manually set up subMeshes for each face
@@ -324,7 +327,7 @@ export class ViewCubeService implements SceneScoped {
     this.viewCubeGround = BABYLON.MeshBuilder.CreatePlane("ground", optionsGround, this.babylonService.scene);
     this.viewCubeGround.material = this.materialViewCubeGround;
     this.viewCubeGround.isPickable = false;
-    this.viewCubeGround.position.y = -1000;
+    this.viewCubeGround.position.y = 0;
     this.viewCubeGround.position.z = -0.6;
     this.viewCubeGround.rotation = new BABYLON.Vector3(0, Math.PI, 0);
 
@@ -465,7 +468,7 @@ export class ViewCubeService implements SceneScoped {
 
     // The direction is a unit-ish vector, so how far along it the camera stands
     // has to come from the model
-    const reach = this.sceneBounds.extent;
+    const reach = this.babylonService.radiusToFit();
     let vector = new BABYLON.Vector3(center.x + cameraVector.x * reach, center.y + cameraVector.y * reach, center.z + cameraVector.z * reach);
     let vectorViewCube = new BABYLON.Vector3(boundingViewBox.centerWorld.x + cameraVector.x, boundingViewBox.centerWorld.y + cameraVector.y, boundingViewBox.centerWorld.z + cameraVector.z);
 
@@ -1092,22 +1095,11 @@ export class ViewCubeService implements SceneScoped {
   /**
    * How far the camera has to stand to fit the whole model in view.
    *
-   * Taken from the measured model rather than from the obst mesh's bounding
-   * sphere: an element parked at the FDS sentinel is drawn but not measured
-   * (ADR-0002), and reading the mesh would put the camera 1e20 metres away.
+   * The same answer the preview frames a scenario with, so flying to a side
+   * lands at the distance the model opened at rather than at one of its own.
    */
   public getRadius(): number {
-
-    // Zoom in/out to the model
-    let radius = this.sceneBounds.boundingRadius;
-    let aspectRatio = this.babylonService.engine.getAspectRatio(this.babylonService.camera);
-    let halfMinFov = this.babylonService.camera.fov / 2;
-    if (aspectRatio < 1) {
-      halfMinFov = Math.atan(aspectRatio * Math.tan(this.babylonService.camera.fov / 2));
-    }
-    return Math.abs(radius / Math.sin(halfMinFov));
-    //this.babylonService.camera.radius = viewRadius;
-
+    return this.babylonService.radiusToFit();
   }
 
   private createFrontPlane() {
@@ -1118,7 +1110,7 @@ export class ViewCubeService implements SceneScoped {
     // Mesh
     this.frontPlane = BABYLON.Mesh.CreatePlane("front", 0.7, this.babylonService.scene, true);
     this.frontPlane.material = materialFrontPlane;
-    this.frontPlane.position.y = -1000.51;
+    this.frontPlane.position.y = -0.51;
     this.frontPlane.rotation = new BABYLON.Vector3(-Math.PI / 2, 0, 0);
     this.frontPlane.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
     this.frontPlane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.frontPlane.material, "alpha", 0.5));
@@ -1133,7 +1125,7 @@ export class ViewCubeService implements SceneScoped {
     // Mesh
     this.backPlane = BABYLON.Mesh.CreatePlane("back", 0.7, this.babylonService.scene, true);
     this.backPlane.material = materialBackPlane;
-    this.backPlane.position.y = -999.49;
+    this.backPlane.position.y = 0.51;
     this.backPlane.rotation = new BABYLON.Vector3(Math.PI / 2, 0, 0);
     this.backPlane.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
     this.backPlane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.backPlane.material, "alpha", 0.5));
@@ -1148,7 +1140,7 @@ export class ViewCubeService implements SceneScoped {
     // Mesh
     this.rightPlane = BABYLON.Mesh.CreatePlane("right", 0.7, this.babylonService.scene, true);
     this.rightPlane.material = materialRightPlane;
-    this.rightPlane.position.y = -1000;
+    this.rightPlane.position.y = 0;
     this.rightPlane.position.x = 0.51;
     this.rightPlane.rotation = new BABYLON.Vector3(0, -Math.PI / 2, 0);
     this.rightPlane.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
@@ -1164,7 +1156,7 @@ export class ViewCubeService implements SceneScoped {
     // Mesh
     this.leftPlane = BABYLON.Mesh.CreatePlane("left", 0.7, this.babylonService.scene, true);
     this.leftPlane.material = materialLeftPlane;
-    this.leftPlane.position.y = -1000;
+    this.leftPlane.position.y = 0;
     this.leftPlane.position.x = -0.51;
     this.leftPlane.rotation = new BABYLON.Vector3(0, Math.PI / 2, 0);
     this.leftPlane.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
@@ -1180,7 +1172,7 @@ export class ViewCubeService implements SceneScoped {
     // Mesh
     this.topPlane = BABYLON.Mesh.CreatePlane("top", 0.7, this.babylonService.scene, true);
     this.topPlane.material = materialTopPlane;
-    this.topPlane.position.y = -1000;
+    this.topPlane.position.y = 0;
     this.topPlane.position.z = 0.51;
     this.topPlane.rotation = new BABYLON.Vector3(0, Math.PI, Math.PI);
     this.topPlane.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
@@ -1196,7 +1188,7 @@ export class ViewCubeService implements SceneScoped {
     // Mesh
     this.bottomPlane = BABYLON.Mesh.CreatePlane("bottom", 0.7, this.babylonService.scene, true);
     this.bottomPlane.material = materialBottomPlane;
-    this.bottomPlane.position.y = -1000;
+    this.bottomPlane.position.y = 0;
     this.bottomPlane.position.z = -0.51;
     this.bottomPlane.rotation = new BABYLON.Vector3(0, 0, -Math.PI / 2);
     this.bottomPlane.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
@@ -1213,7 +1205,7 @@ export class ViewCubeService implements SceneScoped {
     materialRightTopFront.backFaceCulling = false;
     this.rightTopFrontBox.material = materialRightTopFront;
     this.rightTopFrontBox.position.x = 0.5;
-    this.rightTopFrontBox.position.y = -1000.5;
+    this.rightTopFrontBox.position.y = -0.5;
     this.rightTopFrontBox.position.z = 0.5;
     this.rightTopFrontBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
     this.rightTopFrontBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.rightTopFrontBox.material, "alpha", 0.5));
@@ -1229,7 +1221,7 @@ export class ViewCubeService implements SceneScoped {
     materialLeftTopFront.backFaceCulling = false;
     this.leftTopFrontBox.material = materialLeftTopFront;
     this.leftTopFrontBox.position.x = -0.5;
-    this.leftTopFrontBox.position.y = -1000.5;
+    this.leftTopFrontBox.position.y = -0.5;
     this.leftTopFrontBox.position.z = 0.5;
     this.leftTopFrontBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
     this.leftTopFrontBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.leftTopFrontBox.material, "alpha", 0.5));
@@ -1245,7 +1237,7 @@ export class ViewCubeService implements SceneScoped {
     materialRightTopBack.backFaceCulling = false;
     this.rightTopBackBox.material = materialRightTopBack;
     this.rightTopBackBox.position.x = 0.5;
-    this.rightTopBackBox.position.y = -999.5;
+    this.rightTopBackBox.position.y = 0.5;
     this.rightTopBackBox.position.z = 0.5;
     this.rightTopBackBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
     this.rightTopBackBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.rightTopBackBox.material, "alpha", 0.5));
@@ -1261,7 +1253,7 @@ export class ViewCubeService implements SceneScoped {
     materialLeftTopBack.backFaceCulling = false;
     this.leftTopBackBox.material = materialLeftTopBack;
     this.leftTopBackBox.position.x = -0.5;
-    this.leftTopBackBox.position.y = -999.5;
+    this.leftTopBackBox.position.y = 0.5;
     this.leftTopBackBox.position.z = 0.5;
     this.leftTopBackBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
     this.leftTopBackBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.leftTopBackBox.material, "alpha", 0.5));
@@ -1277,7 +1269,7 @@ export class ViewCubeService implements SceneScoped {
     materialRightBottomFront.backFaceCulling = false;
     this.rightBottomFrontBox.material = materialRightBottomFront;
     this.rightBottomFrontBox.position.x = 0.5;
-    this.rightBottomFrontBox.position.y = -1000.5;
+    this.rightBottomFrontBox.position.y = -0.5;
     this.rightBottomFrontBox.position.z = -0.5;
     this.rightBottomFrontBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
     this.rightBottomFrontBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.rightBottomFrontBox.material, "alpha", 0.5));
@@ -1293,7 +1285,7 @@ export class ViewCubeService implements SceneScoped {
     materialLeftBottomFront.backFaceCulling = false;
     this.leftBottomFrontBox.material = materialLeftBottomFront;
     this.leftBottomFrontBox.position.x = -0.5;
-    this.leftBottomFrontBox.position.y = -1000.5;
+    this.leftBottomFrontBox.position.y = -0.5;
     this.leftBottomFrontBox.position.z = -0.5;
     this.leftBottomFrontBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
     this.leftBottomFrontBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.leftBottomFrontBox.material, "alpha", 0.5));
@@ -1309,7 +1301,7 @@ export class ViewCubeService implements SceneScoped {
     materialRightBottomBack.backFaceCulling = false;
     this.rightBottomBackBox.material = materialRightBottomBack;
     this.rightBottomBackBox.position.x = 0.5;
-    this.rightBottomBackBox.position.y = -999.5;
+    this.rightBottomBackBox.position.y = 0.5;
     this.rightBottomBackBox.position.z = -0.5;
     this.rightBottomBackBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
     this.rightBottomBackBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.rightBottomBackBox.material, "alpha", 0.5));
@@ -1325,7 +1317,7 @@ export class ViewCubeService implements SceneScoped {
     materialLeftBottomBack.backFaceCulling = false;
     this.leftBottomBackBox.material = materialLeftBottomBack;
     this.leftBottomBackBox.position.x = -0.5;
-    this.leftBottomBackBox.position.y = -999.5;
+    this.leftBottomBackBox.position.y = 0.5;
     this.leftBottomBackBox.position.z = -0.5;
     this.leftBottomBackBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
     this.leftBottomBackBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.leftBottomBackBox.material, "alpha", 0.5));
@@ -1341,7 +1333,7 @@ export class ViewCubeService implements SceneScoped {
     materialTopFront.backFaceCulling = false;
     this.topFrontBox.material = materialTopFront;
     this.topFrontBox.position.x = 0;
-    this.topFrontBox.position.y = -1000.5;
+    this.topFrontBox.position.y = -0.5;
     this.topFrontBox.position.z = 0.5;
     this.topFrontBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
     this.topFrontBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.topFrontBox.material, "alpha", 0.5));
@@ -1357,7 +1349,7 @@ export class ViewCubeService implements SceneScoped {
     materialTopBack.backFaceCulling = false;
     this.topBackBox.material = materialTopBack;
     this.topBackBox.position.x = 0;
-    this.topBackBox.position.y = -999.5;
+    this.topBackBox.position.y = 0.5;
     this.topBackBox.position.z = 0.5;
     this.topBackBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
     this.topBackBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.topBackBox.material, "alpha", 0.5));
@@ -1373,7 +1365,7 @@ export class ViewCubeService implements SceneScoped {
     materialTopRight.backFaceCulling = false;
     this.topRightBox.material = materialTopRight;
     this.topRightBox.position.x = 0.5;
-    this.topRightBox.position.y = -1000;
+    this.topRightBox.position.y = 0;
     this.topRightBox.position.z = 0.5;
     this.topRightBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
     this.topRightBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.topRightBox.material, "alpha", 0.5));
@@ -1389,7 +1381,7 @@ export class ViewCubeService implements SceneScoped {
     materialTopLeft.backFaceCulling = false;
     this.topLeftBox.material = materialTopLeft;
     this.topLeftBox.position.x = -0.5;
-    this.topLeftBox.position.y = -1000;
+    this.topLeftBox.position.y = 0;
     this.topLeftBox.position.z = 0.5;
     this.topLeftBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
     this.topLeftBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.topLeftBox.material, "alpha", 0.5));
@@ -1405,7 +1397,7 @@ export class ViewCubeService implements SceneScoped {
     materialBottomFront.backFaceCulling = false;
     this.bottomFrontBox.material = materialBottomFront;
     this.bottomFrontBox.position.x = 0;
-    this.bottomFrontBox.position.y = -1000.5;
+    this.bottomFrontBox.position.y = -0.5;
     this.bottomFrontBox.position.z = -0.5;
     this.bottomFrontBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
     this.bottomFrontBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.bottomFrontBox.material, "alpha", 0.5));
@@ -1421,7 +1413,7 @@ export class ViewCubeService implements SceneScoped {
     materialBottomBack.backFaceCulling = false;
     this.bottomBackBox.material = materialBottomBack;
     this.bottomBackBox.position.x = 0;
-    this.bottomBackBox.position.y = -999.5;
+    this.bottomBackBox.position.y = 0.5;
     this.bottomBackBox.position.z = -0.5;
     this.bottomBackBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
     this.bottomBackBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.bottomBackBox.material, "alpha", 0.5));
@@ -1437,7 +1429,7 @@ export class ViewCubeService implements SceneScoped {
     materialBottomRight.backFaceCulling = false;
     this.bottomRightBox.material = materialBottomRight;
     this.bottomRightBox.position.x = 0.5;
-    this.bottomRightBox.position.y = -1000;
+    this.bottomRightBox.position.y = 0;
     this.bottomRightBox.position.z = -0.5;
     this.bottomRightBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
     this.bottomRightBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.bottomRightBox.material, "alpha", 0.5));
@@ -1453,7 +1445,7 @@ export class ViewCubeService implements SceneScoped {
     materialBottomLeft.backFaceCulling = false;
     this.bottomLeftBox.material = materialBottomLeft;
     this.bottomLeftBox.position.x = -0.5;
-    this.bottomLeftBox.position.y = -1000;
+    this.bottomLeftBox.position.y = 0;
     this.bottomLeftBox.position.z = -0.5;
     this.bottomLeftBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
     this.bottomLeftBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.bottomLeftBox.material, "alpha", 0.5));
@@ -1469,7 +1461,7 @@ export class ViewCubeService implements SceneScoped {
     materialFrontRight.backFaceCulling = false;
     this.frontRightBox.material = materialFrontRight;
     this.frontRightBox.position.x = 0.5;
-    this.frontRightBox.position.y = -1000.5;
+    this.frontRightBox.position.y = -0.5;
     this.frontRightBox.position.z = 0;
     this.frontRightBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
     this.frontRightBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.frontRightBox.material, "alpha", 0.5));
@@ -1485,7 +1477,7 @@ export class ViewCubeService implements SceneScoped {
     materialFrontLeft.backFaceCulling = false;
     this.frontLeftBox.material = materialFrontLeft;
     this.frontLeftBox.position.x = -0.5;
-    this.frontLeftBox.position.y = -1000.5;
+    this.frontLeftBox.position.y = -0.5;
     this.frontLeftBox.position.z = 0;
     this.frontLeftBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
     this.frontLeftBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.frontLeftBox.material, "alpha", 0.5));
@@ -1501,7 +1493,7 @@ export class ViewCubeService implements SceneScoped {
     materialBackRight.backFaceCulling = false;
     this.backRightBox.material = materialBackRight;
     this.backRightBox.position.x = 0.5;
-    this.backRightBox.position.y = -999.5;
+    this.backRightBox.position.y = 0.5;
     this.backRightBox.position.z = 0;
     this.backRightBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
     this.backRightBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.backRightBox.material, "alpha", 0.5));
@@ -1517,7 +1509,7 @@ export class ViewCubeService implements SceneScoped {
     materialBackLeft.backFaceCulling = false;
     this.backLeftBox.material = materialBackLeft;
     this.backLeftBox.position.x = -0.5;
-    this.backLeftBox.position.y = -999.5;
+    this.backLeftBox.position.y = 0.5;
     this.backLeftBox.position.z = 0;
     this.backLeftBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
     this.backLeftBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.backLeftBox.material, "alpha", 0.5));

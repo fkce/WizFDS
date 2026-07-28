@@ -4,6 +4,7 @@ import * as BABYLON from 'babylonjs';
 
 import { BabylonService } from './babylon.service';
 import { SceneLifecycleService } from './scene-lifecycle.service';
+import { SceneBoundsService } from '../scene-bounds/scene-bounds.service';
 
 describe('BabylonService', () => {
 
@@ -120,6 +121,65 @@ describe('BabylonService', () => {
     expect(service.webGPUAvailable).toBeFalse();
     expect(service.scene).toBeFalsy();
     expect(seen).toEqual([null]);
+  });
+
+  describe('framing the model', () => {
+    /** A ~68 x 36 x 11 m building, and an element that was never given coordinates. */
+    const BUILDING = { x1: -39.9, x2: 27.6, y1: -25.5, y2: 10.8, z1: -4.2, z2: 6.9 };
+    const UNSET = { x1: -1e20, x2: 1e20, y1: -1e20, y2: 1e20, z1: -1e20, z2: 1e20 };
+
+    let service: BabylonService;
+    let bounds: SceneBoundsService;
+    let engine: BABYLON.NullEngine;
+    let scene: BABYLON.Scene;
+
+    beforeEach(() => {
+      service = TestBed.inject(BabylonService);
+      bounds = TestBed.inject(SceneBoundsService);
+      engine = new BABYLON.NullEngine();
+      scene = new BABYLON.Scene(engine);
+
+      // The state createScene() leaves behind; it needs a real WebGPU adapter,
+      // which the suite has no way to provide.
+      service.scene = scene;
+      service.engine = engine as any;
+      service.camera = new BABYLON.ArcRotateCamera('Camera', 0, 0, 2, BABYLON.Vector3.Zero(), scene);
+      service.camera.upVector = new BABYLON.Vector3(0, 0, 1);
+
+      bounds.setFrom([BUILDING, UNSET]);
+    });
+
+    afterEach(() => {
+      scene.dispose();
+      engine.dispose();
+    });
+
+    it('stands the camera off the measured model, not off a mesh at the sentinel', () => {
+      // The view cube's fly-to-side read the obst mesh's bounding sphere, 1e20 m
+      // across, and flew the camera to the far radius limit. Both now ask this.
+      const radius = service.radiusToFit();
+
+      expect(radius).toBeGreaterThan(bounds.boundingRadius);
+      expect(radius).toBeLessThan(1000);
+    });
+
+    it('does not open the scene looking down the axis it calls up', () => {
+      // Straight above the centre with the up vector along +Z is the degenerate
+      // case: Babylon clamps beta to almost nothing and the model reads as a flat
+      // plan. A scenario has to open showing that it has height.
+      service.applySceneBounds();
+
+      expect(service.camera.beta).toBeGreaterThan(0.2);
+      expect(service.camera.beta).toBeLessThan(Math.PI - 0.2);
+    });
+
+    it('looks at the middle of the model', () => {
+      service.applySceneBounds();
+
+      expect(service.camera.target.x).toBeCloseTo(bounds.center.x, 6);
+      expect(service.camera.target.y).toBeCloseTo(bounds.center.y, 6);
+      expect(service.camera.target.z).toBeCloseTo(bounds.center.z, 6);
+    });
   });
 
   describe('scene lifecycle', () => {

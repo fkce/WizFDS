@@ -43,11 +43,22 @@ const CAMERA = {
   panningSensibility: 10000,
   minRadius: 0.1,
   maxRadius: 50,
-  /** How far back the camera stands when a model is first framed. */
-  framingRadius: 2,
+  /** Room left around the model when framing it, so it does not touch the edges. */
+  framingMargin: 1.15,
   /** Length of the world axes drawn at the origin. */
   axisLength: 0.1
 };
+
+/**
+ * Where the camera stands relative to the model when it is first framed.
+ *
+ * Length is irrelevant - only the direction is used. Straight above the centre
+ * is what the preview used to do, and with the up vector along +Z that is the
+ * degenerate case: the view direction is parallel to up, Babylon clamps beta to
+ * almost zero, and the model reads as a flat plan with no sense of height.
+ * Standing off to one side and above shows three faces of it instead.
+ */
+const FRAMING_DIRECTION = new BABYLON.Vector3(0.7, -0.8, 0.55);
 
 /**
  * The attributes and uniforms each shader in assets/shaders declares.
@@ -413,12 +424,31 @@ export class BabylonService {
     // Position first, then target: setTarget() rebuilds alpha, beta and radius
     // from wherever the camera currently stands.
     const target = new BABYLON.Vector3(center.x, center.y, center.z);
-    this.camera.setPosition(new BABYLON.Vector3(
-      center.x, center.y, center.z + CAMERA.framingRadius * extent
-    ));
+    const from = FRAMING_DIRECTION.normalizeToNew().scale(this.radiusToFit());
+    this.camera.setPosition(target.add(from));
     this.camera.setTarget(target);
 
     this.drawWorldAxes(CAMERA.axisLength * extent);
+  }
+
+  /**
+   * How far the camera has to stand for the whole model to fit in view.
+   *
+   * Off the measured model rather than off any mesh's bounding sphere: an
+   * element left at the FDS sentinel is drawn but not measured (ADR-0002), and
+   * reading a mesh would put the camera 1e20 metres away. The view cube's
+   * fly-to-side uses this too, so both agree on what "the whole model" means.
+   */
+  public radiusToFit(): number {
+    const radius = this.sceneBounds.boundingRadius;
+
+    // In portrait the horizontal field of view is the tighter one
+    const aspectRatio = this.engine ? this.engine.getAspectRatio(this.camera) : 1;
+    const halfMinFov = aspectRatio < 1
+      ? Math.atan(aspectRatio * Math.tan(this.camera.fov / 2))
+      : this.camera.fov / 2;
+
+    return Math.abs(radius / Math.sin(halfMinFov)) * CAMERA.framingMargin;
   }
 
   /**
