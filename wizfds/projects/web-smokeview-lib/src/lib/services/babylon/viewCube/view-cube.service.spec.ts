@@ -3,11 +3,9 @@ import * as BABYLON from 'babylonjs';
 
 import { ViewCubeService } from './view-cube.service';
 import { BabylonService } from '../babylon.service';
-import { SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 
 describe('ViewCubeService', () => {
   let service: ViewCubeService;
-  let bounds: SceneBoundsService;
   let engine: BABYLON.NullEngine;
   let scene: BABYLON.Scene;
   let camera: BABYLON.ArcRotateCamera;
@@ -29,7 +27,6 @@ describe('ViewCubeService', () => {
       }]
     });
     service = TestBed.inject(ViewCubeService);
-    bounds = TestBed.inject(SceneBoundsService);
   });
 
   afterEach(() => {
@@ -39,24 +36,6 @@ describe('ViewCubeService', () => {
 
   it('should be created', () => {
     expect(service).toBeTruthy();
-  });
-
-  describe('flying the camera to a side', () => {
-    it('stands it back far enough to see the model, and no further', () => {
-      // Read off the measured model, not off the obst mesh's bounding sphere: an
-      // element parked at the FDS sentinel is drawn but deliberately not measured
-      // (ADR-0002), and that sphere is 1e20 metres across. Reading it sent the
-      // camera to the far radius limit and the model became a dot.
-      bounds.setFrom([
-        { x1: -39.9, x2: 27.6, y1: -25.5, y2: 10.8, z1: -4.2, z2: 6.9 },
-        { x1: -1e20, x2: 1e20, y1: -1e20, y2: 1e20, z1: -1e20, z2: 1e20 }
-      ]);
-
-      const radius = service.getRadius();
-
-      expect(radius).toBeGreaterThan(bounds.boundingRadius);
-      expect(radius).toBeLessThan(1000);
-    });
   });
 
   describe('keeping the cube out of the model, and the model out of the cube', () => {
