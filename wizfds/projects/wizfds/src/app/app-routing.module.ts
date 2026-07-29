@@ -17,6 +17,7 @@ import { BoundaryComponent } from './views/main/fds/output/boundary/boundary.com
 import { SliceComponent } from './views/main/fds/output/slice/slice.component';
 import { IsosurfaceComponent } from './views/main/fds/output/isosurface/isosurface.component';
 import { DeviceComponent } from './views/main/fds/output/device/device.component';
+import { PropComponent } from './views/main/fds/output/prop/prop.component';
 import { InputFileComponent } from './views/main/fds/input-file/input-file.component';
 import { RampComponent } from './views/main/fds/ramp/ramp.component';
 import { FuelComponent } from './views/main/fds/fire/fuel/fuel.component';
@@ -113,6 +114,10 @@ const routes: Routes = [
   {
     path: 'fds/output/device',
     component: DeviceComponent
+  },
+  {
+    path: 'fds/output/prop',
+    component: PropComponent
   },
   {
     path: 'fds/ramp',

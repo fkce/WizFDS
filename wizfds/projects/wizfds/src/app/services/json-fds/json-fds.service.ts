@@ -3,7 +3,7 @@ import { Main } from '@services/main/main';
 import { MainService } from '@services/main/main.service';
 import { FdsEntities } from '@enums/fds/entities/fds-entities';
 import { IFds } from '@services/fds-object/fds-object';
-import { forEach, forOwn, unset, toUpper, has, includes, isArray, join, cloneDeep, concat, replace, each, toInteger } from 'lodash';
+import { forEach, forOwn, unset, toUpper, has, includes, isArray, join, cloneDeep, concat, replace, each, toInteger, get } from 'lodash';
 import { sprintf } from 'sprintf-js';
 import { Fire } from '@services/fds-object/fire/fire';
 import { Surf } from '@services/fds-object/geometry/surf';
@@ -17,7 +17,33 @@ import { SurfSpec } from '@services/fds-object/specie/surf-spec';
 import { Spec } from '@services/fds-object/specie/spec';
 import { Color } from '@services/fds-object/primitives';
 import { Geom } from '@services/fds-object/geometry/geom';
+import { Prop } from '@services/fds-object/output/prop';
 import { SnackBarService } from '@services/snack-bar/snack-bar.service';
+
+/**
+ * What a &PROP of each kind has no business carrying into the input file.
+ *
+ * One form edits every field the class holds, because a user switching a prop
+ * from a sprinkler to a detector should not lose what they typed. What FDS is
+ * told is narrower: a smoke detector has no k-factor, and writing one is a
+ * modelling error nobody made.
+ */
+const PROP_FIELDS_NOT_FOR: ReadonlyMap<string, readonly string[]> = new Map([
+  ['smoke detector', [
+    'activation_temperature', 'initial_temperature', 'rti', 'k_factor', 'c_factor',
+    'flow_rate', 'mass_flow_rate', 'operating_pressure', 'orifice_diameter',
+    'particle_velocity', 'spray_angle', 'spray_pattern_shape', 'spray_pattern_mu',
+    'spray_pattern_beta', 'pressure_ramp', 'part_id', 'offset'
+  ]],
+  ['heat detector', [
+    'activation_obscuration', 'path_length', 'k_factor', 'c_factor', 'flow_rate',
+    'mass_flow_rate', 'operating_pressure', 'orifice_diameter', 'particle_velocity',
+    'spray_angle', 'spray_pattern_shape', 'spray_pattern_mu', 'spray_pattern_beta',
+    'pressure_ramp', 'part_id'
+  ]],
+  ['sprinkler', ['activation_obscuration', 'path_length']],
+  ['nozzle', ['activation_obscuration', 'path_length', 'activation_temperature', 'rti']]
+]);
 
 @Injectable()
 export class JsonFdsService {
@@ -102,7 +128,12 @@ export class JsonFdsService {
       }
 
       let type = this.fdsEntities[amper][key]['type'];
-      let defValue = this.fdsEntities[amper][key]['default'];
+      // Not every attribute declares one - FLOW_RATE is what a nozzle is rated
+      // at, and FDS assumes nothing. Every branch below reads `defValue[0]` to
+      // decide whether the value is worth writing, and on a bare `undefined`
+      // that throws and takes the whole input file with it. An empty list
+      // compares equal to nothing, which is exactly what "no default" means.
+      let defValue = this.fdsEntities[amper][key]['default'] || [];
 
       // If default values - unset
       if (type == 'Logical') {
@@ -803,6 +834,40 @@ export class JsonFdsService {
    * Parse devcs 
    * @param devcs 
    */
+  /**
+   * Parse props
+   *
+   * A &PROP is what tells FDS - and SmokeView - what a device *is*: a sprinkler
+   * with an RTI and an activation temperature, a smoke detector with an
+   * obscuration threshold, and the `SMOKEVIEW_ID` that decides how it is drawn.
+   *
+   * Only what the prop's own type calls for is written. The class carries every
+   * field FDS offers, because one form edits them all, but a smoke detector has
+   * no k-factor and writing one would be a modelling error the user never made.
+   *
+   * @param props
+   */
+  public propAmper(props: Prop[]): string[] {
+
+    let propString: string[] = [];
+
+    forEach(props, (o) => {
+      let prop = cloneDeep(o.toJSON());
+
+      forEach(PROP_FIELDS_NOT_FOR.get(o.type) || [], (field: string) => unset(prop, field));
+
+      // The whole object was resolved out of a list; FDS wants the name
+      if (!get(prop, 'part_id')) { unset(prop, 'part_id'); }
+      if (!get(prop, 'pressure_ramp')) { unset(prop, 'pressure_ramp'); }
+
+      let parsedProp = this.parseAmper(prop, 'prop');
+      if (parsedProp) propString.push(sprintf('&PROP %s /', parsedProp));
+    });
+
+    if (propString.length > 0) return propString;
+    else return Array();
+  }
+
   public devcAmper(devcs: Devc[]): string[] {
 
     let devcString: string[] = [];
@@ -810,11 +875,19 @@ export class JsonFdsService {
     forEach(devcs, (o) => {
       let devc = cloneDeep(o.toJSON());
 
-      if (o.quantity != undefined) {
+      // A device either measures a quantity of its own or takes one from a
+      // &PROP. Writing both is how a device ends up measuring something its
+      // prop does not.
+      if (o.hasProp) {
+        unset(devc, 'quantity');
+      }
+      else if (o.quantity != undefined) {
         devc['quantity'] = o.quantity.quantity;
+        unset(devc, 'prop_id');
       }
       else {
         unset(devc, 'quantity');
+        unset(devc, 'prop_id');
       }
 
       if (o.statistics != undefined) {
@@ -940,6 +1013,13 @@ export class JsonFdsService {
     if (fdsObject.output.isofs.length > 0) {
       fdsInput = concat(fdsInput, Array('## ---- Isosurface ----'));
       fdsInput = concat(fdsInput, this.isofAmper(fdsObject.output.isofs));
+      fdsInput.push('');
+    }
+    // Before the devices that name them: FDS reads the file in order, and a
+    // PROP_ID pointing at a namelist further down is an error
+    if (fdsObject.output.props.length > 0) {
+      fdsInput = concat(fdsInput, Array('## ---- Prop ----'));
+      fdsInput = concat(fdsInput, this.propAmper(fdsObject.output.props));
       fdsInput.push('');
     }
     if (fdsObject.output.devcs.length > 0) {

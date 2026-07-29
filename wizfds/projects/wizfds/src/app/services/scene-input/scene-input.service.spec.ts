@@ -262,6 +262,57 @@ describe('SceneInputService', () => {
       expect(scene.devcs[3].xb).toEqual({ x1: 0, x2: 10, y1: 0, y2: 8, z1: 0, z2: 4 });
     });
 
+    describe('when the device names a &PROP', () => {
+      /** A scenario whose first device points at a &PROP. */
+      function withProp(smokeviewId: string, quantity?: object): Fds {
+        const json: any = scenarioJson();
+        json.output.props = [{ id: 'P1', smokeview_id: smokeviewId }];
+        json.output.devcs[0] = {
+          id: 'D1', uuid: 'd1-uuid', geometrical_type: 'point',
+          xyz: { x: 1, y: 1, z: 1 },
+          quantity_type: 'PROP', prop_id: 'P1',
+          quantity: quantity
+        };
+        return new Fds(JSON.stringify(json));
+      }
+
+      it('reads the kind off the &PROP, which is what SmokeView does', () => {
+        expect(service.fromFds(withProp('sprinkler')).devcs[0].marker).toBe('sprinkler');
+      });
+
+      it('prefers the &PROP over the quantity, when the two disagree', () => {
+        // The prop is the deliberate statement of what the device is; the
+        // quantity is what it happens to measure
+        const scene = service.fromFds(withProp('nozzle', {
+          id: 'Chamber obscuration', quantity: 'CHAMBER OBSCURATION'
+        }));
+
+        expect(scene.devcs[0].marker).toBe('nozzle');
+      });
+
+      it('falls back to the quantity when the &PROP names no shape it can draw', () => {
+        const scene = service.fromFds(withProp('something-custom', {
+          id: 'Sprinkler link temperature', quantity: 'SPRINKLER LINK TEMPERATURE'
+        }));
+
+        expect(scene.devcs[0].marker).toBe('sprinkler');
+      });
+
+      it('falls back to the quantity when the &PROP cannot be found', () => {
+        const json: any = scenarioJson();
+        json.output.props = [];
+        json.output.devcs[0] = {
+          id: 'D1', uuid: 'd1-uuid', geometrical_type: 'point', xyz: { x: 1, y: 1, z: 1 },
+          quantity_type: 'PROP', prop_id: 'GONE',
+          quantity: { id: 'Chamber obscuration', quantity: 'CHAMBER OBSCURATION' }
+        };
+
+        const scene = service.fromFds(new Fds(JSON.stringify(json)));
+
+        expect(scene.devcs[0].marker).toBe('smoke detector');
+      });
+    });
+
     it('reads what kind of device it is off the QUANTITY it measures', () => {
       // The only link the app keeps: &PROP is never written to the input file
       // and the device form does not offer it, so PROP_ID says nothing here.

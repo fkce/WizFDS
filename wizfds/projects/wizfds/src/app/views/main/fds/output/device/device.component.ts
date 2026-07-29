@@ -6,6 +6,7 @@ import { Fds } from '@services/fds-object/fds-object';
 import { UiState } from '@services/ui-state/ui-state';
 import { Library } from '@services/library/library';
 import { Devc } from '@services/fds-object/output/devc';
+import { Prop } from '@services/fds-object/output/prop';
 import { quantities } from '@enums/fds/enums/fds-enums-quantities';
 import { Quantity } from '@services/fds-object/primitives';
 import { Spec } from '@services/fds-object/specie/spec';
@@ -56,6 +57,8 @@ export class DeviceComponent implements OnInit, OnDestroy {
   // Enums
   QUANTITIES = map(filter(quantities, function (o) { return includes(o.type, 'd') }), function (o) { return new Quantity(JSON.stringify(o)) });
   SPECIES: Spec[];
+  /** The &PROPs of this scenario, for a device that takes its quantity from one. */
+  PROPS: Prop[] = [];
   DEVC = FdsEnums.DEVC
 
   constructor(
@@ -79,6 +82,7 @@ export class DeviceComponent implements OnInit, OnDestroy {
     this.devcs = this.main.currentFdsScenario.fdsObject.output.devcs;
     this.libDevcs = this.lib.devcs;
     this.SPECIES = this.main.currentFdsScenario.fdsObject.specie.specs;
+    this.PROPS = this.main.currentFdsScenario.fdsObject.output.props;
 
     // Subscribe websocket requests status for websocket CAD sync
     this.wsSub = this.websocketService.requestStatus.subscribe(

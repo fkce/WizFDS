@@ -9153,8 +9153,13 @@ export const FdsEntities =
             ]
           },
           smokeview_id: {
-            type: 'Char.Array',
-            default: 'sensor',
+            // A single name, not a list - SMOKEVIEW_PARAMETERS below is the
+            // list. Typed as an array, it fell through every branch of
+            // parseAmper() and was written unquoted, which FDS will not read.
+            type: 'Character',
+            default: [
+              'sensor'
+            ],
             help: '',
             pattern: '',
             valid_ranges: [

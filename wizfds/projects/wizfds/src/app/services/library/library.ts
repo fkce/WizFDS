@@ -9,6 +9,7 @@ import { Spec } from '@services/fds-object/specie/spec';
 import { Slcf } from '@services/fds-object/output/slcf';
 import { Isof } from '@services/fds-object/output/isof';
 import { Devc } from '@services/fds-object/output/devc';
+import { Prop } from '@services/fds-object/output/prop';
 import { get, map } from 'lodash';
 import { SurfSpec } from '@services/fds-object/specie/surf-spec';
 import { VentSpec } from '@services/fds-object/specie/vent';
@@ -27,6 +28,7 @@ export interface LibraryObject {
 	slcfs: Slcf[],
 	isofs: Isof[],
 	devcs: Devc[]
+	props: Prop[]
 }
 
 export class Library {
@@ -44,6 +46,7 @@ export class Library {
 	private _slcfs: Slcf[];
 	private _isofs: Isof[];
 	private _devcs: Devc[];
+	private _props: Prop[];
 
 	constructor(jsonString: string) {
 
@@ -98,8 +101,13 @@ export class Library {
 			return new Isof(JSON.stringify(isof));
 		});
 
+		this.props = get(base, 'props') === undefined ? [] : map(base.props, (prop) => {
+			return new Prop(JSON.stringify(prop), this.ramps, undefined);
+		});
+
+		// After the props, so that a stored device can resolve the one it names
 		this.devcs = get(base, 'devcs') === undefined ? [] : map(base.devcs, (devc) => {
-			return new Devc(JSON.stringify(devc), undefined, this.specs, undefined);
+			return new Devc(JSON.stringify(devc), this.props, this.specs, undefined);
 		});
 	}
 
@@ -297,6 +305,22 @@ export class Library {
 	}
 
     /**
+     * Getter props
+     * @return {Prop[]}
+     */
+	public get props(): Prop[] {
+		return this._props;
+	}
+
+    /**
+     * Setter props
+     * @param {Prop[]} value
+     */
+	public set props(value: Prop[]) {
+		this._props = value;
+	}
+
+    /**
      * Getter specvents
      * @return {VentSpec[]}
      */
@@ -328,6 +352,7 @@ export class Library {
 			slcfs: this.slcfs,
 			isofs: this.isofs,
 			devcs: this.devcs,
+			props: this.props,
 		}
 		return library;
 	}

@@ -1,5 +1,5 @@
 import { Injectable, isDevMode } from '@angular/core';
-import { find } from 'lodash';
+import { find, get } from 'lodash';
 
 import { Fds } from '@services/fds-object/fds-object';
 import { Obst } from '@services/fds-object/geometry/obst';
@@ -14,7 +14,8 @@ import { Devc } from '@services/fds-object/output/devc';
 import { Geom } from '@services/fds-object/geometry/geom';
 import { Xb } from '@services/fds-object/primitives';
 import {
-  isSceneJetfanDirection, SceneColor, SceneDevc, SceneDevcExtent, SceneDevcMarker, SceneFire,
+  isSceneDevcMarker, isSceneJetfanDirection, SceneColor, SceneDevc, SceneDevcExtent, SceneDevcMarker,
+  SceneFire,
   SceneGeom, SceneHole, SceneInput, SceneJetfan, SceneMesh, SceneObst, SceneOpen, SceneVent, SceneXb
 } from '../../../../../web-smokeview-lib/src/lib/services/drawing/scene-input';
 
@@ -39,10 +40,9 @@ const FALLBACK_GEOM_RGB: number[] = [180, 180, 180];
 /**
  * Which marker a device is drawn with, by the FDS QUANTITY it measures.
  *
- * The quantity is the only link the app actually keeps: `PROP_ID` is never
- * written to the input file, the device form does not offer it, and the model's
- * own resolver never finds the &PROP - so a marker read off &PROP would be one
- * read off nothing. See ADR-0008.
+ * The fallback, for a device that names no &PROP - which is every device in a
+ * scenario written before &PROP worked, and every one whose author only cared
+ * what it measures. See ADR-0008.
  */
 const MARKER_BY_QUANTITY: ReadonlyMap<string, SceneDevcMarker> = new Map([
   ['SPRINKLER LINK TEMPERATURE', 'sprinkler' as SceneDevcMarker],
@@ -110,16 +110,32 @@ export class SceneInputService {
    */
   private devc(devc: Devc): SceneDevc {
     const extent = this.devcExtent(devc.geometrical_type);
-    const quantity: string = (devc.quantity?.quantity ?? '').toUpperCase();
 
     return {
       uuid: devc.uuid,
       id: devc.id,
       xb: extent === 'point' ? this.pointXb(devc) : this.xb(devc.xb),
       extent: extent,
-      marker: MARKER_BY_QUANTITY.get(quantity) ?? 'sensor',
+      marker: this.devcMarker(devc),
       color: this.color(DEVC_RGB, 1, DEVC_RGB)
     };
+  }
+
+  /**
+   * What kind of device this is, for the shape of its marker.
+   *
+   * The &PROP first, because that is where the user says what the device *is*
+   * and it is what SmokeView itself reads. The QUANTITY is a fallback: it says
+   * what the device measures, which usually implies the kind but is a weaker
+   * statement - and a device may name a &PROP whose `SMOKEVIEW_ID` is one of
+   * SmokeView's many other objects, or one the user defined. See ADR-0008.
+   */
+  private devcMarker(devc: Devc): SceneDevcMarker {
+    const smokeviewId: string = (get(devc.prop_id, 'smokeview_id') ?? '').toString();
+    if (isSceneDevcMarker(smokeviewId)) { return smokeviewId; }
+
+    const quantity: string = (devc.quantity?.quantity ?? '').toUpperCase();
+    return MARKER_BY_QUANTITY.get(quantity) ?? 'sensor';
   }
 
   /** Narrow a stored geometrical type onto the four the library draws. */
