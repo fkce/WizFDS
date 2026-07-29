@@ -8,6 +8,7 @@ import { HelpersService } from '../../helpers/helpers.service';
 import { SceneVent, SceneXb } from '../scene-input';
 import { SceneAxis, SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 import { BatchedPlane, PlaneBatch } from '../plane-batch';
+import { ClippedPlaneLayer, OutlinedMesh } from '../clipped-plane-layer';
 import { isTranslucent } from '../box-instance-pool';
 
 /**
@@ -23,9 +24,6 @@ export interface DerivedVent {
   readonly color: number[]
 }
 
-/** How solid a &VENT's fill is in the state that shows one. */
-const BASIC_FILL_ALPHA = 0.6;
-
 /** One colour of &VENT, and the batch drawing every vent that has it. */
 interface BasicVentGroup {
   readonly batch: PlaneBatch,
@@ -37,7 +35,7 @@ interface BasicVentGroup {
 })
 export class VentService implements SceneScoped {
 
-  // The planes drawn for a jetfan, split by whether they need alpha blending
+  /** The planes a jetfan blows between, as JetfanService derives them. */
   public vents: DerivedVent[] = [];
   public material: BABYLON.ShaderMaterial;
   public materialTransparent: BABYLON.ShaderMaterial;
@@ -47,9 +45,7 @@ export class VentService implements SceneScoped {
   public clipY: number;
   public clipZ: number;
 
-  // Basic vents (separate from jetfan vents)
   public basicVents: readonly SceneVent[] = [];
-  public basicVisibility: number = 0; // 0=edges only, 1=edges+semi-transparent, 2=hidden
 
   /**
    * The derived planes, batched the same way everything else is - opaque and
@@ -67,29 +63,24 @@ export class VentService implements SceneScoped {
    */
   private readonly basicGroups = new Map<string, BasicVentGroup>();
 
-  /**
-   * Shared by every colour group: they differ in how they are outlined, which
-   * the mesh carries, and in nothing the shader sees.
-   */
-  private basicMaterial: BABYLON.ShaderMaterial;
+  /** The clipping, the fill and the outlines the &VENTs are drawn with. */
+  private readonly basicLayer: ClippedPlaneLayer;
 
-  /** In flight while the shader sources are being fetched. */
+  /** In flight while the derived vents' shader sources are being fetched. */
   private derivedPending: Promise<void> | null = null;
-  private basicPending: Promise<void> | null = null;
-
-  /** Where the three clipping planes stand for the &VENTs, in FDS metres. */
-  private basicClipX: number;
-  private basicClipY: number;
-  private basicClipZ: number;
 
   constructor(
     private babylonService: BabylonService,
     private helpersService: HelpersService,
-    private sceneBounds: SceneBoundsService,
+    sceneBounds: SceneBoundsService,
     private sceneRegistry: SceneRegistryService,
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
+    this.basicLayer = new ClippedPlaneLayer(
+      // In front of the obst faces the vents sit on
+      { materialName: 'basicVentShader', zOffset: -0.015, fillAlpha: 0.6 },
+      babylonService, sceneBounds, 'VentService');
     this.resetClipping();
   }
 
@@ -107,9 +98,14 @@ export class VentService implements SceneScoped {
    * The batches the &VENTs are drawn on, one per colour, in the order the
    * colours first appeared.
    */
-  public get basicMeshGroups(): { mesh: BABYLON.Mesh, edgeColor: BABYLON.Color4 }[] {
+  public get basicMeshGroups(): OutlinedMesh[] {
     return Array.from(this.basicGroups.values())
       .map(group => ({ mesh: group.batch.mesh, edgeColor: group.edgeColor }));
+  }
+
+  /** Which of the three states the &VENT button currently shows. */
+  public get basicVisibility(): number {
+    return this.basicLayer.visibility;
   }
 
   /**
@@ -118,11 +114,13 @@ export class VentService implements SceneScoped {
    * SmokeviewApiService.render().
    */
   public resetClipping(): void {
-    this.clipX = this.basicClipX = this.sceneBounds.openClipAt('x');
-    this.clipY = this.basicClipY = this.sceneBounds.openClipAt('y');
-    this.clipZ = this.basicClipZ = this.sceneBounds.openClipAt('z');
+    this.basicLayer.resetClipping();
+    // The jetfan planes take their planes from the jetfan itself, which is what
+    // keeps a jetfan and the planes it blows between cut at the same place
+    this.clipX = this.basicLayer.clipX;
+    this.clipY = this.basicLayer.clipY;
+    this.clipZ = this.basicLayer.clipZ;
     this.clip();
-    this.pushBasicClipToMaterials();
   }
 
   /** Release everything tied to the scene that has just been disposed. */
@@ -136,9 +134,7 @@ export class VentService implements SceneScoped {
     // The registry empties itself with the scene - this is only about not
     // holding on to batches of a scene that is gone.
     this.basicGroups.clear();
-    this.basicMaterial = null;
-    this.basicPending = null;
-    this.basicVisibility = 0;
+    this.basicLayer.resetSceneState();
   }
 
   // ==========================================
@@ -151,6 +147,10 @@ export class VentService implements SceneScoped {
    * These are drawings, not elements of the FDS model: nothing in the scenario
    * stands behind them, so there is no identity for the registry to hold. The
    * jetfan body carries it - see JetfanService.
+   *
+   * They keep a layer of their own rather than joining the &VENTs': their
+   * transparency is per plane, in the vertex buffer, where a &VENT's is the one
+   * uniform its visibility button turns.
    */
   public async render(): Promise<void> {
     this.ensureDerivedBatches();
@@ -210,7 +210,12 @@ export class VentService implements SceneScoped {
     return this.derivedPending;
   }
 
-  /** Apply the clipping planes to the jetfan planes. */
+  /**
+   * Push the jetfan planes' clipping onto their materials.
+   *
+   * The values are JetfanService's - it sets them so that a jetfan and the two
+   * planes drawn for it are cut at the same coordinate.
+   */
   public clip(): void {
     [this.material, this.materialTransparent].forEach((material: BABYLON.ShaderMaterial) => {
       if (!material) { return; }
@@ -220,7 +225,7 @@ export class VentService implements SceneScoped {
     });
   }
 
-  /** Clear the derived vents. */
+  /** Take the derived planes out of the scene without waiting for a re-render. */
   public clear(): void {
     this.vents = [];
     if (this.opaqueBatch) { this.opaqueBatch.setPlanes([]); }
@@ -260,13 +265,10 @@ export class VentService implements SceneScoped {
       });
 
     grouped.forEach((planes: BatchedPlane[], key: string) => {
-      const group = this.groupFor(key, planes[0].color);
-      group.batch.setPlanes(planes);
+      this.groupFor(key, planes[0].color).batch.setPlanes(planes);
     });
 
-    this.applyBasicEdges();
-
-    await this.ensureBasicMaterial();
+    await this.basicLayer.attach(this.basicMeshGroups);
   }
 
   /** The batch drawing a colour, built the first time that colour appears. */
@@ -280,67 +282,13 @@ export class VentService implements SceneScoped {
         this.helpersService, this.sceneRegistry),
       edgeColor: new BABYLON.Color4(color[0], color[1], color[2], 1)
     };
-    if (this.basicMaterial) { group.batch.mesh.material = this.basicMaterial; }
     this.basicGroups.set(key, group);
     return group;
   }
 
-  /**
-   * Build the material every colour group shares, once for the scene.
-   *
-   * &VENTs borrow the fire shader - it clips in metres and carries the
-   * `transparent` uniform the visibility toggle turns.
-   */
-  private ensureBasicMaterial(): Promise<void> {
-    if (this.basicPending) { return this.basicPending; }
-
-    this.basicPending = tryCreateShaderMaterial(this.babylonService, {
-      name: 'basicVentShader', shader: 'fire', needAlphaBlending: true
-    }, 'VentService').then((material: BABYLON.ShaderMaterial) => {
-      if (!material) { return; }
-      if (!this.babylonService.scene) { material.dispose(); return; }
-
-      this.basicMaterial = material;
-      material.backFaceCulling = false;
-      material.zOffset = -0.015;
-      this.pushBasicClipToMaterials();
-      this.applyBasicFill();
-
-      this.basicGroups.forEach(group => { group.batch.mesh.material = material; });
-    });
-
-    return this.basicPending;
-  }
-
-  /**
-   * Toggle basic vent visibility (3 states):
-   * 0 → edges only
-   * 1 → edges + semi-transparent fill
-   * 2 → hidden
-   */
+  /** Cycle the &VENT button: edges only → edges and fill → hidden. */
   public toogleBasicVisibility(): void {
-    if (this.basicGroups.size === 0) { return; }
-
-    this.basicVisibility = this.basicVisibility === 0 ? 1 : this.basicVisibility === 1 ? 2 : 0;
-    this.applyBasicFill();
-    this.applyBasicEdges();
-  }
-
-  /** Push the current state's fill onto the shared material, if it has arrived. */
-  private applyBasicFill(): void {
-    if (!this.basicMaterial) { return; }
-    this.basicMaterial.setFloat(
-      'transparent', this.basicVisibility === 1 ? BASIC_FILL_ALPHA : 0.0);
-  }
-
-  /** Outline every vent in its own colour, except in the state that hides them. */
-  private applyBasicEdges(): void {
-    const width = this.basicVisibility === 2 ? 0 : this.sceneBounds.outlineWidth;
-    this.basicGroups.forEach(group => {
-      group.batch.mesh.enableEdgesRendering();
-      group.batch.mesh.edgesWidth = width;
-      group.batch.mesh.edgesColor = group.edgeColor;
-    });
+    this.basicLayer.toggleVisibility();
   }
 
   /**
@@ -349,25 +297,10 @@ export class VentService implements SceneScoped {
    * @param direction x, y, z
    */
   public clipBasic(value: number, direction: SceneAxis): void {
-    if (direction == 'x') { this.basicClipX = value; }
-    else if (direction == 'y') { this.basicClipY = value; }
-    else { this.basicClipZ = value; }
-
-    this.pushBasicClipToMaterials();
+    this.basicLayer.clip(value, direction);
   }
 
-  /**
-   * Push the planes onto the material, if it exists. The slider is live before
-   * anything is drawn; ensureBasicMaterial() reads them back when it builds it.
-   */
-  private pushBasicClipToMaterials(): void {
-    if (!this.basicMaterial) { return; }
-    this.basicMaterial.setFloat('clipX', this.basicClipX);
-    this.basicMaterial.setFloat('clipY', this.basicClipY);
-    this.basicMaterial.setFloat('clipZ', this.basicClipZ);
-  }
-
-  /** Clear basic vents */
+  /** Take the &VENTs out of the scene without waiting for a re-render. */
   public clearBasic(): void {
     this.basicVents = [];
     this.basicGroups.forEach(group => group.batch.dispose());

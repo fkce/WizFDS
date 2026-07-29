@@ -191,16 +191,60 @@ describe('OpenService', () => {
       expect(service.visibility).toBe(started);
     });
 
-    it('hides the outline in the hidden state and brings it back', async () => {
+    it('hides the outline in exactly one of the three states', async () => {
       service.opens = [makeOpen('OPEN_1', wall)];
       await service.renderOpens();
 
-      // Walk the cycle until the state that hides everything
-      while (service.visibility !== 0) { service.toogleVisibility(); }
-      expect(service.mesh.edgesWidth).toBe(0);
+      // Read off the cycle rather than off a state number: which number means
+      // what is the layer's business, and the button's job is to reach all three
+      const widths: number[] = [];
+      for (let step = 0; step < 3; step++) {
+        widths.push(service.mesh.edgesWidth);
+        service.toogleVisibility();
+      }
+
+      expect(widths.filter(width => width === 0).length)
+        .withContext(`outline widths around the cycle: ${widths}`)
+        .toBe(1);
+      expect(widths.filter(width => width > 0).length).toBe(2);
+    });
+
+    it('does not rebuild the outline geometry when only the button is pressed', async () => {
+      // enableEdgesRendering() walks every edge of the mesh to work out which
+      // ones to draw. Pressing the button moves no geometry, and on a real
+      // scenario that walk is measured in seconds.
+      service.opens = [makeOpen('OPEN_1', wall), makeOpen('OPEN_2', floor)];
+      await service.renderOpens();
+      const renderer = service.mesh.edgesRenderer;
 
       service.toogleVisibility();
-      expect(service.mesh.edgesWidth).toBeGreaterThan(0);
+
+      expect(service.mesh.edgesRenderer).toBe(renderer);
+    });
+
+    it('builds the outline again when the openings themselves change', async () => {
+      // The buffer was refilled, so an outline built against the old one would
+      // draw edges that are no longer there
+      service.opens = [makeOpen('OPEN_1', wall)];
+      await service.renderOpens();
+      const renderer = service.mesh.edgesRenderer;
+
+      service.opens = [makeOpen('OPEN_1', wall), makeOpen('OPEN_2', floor)];
+      await service.renderOpens();
+
+      expect(service.mesh.edgesRenderer).not.toBe(renderer);
+    });
+
+    it('comes back to where it started after a full cycle', async () => {
+      service.opens = [makeOpen('OPEN_1', wall)];
+      await service.renderOpens();
+      const started = service.mesh.edgesWidth;
+
+      service.toogleVisibility();
+      service.toogleVisibility();
+      service.toogleVisibility();
+
+      expect(service.mesh.edgesWidth).toBe(started);
     });
   });
 

@@ -3,17 +3,15 @@ import * as BABYLON from 'babylonjs';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
 
-import { BabylonService, tryCreateShaderMaterial } from '../../babylon/babylon.service';
+import { BabylonService } from '../../babylon/babylon.service';
 import { HelpersService } from '../../helpers/helpers.service';
 import { SceneFire } from '../scene-input';
 import { SceneAxis, SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 import { PlaneBatch } from '../plane-batch';
+import { ClippedPlaneLayer } from '../clipped-plane-layer';
 
 /** Fires are outlined in red - the library's own choice, not the &SURF's. */
 const FIRE_EDGE_COLOR = new BABYLON.Color4(1, 0, 0, 1);
-
-/** How solid the fill is in the state that shows one. */
-const FIRE_FILL_ALPHA = 0.6;
 
 @Injectable({
   providedIn: 'root'
@@ -21,15 +19,6 @@ const FIRE_FILL_ALPHA = 0.6;
 export class FireService implements SceneScoped {
 
   public fires: readonly SceneFire[] = [];
-  public material: BABYLON.ShaderMaterial;
-
-  /** Where the three clipping planes stand, in FDS metres. */
-  public clipX: number;
-  public clipY: number;
-  public clipZ: number;
-
-  // 3-state visibility toggle: 0=edges only, 1=edges+semi-transparent, 2=hidden
-  public visibility: number = 0;
 
   /**
    * A fire is drawn as the plane of its &VENT, so the fires share one buffer
@@ -37,18 +26,21 @@ export class FireService implements SceneScoped {
    */
   private batch: PlaneBatch;
 
-  /** In flight while the shader sources are being fetched. */
-  private materialPending: Promise<void> | null = null;
+  /** The clipping, the fill and the outline every fire is drawn with. */
+  private readonly layer: ClippedPlaneLayer;
 
   constructor(
     private babylonService: BabylonService,
     private helpersService: HelpersService,
-    private sceneBounds: SceneBoundsService,
+    sceneBounds: SceneBoundsService,
     private sceneRegistry: SceneRegistryService,
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
-    this.resetClipping();
+    this.layer = new ClippedPlaneLayer(
+      // In front of the floor the fire stands on
+      { materialName: 'fireShader', zOffset: -0.02, fillAlpha: 0.6 },
+      babylonService, sceneBounds, 'FireService');
   }
 
   /** The mesh every fire is drawn on, once there is a scene to draw into. */
@@ -56,36 +48,33 @@ export class FireService implements SceneScoped {
     return this.batch ? this.batch.mesh : undefined;
   }
 
-  /**
-   * Pull the clipping planes back to showing the whole model - the planes are
-   * coordinates, so they mean nothing once the model changes. See
-   * SmokeviewApiService.render().
-   */
+  public get material(): BABYLON.ShaderMaterial {
+    return this.layer.material;
+  }
+
+  /** Which of the three states the button currently shows. */
+  public get visibility(): number {
+    return this.layer.visibility;
+  }
+
+  /** Pull the clipping planes back to showing the whole model. */
   public resetClipping(): void {
-    this.clipX = this.sceneBounds.openClipAt('x');
-    this.clipY = this.sceneBounds.openClipAt('y');
-    this.clipZ = this.sceneBounds.openClipAt('z');
-    this.applyClipTo(this.material);
+    this.layer.resetClipping();
   }
 
   /**
-   * Push the planes onto a material. The sliders are live from the first frame,
-   * while the material is still being fetched, so a material built afterwards
-   * reads them back rather than starting from the shader's defaults.
+   * Move a clipping plane
+   * @param value the plane's coordinate, in FDS metres
+   * @param direction x, y, z
    */
-  private applyClipTo(material: BABYLON.ShaderMaterial): void {
-    if (!material) { return; }
-    material.setFloat("clipX", this.clipX);
-    material.setFloat("clipY", this.clipY);
-    material.setFloat("clipZ", this.clipZ);
+  public clip(value: number, direction: SceneAxis): void {
+    this.layer.clip(value, direction);
   }
 
   /** Release everything tied to the scene that has just been disposed. */
   public resetSceneState(): void {
     this.batch = null;
-    this.material = null;
-    this.materialPending = null;
-    this.visibility = 0;
+    this.layer.resetSceneState();
   }
 
   /**
@@ -110,84 +99,15 @@ export class FireService implements SceneScoped {
       return { uuid: fire.uuid, xb: fire.xb, color: [color[0], color[1], color[2], 1.0] };
     }));
 
-    // After the buffer, not before: the edges renderer reads the geometry it is
-    // given at the moment it is enabled
-    this.applyEdges();
-
-    await this.ensureMaterial();
+    await this.layer.attach([{ mesh: this.batch.mesh, edgeColor: FIRE_EDGE_COLOR }]);
   }
 
-  /**
-   * Build the shader material, once for the scene: it does not depend on what is
-   * being drawn, and rebuilding it per render orphaned one ShaderMaterial per
-   * re-render of the scenario.
-   */
-  private ensureMaterial(): Promise<void> {
-    if (this.materialPending) { return this.materialPending; }
-
-    this.materialPending = tryCreateShaderMaterial(this.babylonService, {
-      name: 'fireShader', shader: 'fire', needAlphaBlending: true
-    }, 'FireService').then((material: BABYLON.ShaderMaterial) => {
-      // The scene can be gone by the time the sources arrive
-      if (!material) { return; }
-      if (!this.babylonService.scene || !this.batch) { material.dispose(); return; }
-
-      this.material = material;
-      this.material.backFaceCulling = false;
-      this.material.zOffset = -0.02;
-      this.applyClipTo(this.material);
-      this.applyFill();
-      this.batch.mesh.material = this.material;
-    });
-
-    return this.materialPending;
-  }
-
-  /**
-   * Toggle fire visibility (3 states):
-   * 0 → edges only
-   * 1 → edges + semi-transparent fill
-   * 2 → hidden
-   */
+  /** Cycle the button: edges only → edges and fill → hidden. */
   public toogleVisibility(): void {
-    // The button is live from the first frame, before anything is rendered
-    if (!this.batch) { return; }
-
-    this.visibility = this.visibility === 0 ? 1 : this.visibility === 1 ? 2 : 0;
-    this.applyFill();
-    this.applyEdges();
+    this.layer.toggleVisibility();
   }
 
-  /** Push the current state's fill onto the material, if it has arrived. */
-  private applyFill(): void {
-    if (!this.material) { return; }
-    this.material.setFloat('transparent', this.visibility === 1 ? FIRE_FILL_ALPHA : 0.0);
-  }
-
-  /** Outline every fire, except in the state that hides them. */
-  private applyEdges(): void {
-    if (!this.batch) { return; }
-
-    const mesh = this.batch.mesh;
-    mesh.enableEdgesRendering();
-    mesh.edgesWidth = this.visibility === 2 ? 0 : this.sceneBounds.outlineWidth;
-    mesh.edgesColor = FIRE_EDGE_COLOR;
-  }
-
-  /**
-   * Move a clipping plane
-   * @param value the plane's coordinate, in FDS metres
-   * @param direction x, y, z
-   */
-  public clip(value: number, direction: SceneAxis): void {
-    if (direction == 'x') { this.clipX = value; }
-    else if (direction == 'y') { this.clipY = value; }
-    else { this.clipZ = value; }
-
-    this.applyClipTo(this.material);
-  }
-
-  /** Clear fires */
+  /** Take the fires out of the scene without waiting for a re-render. */
   public clear(): void {
     this.fires = [];
     if (this.batch) { this.batch.setPlanes([]); }

@@ -8,7 +8,7 @@ import { HelpersService } from '../../helpers/helpers.service';
 import { DerivedVent, VentService } from '../vent/vent.service';
 import { SceneJetfan, SceneJetfanDirection, SceneXb } from '../scene-input';
 import { jetfanDrawnBox } from './jetfan-box';
-import { SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
+import { SceneAxis, SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 import { PooledBox } from '../box-instance-pool';
 import { BoxPoolPair } from '../box-pool-pair';
 import { SOLID_EDGE_COLOR } from '../../../consts/drawing';
@@ -101,7 +101,7 @@ export class JetfanService implements SceneScoped {
     this.clipX = this.sceneBounds.openClipAt('x');
     this.clipY = this.sceneBounds.openClipAt('y');
     this.clipZ = this.sceneBounds.openClipAt('z');
-    this.clip();
+    this.pushClipToMaterials();
   }
 
   /** The base box the fully opaque jetfan bodies are drawn from. */
@@ -352,7 +352,7 @@ export class JetfanService implements SceneScoped {
         m.backFaceCulling = false;
         m.freeze();
       });
-      this.clip();
+      this.pushClipToMaterials();
 
       if (this.pool && material) { this.pool.opaque.mesh.material = material; }
       if (this.pool && materialTransparent) {
@@ -395,13 +395,27 @@ export class JetfanService implements SceneScoped {
   }
 
   /**
-   * Apply clipping to jetfans and their vents
+   * Move a clipping plane
+   * @param value the plane's coordinate, in FDS metres
+   * @param direction x, y, z
    */
-  public clip() {
+  public clip(value: number, direction: SceneAxis): void {
+    if (direction == 'x') { this.clipX = value; }
+    else if (direction == 'y') { this.clipY = value; }
+    else { this.clipZ = value; }
+
+    this.pushClipToMaterials();
+  }
+
+  /**
+   * Push the planes onto the jetfan materials, and onto the planes drawn for
+   * them: a jetfan and the two planes it blows between are one thing on screen,
+   * so a slider dragged past the body has to take them with it.
+   */
+  private pushClipToMaterials(): void {
     this.applyClipTo(this.material);
     this.applyClipTo(this.materialTransparent);
 
-    // Apply clipping to vents as well
     this.ventService.clipX = this.clipX;
     this.ventService.clipY = this.clipY;
     this.ventService.clipZ = this.clipZ;

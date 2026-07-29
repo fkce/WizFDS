@@ -116,6 +116,7 @@ describe('SmokeviewComponent', () => {
       const fire = spyOn(component.fireService, 'clip');
       const vent = spyOn(component.ventService, 'clipBasic');
       const open = spyOn(component.openService, 'clip');
+      const jetfan = spyOn(component.jetfanService, 'clip');
 
       component.setClip('x', 3.5);
 
@@ -124,6 +125,9 @@ describe('SmokeviewComponent', () => {
       expect(vent).toHaveBeenCalledWith(3.5, 'x');
       expect(open)
         .withContext('openings used to be drawn with no clipping at all')
+        .toHaveBeenCalledWith(3.5, 'x');
+      expect(jetfan)
+        .withContext('the jetfan service was never told, so jetfans ignored the sliders')
         .toHaveBeenCalledWith(3.5, 'x');
     });
   });

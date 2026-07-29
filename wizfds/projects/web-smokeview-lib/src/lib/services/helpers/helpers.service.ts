@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { map, times, constant, flatten } from 'lodash';
 import { SceneColor, SceneXb } from '../drawing/scene-input';
-import { Vector3 } from 'babylonjs';
 
 // TODO!!! move to parsers wizObject !!!
 /**
@@ -23,30 +22,6 @@ export class HelpersService {
   public toRgba(color: SceneColor): number[] {
     return [color.r, color.g, color.b, color.a];
   }
-
-  public getPlaneDimFromXb(xb: SceneXb) {
-    let options: any = {};
-    if (xb.x1 == xb.x2) {
-      options.height = xb.y2 - xb.y1;
-      options.width = xb.z2 - xb.z1;
-      options.rotate = new Vector3(0, 1, 0);
-      options.center = new Vector3(xb.x1, xb.y1 + (xb.y2 - xb.y1) / 2, xb.z1 + (xb.z2 - xb.z1) / 2);
-    }
-    else if (xb.y1 == xb.y2) {
-      options.width = xb.x2 - xb.x1;
-      options.height = xb.z2 - xb.z1;
-      options.rotate = new Vector3(1, 0, 0);
-      options.center = new Vector3(xb.x1 + (xb.x2 - xb.x1) / 2, xb.y1, xb.z1 + (xb.z2 - xb.z1) / 2);
-    }
-    else if (xb.z1 == xb.z2) {
-      options.height = xb.x2 - xb.x1;
-      options.width = xb.y2 - xb.y1;
-      options.rotate = new Vector3(0, 0, 1);
-      options.center = new Vector3(xb.x1 + (xb.x2 - xb.x1) / 2, xb.y1 + (xb.y2 - xb.y1) / 2, xb.z1);
-    }
-    return options;
-  }
-
 
   /**
    * Convert XB array [x1, x2, y1, y2, z1, z2] to babylonjs vertices

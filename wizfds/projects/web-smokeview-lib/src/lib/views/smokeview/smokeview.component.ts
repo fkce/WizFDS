@@ -154,6 +154,8 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     this.fireService.clip(metres, axis);
     this.ventService.clipBasic(metres, axis);
     this.openService.clip(metres, axis);
+    // Takes the planes drawn for each jetfan with it - see JetfanService.clip()
+    this.jetfanService.clip(metres, axis);
   }
 
   ngOnInit() {
