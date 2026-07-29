@@ -45,6 +45,66 @@ describe('SceneInputService', () => {
       expect(scene.meshes[0].xb as any).not.toBe(fds.geometry.meshes[0].xb);
     });
 
+    describe('coordinates a form has been through', () => {
+      // ngModel on a text input writes a string into the model, and neither the
+      // decimalInput directive nor the Xb setter turns it back into a number.
+      // The contract says number, and the library does arithmetic on it: `x1 +
+      // x2` on two strings concatenates, so a mesh edited from 10..40 was drawn
+      // centred on 520 m, and Number.isFinite('40') is false, so the scene was
+      // measured as the default 10 m box - wrong camera, wrong clip range,
+      // wrong edge widths.
+
+      /** What the mesh form leaves behind after the user types into it. */
+      function typeInto(xb: any): void {
+        ['x1', 'x2', 'y1', 'y2', 'z1', 'z2'].forEach(key => { xb[key] = String(xb[key]); });
+      }
+
+      it('hands a mesh across as numbers', () => {
+        typeInto(fds.geometry.meshes[0].xb);
+
+        const drawn = service.fromFds(fds).meshes[0].xb;
+
+        expect(drawn).toEqual({ x1: 0, x2: 10, y1: 0, y2: 8, z1: 0, z2: 4 });
+        (['x1', 'x2', 'y1', 'y2', 'z1', 'z2'] as const).forEach(key => {
+          expect(typeof drawn[key]).withContext(key).toBe('number');
+        });
+      });
+
+      it('hands every other element across as numbers too', () => {
+        typeInto(fds.geometry.obsts[0].xb);
+        typeInto(fds.geometry.holes[0].xb);
+        typeInto(fds.geometry.opens[0].xb);
+        typeInto(fds.ventilation.vents[0].xb);
+        typeInto(fds.ventilation.jetfans[0].xb);
+        typeInto(fds.fires.fires[0].vent.xb);
+
+        const scene = service.fromFds(fds);
+
+        expect(scene.obsts[0].xb.x2).toBe(4);
+        expect(scene.holes[0].xb.z2).toBe(2.1);
+        expect(scene.opens[0].xb.x2).toBe(4);
+        expect(scene.vents[0].xb.y2).toBe(2);
+        expect(scene.jetfans[0].xb.x1).toBe(2);
+        expect(scene.fires[0].xb.x2).toBe(3);
+      });
+
+      it('hands a point device across as numbers', () => {
+        const devc: any = fds.output.devcs[0];
+        ['x', 'y', 'z'].forEach(key => { devc.xyz[key] = String(devc.xyz[key]); });
+
+        expect(service.fromFds(fds).devcs[0].xb)
+          .toEqual({ x1: 5, x2: 5, y1: 4, y2: 4, z1: 3.8, z2: 3.8 });
+      });
+
+      it('leaves a coordinate that is not a number at all as something harmless', () => {
+        // A field cleared in the form arrives as '' - drawing it at NaN would
+        // take the whole scene's bounding box with it
+        (fds.geometry.meshes[0].xb as any).x2 = '';
+
+        expect(service.fromFds(fds).meshes[0].xb.x2).toBe(0);
+      });
+    });
+
     it('takes a fire from the plane of its &VENT, not from a box of its own', () => {
       const scene = service.fromFds(fds);
 

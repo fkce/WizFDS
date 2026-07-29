@@ -11,6 +11,12 @@ import {
 import {
   BabylonService
 } from '../../../../../web-smokeview-lib/src/lib/services/babylon/babylon.service';
+import {
+  SceneLifecycleService
+} from '../../../../../web-smokeview-lib/src/lib/services/babylon/scene-lifecycle.service';
+import {
+  SceneBoundsService
+} from '../../../../../web-smokeview-lib/src/lib/services/scene-bounds/scene-bounds.service';
 
 /**
  * The definition of done for #98: drawing a scenario leaves it byte-identical.
@@ -41,7 +47,9 @@ describe('drawing a scenario', () => {
       providers: [{
         provide: BabylonService,
         useValue: {
-          scene: scene,
+          // A getter, not a field: leaving the view disposes the scene and the
+          // next one is a different object, exactly as BabylonService does
+          get scene() { return scene; },
           camera: { setPosition: () => { }, setTarget: () => { } },
           applySceneBounds: () => { },
           // No WGSL is served in the suite; the drawing services treat a missing
@@ -62,6 +70,58 @@ describe('drawing a scenario', () => {
   afterEach(() => {
     scene.dispose();
     engine.dispose();
+  });
+
+  describe('re-entering the view after the geometry was edited', () => {
+    /** What the geometry form leaves behind: ngModel on a text input. */
+    function resizeMeshThroughTheForm(): void {
+      const xb: any = fds.geometry.meshes[0].xb;
+      xb.x1 = '10'; xb.x2 = '40';
+      xb.y1 = '0'; xb.y2 = '30';
+      xb.z1 = '0'; xb.z2 = '12';
+    }
+
+    /** Leaving the view and coming back: what BabylonService does either side. */
+    function leaveAndReturn(): void {
+      TestBed.inject(SceneLifecycleService).reset();
+      scene.dispose();
+      scene = new BABYLON.Scene(engine);
+    }
+
+    it('measures the scene from the mesh the user just resized', async () => {
+      // Reported as "the render is wrong after changing the mesh and coming
+      // back". The mesh arrived as six strings, Number.isFinite said none of
+      // them was measurable, and the scene silently kept its default ten-metre
+      // box - so the camera, the clip sliders and every width followed a model
+      // that was not on screen.
+      await smokeviewApi.render(sceneInput.fromFds(fds));
+      leaveAndReturn();
+
+      resizeMeshThroughTheForm();
+      await smokeviewApi.render(sceneInput.fromFds(fds));
+
+      const bounds = TestBed.inject(SceneBoundsService);
+      expect(bounds.box).toEqual({ x1: 10, x2: 40, y1: 0, y2: 30, z1: 0, z2: 12 });
+      expect(bounds.extent).toBe(30);
+    });
+
+    it('draws that mesh where the scenario puts it', async () => {
+      // `x1 + x2` on two strings concatenates: 10 and 40 became '1040', so the
+      // mesh was drawn centred on 520 m and the model left the screen.
+      await smokeviewApi.render(sceneInput.fromFds(fds));
+      leaveAndReturn();
+
+      resizeMeshThroughTheForm();
+      await smokeviewApi.render(sceneInput.fromFds(fds));
+
+      const pool = scene.getMeshByName('meshes') as BABYLON.Mesh;
+      const centre = BABYLON.Vector3.TransformCoordinates(
+        BABYLON.Vector3.Zero(), pool.thinInstanceGetWorldMatrices()[0]);
+
+      expect(centre.x).toBeCloseTo(25, 6);
+      expect(centre.y).toBeCloseTo(15, 6);
+      expect(centre.z).toBeCloseTo(6, 6);
+    });
   });
 
   it('leaves the Fds object exactly as it was', async () => {

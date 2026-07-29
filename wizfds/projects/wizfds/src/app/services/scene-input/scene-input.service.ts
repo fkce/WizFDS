@@ -130,7 +130,9 @@ export class SceneInputService {
 
   /** The box a point device occupies: none at all, centred where it stands. */
   private pointXb(devc: Devc): SceneXb {
-    const x = devc.xyz?.x ?? 0, y = devc.xyz?.y ?? 0, z = devc.xyz?.z ?? 0;
+    const x = this.metres(devc.xyz?.x);
+    const y = this.metres(devc.xyz?.y);
+    const z = this.metres(devc.xyz?.z);
     return { x1: x, x2: x, y1: y, y2: y, z1: z, z2: z };
   }
 
@@ -145,7 +147,7 @@ export class SceneInputService {
     const verts: number[][] = Array.isArray(geom.verts) ? geom.verts : [];
     const vertices: number[] = [];
     verts.forEach((vert: number[]) => {
-      vertices.push(vert?.[0] ?? 0, vert?.[1] ?? 0, vert?.[2] ?? 0);
+      vertices.push(this.metres(vert?.[0]), this.metres(vert?.[1]), this.metres(vert?.[2]));
     });
 
     const surfId: string = (geom.surf as Surf)?.id ?? '';
@@ -283,20 +285,60 @@ export class SceneInputService {
   /** Copy the coordinates out of the model, so nothing downstream shares them. */
   private xb(xb: Xb): SceneXb {
     return {
-      x1: xb?.x1 ?? 0, x2: xb?.x2 ?? 0,
-      y1: xb?.y1 ?? 0, y2: xb?.y2 ?? 0,
-      z1: xb?.z1 ?? 0, z2: xb?.z2 ?? 0
+      x1: this.metres(xb?.x1), x2: this.metres(xb?.x2),
+      y1: this.metres(xb?.y1), y2: this.metres(xb?.y2),
+      z1: this.metres(xb?.z1), z2: this.metres(xb?.z2)
     };
   }
 
-  /** Turn a stored 0..255 rgb triple and an alpha into what the shaders want. */
+  /**
+   * One coordinate, as the number the contract promises.
+   *
+   * The domain model does not hold what its type says it does: `ngModel` on a
+   * text input writes a **string**, the `decimalInput` directive only validates
+   * and reformats the DOM value, and `Xb`'s setter takes whatever it is handed.
+   * So a scenario that has been through the geometry form carries `'40'` where
+   * it declares `40`.
+   *
+   * The library does arithmetic on these. `x1 + x2` on two strings concatenates,
+   * which drew a mesh edited from 10..40 m centred on 520 m; and
+   * `Number.isFinite('40')` is false, so SceneBoundsService found nothing it
+   * could measure and left the scene at its default ten-metre box - taking the
+   * camera, the clip ranges and every width derived from the model's size with
+   * it. Both symptoms appeared only after an edit, because a scenario loaded
+   * from the database goes through `new Xb(...)`, which does convert.
+   *
+   * Coerced here rather than in the model because this is the boundary that
+   * declares the type (ADR-0004): the library is handed flat, resolved values
+   * and is entitled to trust them.
+   */
+  private metres(value: number): number {
+    const asNumber = Number(value);
+    // A field cleared in the form arrives as '': drawing at NaN would take the
+    // whole scene's bounding box with it
+    return Number.isFinite(asNumber) ? asNumber : 0;
+  }
+
+  /**
+   * Turn a stored 0..255 rgb triple and an alpha into what the shaders want.
+   *
+   * Coerced for the same reason the coordinates are - a colour that has been
+   * through the form is three strings. See metres().
+   */
   private color(rgb: number[], alpha: number, fallbackRgb: number[] = FALLBACK_OBST_RGB): SceneColor {
     const source = (rgb && rgb.length >= 3) ? rgb : fallbackRgb;
+    const channel = (value: number) => {
+      const asNumber = Number(value);
+      return Number.isFinite(asNumber) ? asNumber / 255 : 0;
+    };
+    const opacity = Number(alpha);
+
     return {
-      r: source[0] / 255,
-      g: source[1] / 255,
-      b: source[2] / 255,
-      a: alpha
+      r: channel(source[0]),
+      g: channel(source[1]),
+      b: channel(source[2]),
+      // An unreadable transparency draws the element solid rather than invisible
+      a: Number.isFinite(opacity) ? opacity : 1
     };
   }
 }

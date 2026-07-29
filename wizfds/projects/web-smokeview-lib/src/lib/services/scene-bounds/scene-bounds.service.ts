@@ -224,7 +224,19 @@ export class SceneBoundsService implements SceneScoped {
    */
   public setFrom(boxes: readonly SceneXb[]): void {
     const measurable = (boxes || []).filter(xb => this.isMeasurable(xb));
-    if (measurable.length === 0) { return; }
+    if (measurable.length === 0) {
+      // Loudly, when there was something to measure and none of it could be:
+      // the scene then keeps the default box, and everything sized against it -
+      // the camera, the clip ranges, every width - is sized for a model that is
+      // not the one on screen. That failed silently once already, when the app
+      // handed over coordinates a form had turned into strings.
+      if (isDevMode() && boxes && boxes.length > 0) {
+        console.warn('[SceneBoundsService] None of the ' + boxes.length +
+          ' box(es) offered could be measured, so the scene keeps its default size. ' +
+          'Coordinates must be finite numbers.', boxes[0]);
+      }
+      return;
+    }
 
     if (isDevMode() && measurable.length < boxes.length) {
       console.warn('[SceneBoundsService] Ignoring ' + (boxes.length - measurable.length) +

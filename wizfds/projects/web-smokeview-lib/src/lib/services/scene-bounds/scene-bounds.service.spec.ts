@@ -30,6 +30,29 @@ describe('SceneBoundsService', () => {
       expect(service.box).toEqual({ x1: -2, x2: 10, y1: 0, y2: 12, z1: 0, z2: 4 });
     });
 
+    it('says so when it could not measure anything it was offered', () => {
+      // Keeping the default box is the safe thing to do, but doing it in silence
+      // is how an app handing over coordinates a form had turned into strings
+      // went unnoticed: everything sized against the model was sized for a
+      // model that was not on screen.
+      const warn = spyOn(console, 'warn');
+
+      service.setFrom([{ x1: '0' as any, x2: '40' as any, y1: 0, y2: 1, z1: 0, z2: 1 }]);
+
+      expect(warn).toHaveBeenCalled();
+      expect(service.box).withContext('the default box is kept').toEqual(
+        { x1: 0, x2: 10, y1: 0, y2: 10, z1: 0, z2: 10 });
+    });
+
+    it('stays quiet when there was simply nothing to measure', () => {
+      // An empty scenario is not a fault - it is a scenario nobody has drawn in
+      const warn = spyOn(console, 'warn');
+
+      service.setFrom([]);
+
+      expect(warn).not.toHaveBeenCalled();
+    });
+
     it('measures a scenario whose only geometry is a &GEOM', () => {
       // Without a &MESH the scene is whatever else is there - and a geom carries
       // the box its triangles occupy for exactly this. Left out, the whole
