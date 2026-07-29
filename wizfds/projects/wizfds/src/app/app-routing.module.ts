@@ -6,6 +6,7 @@ import { ProjectsComponent } from './views/main/projects/projects.component';
 import { MeshComponent } from './views/main/fds/geometry/mesh/mesh.component';
 import { ObstructionComponent } from './views/main/fds/geometry/obstruction/obstruction.component';
 import { GeneralComponent } from './views/main/fds/general/general.component';
+import { InitComponent } from './views/main/fds/general/init/init.component';
 import { MaterialComponent } from './views/main/fds/geometry/material/material.component';
 import { SurfaceComponent } from './views/main/fds/geometry/surface/surface.component';
 import { BasicComponent } from './views/main/fds/ventilation/basic/basic.component';
@@ -44,6 +45,10 @@ const routes: Routes = [
   {
     path: 'fds/general',
     component: GeneralComponent
+  },
+  {
+    path: 'fds/general/init',
+    component: InitComponent
   },
 
   {
