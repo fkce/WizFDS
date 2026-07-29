@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import * as BABYLON from 'babylonjs';
 
-import { BabylonService, tryCreateShaderMaterial } from '../../babylon/babylon.service';
+import { BabylonService } from '../../babylon/babylon.service';
 import { HelpersService } from '../../helpers/helpers.service';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
@@ -9,7 +9,8 @@ import { SceneAxis, SceneBoundsService } from '../../scene-bounds/scene-bounds.s
 import { SceneDevc, SceneDevcMarker, SceneXb, SCENE_DEVC_MARKERS } from '../scene-input';
 import { BoxInstancePool, PooledBox } from '../box-instance-pool';
 import { PlaneBatch } from '../plane-batch';
-import { ClippedPlaneLayer } from '../clipped-plane-layer';
+import { ClippedPlaneLayer, EDGES_AND_FILL } from '../clipped-plane-layer';
+import { ClippedMaterial } from '../clipped-material';
 import { DEVC_MARKER_SHAPES } from './devc-markers';
 import { SOLID_EDGE_COLOR } from '../../../consts/drawing';
 
@@ -50,16 +51,13 @@ export class DevcService implements SceneScoped {
   /** The clipping, the fill and the outline the plane devices are drawn with. */
   private readonly planeLayer: ClippedPlaneLayer;
 
-  /** The material the instanced paths share - lit and clipped like an &OBST. */
-  private material: BABYLON.ShaderMaterial;
-
-  /** In flight while the shader sources are being fetched. */
-  private materialPending: Promise<void> | null = null;
-
-  /** Where the three clipping planes stand, in FDS metres. */
-  public clipX: number;
-  public clipY: number;
-  public clipZ: number;
+  /**
+   * The material the instanced paths share.
+   *
+   * Devices borrow the obst shaders: a marker is a lit solid that a clipping
+   * plane cuts, which is what those already are.
+   */
+  private readonly solid: ClippedMaterial;
 
   /** Whether the devices are drawn at all. */
   public visible = true;
@@ -72,11 +70,21 @@ export class DevcService implements SceneScoped {
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
+    this.solid = new ClippedMaterial({
+      materialName: 'devcShader', shader: 'obstInstanced', fragmentShader: 'obst'
+    }, babylonService, sceneBounds, 'DevcService');
     this.planeLayer = new ClippedPlaneLayer(
       { materialName: 'devcPlaneShader', zOffset: -0.03, fillAlpha: 0.4 },
       babylonService, sceneBounds, 'DevcService');
-    this.resetClipping();
+    // A device button says drawn or not drawn; the region a plane device
+    // measures is always drawn filled when it is drawn at all
+    this.planeLayer.setVisibility(EDGES_AND_FILL);
   }
+
+  /** Where a clipping plane currently stands, in FDS metres. */
+  public get clipX(): number { return this.solid.clipX; }
+  public get clipY(): number { return this.solid.clipY; }
+  public get clipZ(): number { return this.solid.clipZ; }
 
   /** The shape a kind of device is drawn from, once one has been drawn. */
   public markerMesh(marker: SceneDevcMarker): BABYLON.Mesh | undefined {
@@ -94,21 +102,9 @@ export class DevcService implements SceneScoped {
     return this.planeBatch ? this.planeBatch.mesh : undefined;
   }
 
-  /** Every mesh currently drawing a device the user can see and pick. */
-  public pickableMeshes(): BABYLON.Mesh[] {
-    const meshes: BABYLON.Mesh[] = [];
-    this.markerPools.forEach(pool => meshes.push(pool.mesh));
-    if (this.extentPool) { meshes.push(this.extentPool.mesh); }
-    if (this.planeBatch) { meshes.push(this.planeBatch.mesh); }
-    return meshes;
-  }
-
   /** Pull the clipping planes back to showing the whole model. */
   public resetClipping(): void {
-    this.clipX = this.sceneBounds.openClipAt('x');
-    this.clipY = this.sceneBounds.openClipAt('y');
-    this.clipZ = this.sceneBounds.openClipAt('z');
-    this.pushClip();
+    this.solid.resetClipping();
     this.planeLayer.resetClipping();
   }
 
@@ -118,19 +114,8 @@ export class DevcService implements SceneScoped {
    * @param direction x, y, z
    */
   public clip(value: number, direction: SceneAxis): void {
-    if (direction == 'x') { this.clipX = value; }
-    else if (direction == 'y') { this.clipY = value; }
-    else { this.clipZ = value; }
-
-    this.pushClip();
+    this.solid.clip(value, direction);
     this.planeLayer.clip(value, direction);
-  }
-
-  private pushClip(): void {
-    if (!this.material) { return; }
-    this.material.setFloat('clipX', this.clipX);
-    this.material.setFloat('clipY', this.clipY);
-    this.material.setFloat('clipZ', this.clipZ);
   }
 
   /** Release everything tied to the scene that has just been disposed. */
@@ -138,10 +123,10 @@ export class DevcService implements SceneScoped {
     this.markerPools.clear();
     this.extentPool = null;
     this.planeBatch = null;
-    this.material = null;
-    this.materialPending = null;
     this.visible = true;
+    this.solid.resetSceneState();
     this.planeLayer.resetSceneState();
+    this.planeLayer.setVisibility(EDGES_AND_FILL);
   }
 
   /**
@@ -190,10 +175,18 @@ export class DevcService implements SceneScoped {
 
     this.applyEdges();
     await Promise.all([
-      this.ensureMaterial(),
+      this.solid.attach(this.instancedMeshes()),
       this.planeLayer.attach([{ mesh: this.planeBatch.mesh, edgeColor: SOLID_EDGE_COLOR }])
     ]);
     this.applyVisibility();
+  }
+
+  /** The meshes drawn through the instanced material - the markers and bodies. */
+  private instancedMeshes(): BABYLON.Mesh[] {
+    const meshes: BABYLON.Mesh[] = [];
+    this.markerPools.forEach(pool => meshes.push(pool.mesh));
+    if (this.extentPool) { meshes.push(this.extentPool.mesh); }
+    return meshes;
   }
 
   /** The box a marker is drawn in: a cube of the scene's marker size. */
@@ -225,10 +218,10 @@ export class DevcService implements SceneScoped {
     const existing = this.markerPools.get(marker);
     if (existing) { return existing; }
 
+    // The material follows on the next attach(), which every render ends with
     const pool = new BoxInstancePool(
       `devc_${marker.replace(/\s+/g, '_')}`, this.babylonService.scene,
       this.helpersService, this.sceneRegistry, DEVC_MARKER_SHAPES[marker]);
-    if (this.material) { pool.mesh.material = this.material; }
     this.markerPools.set(marker, pool);
     return pool;
   }
@@ -237,7 +230,6 @@ export class DevcService implements SceneScoped {
     if (!this.extentPool) {
       this.extentPool = new BoxInstancePool(
         'devcBodies', this.babylonService.scene, this.helpersService, this.sceneRegistry);
-      if (this.material) { this.extentPool.mesh.material = this.material; }
     }
     return this.extentPool;
   }
@@ -248,32 +240,6 @@ export class DevcService implements SceneScoped {
         'devcPlanes', this.babylonService.scene, this.helpersService, this.sceneRegistry);
     }
     return this.planeBatch;
-  }
-
-  /**
-   * Build the instanced material, once for the scene.
-   *
-   * Devices borrow the obst shaders: a marker is a lit solid that a clipping
-   * plane cuts, which is what those already are.
-   */
-  private ensureMaterial(): Promise<void> {
-    if (this.materialPending) { return this.materialPending; }
-
-    this.materialPending = tryCreateShaderMaterial(this.babylonService, {
-      name: 'devcShader', shader: 'obstInstanced', fragmentShader: 'obst'
-    }, 'DevcService').then((material: BABYLON.ShaderMaterial) => {
-      if (!material) { return; }
-      // The scene can be gone by the time the sources arrive
-      if (!this.babylonService.scene) { material.dispose(); return; }
-
-      this.material = material;
-      material.backFaceCulling = false;
-      this.pushClip();
-      this.markerPools.forEach(pool => { pool.mesh.material = material; });
-      if (this.extentPool) { this.extentPool.mesh.material = material; }
-    });
-
-    return this.materialPending;
   }
 
   /** Outline the bodies, so a volume device reads as a region rather than a block. */

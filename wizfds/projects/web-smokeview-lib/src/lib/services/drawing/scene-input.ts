@@ -112,19 +112,17 @@ export type SceneDevcExtent = 'point' | 'linear' | 'plane' | 'volume';
 /**
  * What kind of device a point one is, which decides the shape of its marker.
  *
- * These are the `SMOKEVIEW_ID`s the app offers on a &PROP. SmokeView draws each
- * from an object script in `smv_objects.tex`; the library draws a recognisable
- * primitive apiece instead - see ADR-0008.
+ * The four names are the `SMOKEVIEW_ID`s the app offers on a &PROP, but that is
+ * not where they are read from: `PROP_ID` never reaches the input file and the
+ * device form does not offer it, so the app works the kind out from the QUANTITY
+ * the device measures. SmokeView draws each of these from an object script in
+ * `smv_objects.tex`; the library draws a recognisable primitive apiece instead.
+ * Both decisions are ADR-0008.
  */
 export type SceneDevcMarker = 'sensor' | 'smoke detector' | 'nozzle' | 'sprinkler';
 
 export const SCENE_DEVC_MARKERS: readonly SceneDevcMarker[] =
     ['sensor', 'smoke detector', 'nozzle', 'sprinkler'];
-
-/** Narrow a stored `SMOKEVIEW_ID` onto the four the library can draw. */
-export function isSceneDevcMarker(value: string): value is SceneDevcMarker {
-    return SCENE_DEVC_MARKERS.indexOf(value as SceneDevcMarker) !== -1;
-}
 
 /**
  * A &DEVC - a detector, a sprinkler, a thermocouple.

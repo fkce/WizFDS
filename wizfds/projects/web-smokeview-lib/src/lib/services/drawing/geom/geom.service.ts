@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import * as BABYLON from 'babylonjs';
 
-import { BabylonService, tryCreateShaderMaterial } from '../../babylon/babylon.service';
+import { BabylonService } from '../../babylon/babylon.service';
+import { ClippedMaterial } from '../clipped-material';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
 import { SceneAxis, SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
@@ -31,16 +32,12 @@ export class GeomService implements SceneScoped {
   /** One mesh per geom, by uuid. */
   private readonly meshes = new Map<string, BABYLON.Mesh>();
 
-  /** Shared by every geom: they differ in their buffers, in nothing the shader sees. */
-  private material: BABYLON.ShaderMaterial;
-
-  /** In flight while the shader sources are being fetched. */
-  private materialPending: Promise<void> | null = null;
-
-  /** Where the three clipping planes stand, in FDS metres. */
-  public clipX: number;
-  public clipY: number;
-  public clipZ: number;
+  /**
+   * Shared by every geom: they differ in their buffers, in nothing the shader
+   * sees. Geoms borrow the obst shaders - a geom is a lit surface that a
+   * clipping plane cuts, read from a per-vertex colour.
+   */
+  private readonly surface: ClippedMaterial;
 
   /** Whether the geoms are drawn at all. */
   public visible = true;
@@ -53,7 +50,9 @@ export class GeomService implements SceneScoped {
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
-    this.resetClipping();
+    this.surface = new ClippedMaterial({
+      materialName: 'geomShader', shader: 'obst', fragmentShader: 'obst'
+    }, babylonService, sceneBounds, 'GeomService');
   }
 
   /** The mesh drawn for a geom, if it is drawn at all. */
@@ -61,17 +60,14 @@ export class GeomService implements SceneScoped {
     return this.meshes.get(uuid);
   }
 
-  /** Every mesh currently drawing a geom the user can see and pick. */
-  public pickableMeshes(): BABYLON.Mesh[] {
-    return Array.from(this.meshes.values());
-  }
+  /** Where a clipping plane currently stands, in FDS metres. */
+  public get clipX(): number { return this.surface.clipX; }
+  public get clipY(): number { return this.surface.clipY; }
+  public get clipZ(): number { return this.surface.clipZ; }
 
   /** Pull the clipping planes back to showing the whole model. */
   public resetClipping(): void {
-    this.clipX = this.sceneBounds.openClipAt('x');
-    this.clipY = this.sceneBounds.openClipAt('y');
-    this.clipZ = this.sceneBounds.openClipAt('z');
-    this.pushClip();
+    this.surface.resetClipping();
   }
 
   /**
@@ -80,26 +76,14 @@ export class GeomService implements SceneScoped {
    * @param direction x, y, z
    */
   public clip(value: number, direction: SceneAxis): void {
-    if (direction == 'x') { this.clipX = value; }
-    else if (direction == 'y') { this.clipY = value; }
-    else { this.clipZ = value; }
-
-    this.pushClip();
-  }
-
-  private pushClip(): void {
-    if (!this.material) { return; }
-    this.material.setFloat('clipX', this.clipX);
-    this.material.setFloat('clipY', this.clipY);
-    this.material.setFloat('clipZ', this.clipZ);
+    this.surface.clip(value, direction);
   }
 
   /** Release everything tied to the scene that has just been disposed. */
   public resetSceneState(): void {
     this.meshes.clear();
-    this.material = null;
-    this.materialPending = null;
     this.visible = true;
+    this.surface.resetSceneState();
   }
 
   /**
@@ -119,16 +103,18 @@ export class GeomService implements SceneScoped {
 
     (this.geoms || []).forEach((geom: SceneGeom) => this.draw(geom));
 
-    await this.ensureMaterial();
+    await this.surface.attach(Array.from(this.meshes.values()));
     this.applyVisibility();
   }
 
   /**
    * Build or rebuild the mesh for one geom.
    *
-   * The mesh is reused across renders where it can be: a geom that did not
-   * change keeps the material and the outline it was given, and the vertex data
-   * is simply applied over the top.
+   * The mesh itself is kept across renders - disposing and rebuilding one per
+   * render is what orphans meshes - but its buffers are written afresh, because
+   * nothing here knows whether the triangles changed. The outline follows them:
+   * an outline built against the previous buffer would draw edges that are no
+   * longer there.
    */
   private draw(geom: SceneGeom): void {
     const positions = Array.from(geom.vertices);
@@ -157,7 +143,6 @@ export class GeomService implements SceneScoped {
     }
     vertexData.applyToMesh(mesh);
     mesh.freezeWorldMatrix();
-    if (this.material) { mesh.material = this.material; }
 
     // One mesh per geom, so the mesh alone identifies it
     this.sceneRegistry.register(geom.uuid, { mesh: mesh });
@@ -173,40 +158,6 @@ export class GeomService implements SceneScoped {
     this.sceneRegistry.forget(uuid);
     this.meshes.get(uuid).dispose();
     this.meshes.delete(uuid);
-  }
-
-  /**
-   * Build the material every geom shares, once for the scene.
-   *
-   * Geoms borrow the obst shaders: a geom is a lit solid that a clipping plane
-   * cuts, read from a per-vertex colour, which is what those already are.
-   */
-  private ensureMaterial(): Promise<void> {
-    if (this.materialPending) {
-      // The meshes of this render still need the material of the last one
-      return this.materialPending.then(() => this.applyMaterial());
-    }
-
-    this.materialPending = tryCreateShaderMaterial(this.babylonService, {
-      name: 'geomShader', shader: 'obst', fragmentShader: 'obst'
-    }, 'GeomService').then((material: BABYLON.ShaderMaterial) => {
-      if (!material) { return; }
-      // The scene can be gone by the time the sources arrive
-      if (!this.babylonService.scene) { material.dispose(); return; }
-
-      this.material = material;
-      // A geom is a surface, not a solid: an open one has to show both sides
-      material.backFaceCulling = false;
-      this.pushClip();
-      this.applyMaterial();
-    });
-
-    return this.materialPending;
-  }
-
-  private applyMaterial(): void {
-    if (!this.material) { return; }
-    this.meshes.forEach(mesh => { mesh.material = this.material; });
   }
 
   /** Show or hide every geom at once. */

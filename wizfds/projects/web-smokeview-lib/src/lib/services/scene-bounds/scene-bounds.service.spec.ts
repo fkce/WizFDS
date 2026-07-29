@@ -30,6 +30,36 @@ describe('SceneBoundsService', () => {
       expect(service.box).toEqual({ x1: -2, x2: 10, y1: 0, y2: 12, z1: 0, z2: 4 });
     });
 
+    it('measures a scenario whose only geometry is a &GEOM', () => {
+      // Without a &MESH the scene is whatever else is there - and a geom carries
+      // the box its triangles occupy for exactly this. Left out, the whole
+      // scenario fell back on the default box: wrong camera, wrong clip range,
+      // wrong marker size.
+      service.setFromScene({
+        ...emptyScene(),
+        geoms: [{
+          uuid: 'g', id: 'G', xb: { x1: 0, x2: 30, y1: 0, y2: 12, z1: 0, z2: 6 },
+          vertices: [], faces: [], color: { r: 1, g: 1, b: 1, a: 1 }
+        }]
+      });
+
+      expect(service.box.x2).toBe(30);
+      expect(service.extent).toBe(30);
+    });
+
+    it('measures a scenario whose only geometry is a device', () => {
+      service.setFromScene({
+        ...emptyScene(),
+        devcs: [{
+          uuid: 'd', id: 'D', extent: 'volume', marker: 'sensor',
+          xb: { x1: 0, x2: 20, y1: 0, y2: 5, z1: 0, z2: 3 },
+          color: { r: 0, g: 1, b: 1, a: 1 }
+        }]
+      });
+
+      expect(service.extent).toBe(20);
+    });
+
     it('keeps the coordinates it was given rather than shifting them to the origin', () => {
       // A picked coordinate has to be an FDS coordinate - that is the whole point
       // of ADR-0002, and the reason nothing is translated on the way in.

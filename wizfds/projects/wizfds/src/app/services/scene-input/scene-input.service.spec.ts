@@ -31,7 +31,7 @@ describe('SceneInputService', () => {
       expect(scene.fires.map(f => f.uuid)).toEqual(['f1-uuid']);
       expect(scene.jetfans.map(j => j.uuid)).toEqual(['jf1-uuid']);
       expect(scene.devcs.map(d => d.uuid))
-        .toEqual(['spr1-uuid', 'sd1-uuid', 'tc1-uuid', 'layer1-uuid']);
+        .toEqual(['spr1-uuid', 'sd1-uuid', 'tc1-uuid', 'layer1-uuid', 'plane1-uuid']);
       expect(scene.geoms.map(g => g.uuid)).toEqual(['geom-uuid']);
     });
 
@@ -186,7 +186,7 @@ describe('SceneInputService', () => {
       const scene = service.fromFds(fds);
 
       expect(scene.devcs.map(d => d.extent))
-        .toEqual(['point', 'point', 'linear', 'volume']);
+        .toEqual(['point', 'point', 'linear', 'volume', 'plane']);
     });
 
     it('puts a point device in a box with no extent, where it stands', () => {

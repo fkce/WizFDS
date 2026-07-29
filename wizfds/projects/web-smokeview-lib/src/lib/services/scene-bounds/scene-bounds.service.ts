@@ -207,7 +207,11 @@ export class SceneBoundsService implements SceneScoped {
       ...(scene.opens || []).map(open => open.xb),
       ...(scene.vents || []).map(vent => vent.xb),
       ...(scene.fires || []).map(fire => fire.xb),
-      ...(scene.jetfans || []).map(jetfanDrawnBox)
+      ...(scene.jetfans || []).map(jetfanDrawnBox),
+      // A geom carries the box its triangles occupy for exactly this - a
+      // scenario whose only geometry is a &GEOM is still a scenario
+      ...(scene.geoms || []).map(geom => geom.xb),
+      ...(scene.devcs || []).map(devc => devc.xb)
     ]);
   }
 

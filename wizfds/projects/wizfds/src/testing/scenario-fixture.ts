@@ -78,6 +78,11 @@ export function scenarioJson(): object {
           id: 'LAYER1', uuid: 'layer1-uuid', geometrical_type: 'volume',
           xb: { x1: 0, x2: 10, y1: 0, y2: 8, z1: 0, z2: 4 },
           quantity: { id: 'Temperature', quantity: 'TEMPERATURE' }
+        },
+        {
+          id: 'PLANE1', uuid: 'plane1-uuid', geometrical_type: 'plane',
+          xb: { x1: 0, x2: 10, y1: 4, y2: 4, z1: 0, z2: 4 },
+          quantity: { id: 'Velocity', quantity: 'VELOCITY' }
         }
       ]
     }
