@@ -1,4 +1,7 @@
-import { Directive, ElementRef, HostListener } from '@angular/core';
+import { Directive, ElementRef, HostListener , Optional, Self } from '@angular/core';
+import { NgControl } from '@angular/forms';
+
+import { writeNumbersToModel } from './numeric-model';
 import { isNumber, toNumber, isNaN, isArray, isArrayLikeObject, toArray, ary, map, remove } from 'lodash';
 
 @Directive({
@@ -9,8 +12,13 @@ export class RgbInputDirective {
   private el: HTMLInputElement;
   private focused: boolean = false;
 
-  constructor(private elementRef: ElementRef) {
+  constructor(
+    private elementRef: ElementRef,
+    /** Absent when the field is not bound to a model - then there is nothing to convert. */
+    @Optional() @Self() ngControl: NgControl
+  ) {
     this.el = this.elementRef.nativeElement;
+    writeNumbersToModel(ngControl);
   }
 
   ngAfterContentChecked() {

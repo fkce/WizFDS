@@ -1,4 +1,7 @@
-import { Directive, HostListener, ElementRef, OnInit, Input } from '@angular/core';
+import { Directive, HostListener, ElementRef, OnInit, Input , Optional, Self } from '@angular/core';
+import { NgControl } from '@angular/forms';
+
+import { writeNumbersToModel } from './numeric-model';
 import { isInteger, toNumber } from 'lodash';
 
 @Directive({
@@ -9,8 +12,13 @@ export class IntegerInputDirective {
 
   private el: HTMLInputElement;
 
-  constructor(private elementRef: ElementRef) {
+  constructor(
+    private elementRef: ElementRef,
+    /** Absent when the field is not bound to a model - then there is nothing to convert. */
+    @Optional() @Self() ngControl: NgControl
+  ) {
     this.el = this.elementRef.nativeElement;
+    writeNumbersToModel(ngControl);
   }
 
   ngAfterContentChecked() {
