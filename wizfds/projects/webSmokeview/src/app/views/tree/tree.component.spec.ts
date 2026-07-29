@@ -2,37 +2,28 @@ import { ComponentFixture, TestBed, fakeAsync, tick, waitForAsync } from '@angul
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { SmokeviewApiService } from 'projects/web-smokeview-lib/src/lib/services/smokeview-api/smokeview-api.service';
 import { SceneInput } from 'projects/web-smokeview-lib/src/lib/services/drawing/scene-input';
+import { exportOfBoxes } from 'projects/web-smokeview-lib/src/lib/services/parsers/smokeviewJson/obst-json.fixture';
 
 import { TreeComponent } from './tree.component';
 import { TreeService } from '../../services/tree/tree.service';
-import { GeometryLoaderService } from '../../services/loaders/geometryLoader/geometry-loader.service';
+import { GeometryLoaderService, SimulationNode } from '../../services/loaders/geometryLoader/geometry-loader.service';
 import { Result } from '../../services/http-manager/http-manager.service';
 
 /** One blockage, as `<chid>_obst.json` holds it - see ObstJsonService. */
 function obstExport() {
-  const ii = [0, 1, 1, 0, 0, 1, 1, 0];
-  const jj = [0, 0, 1, 1, 0, 0, 1, 1];
-  const kk = [0, 0, 0, 0, 1, 1, 1, 1];
-  const x = [0, 1], y = [0, 1], z = [0, 0.5];
-
-  const vertices: number[] = [];
-  const colors: number[] = [];
-  for (let group = 0; group < 3; group++) {
-    for (let n = 0; n < 8; n++) {
-      vertices.push(x[ii[n]], y[jj[n]], z[kk[n]]);
-      colors.push(1, 0, 0, 1);
-    }
-  }
-
-  return {
-    vertices: vertices,
-    colors: colors,
-    indices: new Array(36).fill(0).map((_, n) => n % 24)
-  };
+  return exportOfBoxes([{ x1: 0, x2: 1, y1: 0, y2: 1, z1: 0, z2: 0.5 }]);
 }
 
 function loaded(data: unknown): Result {
   return { meta: { status: 'success', from: '', details: [] }, data: data };
+}
+
+/** A file the user clicked in the tree. */
+function node(extension: string): SimulationNode {
+  return {
+    name: `case${extension}`, type: 'file', extension: extension,
+    path: `sim/case${extension}`
+  };
 }
 
 describe('TreeComponent', () => {
@@ -82,7 +73,7 @@ describe('TreeComponent', () => {
     it('draws a .smv through the scene contract', fakeAsync(() => {
       loader.loadSmv.and.returnValue(Promise.resolve(loaded(obstExport())));
 
-      component.loadSmv({ extension: '.smv', path: 'sim/case.smv' });
+      component.loadSmv(node('.smv'));
       tick();
 
       expect(rendered.length).toBe(1);
@@ -93,7 +84,7 @@ describe('TreeComponent', () => {
     it('draws a .json the same way', fakeAsync(() => {
       loader.loadJson.and.returnValue(Promise.resolve(loaded(obstExport())));
 
-      component.loadJson({ extension: '.json', path: 'sim/case.json' });
+      component.loadJson(node('.json'));
       tick();
 
       expect(rendered.length).toBe(1);
@@ -105,7 +96,7 @@ describe('TreeComponent', () => {
         meta: { status: 'error', from: '', details: [] }, data: null
       } as Result));
 
-      component.loadSmv({ extension: '.smv', path: 'sim/case.smv' });
+      component.loadSmv(node('.smv'));
       tick();
 
       expect(rendered).toEqual([]);

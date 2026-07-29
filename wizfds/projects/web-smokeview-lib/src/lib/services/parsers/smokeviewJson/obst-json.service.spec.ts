@@ -1,59 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 
 import { ObstJsonService } from './obst-json.service';
+import { blockage, exportOf } from './obst-json.fixture';
 import { SceneObst } from '../../drawing/scene-input';
-
-/**
- * The buffers SmokeView writes for one blockage, in its own order.
- *
- * Faithful to `ObstLitTriangles2Geom()` / `GetBlockNodes()` in
- * `Source/smokeview/renderhtml.c`: the eight corners of the box, written out
- * three times over - once per pair of opposite faces - so that each face can
- * carry its own normal. Twelve triangles index into them.
- */
-function blockage(
-  xb: { x1: number, x2: number, y1: number, y2: number, z1: number, z2: number },
-  rgba: [number, number, number, number],
-  offset = 0
-): { vertices: number[], colors: number[], indices: number[] } {
-  const ii = [0, 1, 1, 0, 0, 1, 1, 0];
-  const jj = [0, 0, 1, 1, 0, 0, 1, 1];
-  const kk = [0, 0, 0, 0, 1, 1, 1, 1];
-  const x = [xb.x1, xb.x2], y = [xb.y1, xb.y2], z = [xb.z1, xb.z2];
-
-  const vertices: number[] = [];
-  const colors: number[] = [];
-  for (let group = 0; group < 3; group++) {
-    for (let n = 0; n < 8; n++) {
-      vertices.push(x[ii[n]], y[jj[n]], z[kk[n]]);
-      colors.push(rgba[0], rgba[1], rgba[2], rgba[3]);
-    }
-  }
-
-  const corners = [
-    0, 1, 5, 0, 5, 4,
-    2, 3, 7, 2, 7, 6,
-    1, 2, 6, 1, 6, 5,
-    3, 0, 4, 3, 4, 7,
-    4, 5, 6, 4, 6, 7,
-    0, 2, 1, 0, 3, 2
-  ];
-  const indices = corners.map((corner, n) => {
-    const face = n < 12 ? 0 : n < 24 ? 8 : 16;
-    return offset + face + corner;
-  });
-
-  return { vertices: vertices, colors: colors, indices: indices };
-}
-
-/** Several blockages in one export, as SmokeView concatenates them. */
-function exportOf(...blocks: ReturnType<typeof blockage>[]) {
-  return {
-    vertices: blocks.flatMap(block => block.vertices),
-    colors: blocks.flatMap(block => block.colors),
-    indices: blocks.flatMap(block => block.indices)
-  };
-}
 
 const ROOM = { x1: 0, x2: 4, y1: 0, y2: 0.2, z1: 0, z2: 3 };
 const RED: [number, number, number, number] = [1, 0, 0, 1];
@@ -166,6 +115,20 @@ describe('ObstJsonService', () => {
       expect(scene.obsts.length).toBe(1);
       expect(scene.obsts[0].color.a).toBe(1);
     });
+
+    it('ignores a colour buffer that is not four floats per vertex', () => {
+      // Read at the stride it expects, an rgb buffer would give the first
+      // blockage the next vertex's red for its alpha - drawing it see-through -
+      // and put every blockage after it in somebody else's colour.
+      const data = exportOf(blockage(ROOM, RED), blockage(ROOM, BLUE, 24));
+      data.colors = data.colors.filter((_, i) => i % 4 !== 3);
+
+      const scene = service.toScene(data);
+
+      expect(scene.obsts.length).toBe(2);
+      expect(scene.obsts[0].color.a).toBe(1);
+      expect(scene.obsts[1].color).toEqual(scene.obsts[0].color);
+    });
   });
 
   describe('anything else', () => {
@@ -255,9 +218,9 @@ describe('ObstJsonService', () => {
         });
     });
 
-    it('copies the buffers it was handed, so the caller keeps its own', () => {
-      // The drawing services empty their buffers in place on the next render,
-      // which would otherwise truncate what the loader parsed.
+    it('copies the buffers it was handed rather than aliasing them', () => {
+      // They go on to be the readonly buffers of a SceneGeom, and the contract
+      // promises the library cannot write into what it was given (ADR-0004).
       const data = {
         vertices: [0, 0, 0, 1, 0, 0, 1, 1, 0],
         colors: [],

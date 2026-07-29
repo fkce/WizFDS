@@ -72,6 +72,11 @@ interface ExportBuffers {
  * boxes it was written from. That is what gives each obst its own identity here
  * rather than one name for the whole model.
  *
+ * **Obsts and nothing else.** Every other list of `SceneInput` comes back empty
+ * because the file holds nothing else - no &MESH, no &VENT, no device. Drawing
+ * those in the standalone viewer means reading the `.smv` itself, which is a
+ * different source and a different change.
+ *
  * **The coordinates are not metres.** SmokeView normalises the grid it reads
  * from the `.smv` file - `NORMALIZE_X(x)` is `(x - xbar0) / xyzmaxdiff` - and
  * the export carries neither `xbar0` nor `xyzmaxdiff`, so there is nothing to
@@ -100,8 +105,9 @@ export class ObstJsonService {
     if (obsts) { return { ...emptyScene(), obsts: obsts }; }
 
     // Not the file this adapter was written for. Drawn as the triangles it is
-    // rather than as boxes it is not: `loadJson` opens whatever it is pointed
-    // at, and a geom export reaches here through the same call.
+    // rather than as boxes it is not: `loadJson` opens any `.json` the file
+    // tree lists, and RENDERHTMLOBST has siblings - RENDERHTMLGEOM and the
+    // slice ones write the same three arrays at a different stride.
     if (isDevMode()) {
       try {
         console.warn('[ObstJsonService] The export does not decompose into blockages, ' +
@@ -114,9 +120,14 @@ export class ObstJsonService {
   /**
    * The three buffers, or null when there is nothing to draw.
    *
-   * Coordinates are coerced the same way the app's adapter coerces them: a
-   * value that is not a finite number becomes zero rather than NaN, because a
-   * single NaN takes the whole scene's bounding box with it.
+   * Numbers are coerced the same way the app's adapter coerces them: a value
+   * that is not a finite number becomes zero rather than NaN, because a single
+   * NaN takes the whole scene's bounding box with it.
+   *
+   * The arrays are copied rather than aliased, because they go on to be the
+   * `readonly` buffers of a `SceneGeom`: the contract promises the library
+   * cannot write into what it was handed (ADR-0004), and that is easier to keep
+   * than to prove about arrays the caller still holds.
    */
   private readBuffers(data: unknown): ExportBuffers | null {
     if (!data || typeof data !== 'object') { return null; }
@@ -126,14 +137,36 @@ export class ObstJsonService {
     if (source.vertices.length === 0 || source.indices.length === 0) { return null; }
 
     return {
-      // Copied rather than aliased: the drawing services empty their buffers in
-      // place on the next render, which would truncate what the loader parsed.
-      vertices: source.vertices.map((value: unknown) => this.finite(value)),
-      colors: Array.isArray(source.colors)
-        ? source.colors.map((value: unknown) => this.finite(value))
-        : [],
-      indices: source.indices.map((value: unknown) => this.finite(value))
+      vertices: source.vertices.map((value: unknown) => this.asNumber(value)),
+      colors: this.readColors(source.colors, source.vertices.length / 3),
+      indices: source.indices.map((value: unknown) => this.asNumber(value))
     };
+  }
+
+  /**
+   * The colour buffer, or an empty one when it is not rgba per vertex.
+   *
+   * Length is the only thing that says which stride a flat array of floats was
+   * written at, and reading it at the wrong one is silent: an rgb buffer read
+   * four at a time gives the first blockage the next vertex's red for its
+   * alpha - drawing a solid wall see-through - and shifts every blockage after
+   * it into somebody else's colour. Better to draw the fallback and be wrong
+   * visibly.
+   */
+  private readColors(colors: unknown, vertexCount: number): number[] {
+    if (!Array.isArray(colors)) { return []; }
+    if (colors.length !== vertexCount * 4) {
+      if (isDevMode() && colors.length > 0) {
+        try {
+          console.warn('[ObstJsonService] The colour buffer holds', colors.length,
+            'floats for', vertexCount, 'vertices rather than', vertexCount * 4,
+            '- drawing the export in one fallback colour.');
+        } catch { }
+      }
+      return [];
+    }
+
+    return colors.map((value: unknown) => this.asNumber(value));
   }
 
   /**
@@ -178,6 +211,11 @@ export class ObstJsonService {
    *
    * See VALUES_PER_AXIS: every vertex of a blockage is a copy of the box's
    * minimum or its maximum, so anything else came from somewhere else.
+   *
+   * Compared exactly, tolerance and all: SmokeView writes the same
+   * `xminmax[0]` over and over rather than computing each vertex, and a decimal
+   * literal parses to the same double every time it appears. A tolerance here
+   * would only widen what counts as a box.
    */
   private boxAt(vertices: number[], start: number): SceneXb | null {
     const min = [Infinity, Infinity, Infinity];
@@ -240,8 +278,8 @@ export class ObstJsonService {
   }
 
   /** One number, as the contract promises. See readBuffers(). */
-  private finite(value: unknown): number {
-    const asNumber = Number(value);
-    return Number.isFinite(asNumber) ? asNumber : 0;
+  private asNumber(value: unknown): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
   }
 }

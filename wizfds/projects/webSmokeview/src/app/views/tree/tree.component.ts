@@ -3,7 +3,7 @@ import { Result } from '../../services/http-manager/http-manager.service';
 import { SmokeviewApiService } from 'projects/web-smokeview-lib/src/lib/services/smokeview-api/smokeview-api.service';
 import { ObstJsonService } from 'projects/web-smokeview-lib/src/lib/services/parsers/smokeviewJson/obst-json.service';
 import { TreeService } from '../../services/tree/tree.service';
-import { GeometryLoaderService } from '../../services/loaders/geometryLoader/geometry-loader.service';
+import { GeometryLoaderService, SimulationNode } from '../../services/loaders/geometryLoader/geometry-loader.service';
 
 @Component({
     selector: 'app-tree',
@@ -45,7 +45,7 @@ export class TreeComponent implements OnInit, AfterViewInit {
    * Load / generate smokeview geometry
    * @param simulation tree node
    */
-  public loadSmv(simulation: any) {
+  public loadSmv(simulation: SimulationNode) {
     this.geomLoaderService.loadSmv(simulation).then(
       (result: Result) => {
         if (result.meta.status == 'success') {
@@ -58,7 +58,7 @@ export class TreeComponent implements OnInit, AfterViewInit {
    * Load already generated json geometry
    * @param simulation tree node
    */
-  public loadJson(simulation: any) {
+  public loadJson(simulation: SimulationNode) {
     this.geomLoaderService.loadJson(simulation).then(
       (result: Result) => {
         if (result.meta.status == 'success') {

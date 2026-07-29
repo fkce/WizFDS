@@ -2,43 +2,11 @@ import { TestBed } from '@angular/core/testing';
 import * as BABYLON from 'babylonjs';
 
 import { ObstJsonService } from './obst-json.service';
+import { exportOfBoxes } from './obst-json.fixture';
 import { SmokeviewApiService } from '../../smokeview-api/smokeview-api.service';
 import { BabylonService } from '../../babylon/babylon.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
 import { ObstSelectionService } from '../../drawing/obst/obst-selection.service';
-
-/**
- * The 24 vertices, 96 colour floats and 36 indices SmokeView writes for one
- * blockage - see `GetBlockNodes()` in `Source/smokeview/renderhtml.c`.
- */
-function blockage(
-  xb: { x1: number, x2: number, y1: number, y2: number, z1: number, z2: number },
-  offset: number
-) {
-  const ii = [0, 1, 1, 0, 0, 1, 1, 0];
-  const jj = [0, 0, 1, 1, 0, 0, 1, 1];
-  const kk = [0, 0, 0, 0, 1, 1, 1, 1];
-  const x = [xb.x1, xb.x2], y = [xb.y1, xb.y2], z = [xb.z1, xb.z2];
-
-  const vertices: number[] = [];
-  const colors: number[] = [];
-  for (let group = 0; group < 3; group++) {
-    for (let n = 0; n < 8; n++) {
-      vertices.push(x[ii[n]], y[jj[n]], z[kk[n]]);
-      colors.push(1, 208 / 255, 0, 1);
-    }
-  }
-
-  const corners = [
-    0, 1, 5, 0, 5, 4, 2, 3, 7, 2, 7, 6,
-    1, 2, 6, 1, 6, 5, 3, 0, 4, 3, 4, 7,
-    4, 5, 6, 4, 6, 7, 0, 2, 1, 0, 3, 2
-  ];
-  const indices = corners.map((corner, n) =>
-    offset + (n < 12 ? 0 : n < 24 ? 8 : 16) + corner);
-
-  return { vertices: vertices, colors: colors, indices: indices };
-}
 
 /**
  * Two walls well apart, as `<chid>_obst.json` holds them.
@@ -48,14 +16,10 @@ function blockage(
  * across rather than ten metres.
  */
 function obstExport() {
-  const west = blockage({ x1: 0, x2: 0.02, y1: 0, y2: 0.6, z1: 0, z2: 0.3 }, 0);
-  const east = blockage({ x1: 1, x2: 1.02, y1: 0, y2: 0.6, z1: 0, z2: 0.3 }, 24);
-
-  return {
-    vertices: [...west.vertices, ...east.vertices],
-    colors: [...west.colors, ...east.colors],
-    indices: [...west.indices, ...east.indices]
-  };
+  return exportOfBoxes([
+    { x1: 0, x2: 0.02, y1: 0, y2: 0.6, z1: 0, z2: 0.3 },
+    { x1: 1, x2: 1.02, y1: 0, y2: 0.6, z1: 0, z2: 0.3 }
+  ]);
 }
 
 /**
