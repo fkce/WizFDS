@@ -294,28 +294,24 @@ export class SceneInputService {
   /**
    * One coordinate, as the number the contract promises.
    *
-   * The domain model does not hold what its type says it does: `ngModel` on a
-   * text input writes a **string**, the `decimalInput` directive only validates
-   * and reformats the DOM value, and `Xb`'s setter takes whatever it is handed.
-   * So a scenario that has been through the geometry form carries `'40'` where
-   * it declares `40`.
+   * `Xb` and `Xyz` convert on assignment now, so a coordinate that came through
+   * a form is already a number by the time it reaches here - see
+   * `primitives.ts`. This stays for the two things that never went through
+   * those classes:
    *
-   * The library does arithmetic on these. `x1 + x2` on two strings concatenates,
-   * which drew a mesh edited from 10..40 m centred on 520 m; and
-   * `Number.isFinite('40')` is false, so SceneBoundsService found nothing it
-   * could measure and left the scene at its default ten-metre box - taking the
-   * camera, the clip ranges and every width derived from the model's size with
-   * it. Both symptoms appeared only after an edit, because a scenario loaded
-   * from the database goes through `new Xb(...)`, which does convert.
+   * - a &GEOM's vertices, which are a raw `number[][]` straight off the CAD
+   *   plugin, and
+   * - whatever a future field is added as, since the failure mode is silent:
+   *   the library does arithmetic on these, and a string reaching it once left
+   *   the whole scene measured as a default ten-metre box.
    *
-   * Coerced here rather than in the model because this is the boundary that
-   * declares the type (ADR-0004): the library is handed flat, resolved values
-   * and is entitled to trust them.
+   * It also settles what NaN means at this boundary, which the model
+   * deliberately leaves open: the editor wants a fault it can show the user,
+   * the preview wants a number it can draw.
    */
   private metres(value: number): number {
     const asNumber = Number(value);
-    // A field cleared in the form arrives as '': drawing at NaN would take the
-    // whole scene's bounding box with it
+    // Drawing at NaN would take the whole scene's bounding box with it
     return Number.isFinite(asNumber) ? asNumber : 0;
   }
 

@@ -4,6 +4,34 @@ import { Part } from "./particle/part";
 import { get, map, toString, find, forEach, isEqual, round, toNumber } from "lodash";
 import { colors } from "@enums/fds/enums/fds-enums-colors";
 
+/**
+ * One coordinate, as the number its field is declared to hold.
+ *
+ * The editor cannot be trusted to supply one. `ngModel` on a text input writes a
+ * **string**, and the `decimalInput` directive only validates the field and
+ * reformats what is displayed - it never touches the bound value. So every
+ * coordinate the user types would otherwise be stored as text, in a field whose
+ * type says `number`, and everything downstream does arithmetic on it:
+ *
+ * - `x1 + x2` on two strings concatenates. A mesh edited to span 10..40 m was
+ *   drawn centred on `'1040' / 2` = 520 m, and the model left the screen.
+ * - `Number.isFinite('40')` is false, so the preview found nothing it could
+ *   measure and kept its default ten-metre box - taking the camera, the clip
+ *   ranges and every width derived from the model's size with it.
+ *
+ * Both only appeared after an edit, because a scenario loaded from the database
+ * is built through the constructors, which have always converted. Converting on
+ * assignment as well is what makes the two agree.
+ *
+ * Deliberately the same conversion the constructors use, nonsense included: text
+ * that reads as no number at all becomes `NaN` rather than being quietly
+ * replaced, so the editor goes on marking the field and `hasGeometry` goes on
+ * refusing to measure the scene by it.
+ */
+function coordinate(value: number): number {
+    return toNumber(value);
+}
+
 export interface IXb {
     x1: number,
     x2: number,
@@ -53,7 +81,7 @@ export class Xb {
      * @param {number} value
      */
     public set x1(value: number) {
-        this._x1 = value;
+        this._x1 = coordinate(value);
         //this.calcArea();
     }
 
@@ -70,7 +98,7 @@ export class Xb {
      * @param {number} value
      */
     public set x2(value: number) {
-        this._x2 = value;
+        this._x2 = coordinate(value);
         //this.calcArea();
     }
 
@@ -87,7 +115,7 @@ export class Xb {
      * @param {number} value
      */
     public set y1(value: number) {
-        this._y1 = value;
+        this._y1 = coordinate(value);
         //this.calcArea();
     }
 
@@ -104,7 +132,7 @@ export class Xb {
      * @param {number} value
      */
     public set y2(value: number) {
-        this._y2 = value;
+        this._y2 = coordinate(value);
         //this.calcArea();
     }
 
@@ -121,7 +149,7 @@ export class Xb {
      * @param {number} value
      */
     public set z1(value: number) {
-        this._z1 = value;
+        this._z1 = coordinate(value);
         //this.calcArea();
     }
 
@@ -138,7 +166,7 @@ export class Xb {
      * @param {number} value
      */
     public set z2(value: number) {
-        this._z2 = value;
+        this._z2 = coordinate(value);
         //this.calcArea();
     }
 
@@ -191,18 +219,28 @@ export class Xyz {
         let base: IXyz;
         if (jsonString != undefined) base = <IXyz>JSON.parse(jsonString);
 
+        // Converted by the setters, as Xb's are - a device written before that
+        // was so can hold text in the database
         this.x = get(base, 'x', 0);
         this.y = get(base, 'y', 0);
         this.z = get(base, 'z', 0);
     }
 
+    /**
+     * Move the point to the centre of a box.
+     *
+     * The first term used to be wrapped in `toNumber()` and the others not,
+     * which is what a coordinate stored as text forces: `-` converts its
+     * operands, `+` concatenates them. The box now holds numbers - see
+     * coordinate() - so the arithmetic can be written as arithmetic.
+     */
     public recalc(xb?: Xb) {
 
         if (!xb) xb = new Xb(JSON.stringify({}));
 
-        this.x = round(toNumber(xb.x1) + (xb.x2 - xb.x1) / 2, 3);
-        this.y = round(toNumber(xb.y1) + (xb.y2 - xb.y1) / 2, 3);
-        this.z = round(toNumber(xb.z1) + (xb.z2 - xb.z1) / 2, 3);
+        this.x = round(xb.x1 + (xb.x2 - xb.x1) / 2, 3);
+        this.y = round(xb.y1 + (xb.y2 - xb.y1) / 2, 3);
+        this.z = round(xb.z1 + (xb.z2 - xb.z1) / 2, 3);
     }
 
     /**
@@ -218,7 +256,7 @@ export class Xyz {
      * @param {number} value
      */
     public set x(value: number) {
-        this._x = value;
+        this._x = coordinate(value);
     }
 
     /**
@@ -234,7 +272,7 @@ export class Xyz {
      * @param {number} value
      */
     public set y(value: number) {
-        this._y = value;
+        this._y = coordinate(value);
     }
 
     /**
@@ -250,7 +288,7 @@ export class Xyz {
      * @param {number} value
      */
     public set z(value: number) {
-        this._z = value;
+        this._z = coordinate(value);
     }
 
     toJSON(): object {
