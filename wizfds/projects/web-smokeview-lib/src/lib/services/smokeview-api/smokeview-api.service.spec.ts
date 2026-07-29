@@ -13,7 +13,7 @@ import { SceneBoundsService } from '../scene-bounds/scene-bounds.service';
 
 /** A scene with nothing in it, to be spread over with whatever a test needs. */
 function emptyScene(): SceneInput {
-  return { meshes: [], obsts: [], holes: [], opens: [], vents: [], fires: [], jetfans: [] };
+  return { meshes: [], obsts: [], holes: [], opens: [], vents: [], fires: [], jetfans: [], devcs: [], geoms: [] };
 }
 
 describe('SmokeviewApiService', () => {
@@ -39,7 +39,11 @@ describe('SmokeviewApiService', () => {
         },
         {
           provide: OpenService,
-          useValue: { opens: [], renderOpens: () => { drawn.push('opens'); } }
+          useValue: {
+            opens: [],
+            renderOpens: () => { drawn.push('opens'); return Promise.resolve(); },
+            resetClipping: () => { }
+          }
         },
         {
           provide: JetfanService,

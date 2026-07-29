@@ -161,7 +161,7 @@ describe('VentService', () => {
       service.resetSceneState();
 
       expect(service.basicMeshGroups.length).toBe(0);
-      expect(service.mesh).toBeNull();
+      expect(service.mesh).toBeUndefined();
     });
 
     it('leaves the service able to draw into the next scene', async () => {
@@ -180,13 +180,16 @@ describe('VentService', () => {
     // The inlet and outlet planes of a jetfan are drawings, not elements of the
     // scenario, so they carry no identity.
 
+    // The two buffers exist for the whole life of the scene; which of them has
+    // anything in it is what says how a plane is drawn.
+
     it('draws a translucent derived vent into the transparent buffer', async () => {
       service.vents = [{ xb: plane(0, 0.2, 0, 0.2, 0.1), color: [0, 0, 1, 0.8] }];
 
       await service.render();
 
-      expect(scene.getMeshByName('ventsTransparent')).toBeTruthy();
-      expect(scene.getMeshByName('vents')).toBeFalsy();
+      expect(service.meshTransparent.isEnabled()).toBe(true);
+      expect(service.mesh.isEnabled()).toBe(false);
     });
 
     it('draws an opaque derived vent into the opaque buffer', async () => {
@@ -194,8 +197,18 @@ describe('VentService', () => {
 
       await service.render();
 
-      expect(scene.getMeshByName('vents')).toBeTruthy();
-      expect(scene.getMeshByName('ventsTransparent')).toBeFalsy();
+      expect(service.mesh.isEnabled()).toBe(true);
+      expect(service.meshTransparent.isEnabled()).toBe(false);
+    });
+
+    it('carries no identity into the registry', async () => {
+      // A jetfan's inlet and outlet are drawings: the body is what a pick
+      // resolves to, so nothing here may claim a uuid of its own.
+      service.vents = [{ xb: plane(0, 0.2, 0, 0.2, 0.1), color: [0, 0, 1, 0.8] }];
+
+      await service.render();
+
+      expect(registry.uuidAt(service.meshTransparent, 0)).toBeUndefined();
     });
   });
 });

@@ -6,6 +6,8 @@ import { OpenService } from '../drawing/open/open.service';
 import { VentService } from '../drawing/vent/vent.service';
 import { JetfanService } from '../drawing/jetfan/jetfan.service';
 import { FireService } from '../drawing/fire/fire.service';
+import { DevcService } from '../drawing/devc/devc.service';
+import { GeomService } from '../drawing/geom/geom.service';
 import { BabylonService } from '../babylon/babylon.service';
 import { SceneBoundsService } from '../scene-bounds/scene-bounds.service';
 
@@ -21,6 +23,8 @@ export class SmokeviewApiService {
     private ventService: VentService,
     private jetfanService: JetfanService,
     private fireService: FireService,
+    private devcService: DevcService,
+    private geomService: GeomService,
     private babylonService: BabylonService,
     private sceneBounds: SceneBoundsService
   ) { }
@@ -57,7 +61,7 @@ export class SmokeviewApiService {
     this.obstService.renderObsts();
 
     this.openService.opens = scene.opens;
-    this.openService.renderOpens();
+    await this.settled('opens', () => this.openService.renderOpens());
 
     this.jetfanService.jetfans = scene.jetfans;
     await this.settled('jetfans', () => this.jetfanService.render());
@@ -67,6 +71,12 @@ export class SmokeviewApiService {
 
     this.ventService.basicVents = scene.vents;
     await this.settled('vents', () => this.ventService.renderBasicVents());
+
+    this.geomService.geoms = scene.geoms;
+    await this.settled('geoms', () => this.geomService.renderGeoms());
+
+    this.devcService.devcs = scene.devcs;
+    await this.settled('devices', () => this.devcService.renderDevcs());
   }
 
   /**
@@ -95,6 +105,9 @@ export class SmokeviewApiService {
     this.fireService.resetClipping();
     this.ventService.resetClipping();
     this.jetfanService.resetClipping();
+    this.openService.resetClipping();
+    this.devcService.resetClipping();
+    this.geomService.resetClipping();
   }
 
   /** Run one drawing step, keeping a failure from taking the rest down with it. */

@@ -64,6 +64,26 @@ function sceneInput(): SceneInput {
         xb: { x1: 2, x2: 8, y1: 3, y2: 5, z1: 1, z2: 3 },
         color: { r: 1, g: 0, b: 0, a: 0.5 }
       }
+    ],
+    devcs: [
+      {
+        uuid: 'spr1-uuid', id: 'SPR1', extent: 'point', marker: 'sprinkler',
+        xb: { x1: 5, x2: 5, y1: 4, y2: 4, z1: 3.8, z2: 3.8 },
+        color: { r: 0, g: 0.86, b: 1, a: 1 }
+      },
+      {
+        uuid: 'layer1-uuid', id: 'LAYER1', extent: 'volume', marker: 'sensor',
+        xb: { x1: 0, x2: 10, y1: 0, y2: 8, z1: 0, z2: 4 },
+        color: { r: 0, g: 0.86, b: 1, a: 1 }
+      }
+    ],
+    geoms: [
+      {
+        uuid: 'geom-uuid', id: 'RAMP', xb: { x1: 0, x2: 2, y1: 0, y2: 2, z1: 0, z2: 1 },
+        vertices: [0, 0, 0, 2, 0, 0, 2, 2, 0, 0, 2, 1],
+        faces: [0, 1, 2, 0, 2, 3],
+        color: { r: 0.7, g: 0.7, b: 0.7, a: 1 }
+      }
     ]
   };
 }
@@ -139,7 +159,7 @@ describe('rendering a scene input', () => {
 
   it('draws an empty scenario without writing into it', async () => {
     const frozen = deepFreeze({
-      meshes: [], obsts: [], holes: [], opens: [], vents: [], fires: [], jetfans: []
+      meshes: [], obsts: [], holes: [], opens: [], vents: [], fires: [], jetfans: [], devcs: [], geoms: []
     } as SceneInput);
 
     await expectAsync(service.render(frozen)).toBeResolved();

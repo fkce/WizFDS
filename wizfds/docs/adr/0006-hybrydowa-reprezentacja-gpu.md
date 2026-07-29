@@ -77,6 +77,27 @@ Powód jest ten sam, dla którego podjęto tę decyzję: oba mechanizmy skalują
 
 `OBST`, `MESH` i korpusy jetfanów. **`VENT` nie** — mimo że decyzja wymienia „bryły VENT-ów": w modelu FDS `&VENT` jest płaszczyzną, a `HelpersService.generateVentGeometry()` obsługuje wyłącznie przypadki `x1==x2`, `y1==y2` i `z1==z2`. Nie ma tam bryły do instancjonowania, więc `VentService` zostaje na wspólnym buforze z zakresami ścian.
 
+## Uzupełnienie po wdrożeniu (#90): trzecia ścieżka, nazwana
+
+Powyższe zapisano jako **wyjątek dla `&VENT`**. Przy domykaniu listy migracyjnej z #90 okazało się, że to nie wyjątek, tylko reguła dla całej klasy elementów: płaszczyzną jest też `OPEN`, płaszczyzną jest pożar (rysowany jako płaszczyzna swojego `&VENT`-a) i płaszczyzną są wlot i wylot jetfana. Każdy z tych czterech serwisów miał własną kopię tego samego kodu — pętla po płaszczyznach, dopisanie wierzchołków, przesunięcie indeksów, spisanie zakresów ścian.
+
+Ścieżki są więc **trzy**, z jawnym kryterium przydziału:
+
+| Ścieżka | Dla czego | Tożsamość |
+|---|---|---|
+| Thin instances (`BoxInstancePool`) | prostopadłościany: `OBST`, `MESH`, korpusy jetfanów | slot instancji |
+| Wspólny bufor (`PlaneBatch`) | prostokąty zorientowane wzdłuż osi: `VENT`, `OPEN`, pożary, płaszczyzny jetfanów | zakres ścian w buforze |
+| Osobne meshe | geometria wynikowa: `OBST` z otworem, przyszłe `&GEOM`, obiekt edytowany | sam mesh |
+
+Płaszczyzny nie są instancjonowane nie dlatego, że jest ich mało, lecz dlatego, że trzy możliwe orientacje prostokąta to **inna geometria**, a nie ta sama bryła w innej skali — inaczej niż w przypadku prostopadłościanu, gdzie macierz per instancja wystarcza.
+
+Dwie rzeczy, które ujawniło sprowadzenie tego do jednego miejsca:
+
+- Płaszczyzna, której `XB` ma grubość na każdej osi (a taka potrafi przyjść ze scenariusza importowanego z CAD), wpisywała do bufora indeksy wskazujące na wierzchołki, których nigdy nie dodano — czyli na wierzchołki **następnego** elementu. Zakres ścian nazywał wtedy cudzy element i pickowanie trafiało w zły obiekt. `PlaneBatch` taką płaszczyznę pomija.
+- `OPEN` był ostatnią ścieżką sprzed przebudowy: mesh na każdy otwór, `StandardMaterial`, zero przycinania. Suwak przecinał cały model **poza** otworami.
+
+Stan uniformów i trzystanowy przycisk widoczności, wspólne dla wszystkich warstw płaszczyzn, siedzą w `ClippedPlaneLayer` — inaczej czwarty element geometrii wejściowej skopiowałby je po raz czwarty.
+
 ## Rozważone alternatywy
 
 - **Wyłącznie osobne meshe.** Najprostsze i całkowicie wystarczające przy setkach obiektów — ale nie przy dziesięciu tysiącach.

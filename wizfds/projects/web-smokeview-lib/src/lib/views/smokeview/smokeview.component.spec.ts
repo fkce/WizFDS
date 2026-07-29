@@ -103,4 +103,32 @@ describe('SmokeviewComponent', () => {
     expect(fixture.nativeElement.querySelector('.unsupported')).toBeNull();
     expect(fixture.nativeElement.querySelector('.menu')).toBeTruthy();
   });
+
+  describe('setClip', () => {
+    // One slider, one plane, but every drawing service owns its own materials -
+    // so each of them has to be told, and a service left out keeps drawing
+    // through a plane the user has dragged past it.
+
+    it('moves the plane on every element type it cuts', async () => {
+      await configure(true);
+
+      const obst = spyOn(component.obstService, 'clip');
+      const fire = spyOn(component.fireService, 'clip');
+      const vent = spyOn(component.ventService, 'clipBasic');
+      const open = spyOn(component.openService, 'clip');
+      const jetfan = spyOn(component.jetfanService, 'clip');
+
+      component.setClip('x', 3.5);
+
+      expect(obst).toHaveBeenCalledWith(3.5, 'x');
+      expect(fire).toHaveBeenCalledWith(3.5, 'x');
+      expect(vent).toHaveBeenCalledWith(3.5, 'x');
+      expect(open)
+        .withContext('openings used to be drawn with no clipping at all')
+        .toHaveBeenCalledWith(3.5, 'x');
+      expect(jetfan)
+        .withContext('the jetfan service was never told, so jetfans ignored the sliders')
+        .toHaveBeenCalledWith(3.5, 'x');
+    });
+  });
 });
