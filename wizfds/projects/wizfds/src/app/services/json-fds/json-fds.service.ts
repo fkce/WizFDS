@@ -929,7 +929,7 @@ export class JsonFdsService {
 
     fdsInput = concat(fdsInput, Array('# ---- General ----'));
     fdsInput = concat(fdsInput, this.simpleAmper(Array(fdsObject.general.head), 'head'));
-    fdsInput = concat(fdsInput, this.simpleAmper(Array(fdsObject.general.init), 'init'));
+    fdsInput = concat(fdsInput, this.simpleAmper(fdsObject.general.inits, 'init'));
     fdsInput = concat(fdsInput, this.simpleAmper(Array(fdsObject.general.time), 'time'));
     fdsInput = concat(fdsInput, this.simpleAmper(Array(fdsObject.general.misc), 'misc'));
     fdsInput.push('');

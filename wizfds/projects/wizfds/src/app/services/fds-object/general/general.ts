@@ -1,6 +1,6 @@
 import { FdsEntities } from '../../../enums/fds/entities/fds-entities';
 import { IdGeneratorService } from '../../id-generator/id-generator.service';
-import { get } from 'lodash';
+import { get, isEmpty, map, omit } from 'lodash';
 import { Head } from './head';
 import { Time } from './time';
 import { Misc } from './misc';
@@ -10,7 +10,9 @@ export interface GeneralObject {
     head: Head,
     time: Time,
     misc: Misc,
-    init: Init
+    inits: Init[],
+    /** What a scenario saved before &INIT became a list carries. See inits. */
+    init?: Init
 }
 
 export class General {
@@ -18,7 +20,7 @@ export class General {
     private _head: Head;
     private _time: Time;
     private _misc: Misc;
-    private _init: Init;
+    private _inits: Init[];
 
     constructor(jsonString: string) {
 
@@ -28,7 +30,33 @@ export class General {
         this.head = base.head != undefined ? new Head(JSON.stringify(base.head)) : new Head(JSON.stringify({}));
         this.time = base.time != undefined ? new Time(JSON.stringify(base.time)) : new Time(JSON.stringify({}));
         this.misc = base.misc != undefined ? new Misc(JSON.stringify(base.misc)) : new Misc(JSON.stringify({}));
-        this.init = base.init != undefined ? new Init(JSON.stringify(base.head)) : new Init(JSON.stringify({}));
+        this.inits = this.readInits(base);
+    }
+
+    /**
+     * The &INIT regions of a scenario, however it was saved.
+     *
+     * FDS allows many, and the model held exactly one - so every scenario saved
+     * to date carries `general.init` rather than a list. That single object is
+     * migrated rather than dropped, because a user who filled it in would
+     * otherwise lose the region without being told.
+     *
+     * Almost all of them will be empty: the old `Init` was a stub that read
+     * nothing and serialised to `{}`, so an empty object means "the stub was
+     * here", not "a region with no values". Migrating those would give every
+     * existing scenario a nameless &INIT it never asked for.
+     */
+    private readInits(base: GeneralObject): Init[] {
+        const stored = get(base, 'inits');
+        if (stored != undefined) {
+            return map(stored, (init) => new Init(JSON.stringify(init)));
+        }
+
+        const single = get(base, 'init');
+        // uuid alone is not a value the user entered - see Init's constructor
+        if (single == undefined || isEmpty(omit(single, 'uuid'))) { return []; }
+
+        return [new Init(JSON.stringify(single))];
     }
 
     /**
@@ -81,19 +109,19 @@ export class General {
 	}
 
     /**
-     * Getter init
-     * @return {Init}
+     * Getter inits
+     * @return {Init[]}
      */
-	public get init(): Init {
-		return this._init;
+	public get inits(): Init[] {
+		return this._inits;
 	}
 
     /**
-     * Setter init
-     * @param {Init} value
+     * Setter inits
+     * @param {Init[]} value
      */
-	public set init(value: Init) {
-		this._init = value;
+	public set inits(value: Init[]) {
+		this._inits = value;
 	}
 
     /** Export to json */
@@ -102,7 +130,7 @@ export class General {
             head: this.head.toJSON(),
             time: this.time.toJSON(),
             misc: this.misc.toJSON(),
-            init: this.init.toJSON()
+            inits: map(this.inits, (init: Init) => init.toJSON())
         }
         return general;
     }
