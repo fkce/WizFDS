@@ -133,6 +133,10 @@
         <mat-icon class="row-icon" [ngClass]="{'active': uiState.active == 'device'}" svgIcon="thermometer-lines" aria-label="Device"></mat-icon>
         <a class="nav-label" [ngClass]="{'active': uiState.active == 'device'}">Device</a>
       </div>
+      <div class="n2" routerLink="fds/output/prop" (click)="activate('prop')" [ngClass]="{'active': uiState.active == 'prop'}">
+        <mat-icon class="row-icon" [ngClass]="{'active': uiState.active == 'prop'}" svgIcon="sprinkler-variant" aria-label="Prop"></mat-icon>
+        <a class="nav-label" [ngClass]="{'active': uiState.active == 'prop'}">Prop</a>
+      </div>
     </div>
   </div>
 

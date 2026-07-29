@@ -125,6 +125,17 @@ export const SCENE_DEVC_MARKERS: readonly SceneDevcMarker[] =
     ['sensor', 'smoke detector', 'nozzle', 'sprinkler'];
 
 /**
+ * Narrow a `SMOKEVIEW_ID` onto the four shapes the library can draw.
+ *
+ * SmokeView ships many more objects than these and lets a user define their
+ * own, so a &PROP may name one the library has never heard of - in which case
+ * the app falls back on what the device measures.
+ */
+export function isSceneDevcMarker(value: string): value is SceneDevcMarker {
+    return SCENE_DEVC_MARKERS.indexOf(value as SceneDevcMarker) !== -1;
+}
+
+/**
  * A &DEVC - a detector, a sprinkler, a thermocouple.
  *
  * A point device carries a box with no extent, centred where it stands, so that

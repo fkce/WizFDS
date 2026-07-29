@@ -71,3 +71,25 @@ Urządzenie liniowe ma dwa boki bez rozciągłości; są rozwierane do ułamka m
 
 - **Jeden marker dla wszystkich, kolor różnicuje rodzaj.** Najprostsze, ale użytkownik nie odróżni tryskacza od czujki bez klikania — a odróżnienie ich to właśnie powód, dla którego prosił o ten podgląd.
 - **Interpreter obiektów SMV.** Najwierniejsze i jedyne, które obsłużyłoby obiekty własne użytkownika. Do rozważenia, gdyby ktoś tego zażądał; dziś nikt.
+
+## Uzupełnienie: `&PROP` działa, więc `SMOKEVIEW_ID` ma pierwszeństwo
+
+Powyżej zapisano, że rodzaj urządzenia czytamy z `QUANTITY`, bo `&PROP` jest zepsuty end-to-end. **To już nieaktualne** — `&PROP` został zbudowany: ma własny formularz, trafia do pliku `.fds` (`propAmper()`), a urządzenie może go wskazać (`PROP_ID`).
+
+Kolejność źródeł jest teraz taka, jak powinna była być od początku:
+
+1. **`SMOKEVIEW_ID` wskazanego `&PROP`** — to tam użytkownik mówi wprost, czym urządzenie jest, i to samo pole czyta SmokeView.
+2. **`QUANTITY`** — fallback. Mówi, co urządzenie mierzy, co zwykle implikuje rodzaj, ale jest stwierdzeniem słabszym. Obowiązuje dla każdego urządzenia bez `&PROP` — czyli dla wszystkiego, co powstało wcześniej.
+
+Fallback zostaje na stałe, nie jako przejściowy: `SMOKEVIEW_ID` może nazywać jeden z wielu innych obiektów SmokeView albo obiekt zdefiniowany przez użytkownika, a wtedy biblioteka nie ma czego narysować i pytanie „co to mierzy" jest jedynym, jakie zostaje.
+
+Kształt markera nadal jest prymitywem — ta część decyzji stoi. Zmieniło się wyłącznie to, **skąd** wiadomo, który prymityw wybrać.
+
+### Co było zepsute
+
+Dla porządku, bo diagnoza z pierwotnej wersji tej ADR była trafna i warto wiedzieć, ile ogniw musiało paść naraz:
+
+- `output.props` było wspominane w czterech miejscach i wszystkie cztery były w `fds-object.ts` — brak formularza, brak `propAmper()`, brak linkowania z urządzenia,
+- resolver w `Devc` porównywał kandydata ze zmienną `prop`, jeszcze niezdefiniowaną w tym momencie,
+- `smokeview_id` miało w tabeli atrybutów typ `Char.Array`, przez co wypadało wszystkimi gałęziami `parseAmper()` i szło do pliku bez cudzysłowów,
+- `parseAmper()` wywracał się na atrybucie bez zadeklarowanego `default` (`FLOW_RATE`), co zabrałoby cały plik wejściowy.

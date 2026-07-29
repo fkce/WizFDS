@@ -1,0 +1,253 @@
+<div class="single-amper-container">
+
+  <div class="list-wrapper">
+    <div class="list-drawer">
+      <div class="list-title" (click)="add()">
+        <mat-icon>add_box</mat-icon> Add PROP
+      </div>
+      <ng-scrollbar #propScrollbar (scrolled)="scrollbarUpdate('prop')">
+        <div class="list-items">
+          <div class="list-item" *ngFor="let propItem of props | slice: ui.output.prop.begin:(ui.output.prop.begin + ui.listRange)">
+            <a (click)="activate(propItem.id)" [ngClass]="{active: propItem === prop}">{{propItem.id}}</a>
+            <mat-icon class="red-hover" (click)="delete(propItem.id)">delete_forever</mat-icon>
+          </div>
+        </div>
+      </ng-scrollbar>
+      <div class="list-bottom" *ngIf="props.length > ui.listRange">
+        <mat-icon *ngIf="ui.output.prop.begin > 0" (click)="uiStateService.decreaseRange('output.prop')">chevron_left</mat-icon>
+        <div>{{ui.output.prop.begin}} - {{ui.output.prop.begin + ui.listRange > props.length ? props.length : ui.output.prop.begin
+          + ui.listRange}}</div>
+        <mat-icon *ngIf="ui.output.prop.begin + ui.listRange < props.length" (click)="uiStateService.increaseRange('output.prop')">chevron_right</mat-icon>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-box" [ngClass]="objectType == 'current' ? 'current' : 'library'">
+    <div *ngIf="!prop">
+      <label>Select or add new prop</label>
+    </div>
+    <div *ngIf="prop">
+
+      <div class="form-title">
+        <label>{{prop.id}} definition</label>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label>Id:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="prop.id" idInput stringInput>
+          </div>
+        </div>
+        <div>
+          <label>Prop type:</label>
+          <div class="field-container">
+            <ng-select [items]="PROP.propQuantity" bindLabel="label" bindValue="value" placeholder="Select type"
+              [(ngModel)]="prop.type" [searchable]="false" [clearable]="false"></ng-select>
+          </div>
+        </div>
+        <div>
+          <label matTooltip="Decides the shape drawn in the 3D preview" [matTooltipDisabled]="!main.settings.tooltips">Smokeview object:</label>
+          <div class="field-container">
+            <ng-select [items]="PROP.propSmokeviewId" bindLabel="label" bindValue="value" placeholder="Select object"
+              [(ngModel)]="prop.smokeview_id" [searchable]="false" [clearable]="false"></ng-select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-title" *ngIf="showThermal()">
+        <label class='header'>Thermal response</label>
+      </div>
+      <div class="form-row" *ngIf="showThermal()">
+        <div>
+          <label>Activation temperature:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="prop.activation_temperature" decimalInput>
+            <ng-katex equation="^\circ C"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>Initial temperature:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="prop.initial_temperature" decimalInput>
+            <ng-katex equation="^\circ C"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>RTI:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="prop.rti" decimalInput>
+            <ng-katex equation="\sqrt{m \cdot s}"></ng-katex>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-title" *ngIf="showSmoke()">
+        <label class='header'>Smoke response</label>
+      </div>
+      <div class="form-row" *ngIf="showSmoke()">
+        <div>
+          <label>Activation obscuration:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="prop.activation_obscuration" decimalInput>
+            <ng-katex equation="\%/m"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>Detector model:</label>
+          <div class="field-container">
+            <ng-select [items]="DEVC.smokeDetectorModel" bindLabel="label" bindValue="value" placeholder="Select model"
+              [(ngModel)]="prop.smoke_detector_model" [searchable]="false" [clearable]="false"></ng-select>
+          </div>
+        </div>
+        <div *ngIf="prop.smoke_detector_model == 'heskestad'">
+          <label>Characteristic length:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="prop.path_length" decimalInput>
+            <ng-katex equation="m"></ng-katex>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row" *ngIf="showCleary()">
+        <div>
+          <label>Cleary model:</label>
+          <div class="field-container">
+            <ng-select [items]="DEVC.cleary" bindLabel="label" bindValue="value" placeholder="Select model"
+              [(ngModel)]="prop.smoke_detector_model_type" (change)="prop.changeSmokeDetectorModelType()"
+              [searchable]="false" [clearable]="false"></ng-select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-title" *ngIf="showFlow()">
+        <label class='header'>Flow</label>
+      </div>
+      <div class="form-row" *ngIf="showFlow()">
+        <div>
+          <label>Flow definition:</label>
+          <div class="field-container">
+            <ng-select [items]="PROP.propFlowType" bindLabel="label" bindValue="value" placeholder="Select definition"
+              [(ngModel)]="prop.flow_type" [searchable]="false" [clearable]="false"></ng-select>
+          </div>
+        </div>
+        <div *ngIf="prop.flow_type == 'flowRate'">
+          <label>Flow rate:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="prop.flow_rate" decimalInput>
+            <ng-katex equation="L/min"></ng-katex>
+          </div>
+        </div>
+        <div *ngIf="prop.flow_type == 'massFlowRate'">
+          <label>Mass flow rate:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="prop.mass_flow_rate" decimalInput>
+            <ng-katex equation="kg/s"></ng-katex>
+          </div>
+        </div>
+        <div *ngIf="prop.flow_type == 'kFactor'">
+          <label>K factor:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="prop.k_factor" decimalInput>
+            <ng-katex equation="L/(min \cdot bar^{1/2})"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>Operating pressure:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="prop.operating_pressure" decimalInput>
+            <ng-katex equation="bar"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>Offset:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="prop.offset" decimalInput>
+            <ng-katex equation="m"></ng-katex>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-title" *ngIf="showFlow()">
+        <label class='header'>Spray</label>
+      </div>
+      <div class="form-row" *ngIf="showFlow()">
+        <div>
+          <label>Particle velocity:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="prop.particle_velocity" decimalInput>
+            <ng-katex equation="m/s"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>Spray angle from:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="prop.spray_angle1" decimalInput>
+            <ng-katex equation="^\circ"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>Spray angle to:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="prop.spray_angle2" decimalInput>
+            <ng-katex equation="^\circ"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>Spray pattern:</label>
+          <div class="field-container">
+            <ng-select [items]="PROP.propSprayPattern" bindLabel="label" bindValue="value" placeholder="Select pattern"
+              [(ngModel)]="prop.spray_pattern_shape" [searchable]="false" [clearable]="false"></ng-select>
+          </div>
+        </div>
+        <div *ngIf="prop.spray_pattern_shape == 'gaussian'">
+          <label>Pattern mu:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="prop.spray_pattern_mu" integerInput>
+          </div>
+        </div>
+        <div *ngIf="prop.spray_pattern_shape == 'gaussian'">
+          <label>Pattern beta:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="prop.spray_pattern_beta" integerInput>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="lib-wrapper">
+    <div class="lib-drawer" [ngClass]="ui.output.prop.lib=='closed' ? 'closed' : 'opened'">
+      <div class="lib-label-wrapper">
+        <div class="lib-label" (click)="toggleLibrary()">
+          <label>LIBRARY</label>
+        </div>
+      </div>
+      <div class="lib-area">
+        <div class="list">
+          <div class="list-title" (click)="add(true)">
+            <mat-icon>add_box</mat-icon> Add PROP
+          </div>
+          <ng-scrollbar #libPropScrollbar (scrolled)="scrollbarUpdate('libProp')">
+            <div class="list-items">
+              <div class="list-item" *ngFor="let propItem of lib.props | slice: ui.output.libProp.begin:(ui.output.libProp.begin + ui.listRange)">
+                <a (click)="activate(propItem.id, true)" [ngClass]="{activeLib: propItem===prop}">{{propItem.id}}</a>
+                <mat-icon matTooltip="Merge current item with library" [matTooltipDisabled]="!main.settings.tooltips" (click)="mergeLibraryItem(propItem.id)">merge_type</mat-icon>
+                <mat-icon matTooltip="Copy to current scenario" [matTooltipDisabled]="!main.settings.tooltips" (click)="importLibraryItem(propItem.id)">content_copy</mat-icon>
+                <mat-icon class="red-hover" matTooltip="Delete" [matTooltipDisabled]="!main.settings.tooltips" (click)="delete(propItem.id, true)">delete_forever</mat-icon>
+              </div>
+            </div>
+          </ng-scrollbar>
+          <div class="list-bottom" *ngIf="libProps.length > ui.listRange">
+            <mat-icon *ngIf="ui.output.libProp.begin > 0" (click)="uiStateService.decreaseRange('output.libProp')">chevron_left</mat-icon>
+            <div>{{ui.output.libProp.begin}} - {{ui.output.libProp.begin + ui.listRange > libProps.length ? libProps.length :
+              ui.output.libProp.begin + ui.listRange}}</div>
+            <mat-icon *ngIf="ui.output.libProp.begin + ui.listRange < libProps.length" (click)="uiStateService.increaseRange('output.libProp')">chevron_right</mat-icon>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

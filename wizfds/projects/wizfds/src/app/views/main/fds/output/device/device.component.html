@@ -56,10 +56,24 @@
           </div>
         </div>
         <div>
+          <label matTooltip="A device measures a quantity of its own, or takes one from a &PROP" [matTooltipDisabled]="!main.settings.tooltips">Measures:</label>
+          <div class="field-container">
+            <ng-select class="short" [items]="DEVC.devcQuantityType" bindLabel="label" bindValue="value" placeholder="Select"
+              [(ngModel)]="devc.quantity_type" [searchable]="false" [clearable]="false"></ng-select>
+          </div>
+        </div>
+        <div *ngIf="devc.quantity_type != 'PROP'">
           <label>Select qunatity:</label>
           <div class="field-container">
-            <ng-select class="custom" [items]="QUANTITIES" bindLabel="id" placeholder="Select quantity" [(ngModel)]="devc.quantity" 
+            <ng-select class="custom" [items]="QUANTITIES" bindLabel="id" placeholder="Select quantity" [(ngModel)]="devc.quantity"
             [searchable]="true" [clearable]="false"></ng-select>
+          </div>
+        </div>
+        <div *ngIf="devc.quantity_type == 'PROP'">
+          <label matTooltip="Its SMOKEVIEW_ID decides the shape drawn in the 3D preview" [matTooltipDisabled]="!main.settings.tooltips">Select prop:</label>
+          <div class="field-container">
+            <ng-select class="custom" [items]="PROPS" bindLabel="id" placeholder="Select prop" [(ngModel)]="devc.prop_id"
+              [searchable]="true" [clearable]="false"></ng-select>
           </div>
         </div>
         <div>
