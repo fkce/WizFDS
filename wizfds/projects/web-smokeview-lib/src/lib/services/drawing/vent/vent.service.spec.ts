@@ -63,6 +63,54 @@ describe('VentService', () => {
     expect(service).toBeTruthy();
   });
 
+  describe('when the shader cannot be loaded', () => {
+    // #104: the mesh used to be built, then the material awaited, then the group
+    // recorded - so a rejecting shader left the mesh in the scene and in no
+    // list, and every later render added another one nobody could dispose.
+
+    beforeEach(() => {
+      const babylon: any = TestBed.inject(BabylonService);
+      babylon.createShaderMaterial = () => Promise.reject(new Error('no shader'));
+    });
+
+    it('does not grow the scene on repeated renders', async () => {
+      service.basicVents = [
+        makeVent('V1', plane(0, 2, 0, 2, 0), BLUE),
+        makeVent('V2', plane(4, 6, 0, 2, 0), RED)
+      ];
+
+      await service.renderBasicVents();
+      const afterFirst = scene.meshes.length;
+
+      await service.renderBasicVents();
+      await service.renderBasicVents();
+
+      expect(scene.meshes.length).toBe(afterFirst);
+    });
+
+    it('still draws every colour group', async () => {
+      // The throw used to escape the loop, so the groups after the first were
+      // never built at all
+      service.basicVents = [
+        makeVent('BLUE', plane(0, 2, 0, 2, 0), BLUE),
+        makeVent('RED', plane(4, 6, 0, 2, 0), RED)
+      ];
+
+      await service.renderBasicVents();
+
+      expect(service.basicMeshGroups.length).toBe(2);
+      expect(registry.entryFor('RED-uuid')).toBeTruthy();
+    });
+
+    it('leaves the vents pickable, since identity does not depend on the shader', async () => {
+      service.basicVents = [makeVent('V1', plane(0, 2, 0, 2, 0), BLUE)];
+
+      await service.renderBasicVents();
+
+      expect(registry.uuidAt(service.basicMeshGroups[0].mesh, 0)).toBe('V1-uuid');
+    });
+  });
+
   describe('scene registry', () => {
     it('registers every basic vent it draws, by uuid', async () => {
       service.basicVents = [

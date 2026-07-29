@@ -57,6 +57,36 @@ describe('FireService', () => {
     expect(service).toBeTruthy();
   });
 
+  describe('when the shader cannot be loaded', () => {
+    // #104, the same ordering VentService had: the mesh was built, the material
+    // awaited, and only then was anything recorded that could dispose it.
+
+    beforeEach(() => {
+      const babylon: any = TestBed.inject(BabylonService);
+      babylon.createShaderMaterial = () => Promise.reject(new Error('no shader'));
+    });
+
+    it('does not grow the scene on repeated renders', async () => {
+      service.fires = [makeFire('F1', plane(0, 2, 0, 2, 0))];
+
+      await service.renderFires();
+      const afterFirst = scene.meshes.length;
+
+      await service.renderFires();
+      await service.renderFires();
+
+      expect(scene.meshes.length).toBe(afterFirst);
+    });
+
+    it('leaves the fires pickable, since identity does not depend on the shader', async () => {
+      service.fires = [makeFire('F1', plane(0, 2, 0, 2, 0))];
+
+      await service.renderFires();
+
+      expect(registry.uuidAt(service.mesh, 0)).toBe('F1-uuid');
+    });
+  });
+
   describe('identity', () => {
     it('registers every fire it draws, by uuid', async () => {
       service.fires = [makeFire('F1', plane(0, 2, 0, 2, 0)), makeFire('F2', plane(4, 6, 0, 2, 0))];
