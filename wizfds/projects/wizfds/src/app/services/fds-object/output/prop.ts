@@ -6,7 +6,7 @@ import { Ramp } from '../ramp/ramp';
 import { get, toNumber, clone, find, each, toString, toInteger } from 'lodash';
 
 export interface PropObject {
-    id:number,
+    id:string,
     uuid:string,
     type:string,
     flow_type:number,
@@ -39,7 +39,7 @@ export interface PropObject {
 }
 
 export class Prop {
-    private _id:number;
+    private _id:string;
     private _uuid:string;
     private _type:string;
     private _flow_type:string;
@@ -81,11 +81,11 @@ export class Prop {
         let GUI_PROP = FdsGuiEntities.PROP;
         let CLEARY_PARAMS = FdsEnums.DEVC.cleary;
 
-        this.id = base.id || 0;
+        this.id = toString(get(base, 'id', ''));
         this.uuid = base.uuid || idGeneratorService.genUUID(); 
 
         this.type = toString(get(base, 'type', GUI_PROP.TYPE.default[0]));
-        this.flow_type = toString(get(base, 'type', GUI_PROP.FLOW_TYPE.default[0]));
+        this.flow_type = toString(get(base, 'flow_type', GUI_PROP.FLOW_TYPE.default[0]));
         this.activation_temperature = toNumber(get(base, 'activation_temperature', prop.activation_temperature.default[0]));
         this.initial_temperature = toNumber(get(base, 'initial_temperature', prop.initial_temperature.default[0]));
         this.rti = toNumber(get(base, 'rti', prop.rti.default[0]));
@@ -106,7 +106,10 @@ export class Prop {
         this.path_length = toNumber(get(base, 'path_length', prop.path_length.default[0]));
     
         this.offset = toNumber(get(base, 'offset', prop.offset.default[0]));
-        this.flow_rate = toNumber(get(base, 'flow_rate', prop.flow_rate));
+        // FDS gives FLOW_RATE no default of its own - it is what the nozzle or
+        // sprinkler is rated at - so an unset one is nothing rather than the
+        // whole attribute table, which is what used to be handed to toNumber()
+        this.flow_rate = toNumber(get(base, 'flow_rate', 0));
         this.mass_flow_rate = toNumber(get(base, 'mass_flow_rate', prop.mass_flow_rate.default[0]));
         this.operating_pressure=toNumber(get(base, 'operating_pressure', prop.operating_pressure.default[0]));
         this.k_factor=toNumber(get(base, 'k_factor', prop.k_factor.default[0]));
@@ -128,32 +131,41 @@ export class Prop {
         this.spray_pattern_mu = toInteger(get(base, 'spray_pattern_mu', prop.spray_pattern_mu.default[0]));
         this.spray_pattern_beta = toInteger(get(base, 'spray_pattern_beta', prop.spray_pattern_beta.default[0]));
         this.spray_angle1 = toNumber(get(base, 'spray_angle1', prop.spray_angle.default[0]));
-        this.spray_angle2 = toNumber(get(base, 'spray_angle1', prop.spray_angle.default[1]));
+        this.spray_angle2 = toNumber(get(base, 'spray_angle2', prop.spray_angle.default[1]));
         this.smokeview_id = toString(get(base, 'smokeview_id', prop.smokeview_id.default[0]));
     
-        if(!ramps) {
-            this.pressure_ramp = base.pressure_ramp || {};
-        } else {
-            this.pressure_ramp = find(ramps, (ramp) => {
-                //?? TODO check
-                return ramp.id == base.pressure_ramp.id;
-            })
-        }
-
-        if(!parts) {
-            this.part_id = base.part_id || {};
-        } else {
-            this.part_id= find(parts, function(part) {
-                return part['id'] == base.part_id['id'];
-            });
-        }
-
+        // A stored prop names its ramp and its particle by id; both are optional,
+        // and neither list is handed over when a prop is built on its own
+        this.pressure_ramp = this.resolve(ramps, get(base, 'pressure_ramp'));
+        this.part_id = this.resolve(parts, get(base, 'part_id'));
     }
 
-    /** Change smoke detector model type */
+    /**
+     * The element a stored id names, out of the list this prop was given.
+     *
+     * `{}` when there is nothing to resolve - which is a prop that names none,
+     * and a prop built without the list to look in, as the library editor and
+     * the tests do. Reaching into `base.x.id` unguarded threw on both.
+     */
+    private resolve(candidates: any[], stored: any): object {
+        if (stored === undefined || stored === null || stored === '') { return {}; }
+
+        // Stored either as the id itself or as the whole object it was read from
+        const id = typeof stored === 'object' ? get(stored, 'id') : stored;
+        if (!candidates) { return typeof stored === 'object' ? stored : { id: id }; }
+
+        return find(candidates, (candidate) => get(candidate, 'id') == id) || {};
+    }
+
+    /**
+     * Change smoke detector model type.
+     *
+     * An arrow function, so that `this` is the prop: the callback used to be a
+     * plain one, in which `this` is not, and the lookup therefore never matched.
+     */
     changeSmokeDetectorModelType() {
         let CLEARY_PARAMS = FdsEnums.DEVC.cleary;
-        this.cleary_params= clone(find(CLEARY_PARAMS, function(model){
+        this.cleary_params = clone(find(CLEARY_PARAMS, (model) => {
             return model.value == this.smoke_detector_model_type;
         }));
     }
@@ -185,11 +197,11 @@ export class Prop {
         this.spray_angle.splice(index, 1);
     };
 
-	public get id(): number {
+	public get id(): string {
 		return this._id;
 	}
 
-	public set id(value: number) {
+	public set id(value: string) {
 		this._id = value;
 	}
 
@@ -447,8 +459,17 @@ export class Prop {
             spray_angle:this.spray_angle,
             spray_angle1:this.spray_angle1,
             spray_angle2:this.spray_angle2,
-            pressure_ramp:this.pressure_ramp['id'],
-            part_id:this.part_id['id'],
+            // Only the id crosses into storage; the object itself belongs to
+            // whichever list it was resolved out of. Undefined when it names none.
+            pressure_ramp:get(this.pressure_ramp, 'id'),
+            part_id:get(this.part_id, 'id'),
+            type:this.type,
+            smoke_detector_model:this.smoke_detector_model,
+            smoke_detector_model_type:this.smoke_detector_model_type,
+            path_length:this.path_length,
+            spray_pattern_shape:this.spray_pattern_shape,
+            spray_pattern_mu:this.spray_pattern_mu,
+            spray_pattern_beta:this.spray_pattern_beta,
             smokeview_id:this.smokeview_id
         }
         return prop; 

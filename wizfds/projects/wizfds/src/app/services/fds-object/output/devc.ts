@@ -85,17 +85,11 @@ export class Devc {
             this.quantity.parts = this.quantity.parts != undefined && this.quantity.parts.length > 0 ? map(this.quantity.parts, function (o) { return new Part(JSON.stringify(o)); }) : [];
         }
 
-        if (base.prop_id) {
-            if (!props) {
-                this.prop_id = base.prop_id || {};
-            } else {
-                var prop = find(props, function (elem) {
-                    // TODO ??
-                    return elem.id == prop;
-                });
-                this.prop_id = prop;
-            }
-        }
+        // A stored device names its &PROP by id. The lookup used to compare each
+        // candidate against `prop` - the variable being assigned, still
+        // undefined at that point - so it never matched and every device came
+        // back with no prop at all.
+        this.prop_id = this.resolveProp(base.prop_id, props);
 
         this.xb = new Xb(JSON.stringify(base.xb), 'devc') || new Xb(JSON.stringify({}), 'devc');
         this.xyz = new Xyz(JSON.stringify(base.xyz)) || new Xyz(JSON.stringify({}));
@@ -113,6 +107,27 @@ export class Devc {
         this.time_history = (get(base, 'time_history', devc.time_history.default[0] == true)) as boolean;
         this.points = toNumber(get(base, 'points', devc.points.default[0]));
         this.ior = toNumber(get(base, 'ior', devc.ior.default[0]));
+    }
+
+    /**
+     * The &PROP this device names, out of the list it was given.
+     *
+     * `{}` when it names none - which is most devices, and every device built
+     * without a prop list to look in.
+     */
+    private resolveProp(stored: any, props: Prop[]): object {
+        if (stored === undefined || stored === null || stored === '') { return {}; }
+
+        // Stored as the id itself; older scenarios kept the whole object
+        const id = typeof stored === 'object' ? get(stored, 'id') : stored;
+        if (!props) { return typeof stored === 'object' ? stored : { id: id }; }
+
+        return find(props, (prop: Prop) => prop.id == id) || {};
+    }
+
+    /** Whether this device takes its quantity from a &PROP rather than its own. */
+    public get hasProp(): boolean {
+        return this.quantity_type == 'PROP' && !!get(this.prop_id, 'id');
     }
 
     /**
