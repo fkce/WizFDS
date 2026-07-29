@@ -5,6 +5,7 @@ import { appServiceProviders } from '../../../testing/app-service-testing';
 import { Prop } from '@services/fds-object/output/prop';
 import { Devc } from '@services/fds-object/output/devc';
 import { Init } from '@services/fds-object/general/init';
+import { Zone } from '@services/fds-object/general/zone';
 
 describe('JsonFdsService', () => {
   let service: JsonFdsService;
@@ -75,6 +76,50 @@ describe('JsonFdsService', () => {
 
     it('writes nothing at all when there are no regions', () => {
       expect(service.simpleAmper([], 'init')).toEqual([]);
+    });
+  });
+
+  describe('&ZONE', () => {
+    // A sealed pressure zone - a lift shaft, a stairwell. The model had no
+    // class at all, so a scenario using zones had to be finished by hand.
+
+    /** A &ZONE the way the model builds one. */
+    function zone(values: object): Zone {
+      return new Zone(JSON.stringify(values));
+    }
+
+    it('writes the region', () => {
+      const written = service.simpleAmper([zone({
+        id: 'SHAFT', xb: { x1: 0, x2: 3, y1: 0, y2: 3, z1: 0, z2: 30 }
+      })], 'zone');
+
+      expect(written.length).toBe(1);
+      expect(written[0]).toContain("ID='SHAFT'");
+      expect(written[0]).toContain('XB=0,3, 0,3, 0,30');
+      expect(written[0]).toMatch(/^&ZONE .* \/$/);
+    });
+
+    it('writes a leak area the user asked for', () => {
+      const written = service.simpleAmper([zone({ id: 'SHAFT', leak_area: 0.05 })], 'zone');
+
+      expect(written[0]).toContain('LEAK_AREA=0.05');
+    });
+
+    it('leaves out what FDS already defaults', () => {
+      // A sealed, non-periodic zone is what FDS assumes, so writing either out
+      // would only add noise to the input file.
+      const written = service.simpleAmper([zone({ id: 'SHAFT' })], 'zone');
+
+      expect(written[0]).not.toContain('LEAK_AREA');
+      expect(written[0]).not.toContain('PERIODIC');
+    });
+
+    it('writes every zone a scenario has', () => {
+      const written = service.simpleAmper(
+        [zone({ id: 'SHAFT' }), zone({ id: 'STAIR' })], 'zone');
+
+      expect(written.length).toBe(2);
+      expect(written[1]).toContain("ID='STAIR'");
     });
   });
 

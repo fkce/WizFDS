@@ -5,12 +5,14 @@ import { Head } from './head';
 import { Time } from './time';
 import { Misc } from './misc';
 import { Init } from './init';
+import { Zone } from './zone';
 
 export interface GeneralObject {
     head: Head,
     time: Time,
     misc: Misc,
     inits: Init[],
+    zones: Zone[],
     /** What a scenario saved before &INIT became a list carries. See inits. */
     init?: Init
 }
@@ -21,6 +23,7 @@ export class General {
     private _time: Time;
     private _misc: Misc;
     private _inits: Init[];
+    private _zones: Zone[];
 
     constructor(jsonString: string) {
 
@@ -31,6 +34,7 @@ export class General {
         this.time = base.time != undefined ? new Time(JSON.stringify(base.time)) : new Time(JSON.stringify({}));
         this.misc = base.misc != undefined ? new Misc(JSON.stringify(base.misc)) : new Misc(JSON.stringify({}));
         this.inits = this.readInits(base);
+        this.zones = map(get(base, 'zones', []), (zone) => new Zone(JSON.stringify(zone)));
     }
 
     /**
@@ -124,13 +128,30 @@ export class General {
 		this._inits = value;
 	}
 
+    /**
+     * Getter zones
+     * @return {Zone[]}
+     */
+	public get zones(): Zone[] {
+		return this._zones;
+	}
+
+    /**
+     * Setter zones
+     * @param {Zone[]} value
+     */
+	public set zones(value: Zone[]) {
+		this._zones = value;
+	}
+
     /** Export to json */
     toJSON(): object {
         let general: object = {
             head: this.head.toJSON(),
             time: this.time.toJSON(),
             misc: this.misc.toJSON(),
-            inits: map(this.inits, (init: Init) => init.toJSON())
+            inits: map(this.inits, (init: Init) => init.toJSON()),
+            zones: map(this.zones, (zone: Zone) => zone.toJSON())
         }
         return general;
     }
