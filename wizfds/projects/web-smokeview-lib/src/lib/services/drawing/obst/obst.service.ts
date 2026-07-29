@@ -64,22 +64,6 @@ export class ObstService implements SceneScoped, ObstScene {
   obsts: readonly SceneObst[] = [];
   holes: readonly SceneHole[] = [];
 
-  /**
-   * The buffers of the raw-geometry path - see renderJson().
-   *
-   * The scenario path does not use them: an obst drawn out of a pool has no
-   * vertices of its own, only a matrix and a colour (ADR-0006).
-   */
-  vertices: number[] = [];
-  normals: number[] = [];
-  colors: number[] = [];
-  indices: number[] = [];
-  positions: BABYLON.Vector3[] = [];
-
-  /** The mesh built from a raw Smokeview buffer, and the cap that goes with it. */
-  jsonMesh: BABYLON.Mesh;
-  jsonBackCapMesh: BABYLON.Mesh;
-
   /** The pools the bulk of the obsts are drawn from - opaque and translucent. */
   private pool: BoxPoolPair;
   /** Draws the opaque pool's boxes a second time, filled red where they are cut. */
@@ -218,72 +202,10 @@ export class ObstService implements SceneScoped, ObstScene {
     this.opaqueCap = null;
     this.ownMeshes.clear();
 
-    this.jsonMesh = null;
-    this.jsonBackCapMesh = null;
-
     this.materials = {};
     this.materialsPending = null;
 
-    this.vertices.length = 0;
-    this.normals.length = 0;
-    this.colors.length = 0;
-    this.indices.length = 0;
-    this.positions.length = 0;
     this.placed.length = 0;
-  }
-
-  /**
-   * Render geometry from a raw Smokeview buffer.
-   *
-   * The standalone viewer has no scenario to hand over (ADR-0004), so there is
-   * nothing to identify and nothing to instance - the buffer is drawn as it
-   * arrives, on a mesh of its own.
-   */
-  public renderJson(data: any) {
-    // Copy rather than alias: these buffers are emptied in place on the next
-    // render, which would otherwise truncate the caller's arrays.
-    this.vertices = [...data.vertices];
-    this.colors = [...data.colors];
-    this.indices = [...data.indices];
-    this.positions.length = 0;
-
-    for (let i = 0; i < this.vertices.length; i += 3) {
-      this.positions.push(new BABYLON.Vector3(this.vertices[i], this.vertices[i + 1], this.vertices[i + 2]));
-    }
-
-    this.normals = [];
-    BABYLON.VertexData.ComputeNormals(this.vertices, this.indices, this.normals);
-
-    if (this.jsonMesh) { this.jsonMesh.dispose(); }
-    if (this.jsonBackCapMesh) { this.jsonBackCapMesh.dispose(); }
-    if (this.vertices.length === 0) { return; }
-
-    const vertexData = new BABYLON.VertexData();
-    vertexData.positions = this.vertices;
-    vertexData.indices = this.indices;
-    vertexData.colors = this.colors;
-    vertexData.normals = this.normals;
-
-    this.jsonMesh = new BABYLON.Mesh('obstJson', this.babylonService.scene);
-    vertexData.applyToMesh(this.jsonMesh);
-    this.jsonMesh.freezeWorldMatrix();
-
-    this.jsonBackCapMesh = new BABYLON.Mesh('obstJsonBackCap', this.babylonService.scene);
-    vertexData.applyToMesh(this.jsonBackCapMesh);
-    this.jsonBackCapMesh.isPickable = false;
-    this.jsonBackCapMesh.freezeWorldMatrix();
-
-    this.applyEdges(this.jsonMesh, this.sceneBounds.edgeWidth);
-    this.ensureMaterials();
-  }
-
-  public renderWiz() {
-
-  }
-
-  public renderFds() {
-    // upload fds file ...
-
   }
 
   /**
@@ -585,12 +507,6 @@ export class ObstService implements SceneScoped, ObstScene {
       if (solidMaterial) { own.solid.material = solidMaterial; }
       if (own.cap && materials.ownCap) { own.cap.material = materials.ownCap; }
     });
-
-    if (this.jsonMesh && materials.own) { this.jsonMesh.material = materials.own; }
-    if (this.jsonBackCapMesh && materials.ownCap) {
-      this.jsonBackCapMesh.material = materials.ownCap;
-    }
-
   }
 
   /**
@@ -657,7 +573,6 @@ export class ObstService implements SceneScoped, ObstScene {
   private capMeshes(): BABYLON.Mesh[] {
     const caps: BABYLON.Mesh[] = [];
     if (this.opaqueCap) { caps.push(this.opaqueCap); }
-    if (this.jsonBackCapMesh) { caps.push(this.jsonBackCapMesh); }
     this.ownMeshes.forEach(own => { if (own.cap) { caps.push(own.cap); } });
     return caps;
   }
@@ -666,7 +581,6 @@ export class ObstService implements SceneScoped, ObstScene {
   public pickableMeshes(): BABYLON.Mesh[] {
     const meshes: BABYLON.Mesh[] = [];
     if (this.pool) { meshes.push(...this.pool.meshes); }
-    if (this.jsonMesh) { meshes.push(this.jsonMesh); }
     this.ownMeshes.forEach(own => meshes.push(own.solid));
     return meshes;
   }

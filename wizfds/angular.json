@@ -411,8 +411,10 @@
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
-            "main": "projects/webSmokeview/src/test.ts",
-            "polyfills": "projects/webSmokeview/src/polyfills.ts",
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ],
             "tsConfig": "projects/webSmokeview/tsconfig.spec.json",
             "karmaConfig": "projects/webSmokeview/karma.conf.js",
             "assets": [

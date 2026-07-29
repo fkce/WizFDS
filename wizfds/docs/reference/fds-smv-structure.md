@@ -75,7 +75,7 @@ FDS zapisuje wyniki do plików binarnych (potwierdzone w [`Source/dump.f90`](htt
 
 > **Luki naszego viewera (⚠️):** plot3d (`.q`), izopowierzchnie (`.iso`), dym 3D (`.s3d`), HVAC, zone. Jeśli któryś trzeba dodać — kolumny „Reader w SMV" i „IO/render w SMV" pokazują dokładnie skąd czerpać wzorzec.
 
-**Byty geometrii, które rysujemy z inputu (nie z plików wynikowych)** — mapowane wprost z `.fds` przez [`services/parsers/fdsFile/`](../../projects/web-smokeview-lib/src/lib/services/parsers/fdsFile):
+**Byty geometrii, które rysujemy z inputu (nie z plików wynikowych)** — biblioteka nie czyta `.fds`; dostaje gotowy kontrakt `SceneInput` (ADR-0004), budowany przez `SceneInputService` w `wizfds` albo przez [`services/parsers/smokeviewJson/`](../../projects/web-smokeview-lib/src/lib/services/parsers/smokeviewJson) w `webSmokeview`:
 
 | Byt | Nasz serwis | Wzorzec w SMV |
 |---|---|---|
@@ -86,6 +86,20 @@ FDS zapisuje wyniki do plików binarnych (potwierdzone w [`Source/dump.f90`](htt
 | `OPEN` (vent) | [`drawing/open/open.service.ts`](../../projects/web-smokeview-lib/src/lib/services/drawing/open/open.service.ts) | — |
 | jet fan | [`drawing/jetfan/jetfan.service.ts`](../../projects/web-smokeview-lib/src/lib/services/drawing/jetfan/jetfan.service.ts) | — (własne rozszerzenie WizFDS) |
 
+### Eksport HTML/JSON — czym karmi się `webSmokeview`
+
+Standalone viewer nie ma scenariusza. Jego backend woła `smokeview -runhtmlscript`, a komenda skryptu `RENDERHTMLOBST` zapisuje `<chid>_obst.json`. Format wypisuje [`Obst2Data()`](https://github.com/firemodels/smv/blob/SMV6.7.21/Source/smokeview/renderhtml.c) w `Source/smokeview/renderhtml.c` — trzy płaskie tablice i nic więcej:
+
+| Klucz | Zawartość | Ile na jeden blockage |
+|---|---|---|
+| `vertices` | trójki `x, y, z` | 24 wierzchołki (8 narożników × 3 grupy ścian) = 72 liczby |
+| `colors` | `rgba` w 0..1, każdy wierzchołek blockage'a ten sam | 96 liczb (alpha wpisywana na sztywno jako `1.0`) |
+| `indices` | trójkąty, indeksy od zera | 36 (6 ścian × 2 trójkąty × 3) |
+
+Blockage'e idą po kolei, więc plik **rozkłada się z powrotem na pudełka**, z których powstał — na tym stoi [`parsers/smokeviewJson/obst-json.service.ts`](../../projects/web-smokeview-lib/src/lib/services/parsers/smokeviewJson/obst-json.service.ts), który buduje z niego `SceneInput`.
+
+> **Uwaga: to nie są metry.** SmokeView normalizuje siatkę zaraz po wczytaniu `.smv` — makro `NORMALIZE_X(x)` w [`shared/datadefs.h`](https://github.com/firemodels/smv/blob/master/Source/shared/datadefs.h) to `(x - xbar0) / xyzmaxdiff`. Eksport nie niesie ani `xbar0`, ani `xyzmaxdiff`, więc nie ma czym tego odwrócić: najdłuższy bok modelu ma długość 1. Kamera, suwaki przycinania i grubości krawędzi mierzą się od samego modelu i działają mimo to, ale współrzędna odczytana w `webSmokeview` **nie jest** liczbą w metrach, którą ADR-0002 obiecuje w aplikacji. Naprawa wymaga zmiany tego, co wysyła serwer.
+
 ---
 
 ## ③ Wnętrze SmokeView — referencja dla renderingu w `web-smokeview-lib`
@@ -94,7 +108,7 @@ Gdy poprawiamy *jak* rysujemy (kolory, mapowanie wartości, kamera, shadery), wz
 
 | Temat | Kod w SMV | Nasz odpowiednik |
 |---|---|---|
-| Palety / colorbary | [`shared/colorbars.c`](https://github.com/firemodels/smv/blob/master/Source/shared/colorbars.c), [`colorbar_defs.c`](https://github.com/firemodels/smv/blob/master/Source/shared/colorbar_defs.c), [`color2rgb.c`](https://github.com/firemodels/smv/blob/master/Source/shared/color2rgb.c); [`smokeview/colortable.c`](https://github.com/firemodels/smv/blob/master/Source/smokeview/colortable.c) | [`consts/colorbars.ts`](../../projects/web-smokeview-lib/src/lib/consts/colorbars.ts), [`consts/colors.ts`](../../projects/web-smokeview-lib/src/lib/consts/colors.ts) |
+| Palety / colorbary | [`shared/colorbars.c`](https://github.com/firemodels/smv/blob/master/Source/shared/colorbars.c), [`colorbar_defs.c`](https://github.com/firemodels/smv/blob/master/Source/shared/colorbar_defs.c), [`color2rgb.c`](https://github.com/firemodels/smv/blob/master/Source/shared/color2rgb.c); [`smokeview/colortable.c`](https://github.com/firemodels/smv/blob/master/Source/smokeview/colortable.c) | [`consts/colorbars.ts`](../../projects/web-smokeview-lib/src/lib/consts/colorbars.ts); nazwane kolory FDS trzyma aplikacja w [`enums/fds/enums/fds-enums-colors.ts`](../../projects/wizfds/src/app/enums/fds/enums/fds-enums-colors.ts) |
 | Mapowanie dane→kolor + zakresy | [`smokeview/getdatacolors.c`](https://github.com/firemodels/smv/blob/master/Source/smokeview/getdatacolors.c), [`getdatabounds.c`](https://github.com/firemodels/smv/blob/master/Source/smokeview/getdatabounds.c) | logika w `drawing/slice/*` i `drawing/bndf/*` |
 | Shadery | [`smokeview/shaders.c`](https://github.com/firemodels/smv/blob/master/Source/smokeview/shaders.c) | [`consts/shaders.ts`](../../projects/web-smokeview-lib/src/lib/consts/shaders.ts) + `src/assets/shaders/` (WGSL; GLSL jako fallback) |
 | Kamera / rzutowanie / viewporty | [`smokeview/camera.c`](https://github.com/firemodels/smv/blob/master/Source/smokeview/camera.c), [`viewports.c`](https://github.com/firemodels/smv/blob/master/Source/smokeview/viewports.c) | [`services/babylon/babylon.service.ts`](../../projects/web-smokeview-lib/src/lib/services/babylon/babylon.service.ts), [`babylon/viewCube/view-cube.service.ts`](../../projects/web-smokeview-lib/src/lib/services/babylon/viewCube/view-cube.service.ts) |

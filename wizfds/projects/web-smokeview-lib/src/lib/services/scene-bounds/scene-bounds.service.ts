@@ -275,40 +275,6 @@ export class SceneBoundsService implements SceneScoped {
     return Number.isFinite(value) && Math.abs(value) <= MEASURABLE_LIMIT;
   }
 
-  /**
-   * Measure the scene from a flat position buffer, as the standalone viewer
-   * hands it over - it reads geometry out of a Smokeview export and has no
-   * scenario to measure (ADR-0004).
-   *
-   * Folded over the raw array rather than turned into boxes and handed to
-   * setFrom(): an export runs to hundreds of thousands of vertices, and one
-   * object apiece is a lot of garbage for a bounding box.
-   */
-  public setFromPositions(positions: readonly number[]): void {
-    if (!positions) { return; }
-
-    let xMin = Infinity, yMin = Infinity, zMin = Infinity;
-    let xMax = -Infinity, yMax = -Infinity, zMax = -Infinity;
-    let measured = false;
-
-    for (let i = 0; i + 2 < positions.length; i += 3) {
-      const x = positions[i], y = positions[i + 1], z = positions[i + 2];
-      // Same sentinel, one vertex at a time - see MEASURABLE_LIMIT
-      if (!this.isMeasurableCoordinate(x) ||
-        !this.isMeasurableCoordinate(y) ||
-        !this.isMeasurableCoordinate(z)) { continue; }
-
-      xMin = Math.min(xMin, x); xMax = Math.max(xMax, x);
-      yMin = Math.min(yMin, y); yMax = Math.max(yMax, y);
-      zMin = Math.min(zMin, z); zMax = Math.max(zMax, z);
-      measured = true;
-    }
-
-    if (!measured) { return; }
-
-    this.current = { x1: xMin, x2: xMax, y1: yMin, y2: yMax, z1: zMin, z2: zMax };
-  }
-
   private minOn(axis: SceneAxis): number {
     const box = this.current;
     return axis === 'x' ? box.x1 : axis === 'y' ? box.y1 : box.z1;
