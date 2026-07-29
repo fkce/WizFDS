@@ -78,6 +78,7 @@ import { IsosurfaceComponent } from './views/main/fds/output/isosurface/isosurfa
 import { DeviceComponent } from './views/main/fds/output/device/device.component';
 import { PropComponent } from './views/main/fds/output/prop/prop.component';
 import { InitComponent } from './views/main/fds/general/init/init.component';
+import { ZoneComponent } from './views/main/fds/general/zone/zone.component';
 import { RampComponent } from './views/main/fds/ramp/ramp.component';
 import { InputFileComponent } from './views/main/fds/input-file/input-file.component';
 import { FuelComponent } from './views/main/fds/fire/fuel/fuel.component';
@@ -133,6 +134,7 @@ import { VisualizeComponent } from './views/main/fds/visualize/visualize.compone
         DeviceComponent,
         PropComponent,
         InitComponent,
+        ZoneComponent,
         RampComponent,
         InputFileComponent,
         FuelComponent,

@@ -58,10 +58,12 @@ export class UiState {
 
 		this.general = base.general != undefined ? base.general : {
 			tab: 0, list: 0, elementIndex: 0,
-			init: { scrollPosition: 0, begin: 0, elementIndex: 0, help: 'closed' }
+			init: { scrollPosition: 0, begin: 0, elementIndex: 0, help: 'closed' },
+			zone: { scrollPosition: 0, begin: 0, elementIndex: 0, help: 'closed' }
 		};
-		// Added for old scenarios - add init
+		// Added for old scenarios - add init and zone
 		if (this.general.init == undefined) { this.general.init = { scrollPosition: 0, begin: 0, elementIndex: 0, help: 'closed' }; }
+		if (this.general.zone == undefined) { this.general.zone = { scrollPosition: 0, begin: 0, elementIndex: 0, help: 'closed' }; }
 
 		this.geometry = base.geometry != undefined ? base.geometry : {
 			tab: 0,

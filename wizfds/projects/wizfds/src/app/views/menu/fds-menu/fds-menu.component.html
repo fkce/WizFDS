@@ -17,6 +17,10 @@
         <mat-icon class="row-icon" [ngClass]="{'active': uiState.active == 'init'}" svgIcon="thermometer" aria-label="Init"></mat-icon>
         <a class="nav-label" [ngClass]="{'active': uiState.active == 'init'}">Init</a>
       </div>
+      <div class="n2" routerLink="fds/general/zone" (click)="activate('zone')" [ngClass]="{'active': uiState.active == 'zone'}">
+        <mat-icon class="row-icon" [ngClass]="{'active': uiState.active == 'zone'}" svgIcon="gauge" aria-label="Zone"></mat-icon>
+        <a class="nav-label" [ngClass]="{'active': uiState.active == 'zone'}">Zone</a>
+      </div>
     </div>
   </div>
 

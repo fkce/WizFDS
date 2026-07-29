@@ -1,0 +1,114 @@
+<div class="single-amper-container">
+
+  <div class="list-wrapper">
+    <div class="list-drawer">
+      <div class="list-title" (click)="add()">
+        <mat-icon>add_box</mat-icon> Add ZONE
+      </div>
+      <ng-scrollbar #zoneScrollbar (scrolled)="scrollbarUpdate()">
+        <div class="list-items">
+          <div class="list-item" *ngFor="let zoneItem of zones | slice: ui.general.zone.begin:(ui.general.zone.begin + ui.listRange)">
+            <a (click)="activate(zoneItem.id)" [ngClass]="{active: zoneItem === zone}">{{zoneItem.id}}</a>
+            <mat-icon class="red-hover" (click)="delete(zoneItem.id)">delete_forever</mat-icon>
+          </div>
+        </div>
+      </ng-scrollbar>
+      <div class="list-bottom" *ngIf="zones.length > ui.listRange">
+        <mat-icon *ngIf="ui.general.zone.begin > 0" (click)="uiStateService.decreaseRange('general.zone')">chevron_left</mat-icon>
+        <div>{{ui.general.zone.begin}} - {{ui.general.zone.begin + ui.listRange > zones.length ? zones.length : ui.general.zone.begin
+          + ui.listRange}}</div>
+        <mat-icon *ngIf="ui.general.zone.begin + ui.listRange < zones.length" (click)="uiStateService.increaseRange('general.zone')">chevron_right</mat-icon>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-box current">
+    <div *ngIf="!zone">
+      <label>Select or add new zone</label>
+    </div>
+    <div *ngIf="zone">
+
+      <div class="form-title">
+        <label>{{zone.id}} definition</label>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label>Id:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="zone.id" idInput stringInput>
+          </div>
+        </div>
+        <div>
+          <label matTooltip="Total area this zone leaks through into its neighbour"
+            [matTooltipDisabled]="!main.settings.tooltips">Leak area:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="zone.leak_area" decimalInput>
+            <ng-katex equation="m^2"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label matTooltip="The zone wraps around, so what leaves one side enters the other"
+            [matTooltipDisabled]="!main.settings.tooltips">Periodic:</label>
+          <div class="field-container">
+            <mat-checkbox [(ngModel)]="zone.periodic"></mat-checkbox>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-title">
+        <label class="header">Region</label>
+      </div>
+      <label class="info">
+        A zone is sealed - FDS solves its pressure separately from everything around it. Give it
+        the volume the shaft or the stairwell occupies.
+      </label>
+      <div class="form-row">
+        <div>
+          <label>X1:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="zone.xb.x1" decimalInput>
+            <ng-katex equation="m"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>X2:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="zone.xb.x2" decimalInput>
+            <ng-katex equation="m"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>Y1:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="zone.xb.y1" decimalInput>
+            <ng-katex equation="m"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>Y2:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="zone.xb.y2" decimalInput>
+            <ng-katex equation="m"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>Z1:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="zone.xb.z1" decimalInput>
+            <ng-katex equation="m"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>Z2:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="zone.xb.z2" decimalInput>
+            <ng-katex equation="m"></ng-katex>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
