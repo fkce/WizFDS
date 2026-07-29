@@ -102,6 +102,67 @@ export interface SceneJetfan extends SceneElement {
 }
 
 /**
+ * How much space a &DEVC takes up, which is what decides how it is drawn.
+ *
+ * FDS lets a device be a single point, a line of points, a plane or a volume,
+ * and the four are different drawings rather than one drawing at four sizes.
+ */
+export type SceneDevcExtent = 'point' | 'linear' | 'plane' | 'volume';
+
+/**
+ * What kind of device a point one is, which decides the shape of its marker.
+ *
+ * These are the `SMOKEVIEW_ID`s the app offers on a &PROP. SmokeView draws each
+ * from an object script in `smv_objects.tex`; the library draws a recognisable
+ * primitive apiece instead - see ADR-0008.
+ */
+export type SceneDevcMarker = 'sensor' | 'smoke detector' | 'nozzle' | 'sprinkler';
+
+export const SCENE_DEVC_MARKERS: readonly SceneDevcMarker[] =
+    ['sensor', 'smoke detector', 'nozzle', 'sprinkler'];
+
+/** Narrow a stored `SMOKEVIEW_ID` onto the four the library can draw. */
+export function isSceneDevcMarker(value: string): value is SceneDevcMarker {
+    return SCENE_DEVC_MARKERS.indexOf(value as SceneDevcMarker) !== -1;
+}
+
+/**
+ * A &DEVC - a detector, a sprinkler, a thermocouple.
+ *
+ * A point device carries a box with no extent, centred where it stands, so that
+ * one field says where every device is however much space it takes up. How big
+ * its marker is drawn is the library's business, because that follows from how
+ * big the model is (ADR-0002).
+ */
+export interface SceneDevc extends SceneElement {
+    readonly color: SceneColor,
+    readonly extent: SceneDevcExtent,
+    /** Only meaningful for a point device; the others are drawn from their box. */
+    readonly marker: SceneDevcMarker
+}
+
+/**
+ * A &GEOM - an arbitrary triangle mesh.
+ *
+ * The only element whose geometry does not follow from a box, so it is the one
+ * that has to carry its own (ADR-0006, the separate-mesh path). `xb` is the box
+ * the triangles occupy, worked out by the app, so that measuring the scene does
+ * not mean walking every vertex of every geom.
+ */
+export interface SceneGeom extends SceneElement {
+    readonly color: SceneColor,
+    /** Vertex positions as flat x, y, z triples, in FDS metres. */
+    readonly vertices: readonly number[],
+    /**
+     * Triangles as flat, **zero-based** indices into `vertices`.
+     *
+     * FDS counts them from one, as Fortran does; the app converts, because it is
+     * the app that holds the scenario in the form FDS reads it.
+     */
+    readonly faces: readonly number[]
+}
+
+/**
  * One scenario, as the library receives it. Every element type crosses the
  * boundary this way and no other.
  */
@@ -112,5 +173,7 @@ export interface SceneInput {
     readonly opens: readonly SceneOpen[],
     readonly vents: readonly SceneVent[],
     readonly fires: readonly SceneFire[],
-    readonly jetfans: readonly SceneJetfan[]
+    readonly jetfans: readonly SceneJetfan[],
+    readonly devcs: readonly SceneDevc[],
+    readonly geoms: readonly SceneGeom[]
 }

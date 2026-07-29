@@ -28,6 +28,24 @@ const EDGE_WIDTH_RATIO = 0.05;
 const OUTLINE_WIDTH_RATIO = 0.1;
 
 /**
+ * How big a device marker is drawn, in metres.
+ *
+ * A physical size, not a fraction of the model: a sprinkler is a piece of
+ * equipment of a known size, and a marker that grew with the building would be
+ * six metres across in a tunnel. Same reasoning as the jetfan arrows.
+ */
+const MARKER_SIZE = 0.3;
+
+/**
+ * The smallest a marker may be relative to the model.
+ *
+ * A physical size alone loses the other way round: 30 cm across a four-hundred
+ * metre tunnel is a pixel, and a device the user cannot see is a device they
+ * cannot check. This is the floor that keeps it on screen.
+ */
+const MARKER_MIN_RATIO = 0.004;
+
+/**
  * How far past the model a clip slider reaches at either end.
  *
  * The shader compares a fragment's own coordinate against the plane, so a plane
@@ -125,6 +143,11 @@ export class SceneBoundsService implements SceneScoped {
   /** Outline thickness for an element drawn as an outline rather than filled. */
   public get outlineWidth(): number {
     return OUTLINE_WIDTH_RATIO * this.extent;
+  }
+
+  /** How big a device marker is drawn, in metres. See MARKER_SIZE. */
+  public get markerSize(): number {
+    return Math.max(MARKER_SIZE, MARKER_MIN_RATIO * this.extent);
   }
 
   /**

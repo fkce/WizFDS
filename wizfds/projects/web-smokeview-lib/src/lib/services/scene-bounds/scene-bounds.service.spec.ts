@@ -5,7 +5,7 @@ import { SceneInput } from '../drawing/scene-input';
 
 /** A scene with nothing in it, to be spread over with whatever a test needs. */
 function emptyScene(): SceneInput {
-  return { meshes: [], obsts: [], holes: [], opens: [], vents: [], fires: [], jetfans: [] };
+  return { meshes: [], obsts: [], holes: [], opens: [], vents: [], fires: [], jetfans: [], devcs: [], geoms: [] };
 }
 
 describe('SceneBoundsService', () => {

@@ -1,7 +1,8 @@
 /**
  * A scenario with one of everything the 3D preview can draw, in a 10 x 8 x 4 m
  * room: a mesh, two obsts with different &SURFs, a doorway, an `OPEN` vent, a
- * ventilation vent, a fire and a jetfan.
+ * ventilation vent, a fire, a jetfan, four devices covering the four ways a
+ * &DEVC can occupy space, and a &GEOM.
  *
  * Every element type is present so that none of them is left crossing the
  * app/library boundary by a different route than the others.
@@ -14,6 +15,12 @@ export function scenarioJson(): object {
         { id: 'WALL', color: { rgb: [200, 100, 50] }, transparency: 1 },
         { id: 'GLASS', color: { rgb: [0, 128, 255] }, transparency: 0.4 }
       ],
+      geoms: [{
+        id: 'RAMP_SURFACE', uuid: 'geom-uuid', surf_id: 'WALL',
+        // A quad, as two triangles. FACES count from one, as Fortran does.
+        verts: [[0, 0, 0], [2, 0, 0], [2, 2, 0], [0, 2, 1]],
+        faces: [[1, 2, 3], [1, 3, 4]]
+      }],
       obsts: [
         {
           id: 'W1', uuid: 'w1-uuid', permit_hole: true,
@@ -47,6 +54,32 @@ export function scenarioJson(): object {
         surf: { color: { rgb: [255, 128, 0] } },
         vent: { xb: { x1: 1, x2: 3, y1: 1, y2: 3, z1: 0, z2: 0 } }
       }]
+    },
+    output: {
+      // One device per way a &DEVC can occupy space. What kind of device each
+      // one is comes from its QUANTITY - the only link the app actually keeps.
+      devcs: [
+        {
+          id: 'SPR1', uuid: 'spr1-uuid', geometrical_type: 'point',
+          xyz: { x: 5, y: 4, z: 3.8 },
+          quantity: { id: 'Sprinkler link temperature', quantity: 'SPRINKLER LINK TEMPERATURE' }
+        },
+        {
+          id: 'SD1', uuid: 'sd1-uuid', geometrical_type: 'point',
+          xyz: { x: 2, y: 6, z: 3.9 },
+          quantity: { id: 'Chamber obscuration', quantity: 'CHAMBER OBSCURATION' }
+        },
+        {
+          id: 'TC1', uuid: 'tc1-uuid', geometrical_type: 'linear',
+          xb: { x1: 1, x2: 1, y1: 1, y2: 1, z1: 0, z2: 4 },
+          quantity: { id: 'Thermocouple', quantity: 'THERMOCOUPLE' }
+        },
+        {
+          id: 'LAYER1', uuid: 'layer1-uuid', geometrical_type: 'volume',
+          xb: { x1: 0, x2: 10, y1: 0, y2: 8, z1: 0, z2: 4 },
+          quantity: { id: 'Temperature', quantity: 'TEMPERATURE' }
+        }
+      ]
     }
   };
 }

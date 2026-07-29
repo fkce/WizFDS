@@ -10,10 +10,12 @@ import { Surf } from '@services/fds-object/geometry/surf';
 import { Vent } from '@services/fds-object/ventilation/vent';
 import { JetFan } from '@services/fds-object/ventilation/jet-fan';
 import { Fire } from '@services/fds-object/fire/fire';
+import { Devc } from '@services/fds-object/output/devc';
+import { Geom } from '@services/fds-object/geometry/geom';
 import { Xb } from '@services/fds-object/primitives';
 import {
-  isSceneJetfanDirection, SceneColor, SceneFire, SceneHole, SceneInput, SceneJetfan, SceneMesh,
-  SceneObst, SceneOpen, SceneVent, SceneXb
+  isSceneJetfanDirection, SceneColor, SceneDevc, SceneDevcExtent, SceneDevcMarker, SceneFire,
+  SceneGeom, SceneHole, SceneInput, SceneJetfan, SceneMesh, SceneObst, SceneOpen, SceneVent, SceneXb
 } from '../../../../../web-smokeview-lib/src/lib/services/drawing/scene-input';
 
 /** Drawn for an obst whose &SURF cannot be resolved. Opaque, so it stays visible. */
@@ -27,6 +29,30 @@ const FALLBACK_FIRE_RGB: number[] = [255, 0, 0];
 
 /** Drawn for a jetfan with no colour of its own. */
 const FALLBACK_JETFAN_RGB: number[] = [255, 0, 0];
+
+/** Devices have no colour in the FDS model, so the preview gives them one. */
+const DEVC_RGB: number[] = [0, 220, 255];
+
+/** Drawn for a &GEOM whose &SURF cannot be resolved. */
+const FALLBACK_GEOM_RGB: number[] = [180, 180, 180];
+
+/**
+ * Which marker a device is drawn with, by the FDS QUANTITY it measures.
+ *
+ * The quantity is the only link the app actually keeps: `PROP_ID` is never
+ * written to the input file, the device form does not offer it, and the model's
+ * own resolver never finds the &PROP - so a marker read off &PROP would be one
+ * read off nothing. See ADR-0008.
+ */
+const MARKER_BY_QUANTITY: ReadonlyMap<string, SceneDevcMarker> = new Map([
+  ['SPRINKLER LINK TEMPERATURE', 'sprinkler' as SceneDevcMarker],
+  ['ACTUATED SPRINKLERS', 'sprinkler' as SceneDevcMarker],
+  ['CHAMBER OBSCURATION', 'smoke detector' as SceneDevcMarker],
+  ['PATH OBSCURATION', 'smoke detector' as SceneDevcMarker]
+]);
+
+/** The four ways FDS lets a &DEVC occupy space. */
+const DEVC_EXTENTS: readonly SceneDevcExtent[] = ['point', 'linear', 'plane', 'volume'];
 
 /**
  * Builds what the 3D preview draws out of the scenario.
@@ -64,8 +90,116 @@ export class SceneInputService {
       })),
       vents: ventilation.vents.map((vent: Vent) => this.vent(vent)),
       fires: fds.fires.fires.map((fire: Fire) => this.fire(fire)),
-      jetfans: ventilation.jetfans.map((jetfan: JetFan) => this.jetfan(jetfan))
+      jetfans: ventilation.jetfans.map((jetfan: JetFan) => this.jetfan(jetfan)),
+      devcs: (fds.output?.devcs ?? []).map((devc: Devc) => this.devc(devc)),
+      // A geom with no triangles is not something the preview can draw, and it
+      // would measure the scene from a box it never occupies
+      geoms: (geometry.geoms ?? [])
+        .map((geom: Geom) => this.geom(geom, surfs))
+        .filter((geom: SceneGeom) => geom.faces.length > 0)
     };
+  }
+
+  /**
+   * A device, with the shape of its marker resolved.
+   *
+   * A point device is given a box with no extent where it stands, so that one
+   * field says where every device is however much space it takes up. How big the
+   * marker is drawn follows from how big the model is, which is the library's
+   * business (ADR-0002).
+   */
+  private devc(devc: Devc): SceneDevc {
+    const extent = this.devcExtent(devc.geometrical_type);
+    const quantity: string = (devc.quantity?.quantity ?? '').toUpperCase();
+
+    return {
+      uuid: devc.uuid,
+      id: devc.id,
+      xb: extent === 'point' ? this.pointXb(devc) : this.xb(devc.xb),
+      extent: extent,
+      marker: MARKER_BY_QUANTITY.get(quantity) ?? 'sensor',
+      color: this.color(DEVC_RGB, 1, DEVC_RGB)
+    };
+  }
+
+  /** Narrow a stored geometrical type onto the four the library draws. */
+  private devcExtent(stored: string): SceneDevcExtent {
+    const candidate = (stored ?? '') as SceneDevcExtent;
+    return DEVC_EXTENTS.indexOf(candidate) !== -1 ? candidate : 'point';
+  }
+
+  /** The box a point device occupies: none at all, centred where it stands. */
+  private pointXb(devc: Devc): SceneXb {
+    const x = devc.xyz?.x ?? 0, y = devc.xyz?.y ?? 0, z = devc.xyz?.z ?? 0;
+    return { x1: x, x2: x, y1: y, y2: y, z1: z, z2: z };
+  }
+
+  /**
+   * A &GEOM, flattened into the buffers a mesh is built from.
+   *
+   * The only element that carries its own geometry rather than a box, so this is
+   * where the scenario's shape - vertices as triples, faces counted from one, as
+   * the input file is written - turns into the shape a vertex buffer wants.
+   */
+  private geom(geom: Geom, surfs: Surf[]): SceneGeom {
+    const verts: number[][] = Array.isArray(geom.verts) ? geom.verts : [];
+    const vertices: number[] = [];
+    verts.forEach((vert: number[]) => {
+      vertices.push(vert?.[0] ?? 0, vert?.[1] ?? 0, vert?.[2] ?? 0);
+    });
+
+    const surfId: string = (geom.surf as Surf)?.id ?? '';
+    const surf: Surf = surfId
+      ? find(surfs, (candidate: Surf) => !!candidate && candidate.id === surfId)
+      : undefined;
+
+    return {
+      uuid: geom.uuid,
+      id: geom.id,
+      xb: this.boundsOf(vertices),
+      vertices: vertices,
+      faces: this.faces(geom.faces, verts.length),
+      color: surf ? this.color(surf.color?.rgb, surf.transparency) : this.color(undefined, 1, FALLBACK_GEOM_RGB)
+    };
+  }
+
+  /**
+   * Triangles as zero-based indices, dropping any that point past the vertices.
+   *
+   * A geom arrives from CAD, and a triangle indexing past the list would be
+   * drawn from whatever the buffer happens to hold beyond it.
+   */
+  private faces(stored: number[][], vertexCount: number): number[] {
+    const faces: number[] = [];
+    (Array.isArray(stored) ? stored : []).forEach((face: number[]) => {
+      if (!face || face.length < 3) { return; }
+      // FDS counts vertices from one, as Fortran does
+      const corners = [face[0] - 1, face[1] - 1, face[2] - 1];
+      if (corners.some(corner => !Number.isInteger(corner) || corner < 0 || corner >= vertexCount)) {
+        if (isDevMode()) {
+          try { console.warn('[SceneInputService] Dropping a &GEOM face that points past its vertices:', face); } catch { }
+        }
+        return;
+      }
+      faces.push(...corners);
+    });
+    return faces;
+  }
+
+  /** The box a flat position buffer occupies, in metres. */
+  private boundsOf(vertices: readonly number[]): SceneXb {
+    if (vertices.length === 0) {
+      return { x1: 0, x2: 0, y1: 0, y2: 0, z1: 0, z2: 0 };
+    }
+
+    let xMin = Infinity, yMin = Infinity, zMin = Infinity;
+    let xMax = -Infinity, yMax = -Infinity, zMax = -Infinity;
+    for (let i = 0; i + 2 < vertices.length; i += 3) {
+      xMin = Math.min(xMin, vertices[i]); xMax = Math.max(xMax, vertices[i]);
+      yMin = Math.min(yMin, vertices[i + 1]); yMax = Math.max(yMax, vertices[i + 1]);
+      zMin = Math.min(zMin, vertices[i + 2]); zMax = Math.max(zMax, vertices[i + 2]);
+    }
+    return { x1: xMin, x2: xMax, y1: yMin, y2: yMax, z1: zMin, z2: zMax };
   }
 
   /**

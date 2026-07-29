@@ -16,6 +16,8 @@ import { OpenService } from '../../services/drawing/open/open.service';
 import { VentService } from '../../services/drawing/vent/vent.service';
 import { JetfanService } from '../../services/drawing/jetfan/jetfan.service';
 import { FireService } from '../../services/drawing/fire/fire.service';
+import { DevcService } from '../../services/drawing/devc/devc.service';
+import { GeomService } from '../../services/drawing/geom/geom.service';
 import { SceneAxis, SceneBoundsService } from '../../services/scene-bounds/scene-bounds.service';
 
 @Component({
@@ -112,6 +114,8 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     public ventService: VentService,
     public jetfanService: JetfanService,
     public fireService: FireService,
+    public devcService: DevcService,
+    public geomService: GeomService,
     private babylonService: BabylonService,
     public sliceService: SliceService,
     public playerService: PlayerService,
@@ -156,6 +160,8 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     this.openService.clip(metres, axis);
     // Takes the planes drawn for each jetfan with it - see JetfanService.clip()
     this.jetfanService.clip(metres, axis);
+    this.devcService.clip(metres, axis);
+    this.geomService.clip(metres, axis);
   }
 
   ngOnInit() {

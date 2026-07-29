@@ -38,6 +38,32 @@ export function isTranslucent(drawn: { readonly color: readonly number[] }): boo
 const MIN_SIDE = 1e-7;
 
 /**
+ * The shape one instance is drawn as: one metre across, centred on the origin.
+ *
+ * The pool scales it onto each element's box, so a shape built to those two
+ * rules lands exactly in that box whatever it is. That is what lets a device
+ * marker share the whole of this machinery with an &OBST - the placement is by
+ * box either way, and only the geometry inside it differs.
+ */
+export type BaseShape = (helpers: HelpersService) => BABYLON.VertexData;
+
+/** The unit box - what an &OBST, a &MESH and a jetfan body are drawn as. */
+export const UNIT_BOX: BaseShape = (helpers: HelpersService) => {
+  const positions = helpers.getVerticesFromXb({
+    x1: -0.5, x2: 0.5, y1: -0.5, y2: 0.5, z1: -0.5, z2: 0.5
+  });
+  const indices = helpers.getIndices(0);
+  const normals: number[] = new Array(positions.length).fill(0);
+  BABYLON.VertexData.ComputeNormals(positions, indices, normals);
+
+  const vertexData = new BABYLON.VertexData();
+  vertexData.positions = positions;
+  vertexData.indices = indices;
+  vertexData.normals = normals;
+  return vertexData;
+};
+
+/**
  * A pool of axis-aligned boxes drawn as thin instances of one base mesh.
  *
  * Every &OBST, &MESH and jetfan body in FDS is a box, identical to all the
@@ -74,7 +100,9 @@ export class BoxInstancePool {
     name: string,
     private readonly scene: BABYLON.Scene,
     private readonly helpers: HelpersService,
-    private readonly registry: SceneRegistryService
+    private readonly registry: SceneRegistryService,
+    /** What each instance is drawn as. A box unless the caller says otherwise. */
+    private readonly baseShape: BaseShape = UNIT_BOX
   ) {
     this.mesh = this.buildBaseMesh(name);
     // Without this a pick stops at the base mesh and cannot say which of the
@@ -200,22 +228,10 @@ export class BoxInstancePool {
     this.colorData = new Float32Array(0);
   }
 
-  /** The base box, one metre a side and centred on the origin. */
+  /** The base shape, one metre across and centred on the origin. */
   private buildBaseMesh(name: string): BABYLON.Mesh {
     const mesh = new BABYLON.Mesh(name, this.scene);
-
-    const positions = this.helpers.getVerticesFromXb({
-      x1: -0.5, x2: 0.5, y1: -0.5, y2: 0.5, z1: -0.5, z2: 0.5
-    });
-    const indices = this.helpers.getIndices(0);
-    const normals: number[] = new Array(positions.length).fill(0);
-    BABYLON.VertexData.ComputeNormals(positions, indices, normals);
-
-    const vertexData = new BABYLON.VertexData();
-    vertexData.positions = positions;
-    vertexData.indices = indices;
-    vertexData.normals = normals;
-    vertexData.applyToMesh(mesh);
+    this.baseShape(this.helpers).applyToMesh(mesh);
 
     // The instances carry the transforms; the mesh itself never moves
     mesh.freezeWorldMatrix();
