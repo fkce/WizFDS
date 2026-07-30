@@ -5,7 +5,10 @@ import { SceneInput } from '../drawing/scene-input';
 
 /** A scene with nothing in it, to be spread over with whatever a test needs. */
 function emptyScene(): SceneInput {
-  return { meshes: [], obsts: [], holes: [], opens: [], vents: [], fires: [], jetfans: [], devcs: [], geoms: [] };
+  return {
+    meshes: [], obsts: [], holes: [], opens: [], vents: [], fires: [], jetfans: [],
+    devcs: [], geoms: [], inits: [], zones: []
+  };
 }
 
 describe('SceneBoundsService', () => {
@@ -81,6 +84,33 @@ describe('SceneBoundsService', () => {
       });
 
       expect(service.extent).toBe(20);
+    });
+
+    it('measures a scenario whose only geometry is an &INIT', () => {
+      // A condition region is not matter, but it is somewhere - and a scenario
+      // that is nothing but a warm layer is still a scenario the user has to be
+      // able to see. Left out, it would be drawn against the default box.
+      service.setFromScene({
+        ...emptyScene(),
+        inits: [{
+          uuid: 'i', id: 'HOT_LAYER', xb: { x1: 0, x2: 25, y1: 0, y2: 10, z1: 2, z2: 4 },
+          color: { r: 0.67, g: 0.39, b: 1, a: 0.25 }
+        }]
+      });
+
+      expect(service.extent).toBe(25);
+    });
+
+    it('measures a scenario whose only geometry is a &ZONE', () => {
+      service.setFromScene({
+        ...emptyScene(),
+        zones: [{
+          uuid: 'z', id: 'SHAFT', xb: { x1: 0, x2: 4, y1: 0, y2: 4, z1: 0, z2: 40 },
+          color: { r: 1, g: 0.35, b: 0.78, a: 0.25 }
+        }]
+      });
+
+      expect(service.extent).toBe(40);
     });
 
     it('keeps the coordinates it was given rather than shifting them to the origin', () => {

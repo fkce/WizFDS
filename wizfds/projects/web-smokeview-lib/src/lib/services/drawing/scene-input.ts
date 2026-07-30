@@ -179,6 +179,28 @@ export interface SceneGeom extends SceneElement {
 }
 
 /**
+ * A volume that describes a condition rather than a thing.
+ *
+ * An &INIT and a &ZONE are both boxes, and neither is matter: one says what the
+ * air inside it starts as, the other that the pressure inside it is solved on
+ * its own. They overlap the geometry they apply to by design, which is why they
+ * are drawn translucent and why nothing here is opaque enough to hide a wall.
+ *
+ * Neither has a colour in FDS, so the app picks one - as it already does for a
+ * &DEVC. The library is told rather than deciding, so that one place answers
+ * what everything on screen is coloured by.
+ */
+export interface SceneRegion extends SceneElement {
+    readonly color: SceneColor
+}
+
+/** An &INIT - a region the simulation starts in a state other than ambient. */
+export type SceneInit = SceneRegion;
+
+/** A &ZONE - a sealed pressure zone. */
+export type SceneZone = SceneRegion;
+
+/**
  * One scenario, as the library receives it. Every element type crosses the
  * boundary this way and no other.
  */
@@ -191,5 +213,7 @@ export interface SceneInput {
     readonly fires: readonly SceneFire[],
     readonly jetfans: readonly SceneJetfan[],
     readonly devcs: readonly SceneDevc[],
-    readonly geoms: readonly SceneGeom[]
+    readonly geoms: readonly SceneGeom[],
+    readonly inits: readonly SceneInit[],
+    readonly zones: readonly SceneZone[]
 }

@@ -8,6 +8,8 @@ import { JetfanService } from '../drawing/jetfan/jetfan.service';
 import { FireService } from '../drawing/fire/fire.service';
 import { DevcService } from '../drawing/devc/devc.service';
 import { GeomService } from '../drawing/geom/geom.service';
+import { InitService } from '../drawing/init/init.service';
+import { ZoneService } from '../drawing/zone/zone.service';
 import { BabylonService } from '../babylon/babylon.service';
 import { SceneBoundsService } from '../scene-bounds/scene-bounds.service';
 
@@ -25,6 +27,8 @@ export class SmokeviewApiService {
     private fireService: FireService,
     private devcService: DevcService,
     private geomService: GeomService,
+    private initService: InitService,
+    private zoneService: ZoneService,
     private babylonService: BabylonService,
     private sceneBounds: SceneBoundsService
   ) { }
@@ -81,6 +85,15 @@ export class SmokeviewApiService {
 
     this.devcService.devcs = scene.devcs;
     await this.settled('devices', () => this.devcService.renderDevcs());
+
+    // The condition regions are not matter, so they come after everything that
+    // is. What order they end up drawn in is Babylon's business - a transparent
+    // mesh is sorted by depth, not by when its service was awaited.
+    this.initService.inits = scene.inits;
+    await this.settled('inits', () => this.initService.renderInits());
+
+    this.zoneService.zones = scene.zones;
+    await this.settled('zones', () => this.zoneService.renderZones());
   }
 
   /**
@@ -98,6 +111,8 @@ export class SmokeviewApiService {
     this.openService.resetClipping();
     this.devcService.resetClipping();
     this.geomService.resetClipping();
+    this.initService.resetClipping();
+    this.zoneService.resetClipping();
   }
 
   /** Run one drawing step, keeping a failure from taking the rest down with it. */

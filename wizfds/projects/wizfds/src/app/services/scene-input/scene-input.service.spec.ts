@@ -33,6 +33,8 @@ describe('SceneInputService', () => {
       expect(scene.devcs.map(d => d.uuid))
         .toEqual(['spr1-uuid', 'sd1-uuid', 'tc1-uuid', 'layer1-uuid', 'plane1-uuid']);
       expect(scene.geoms.map(g => g.uuid)).toEqual(['geom-uuid']);
+      expect(scene.inits.map(i => i.uuid)).toEqual(['init-uuid']);
+      expect(scene.zones.map(z => z.uuid)).toEqual(['zone-uuid']);
     });
 
     it('copies the coordinates instead of handing out the model Xb', () => {
@@ -236,6 +238,65 @@ describe('SceneInputService', () => {
       expect(scene.jetfans).toEqual([]);
       expect(scene.devcs).toEqual([]);
       expect(scene.geoms).toEqual([]);
+      expect(scene.inits).toEqual([]);
+      expect(scene.zones).toEqual([]);
+    });
+  });
+
+  describe('condition regions', () => {
+    // An &INIT and a &ZONE describe the space they cover rather than filling it,
+    // so the preview draws them over the geometry they apply to - see #118.
+
+    it('takes each region from its own XB', () => {
+      const scene = service.fromFds(fds);
+
+      expect(scene.inits[0].xb).toEqual({ x1: 0, x2: 10, y1: 0, y2: 8, z1: 2.5, z2: 4 });
+      expect(scene.zones[0].xb).toEqual({ x1: 8, x2: 10, y1: 6, y2: 8, z1: 0, z2: 4 });
+    });
+
+    it('carries the FDS ID across, so the user can tell one region from another', () => {
+      const scene = service.fromFds(fds);
+
+      expect(scene.inits[0].id).toBe('HOT_LAYER');
+      expect(scene.zones[0].id).toBe('SHAFT');
+    });
+
+    it('invents a colour, since neither element has one in FDS', () => {
+      const scene = service.fromFds(fds);
+
+      expect(scene.inits[0].color.r).toBeGreaterThan(0);
+      expect(scene.zones[0].color.r).toBeGreaterThan(0);
+      expect(scene.inits[0].color).not.toEqual(scene.zones[0].color);
+    });
+
+    it('draws both see-through, so neither hides the geometry it overlaps', () => {
+      const scene = service.fromFds(fds);
+
+      expect(scene.inits[0].color.a).toBeLessThan(1);
+      expect(scene.inits[0].color.a).toBeGreaterThan(0);
+      expect(scene.zones[0].color.a).toBeLessThan(1);
+      expect(scene.zones[0].color.a).toBeGreaterThan(0);
+    });
+
+    it('hands the coordinates across as numbers, whatever the form left behind', () => {
+      // Same failure mode as every other element: ngModel on a text input writes
+      // a string, and the library does arithmetic on these.
+      const typeInto = (xb: any) =>
+        ['x1', 'x2', 'y1', 'y2', 'z1', 'z2'].forEach(key => { xb[key] = String(xb[key]); });
+      typeInto(fds.general.inits[0].xb);
+      typeInto(fds.general.zones[0].xb);
+
+      const scene = service.fromFds(fds);
+
+      expect(scene.inits[0].xb.x2).toBe(10);
+      expect(scene.zones[0].xb.z2).toBe(4);
+    });
+
+    it('copies the coordinates instead of handing out the model Xb', () => {
+      const scene = service.fromFds(fds);
+
+      expect(scene.inits[0].xb as any).not.toBe(fds.general.inits[0].xb);
+      expect(scene.zones[0].xb as any).not.toBe(fds.general.zones[0].xb);
     });
   });
 

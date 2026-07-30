@@ -39,7 +39,7 @@ const FALLBACK_COLOR: SceneColor = { r: 255 / 255, g: 208 / 255, b: 0, a: 1 };
 function emptyScene(): SceneInput {
   return {
     meshes: [], obsts: [], holes: [], opens: [], vents: [],
-    fires: [], jetfans: [], devcs: [], geoms: []
+    fires: [], jetfans: [], devcs: [], geoms: [], inits: [], zones: []
   };
 }
 
