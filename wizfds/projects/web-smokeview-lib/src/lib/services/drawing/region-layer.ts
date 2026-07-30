@@ -4,7 +4,7 @@ import { BabylonService } from '../babylon/babylon.service';
 import { HelpersService } from '../helpers/helpers.service';
 import { SceneRegistryService } from '../babylon/scene-registry.service';
 import { SceneAxis, SceneBoundsService } from '../scene-bounds/scene-bounds.service';
-import { SceneRegion } from './scene-input';
+import { SceneElementType, SceneRegion } from './scene-input';
 import { BoxInstancePool, PooledBox } from './box-instance-pool';
 import { ClippedMaterial } from './clipped-material';
 import { SOLID_EDGE_COLOR } from '../../consts/drawing';
@@ -14,7 +14,9 @@ export interface RegionLayerStyle {
   /** Name of the base mesh the regions are instanced from. */
   readonly poolName: string,
   /** Name of the material they share, as it appears in the scene. */
-  readonly materialName: string
+  readonly materialName: string,
+  /** Which kind of element the layer holds - an &INIT or a &ZONE. */
+  readonly type: SceneElementType
 }
 
 /**
@@ -102,7 +104,8 @@ export class RegionLayer {
    */
   public async render(regions: readonly SceneRegion[]): Promise<void> {
     const boxes: PooledBox[] = (regions || []).map((region: SceneRegion) => ({
-      uuid: region.uuid, xb: region.xb, color: this.helpersService.toRgba(region.color)
+      uuid: region.uuid, id: region.id, xb: region.xb,
+      color: this.helpersService.toRgba(region.color)
     }));
 
     this.ensurePool().setBoxes(boxes);
@@ -120,12 +123,13 @@ export class RegionLayer {
   private ensurePool(): BoxInstancePool {
     if (!this.pool) {
       this.pool = new BoxInstancePool(
-        this.style.poolName, this.babylonService.scene,
+        this.style.poolName, this.style.type, this.babylonService.scene,
         this.helpersService, this.sceneRegistry);
-      // A region is a condition, not a thing to edit in place: an &OBST is
-      // selectable because it is a thing you edit where it stands (ADR-0005),
-      // and the wall inside a region is what a ctrl+click has to reach.
-      this.pool.mesh.isPickable = false;
+      // A region is pickable, because it is an element of the scenario like any
+      // other and #121 makes every drawn type selectable. That it contains the
+      // geometry it applies to is handled where a pick is resolved rather than
+      // by refusing one here: a condition volume loses to anything solid behind
+      // it, so the wall inside a region is still what a click reaches.
     }
     return this.pool;
   }

@@ -94,11 +94,11 @@ export class OpenService implements SceneScoped {
   public async renderOpens(): Promise<void> {
     if (!this.batch) {
       this.batch = new PlaneBatch(
-        'opens', this.babylonService.scene, this.helperService, this.sceneRegistry);
+        'opens', 'open', this.babylonService.scene, this.helperService, this.sceneRegistry);
     }
 
     this.batch.setPlanes((this.opens || []).map((open: SceneOpen) => ({
-      uuid: open.uuid, xb: open.xb, color: OPEN_COLOR
+      uuid: open.uuid, id: open.id, xb: open.xb, color: OPEN_COLOR
     })));
 
     await this.layer.attach([{ mesh: this.batch.mesh, edgeColor: OPEN_EDGE_COLOR }]);

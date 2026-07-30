@@ -2,24 +2,57 @@ import { Injectable } from '@angular/core';
 import * as BABYLON from 'babylonjs';
 
 import { SceneLifecycleService, SceneScoped } from './scene-lifecycle.service';
+import { SceneElementType, SceneXb } from '../drawing/scene-input';
 
 /**
- * Where one FDS element lives in the scene.
+ * What one FDS element is, and where it lives in the scene.
  *
  * Three shapes, one per way the library draws something:
- * - neither field - the element owns its mesh outright (an obst with an opening,
- *   an obst singled out for editing);
+ * - neither positional field - the element owns its mesh outright (an obst with
+ *   an opening, an obst singled out for editing);
  * - `faces` - several elements share one vertex buffer, so the mesh alone would
  *   not say which of them was hit;
  * - `instance` - the element is one thin instance of a shared base box, and every
  *   instance is the same twelve faces, so only the slot identifies it (ADR-0006).
+ *
+ * `type`, `id` and `xb` describe the element rather than its address. They are
+ * here because a pick has to answer more than "which uuid": what kind of element
+ * it is, what it is called, and where to draw a highlight around it. Keeping them
+ * next to the address is what lets one service pick every type, instead of eleven
+ * drawing services each answering for their own.
  */
 export interface SceneEntry {
   mesh: BABYLON.AbstractMesh;
+  /** Which kind of element is drawn here. */
+  type: SceneElementType;
+  /** Its FDS `ID`, to show the user. Not an identity - see SceneElement.id. */
+  id: string;
+  /**
+   * The box it occupies **as drawn**, in FDS metres.
+   *
+   * Usually the element's own `XB`, but not always: a point &DEVC stands at a
+   * coordinate and is drawn as a marker around it, and a linear one is opened
+   * out into a beam. A highlight has to enclose what is on screen, so this is
+   * what is on screen.
+   */
+  xb: SceneXb;
   /** Faces occupied within `mesh`, as triangle indices. */
   faces?: { first: number; count: number };
   /** Slot occupied in `mesh`'s thin instance buffer. */
   instance?: number;
+}
+
+/**
+ * What a pick landed on: the element, not the geometry it was drawn as.
+ *
+ * The whole of what a caller needs to act on a click - which is why it is what
+ * the picking service hands out, rather than a Babylon PickingInfo.
+ */
+export interface ScenePick {
+  readonly uuid: string;
+  readonly type: SceneElementType;
+  readonly id: string;
+  readonly xb: SceneXb;
 }
 
 /**
@@ -33,6 +66,8 @@ export interface SceneEntry {
  */
 export interface FaceRange {
   uuid: string;
+  id: string;
+  xb: SceneXb;
   first: number;
   count: number;
 }
@@ -133,15 +168,32 @@ export class SceneRegistryService implements SceneScoped {
    * A pick hands over a mesh, a face and a thin instance index that Babylon sets
    * to -1 when the mesh it hit is not instanced. One question for all three ways
    * the library draws something, so the caller does not have to know which of
-   * them it is looking at.
+   * them it is looking at - nor which element type, which is why the answer
+   * carries the type rather than the uuid alone.
    */
-  public uuidForPick(
+  public pickAt(
     mesh: BABYLON.AbstractMesh, faceId: number, thinInstanceIndex: number
-  ): string | undefined {
-    if (thinInstanceIndex >= 0) {
-      return this.uuidAtInstance(mesh, thinInstanceIndex);
-    }
-    return this.uuidAt(mesh, faceId);
+  ): ScenePick | undefined {
+    const uuid = thinInstanceIndex >= 0
+      ? this.uuidAtInstance(mesh, thinInstanceIndex)
+      : this.uuidAt(mesh, faceId);
+    if (!uuid) { return undefined; }
+
+    const entry = this.byUuid.get(uuid);
+    if (!entry) { return undefined; }
+
+    return { uuid: uuid, type: entry.type, id: entry.id, xb: entry.xb };
+  }
+
+  /**
+   * Whether any element of the scenario is drawn on this mesh.
+   *
+   * What a pick filters by, so that it reaches everything the app handed over and
+   * nothing the library put on screen for its own reasons - the view cube, the
+   * world axes, a back cap, a highlight box.
+   */
+  public drawsElements(mesh: BABYLON.AbstractMesh): boolean {
+    return this.byMesh.has(mesh);
   }
 
   /**

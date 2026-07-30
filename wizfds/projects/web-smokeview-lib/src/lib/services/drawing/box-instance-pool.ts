@@ -2,12 +2,14 @@ import * as BABYLON from 'babylonjs';
 
 import { HelpersService } from '../helpers/helpers.service';
 import { SceneRegistryService } from '../babylon/scene-registry.service';
-import { SceneXb } from './scene-input';
+import { SceneElementType, SceneXb } from './scene-input';
 
 /** One axis-aligned body drawn from the shared base box. */
 export interface PooledBox {
   /** Identity of the FDS element this box stands for (ADR-0005). */
   readonly uuid: string,
+  /** Its FDS `ID`. Carried so a pick can name what it landed on. */
+  readonly id: string,
   /** Where it stands, in FDS metres. */
   readonly xb: SceneXb,
   /** Its colour as a flat rgba array, every component in 0..1. */
@@ -98,6 +100,8 @@ export class BoxInstancePool {
 
   constructor(
     name: string,
+    /** Which kind of element this pool holds - every box in it is one of these. */
+    private readonly type: SceneElementType,
     private readonly scene: BABYLON.Scene,
     private readonly helpers: HelpersService,
     private readonly registry: SceneRegistryService,
@@ -302,7 +306,10 @@ export class BoxInstancePool {
   /** Tell the registry which box stands in each slot from `from` on. */
   private registerFrom(from: number, to: number = this.boxes.length): void {
     for (let index = from; index < to; index++) {
-      this.registry.register(this.boxes[index].uuid, { mesh: this.mesh, instance: index });
+      const box = this.boxes[index];
+      this.registry.register(box.uuid, {
+        mesh: this.mesh, type: this.type, id: box.id, xb: box.xb, instance: index
+      });
     }
   }
 

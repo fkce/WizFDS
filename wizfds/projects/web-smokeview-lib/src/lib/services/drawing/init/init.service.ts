@@ -36,7 +36,7 @@ export class InitService implements SceneScoped {
   ) {
     sceneLifecycle.register(this);
     this.layer = new RegionLayer(
-      { poolName: 'inits', materialName: 'initShader' },
+      { poolName: 'inits', materialName: 'initShader', type: 'init' },
       babylonService, helpersService, sceneBounds, sceneRegistry, 'InitService');
   }
 

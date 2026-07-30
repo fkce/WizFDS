@@ -4,7 +4,7 @@ import * as BABYLON from 'babylonjs';
 import { ObstService } from './obst.service';
 import { BabylonService } from '../../babylon/babylon.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
-import { ObstSelectionService } from './obst-selection.service';
+import { PickService } from '../../picking/pick.service';
 import { SceneColor, SceneHole, SceneObst, SceneXb } from '../scene-input';
 
 /**
@@ -41,7 +41,7 @@ function rayAlongX(from = -5): BABYLON.Ray {
 
 describe('ObstService - the hybrid representation', () => {
   let service: ObstService;
-  let selection: ObstSelectionService;
+  let picking: PickService;
   let registry: SceneRegistryService;
   let engine: BABYLON.NullEngine;
   let scene: BABYLON.Scene;
@@ -68,7 +68,7 @@ describe('ObstService - the hybrid representation', () => {
       }]
     });
     service = TestBed.inject(ObstService);
-    selection = TestBed.inject(ObstSelectionService);
+    picking = TestBed.inject(PickService);
     registry = TestBed.inject(SceneRegistryService);
   });
 
@@ -154,7 +154,7 @@ describe('ObstService - the hybrid representation', () => {
 
   describe('promotion and demotion', () => {
     // Driven through the selection, because being chosen is what promotes an
-    // obst - see ObstSelectionService.
+    // obst - see PickService.
     /** The box an obst is actually drawn as, whichever path it is on. */
     function drawnBounds(uuid: string): { min: BABYLON.Vector3, max: BABYLON.Vector3 } {
       const own = service.ownMeshFor(uuid);
@@ -175,7 +175,7 @@ describe('ObstService - the hybrid representation', () => {
       // thousand would rewrite the buffer of all the others (ADR-0006).
       render([makeObst('W', WEST), makeObst('E', EAST)]);
 
-      selection.selectObst(rayAlongX());
+      picking.pick(rayAlongX());
 
       expect(service.ownMeshFor('W-uuid')).toBeTruthy();
       expect(service.opaqueMesh.thinInstanceCount)
@@ -187,7 +187,7 @@ describe('ObstService - the hybrid representation', () => {
       render([makeObst('W', WEST), makeObst('E', EAST)]);
       const before = drawnBounds('W-uuid');
 
-      selection.selectObst(rayAlongX());
+      picking.pick(rayAlongX());
 
       const after = drawnBounds('W-uuid');
       ['x', 'y', 'z'].forEach(axis => {
@@ -200,7 +200,7 @@ describe('ObstService - the hybrid representation', () => {
       render([makeObst('W', WEST), makeObst('E', EAST), makeObst('M', MIDDLE)]);
       const before = drawnBounds('E-uuid');
 
-      selection.selectObst(rayAlongX());
+      picking.pick(rayAlongX());
 
       const after = drawnBounds('E-uuid');
       expect(after.min.x).toBeCloseTo(before.min.x, 5);
@@ -209,18 +209,18 @@ describe('ObstService - the hybrid representation', () => {
 
     it('still answers a pick while the obst is promoted', () => {
       render([makeObst('W', WEST), makeObst('E', EAST)]);
-      selection.selectObst(rayAlongX());
+      picking.pick(rayAlongX());
 
-      selection.selectObst(rayAlongX());
+      picking.pick(rayAlongX());
 
-      expect(selection.pickedObst.id).toBe('W');
+      expect(picking.lastSelected.id).toBe('W');
     });
 
     it('puts it back in the pool when the selection is dropped', () => {
       render([makeObst('W', WEST), makeObst('E', EAST)]);
-      selection.selectObst(rayAlongX());
+      picking.pick(rayAlongX());
 
-      selection.clearSelection();
+      picking.clearSelection();
 
       expect(service.ownMeshFor('W-uuid')).toBeUndefined();
       expect(service.opaqueMesh.thinInstanceCount).toBe(2);
@@ -234,7 +234,7 @@ describe('ObstService - the hybrid representation', () => {
       );
       const cut = service.ownMeshFor('DOOR-uuid');
 
-      selection.selectObst(rayAlongX());
+      picking.pick(rayAlongX());
 
       expect(service.ownMeshFor('DOOR-uuid'))
         .withContext('an obst with an opening is already off the pool')
@@ -243,7 +243,7 @@ describe('ObstService - the hybrid representation', () => {
 
     it('does not leave a promoted obst behind when the scenario is drawn again', () => {
       render([makeObst('W', WEST), makeObst('E', EAST)]);
-      selection.selectObst(rayAlongX());
+      picking.pick(rayAlongX());
 
       render([makeObst('W', WEST), makeObst('E', EAST)]);
 

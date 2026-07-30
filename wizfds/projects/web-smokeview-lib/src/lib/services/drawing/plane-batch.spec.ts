@@ -28,7 +28,7 @@ describe('PlaneBatch', () => {
     TestBed.configureTestingModule({});
     registry = TestBed.inject(SceneRegistryService);
     helpers = TestBed.inject(HelpersService);
-    batch = new PlaneBatch('vents', scene, helpers, registry);
+    batch = new PlaneBatch('vents', 'vent', scene, helpers, registry);
   });
 
   afterEach(() => {

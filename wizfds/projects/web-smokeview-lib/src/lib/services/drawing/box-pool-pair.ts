@@ -3,6 +3,7 @@ import * as BABYLON from 'babylonjs';
 import { BoxInstancePool, PooledBox, isTranslucent } from './box-instance-pool';
 import { HelpersService } from '../helpers/helpers.service';
 import { SceneRegistryService } from '../babylon/scene-registry.service';
+import { SceneElementType } from './scene-input';
 
 /**
  * The two pools every kind of box is drawn from: one opaque, one translucent.
@@ -27,16 +28,18 @@ export class BoxPoolPair {
   /**
    * @param opaqueName name of the opaque base mesh, as it appears in the scene
    * @param transparentName name of the translucent one
+   * @param type which kind of element the pair holds
    */
   constructor(
     opaqueName: string,
     transparentName: string,
+    type: SceneElementType,
     scene: BABYLON.Scene,
     helpers: HelpersService,
     private readonly registry: SceneRegistryService
   ) {
-    this.opaque = new BoxInstancePool(opaqueName, scene, helpers, registry);
-    this.transparent = new BoxInstancePool(transparentName, scene, helpers, registry);
+    this.opaque = new BoxInstancePool(opaqueName, type, scene, helpers, registry);
+    this.transparent = new BoxInstancePool(transparentName, type, scene, helpers, registry);
   }
 
   /** The two base meshes, to outline or to pick against. */

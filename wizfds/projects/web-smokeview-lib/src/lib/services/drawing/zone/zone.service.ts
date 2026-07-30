@@ -34,7 +34,7 @@ export class ZoneService implements SceneScoped {
   ) {
     sceneLifecycle.register(this);
     this.layer = new RegionLayer(
-      { poolName: 'zones', materialName: 'zoneShader' },
+      { poolName: 'zones', materialName: 'zoneShader', type: 'zone' },
       babylonService, helpersService, sceneBounds, sceneRegistry, 'ZoneService');
   }
 
