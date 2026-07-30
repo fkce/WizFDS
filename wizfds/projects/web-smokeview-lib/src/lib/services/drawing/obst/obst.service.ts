@@ -101,6 +101,16 @@ export class ObstService implements SceneScoped, ObstScene {
   /** Whether obst outlines are drawn. Same reason as above. */
   private edgesOn = true;
 
+  /**
+   * What the two display switches currently show.
+   *
+   * Read by whoever draws the controls - the host's ribbon since ADR-0010 - so
+   * that a button shows the state of the scene rather than a copy of it that a
+   * re-render can leave behind.
+   */
+  public get wireframe(): boolean { return this.wireframeOn; }
+  public get outlined(): boolean { return this.edgesOn; }
+
   /** Where the three clipping planes stand, in FDS metres. */
   clipX: number;
   clipY: number;

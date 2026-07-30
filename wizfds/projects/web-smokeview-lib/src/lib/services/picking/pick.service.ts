@@ -1,11 +1,11 @@
 import { Injectable } from '@angular/core';
-import { Observable, Subject } from 'rxjs';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import * as BABYLON from 'babylonjs';
 
 import { BabylonService } from '../babylon/babylon.service';
 import { SceneLifecycleService, SceneScoped } from '../babylon/scene-lifecycle.service';
 import { ScenePick, SceneRegistryService } from '../babylon/scene-registry.service';
-import { SceneBoundsService } from '../scene-bounds/scene-bounds.service';
+import { SceneBoundsService, ScenePoint } from '../scene-bounds/scene-bounds.service';
 import { SceneElementType, SceneXb } from '../drawing/scene-input';
 
 /**
@@ -72,6 +72,13 @@ export interface ScenePicked {
   readonly add: boolean;
 }
 
+/** An element a ray reached, and the point on it where it did. */
+interface PickedAt {
+  readonly element: ScenePick;
+  /** In FDS metres - the scene is drawn in them (ADR-0002). */
+  readonly point: ScenePoint;
+}
+
 /**
  * What the user picked in the scene, and what is highlighted.
  *
@@ -102,6 +109,16 @@ export class PickService implements SceneScoped {
   public hovered: ScenePick;
 
   /**
+   * Where the pointer last met the model, in FDS metres - what the status bar
+   * reads out. Null when it is over empty space, or off the canvas altogether.
+   *
+   * A point on a surface rather than on an imagined working plane: in a 3D view
+   * there is no one plane the cursor is on, and the coordinate a user wants is
+   * the one they could type into a `.fds` file (ADR-0002).
+   */
+  public readonly pointerAt$: Observable<ScenePoint | null>;
+
+  /**
    * Whether a pick is folded into the highlight here.
    *
    * On for the standalone viewer, which has no `Fds` and so nowhere else for a
@@ -123,6 +140,12 @@ export class PickService implements SceneScoped {
 
   private readonly pickedSubject = new Subject<ScenePicked>();
 
+  /**
+   * Replayed rather than fired: the host subscribes when the user enters the 3D
+   * view, which can be after the pointer has already been over the canvas.
+   */
+  private readonly pointerAtSubject = new BehaviorSubject<ScenePoint | null>(null);
+
   constructor(
     private babylonService: BabylonService,
     private sceneBounds: SceneBoundsService,
@@ -131,6 +154,7 @@ export class PickService implements SceneScoped {
   ) {
     sceneLifecycle.register(this);
     this.picked$ = this.pickedSubject.asObservable();
+    this.pointerAt$ = this.pointerAtSubject.asObservable();
   }
 
   /**
@@ -157,6 +181,8 @@ export class PickService implements SceneScoped {
     this.hoverMaterial = undefined;
     this.selected = [];
     this.hovered = undefined;
+    // There is no model left to be over
+    this.pointerAtSubject.next(null);
   }
 
   /**
@@ -166,7 +192,8 @@ export class PickService implements SceneScoped {
    * @param options `add` extends the selection instead of replacing it
    */
   public pick(ray: BABYLON.Ray, options: { add?: boolean } = {}): void {
-    const hit = this.pickElement(ray);
+    const found = this.pickAlong(ray);
+    const hit = found ? found.element : undefined;
     const add = options.add === true;
 
     if (this.applyOwnPicks) { this.applyPick(hit, add); }
@@ -180,10 +207,16 @@ export class PickService implements SceneScoped {
    * them on the way anywhere, and promoting each in turn would be pure churn.
    */
   public hover(ray: BABYLON.Ray): void {
-    const hit = this.pickElement(ray);
+    const found = this.pickAlong(ray);
+    const hit = found ? found.element : undefined;
+
+    // Published before the outline is dealt with: the pointer travelling across
+    // one wall changes the coordinate every frame while the element stays put.
+    this.pointerAtSubject.next(found ? found.point : null);
+
     if (hit && this.hovered && this.hovered.uuid === hit.uuid) { return; }
 
-    this.clearHover();
+    this.dropHoverOutline();
     if (!hit) { return; }
 
     this.hovered = hit;
@@ -232,6 +265,18 @@ export class PickService implements SceneScoped {
 
   /** Drop the hover highlight - the pointer left the canvas. */
   public clearHover(): void {
+    this.dropHoverOutline();
+    // Off the canvas the pointer is nowhere in the model, so it has no coordinate
+    this.pointerAtSubject.next(null);
+  }
+
+  /**
+   * Take the outline off whatever was hovered, leaving the coordinate alone.
+   *
+   * The pointer crossing from one element to the next moves the outline but is
+   * still somewhere in the model, so the two are not the same event.
+   */
+  private dropHoverOutline(): void {
     if (this.hoverMesh) {
       this.hoverMesh.dispose();
       this.hoverMesh = undefined;
@@ -263,12 +308,17 @@ export class PickService implements SceneScoped {
   }
 
   /**
-   * Which element a ray reaches first, among the ones actually on screen.
+   * Which element a ray reaches first, among the ones actually on screen, and
+   * the point on it where that happened.
    *
    * Everything the app handed over is a candidate; nothing the library put on
    * screen for its own reasons is - the registry is what tells the two apart.
+   *
+   * The point comes back with the element rather than being worked out again by
+   * the caller: which hit the answer came from is decided here, and the nearest
+   * hit is not always it.
    */
-  private pickElement(ray: BABYLON.Ray): ScenePick | undefined {
+  private pickAlong(ray: BABYLON.Ray): PickedAt | undefined {
     const scene = this.babylonService.scene;
     if (!scene) { return undefined; }
 
@@ -281,15 +331,18 @@ export class PickService implements SceneScoped {
       .filter(hit => hit.pickedPoint && this.isVisible(hit.pickedPoint))
       .sort((a, b) => a.distance - b.distance);
 
-    const picks: ScenePick[] = [];
+    const picks: PickedAt[] = [];
     for (const hit of visible) {
       const pick = this.sceneRegistry.pickAt(
         hit.pickedMesh, hit.faceId, hit.thinInstanceIndex ?? -1);
-      if (pick) { picks.push(pick); }
+      if (pick) {
+        const point = hit.pickedPoint;
+        picks.push({ element: pick, point: { x: point.x, y: point.y, z: point.z } });
+      }
     }
 
     // A volume drawn around other geometry yields to what is inside it
-    return picks.find(pick => ENCLOSING_TYPES.indexOf(pick.type) === -1) ?? picks[0];
+    return picks.find(({ element }) => ENCLOSING_TYPES.indexOf(element.type) === -1) ?? picks[0];
   }
 
   /**

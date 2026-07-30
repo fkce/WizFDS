@@ -5,6 +5,7 @@ import { Main } from '@services/main/main';
 import { SceneInputService } from '@services/scene-input/scene-input.service';
 import { SelectionService } from '@services/selection/selection.service';
 import { ElementsService } from '@services/elements/elements.service';
+import { ViewportStatusService } from '@services/viewport-status/viewport-status.service';
 import { combineLatest, Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { BabylonService } from '../../../../../../../web-smokeview-lib/src/lib/services/babylon/babylon.service';
@@ -24,6 +25,7 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
   readySub: Subscription;
   pickedSub: Subscription;
   selectedSub: Subscription;
+  pointerSub: Subscription;
 
   constructor(
     private mainService: MainService,
@@ -32,11 +34,18 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
     private babylonService: BabylonService,
     private pickService: PickService,
     private selectionService: SelectionService,
-    private elementsService: ElementsService
+    private elementsService: ElementsService,
+    private viewportStatus: ViewportStatusService
   ) { }
 
   ngOnInit(): void {
     this.mainSub = this.mainService.getMain().subscribe(main => this.main = main);
+
+    // The status bar belongs to the whole app, so what the pointer is doing in
+    // the scene reaches it through a service rather than directly (ADR-0010).
+    this.viewportStatus.enter();
+    this.pointerSub = this.pickService.pointerAt$
+      .subscribe(point => this.viewportStatus.setCursor(point));
 
     // The app owns the selection, not the preview (ADR-0004): the forms and the
     // CAD bridge are outside the library, and only one of the two may apply a
@@ -112,6 +121,8 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     this.pickedSub.unsubscribe();
     this.selectedSub.unsubscribe();
+    this.pointerSub.unsubscribe();
+    this.viewportStatus.leave();
   }
 
 }

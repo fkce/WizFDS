@@ -28,6 +28,37 @@
         <mat-icon svgIcon="vector-square" aria-hidden="true"></mat-icon>
         <span>No CAD file linked</span>
       </span>
+
+      <!--
+        What the pointer is doing in the 3D view, where AutoCAD puts it. Absent
+        everywhere else, and dashed rather than gone while the pointer is over
+        empty space - it crosses a lot of it, and a segment coming and going
+        with it would reflow the row several times a second (ADR-0010).
+      -->
+      <ng-container *ngIf="viewportStatus.active">
+        <span class="status-seg cursor">
+          <mat-icon svgIcon="axis-arrow" aria-hidden="true"></mat-icon>
+          <span class="mono" *ngIf="viewportStatus.cursor; else noCursor">
+            {{ viewportStatus.cursor.x | number:'1.2-2' }},
+            {{ viewportStatus.cursor.y | number:'1.2-2' }},
+            {{ viewportStatus.cursor.z | number:'1.2-2' }} m
+          </span>
+          <ng-template #noCursor><span class="mono muted">—, —, — m</span></ng-template>
+        </span>
+
+        <span class="status-seg grid">
+          <mat-icon svgIcon="grid" aria-hidden="true"></mat-icon>
+          <span class="mono" *ngIf="viewportStatus.grid; else noGrid">
+            {{ viewportStatus.grid.id }}
+            <span class="muted">
+              {{ viewportStatus.grid.cell.i | number:'1.2-3' }} ×
+              {{ viewportStatus.grid.cell.j | number:'1.2-3' }} ×
+              {{ viewportStatus.grid.cell.k | number:'1.2-3' }} m
+            </span>
+          </span>
+          <ng-template #noGrid><span class="mono muted">no &amp;MESH here</span></ng-template>
+        </span>
+      </ng-container>
     </div>
 
     <div class="status-right">

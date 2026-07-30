@@ -1,70 +1,70 @@
-$white: #eee;
-$grey1: #303030;
-$grey2: #404040;
-$grey3: #505050;
-$grey4: #606060;
-$grey5: #707070;
-$grey6: #808080;
+// The file explorer, on the shared design tokens (ADR-0010). The nesting used
+// to be told apart by three hard-coded greys; it is indentation and a hairline
+// now, which is what the main app's own lists do.
+
+.tree {
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  color: var(--on-surface);
+  user-select: none;
+}
 
 .header {
-  background-color: $grey1;
-  color: $white;
-  padding: 0.7rem 0 0.7rem 1rem;
-  border-bottom: 1px solid $grey2;
+  padding: 0.55rem 0.9rem;
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-1));
+  border-bottom: 1px solid var(--border-muted);
+  box-shadow: inset 2px 0 0 var(--accent);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--on-surface-muted);
 }
 
 @mixin menu {
   display: flex;
   align-items: center;
   margin: 0;
+  padding: 0.28rem 0.6rem;
   cursor: pointer;
-  color: $white;
-  padding: 0.3rem 0 0.3rem 0;
-  font-size: 0.9rem;
-}
+  color: var(--on-surface-muted);
+  line-height: 1.2;
+  transition: background-color 0.12s ease, color 0.12s ease;
 
-$open-time: 0.5s;
-$close-time: 0.5s;
-$close-time-lib: 1s;
-$open-curve: ease-out;
-$close-curve: ease-in;
+  &:hover {
+    background: var(--surface-2);
+    color: var(--on-surface);
+  }
+}
 
 .open {
   display: flex;
   flex-direction: column;
-  //max-height: 10rem;
-  //transition: max-height $open-time $open-curve;
-  p {
-      display: flex;
-  }
-  //border-right: 1px solid $border-dark;
+  p { display: flex; }
 }
 
 .close {
   display: none;
-  //max-height: 0;
-  //transition: max-height $close-time cubic-bezier(0, 1, 0, 1);
-  p {
-      display: none;
-  }
+  p { display: none; }
 }
 
 mat-icon {
-  margin-right: 0.5rem;
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.4rem;
+  flex: 0 0 auto;
+  color: var(--on-surface-muted);
 }
 
 .menu-l1 {
   @include menu;
-  padding-left: 1rem;
-  background-color: $grey1;
+  padding-left: 0.7rem;
 }
 .menu-l2 {
   @include menu;
-  padding-left: 2rem;
-  background-color: $grey2;
+  padding-left: 1.6rem;
 }
 .menu-l3 {
   @include menu;
-  padding-left: 3rem;
-  background-color: $grey4;
+  padding-left: 2.5rem;
 }

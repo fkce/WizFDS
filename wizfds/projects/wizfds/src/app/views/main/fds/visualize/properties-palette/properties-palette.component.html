@@ -1,0 +1,56 @@
+<aside class="palette">
+
+  <header class="palette-head">
+    <mat-icon svgIcon="format-list-bulleted" aria-hidden="true"></mat-icon>
+    <span class="title">Properties</span>
+    <span class="type mono" *ngIf="found">{{ type }}</span>
+  </header>
+
+  <div class="palette-empty" *ngIf="!found">
+    <mat-icon svgIcon="cursor-default-click-outline" aria-hidden="true"></mat-icon>
+    <p>Nothing selected</p>
+    <p class="hint">Click an element in the view to see its geometry here.</p>
+  </div>
+
+  <div class="palette-body" *ngIf="found">
+
+    <div class="group">
+      <div class="group-title">General</div>
+      <div class="row">
+        <label for="palette-id">ID</label>
+        <input id="palette-id" type="text" readonly [value]="id" />
+      </div>
+      <div class="row" *ngIf="surfId">
+        <label for="palette-surf">SURF</label>
+        <input id="palette-surf" type="text" readonly [value]="surfId" />
+      </div>
+      <div class="row muted" *ngIf="alsoSelected > 0">
+        <label>Also</label>
+        <span class="mono">{{ alsoSelected }} more selected</span>
+      </div>
+    </div>
+
+    <div class="group" *ngIf="hasXb">
+      <div class="group-title">XB &nbsp;<span class="unit">m</span></div>
+      <div class="row" *ngFor="let field of xbFields">
+        <label [attr.for]="'palette-' + field.key">{{ field.label }}</label>
+        <input [id]="'palette-' + field.key" type="text" readonly
+          [value]="coordinate(field.key)" />
+      </div>
+    </div>
+
+    <div class="group" *ngIf="!hasXb">
+      <p class="hint">This element has no shape of its own.</p>
+    </div>
+
+    <button type="button" class="open-form" (click)="openForm()">
+      <mat-icon svgIcon="open-in-new" aria-hidden="true"></mat-icon>
+      <span>Open the full form</span>
+    </button>
+
+    <!-- Typing a coordinate here is meant to emit the same edit command a gizmo
+         does; that command stream, with its validation and undo, is #123. -->
+    <p class="note">Read-only until the geometry editing tools land.</p>
+  </div>
+
+</aside>

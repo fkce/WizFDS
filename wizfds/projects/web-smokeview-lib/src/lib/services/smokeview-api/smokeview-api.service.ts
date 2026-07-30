@@ -13,6 +13,7 @@ import { ZoneService } from '../drawing/zone/zone.service';
 import { HoleRegionService } from '../drawing/hole/hole-region.service';
 import { BabylonService } from '../babylon/babylon.service';
 import { SceneBoundsService } from '../scene-bounds/scene-bounds.service';
+import { SceneViewService } from '../scene-view/scene-view.service';
 
 @Injectable({
   providedIn: 'root'
@@ -32,7 +33,8 @@ export class SmokeviewApiService {
     private zoneService: ZoneService,
     private holeRegionService: HoleRegionService,
     private babylonService: BabylonService,
-    private sceneBounds: SceneBoundsService
+    private sceneBounds: SceneBoundsService,
+    private sceneView: SceneViewService
   ) { }
 
   /**
@@ -59,7 +61,9 @@ export class SmokeviewApiService {
     // makes the answer the same however little the scenario contains.
     this.sceneBounds.setFromScene(scene);
     this.babylonService.applySceneBounds();
-    this.resetClipping();
+    // The section planes are coordinates, so a new model makes nonsense of them
+    // - see SceneViewService.resetClipping()
+    this.sceneView.resetClipping();
 
     this.meshService.meshes = scene.meshes;
     this.meshService.renderMeshes();
@@ -103,26 +107,6 @@ export class SmokeviewApiService {
     // what it belongs to.
     this.holeRegionService.holes = scene.holes;
     await this.settled('holes', () => this.holeRegionService.renderHoles());
-  }
-
-  /**
-   * Pull every clip slider back to showing the whole model.
-   *
-   * The planes are coordinates in metres (ADR-0002), so they mean nothing once
-   * the model changes: z = 4 m is the ceiling of a room and the floor of a
-   * tunnel. Drawing a scenario is the moment that can happen.
-   */
-  private resetClipping(): void {
-    this.obstService.resetClipping();
-    this.fireService.resetClipping();
-    this.ventService.resetClipping();
-    this.jetfanService.resetClipping();
-    this.openService.resetClipping();
-    this.devcService.resetClipping();
-    this.geomService.resetClipping();
-    this.initService.resetClipping();
-    this.zoneService.resetClipping();
-    this.holeRegionService.resetClipping();
   }
 
   /** Run one drawing step, keeping a failure from taking the rest down with it. */

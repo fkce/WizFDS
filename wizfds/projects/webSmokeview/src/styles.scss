@@ -1,15 +1,36 @@
-/* You can add global styles to this file, and also import other style files */
-@font-face {
-  font-family: 'Play';
-  src: url(/assets/fonts/Play-Regular.ttf) format("truetype");
-  font-weight:300;
-}
+// Global styles for the standalone viewer.
+//
+// The design tokens and the self-hosted Fira faces are the main app's, read
+// straight from its source rather than copied: one product, one set of colours
+// and one typeface (ADR-0010). The @font-face urls inside _fonts.scss are
+// relative to that partial, so the Angular build resolves and content-hashes
+// them for this bundle too.
+@use "../../wizfds/src/styles/tokens";
+@use "../../wizfds/src/styles/fonts";
 
 html, body {
-  font-size: 1rem;
-  font-family: "Play";
+  height: 100%;
   margin: 0;
   padding: 0;
-  background-color: #383838;
-  height: auto;
+  font-size: 1rem;
+  font-family: var(--font-ui);
+  color: var(--on-surface);
+  background-color: var(--surface);
+}
+
+// The library no longer ships buttons of its own, but the shell's still need
+// the browser defaults undone - each component styles them from the tokens.
+button {
+  font-family: var(--font-ui);
+  border: none;
+  background: transparent;
+  color: inherit;
+}
+
+// Matches the main app: the runtime-injected <svg> fills its mat-icon box
+// rather than a hard-coded 24px, so component-level icon sizes apply.
+.mat-icon svg {
+  height: 100%;
+  width: 100%;
+  display: block;
 }

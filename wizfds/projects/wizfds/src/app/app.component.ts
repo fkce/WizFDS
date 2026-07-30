@@ -18,6 +18,8 @@ import { environment } from '@env/environment';
 import { timer, Subscription } from 'rxjs';
 import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 import { LayoutService } from '@services/layout/layout.service';
+import { SaveState, saveStateOf } from '@services/main/save-state';
+import { ViewportStatusService } from '@services/viewport-status/viewport-status.service';
 
 @Component({
     selector: 'app-root',
@@ -35,17 +37,11 @@ export class AppComponent {
   wsSub: Subscription;
 
   /**
-   * Derives a coarse autosave state for the status bar from the save-icon class
-   * string the services write to `main.autoSave.fdsObjectSaveFont`:
-   *   'red'                        → pending unsaved changes
-   *   '…content-save green'        → last save succeeded
-   *   '' | '…content-save'         → idle / mid-save
+   * The coarse autosave state the status bar shows. Shared with the ribbon's
+   * Quick Access Toolbar, which shows the same thing - see saveStateOf().
    */
-  get saveState(): 'unsaved' | 'saved' | 'idle' {
-    const flag = (this.main && this.main.autoSave && this.main.autoSave.fdsObjectSaveFont) || '';
-    if (flag.indexOf('red') >= 0) return 'unsaved';
-    if (flag.indexOf('green') >= 0) return 'saved';
-    return 'idle';
+  get saveState(): SaveState {
+    return saveStateOf(this.main);
   }
 
   constructor(
@@ -59,7 +55,8 @@ export class AppComponent {
     public httpManager: HttpManagerService,
     public websocketService: WebsocketService,
     private snackBarService: SnackBarService,
-    public layout: LayoutService
+    public layout: LayoutService,
+    public viewportStatus: ViewportStatusService
   ) {
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
