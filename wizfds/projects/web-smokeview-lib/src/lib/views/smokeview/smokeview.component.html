@@ -1,6 +1,13 @@
 <div class="main" #mainContainer>
 
-    <canvas class="renderer" #rendererCanvas [hidden]="!webGPUAvailable"></canvas>
+    <!--
+        The pointer gestures are bound here and not on the host: everything below
+        is layered over this canvas, and a click on a button or a slider is not a
+        click in the scene. See SmokeviewComponent.onPointerDown().
+    -->
+    <canvas class="renderer" #rendererCanvas [hidden]="!webGPUAvailable"
+        (pointerdown)="onPointerDown($event)" (pointerup)="onPointerUp($event)"
+        (pointermove)="onPointerMove()" (pointerleave)="onPointerLeave()"></canvas>
 
     <div class="unsupported" *ngIf="!webGPUAvailable">
         <mat-icon svgIcon="alert-circle-outline" aria-hidden="true"></mat-icon>

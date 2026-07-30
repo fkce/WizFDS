@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import * as BABYLON from 'babylonjs';
 
 import { SceneLifecycleService, SceneScoped } from './scene-lifecycle.service';
-import { SceneElementType, SceneXb } from '../drawing/scene-input';
+import { SceneElement, SceneElementType, SceneXb } from '../drawing/scene-input';
 
 /**
  * What one FDS element is, and where it lives in the scene.
@@ -28,12 +28,13 @@ export interface SceneEntry {
   /** Its FDS `ID`, to show the user. Not an identity - see SceneElement.id. */
   id: string;
   /**
-   * The box it occupies **as drawn**, in FDS metres.
+   * The box it occupies **as drawn**.
    *
    * Usually the element's own `XB`, but not always: a point &DEVC stands at a
-   * coordinate and is drawn as a marker around it, and a linear one is opened
-   * out into a beam. A highlight has to enclose what is on screen, so this is
-   * what is on screen.
+   * coordinate and is drawn as a marker around it, and a linear one is opened out
+   * into a beam. A highlight has to enclose what is on screen, so this is what is
+   * on screen. In the units the boxes arrived in - FDS metres for everything the
+   * app hands over (ADR-0002), SmokeView's own for the standalone viewer.
    */
   xb: SceneXb;
   /** Faces occupied within `mesh`, as triangle indices. */
@@ -46,13 +47,12 @@ export interface SceneEntry {
  * What a pick landed on: the element, not the geometry it was drawn as.
  *
  * The whole of what a caller needs to act on a click - which is why it is what
- * the picking service hands out, rather than a Babylon PickingInfo.
+ * the picking service hands out, rather than a Babylon PickingInfo. It is a
+ * `SceneElement` and its type, because that is what it is: the element the app
+ * handed over, named.
  */
-export interface ScenePick {
-  readonly uuid: string;
+export interface ScenePick extends SceneElement {
   readonly type: SceneElementType;
-  readonly id: string;
-  readonly xb: SceneXb;
 }
 
 /**
@@ -64,10 +64,7 @@ export interface ScenePick {
  * The range is read off the buffer rather than derived from a triangle count,
  * which is what keeps it right for geometry that is not a plain box.
  */
-export interface FaceRange {
-  uuid: string;
-  id: string;
-  xb: SceneXb;
+export interface FaceRange extends SceneElement {
   first: number;
   count: number;
 }

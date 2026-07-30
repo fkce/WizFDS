@@ -4,7 +4,7 @@ import * as BABYLON from 'babylonjs';
 import { forEach, find } from 'lodash';
 import { HelpersService } from '../../helpers/helpers.service';
 import { HoleService } from '../hole/hole.service';
-import { SceneHole, SceneObst, SceneXb } from '../scene-input';
+import { SceneElement, SceneHole, SceneObst, SceneXb } from '../scene-input';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
 import { SceneAxis, SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
@@ -336,8 +336,8 @@ export class ObstService implements SceneScoped, ObstScene {
    *                     from one
    */
   private addOwnMesh(
-    drawn: { readonly uuid: string, readonly id: string, readonly xb: SceneXb },
-    vertexData: BABYLON.VertexData, transparent: boolean, promotedFrom: PooledBox | null
+    drawn: SceneElement, vertexData: BABYLON.VertexData,
+    transparent: boolean, promotedFrom: PooledBox | null
   ): void {
     const uuid = drawn.uuid;
     const scene = this.babylonService.scene;

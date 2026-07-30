@@ -55,11 +55,12 @@ export interface SceneColor {
  * them and scanning all of them for a uuid is work the scene can save it.
  *
  * The names are the app's own words for these elements, which are the FDS
- * namelist names lowercased. A &HOLE is here because the contract carries holes;
- * whether one is drawn is a separate question (see SceneInput.holes).
+ * namelist names lowercased. Only what is drawn is here: a &HOLE is cut out of
+ * the obsts it overlaps and never drawn in its own right, so no pick can return
+ * one and nothing has to handle it.
  */
 export type SceneElementType =
-    'obst' | 'hole' | 'mesh' | 'open' | 'vent' | 'fire' | 'jetfan' | 'devc' | 'geom' | 'init' | 'zone';
+    'obst' | 'mesh' | 'open' | 'vent' | 'fire' | 'jetfan' | 'devc' | 'geom' | 'init' | 'zone';
 
 /** Everything the library draws has an identity, an FDS name and a box. */
 export interface SceneElement {

@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, HostListener, isDevMode } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, isDevMode } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { ObstService } from '../../services/drawing/obst/obst.service';
@@ -28,6 +28,9 @@ import { SceneAxis, SceneBoundsService } from '../../services/scene-bounds/scene
  */
 const CLICK_SLOP = 5;
 
+/** PointerEvent.button for the left button - the only one that selects. */
+const PRIMARY_BUTTON = 0;
+
 @Component({
     selector: 'lib-smokeview',
     templateUrl: './smokeview.component.html',
@@ -39,12 +42,24 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('rendererCanvas', { static: true }) rendererCanvas: ElementRef<HTMLCanvasElement>;
   @ViewChild('mainContainer', { static: true }) mainContainer: ElementRef<HTMLCanvasElement>;
 
-  @HostListener('pointerdown', ['$event'])
+  /**
+   * Arm a possible click.
+   *
+   * Bound on the canvas in the template rather than on the host: the visibility
+   * buttons, the clip sliders, the help panel and the player controls are all
+   * layered over the canvas inside this component, and a press on one of those is
+   * not a press in the scene. It would also pick at whatever pointer position the
+   * scene last saw - Babylon reads scene.pointerX off canvas events only - so it
+   * would usually miss and silently clear the selection.
+   */
   onPointerDown(event: PointerEvent): void {
     this.pointerDownAt = null;
 
     // No scene when the browser has no WebGPU - nothing to pick against
     if (!this.babylonService.scene) return;
+
+    // The left button selects; the right one pans and the middle one is nobody's
+    if (event.button !== PRIMARY_BUTTON) return;
 
     // Control camera. A click on the cube is the cube's, not a selection's.
     const side = this.viewCubeService.pickSide();
@@ -65,8 +80,10 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
    *
    * A plain click is what every 3D editor selects with. The ctrl this replaces
    * was an artefact of selection having been bolted on.
+   *
+   * Nothing is armed unless the press was a left one on the canvas, so this has
+   * no button check of its own - see onPointerDown().
    */
-  @HostListener('pointerup', ['$event'])
   onPointerUp(event: PointerEvent): void {
     const downAt = this.pointerDownAt;
     this.pointerDownAt = null;
@@ -89,7 +106,6 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
    * the camera is already moving, and a highlight chasing the cursor across the
    * model while it does is noise.
    */
-  @HostListener('pointermove')
   onPointerMove(): void {
     if (!this.babylonService.scene) return;
     if (this.pointerDownAt) return;
@@ -106,7 +122,6 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /** Nothing is under a pointer that is not over the canvas. */
-  @HostListener('pointerleave')
   onPointerLeave(): void {
     this.hoverQueued = false;
     this.pointerDownAt = null;

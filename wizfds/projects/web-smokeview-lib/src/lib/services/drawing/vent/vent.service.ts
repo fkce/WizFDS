@@ -168,13 +168,14 @@ export class VentService implements SceneScoped {
     if (this.opaqueBatch) { return; }
 
     const scene = this.babylonService.scene;
-    // The planes a jetfan's inlet and outlet are drawn as. They stand for no
-    // &VENT of the scenario, so nothing in them is registered and the type they
-    // are declared with never reaches a pick - see BatchedPlane.uuid.
+    // These two hold only the planes a jetfan's inlet and outlet are drawn as -
+    // parts of a jetfan, not &VENTs of the scenario. They carry no uuid, so
+    // nothing in them is registered and no pick can reach one; the type is what
+    // they would be if one ever did.
     this.opaqueBatch = new PlaneBatch(
-      'vents', 'vent', scene, this.helpersService, this.sceneRegistry);
+      'vents', 'jetfan', scene, this.helpersService, this.sceneRegistry);
     this.transparentBatch = new PlaneBatch(
-      'ventsTransparent', 'vent', scene, this.helpersService, this.sceneRegistry);
+      'ventsTransparent', 'jetfan', scene, this.helpersService, this.sceneRegistry);
   }
 
   /**
