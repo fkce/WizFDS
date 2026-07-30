@@ -3,6 +3,7 @@ import { Component, OnInit, ViewChild, OnDestroy } from '@angular/core';
 import { Main } from '@services/main/main';
 import { Fds } from '@services/fds-object/fds-object';
 import { UiState } from '@services/ui-state/ui-state';
+import { SelectionService } from '@services/selection/selection.service';
 import { Zone } from '@services/fds-object/general/zone';
 import { MainService } from '@services/main/main.service';
 import { UiStateService } from '@services/ui-state/ui-state.service';
@@ -40,13 +41,15 @@ export class ZoneComponent implements OnInit, OnDestroy {
 
   mainSub: Subscription;
   uiSub: Subscription;
+  selSub: Subscription;
 
   // Scrollbars containers
   @ViewChild('zoneScrollbar', { static: false }) zoneScrollbar: NgScrollbar;
 
   constructor(
     private mainService: MainService,
-    public uiStateService: UiStateService
+    public uiStateService: UiStateService,
+    private selectionService: SelectionService
   ) { }
 
   ngOnInit() {
@@ -56,9 +59,26 @@ export class ZoneComponent implements OnInit, OnDestroy {
     this.fds = this.main.currentFdsScenario.fdsObject;
     this.zones = this.fds.general.zones;
 
-    this.zones.length > 0
-      ? this.activate(this.zones[this.ui.general['zone'].elementIndex].id)
-      : this.zone = undefined;
+    // Open whatever is selected - a click in 3D is what says so (#121).
+    // Replayed on subscribe, so this settles what is open on arrival.
+    this.selSub = this.selectionService.selected$.subscribe(() => this.activateSelected());
+  }
+
+  /**
+   * Open the selected element, or the one last worked on.
+   *
+   * A condition region is selectable in the 3D preview since #121, and the
+   * selection is the app's one answer to what the user is on (ADR-0005).
+   */
+  private activateSelected() {
+    const selected = this.selectionService.selectedIn(this.zones);
+    if (selected) {
+      this.activate(selected.id);
+    } else {
+      this.zones.length > 0
+        ? this.activate(this.zones[this.ui.general['zone'].elementIndex].id)
+        : this.zone = undefined;
+    }
   }
 
   ngAfterViewInit() {
@@ -71,12 +91,14 @@ export class ZoneComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.mainSub.unsubscribe();
     this.uiSub.unsubscribe();
+    this.selSub.unsubscribe();
   }
 
   /** Activate element on click */
   public activate(id: string) {
     this.zone = find(this.zones, (o: Zone) => o.id == id);
     this.ui.general['zone'].elementIndex = findIndex(this.zones, { id: id });
+    if (this.zone) { this.selectionService.select({ uuid: this.zone.uuid, type: 'zone' }); }
   }
 
   /** Push new element */

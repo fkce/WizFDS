@@ -8,7 +8,7 @@
   <ng-scrollbar #slcfScrollbar (scrolled)="scrollbarUpdate('slcf')">
         <div class="list-items">
           <div class="list-item" *ngFor="let slcfItem of slcfs | slice: ui.output.slcf.begin:(ui.output.slcf.begin + ui.listRange)">
-            <a (click)="activate(slcfItem.id); websocketService.selectCad(slcfItem.idAC)" [ngClass]="{active: slcfItem === slcf}">{{slcfItem.id}}</a>
+            <a (click)="activate(slcfItem.id); websocketService.selectCad(slcfItem.uuid)" [ngClass]="{active: slcfItem === slcf}">{{slcfItem.id}}</a>
             <mat-icon class="red-hover" (click)="delete(slcfItem.id)">delete_forever</mat-icon>
           </div>
         </div>

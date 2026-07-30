@@ -7,6 +7,7 @@ import { Main } from '@services/main/main';
 import { MainService } from '@services/main/main.service';
 import { UiStateService } from '@services/ui-state/ui-state.service';
 import { UiState } from '@services/ui-state/ui-state';
+import { SelectionService } from '@services/selection/selection.service';
 
 import { NgScrollbar } from 'ngx-scrollbar';
 import { set, find, cloneDeep, findIndex, concat } from 'lodash';
@@ -37,7 +38,7 @@ export class ComplexComponent implements OnInit, OnDestroy {
   wsSub: Subscription;
   mainSub: Subscription;
   uiSub: Subscription;
-  rouSub: Subscription;
+  selSub: Subscription;
 
   // Scrolbars containers
   @ViewChild('geomScrollbar', {static: false}) geomScrollbar: NgScrollbar;
@@ -48,8 +49,8 @@ export class ComplexComponent implements OnInit, OnDestroy {
   constructor(
     private mainService: MainService,
     public websocketService: WebsocketService,
-    private route: ActivatedRoute,
-    public uiStateService: UiStateService
+    public uiStateService: UiStateService,
+    private selectionService: SelectionService
   ) { }
 
   ngOnInit() {
@@ -86,19 +87,26 @@ export class ComplexComponent implements OnInit, OnDestroy {
     );
 
     // Activate element from route or ui object
-    this.rouSub = this.route.params.subscribe((params) => {
-      if (params['idAC']) {
-        let index = -1;
+    // Open whatever is selected - a click in 3D or in CAD is what says so
+    // (#121). Replayed on subscribe, so this settles what is open on arrival.
+    this.selSub = this.selectionService.selected$.subscribe(() => this.activateSelected());
+  }
 
-        index = findIndex(this.geoms, function (o) { return o.idAC == params['idAC']; });
-        if (index >= 0) {
-          this.activate(this.geoms[index].id);
-        }
-      }
-      else {
-        this.geoms.length > 0 ? this.activate(this.geoms[this.ui.geometry['geom'].elementIndex].id) : this.geom = undefined;
-      }
-    });
+  /**
+   * Open the selected element, or the one last worked on.
+   *
+   * The selection is the app's one answer to "what is the user on" (ADR-0005): a
+   * click in 3D, a click in the drawing and a click in the list below all reach
+   * here the same way. What it replaces was an `idAC` route parameter, which
+   * could only ever name an element the drawing contained.
+   */
+  private activateSelected() {
+    const selected = this.selectionService.selectedIn(this.geoms);
+    if (selected) {
+      this.activate(selected.id);
+    } else {
+      this.geoms.length > 0 ? this.activate(this.geoms[this.ui.geometry['geom'].elementIndex].id) : this.geom = undefined;
+    }
   }
 
   ngAfterViewInit() {
@@ -112,7 +120,7 @@ export class ComplexComponent implements OnInit, OnDestroy {
     this.wsSub.unsubscribe();
     this.mainSub.unsubscribe();
     this.uiSub.unsubscribe();
-    this.rouSub.unsubscribe();
+    this.selSub.unsubscribe();
   }
 
   /** Activate element on click */
@@ -120,6 +128,7 @@ export class ComplexComponent implements OnInit, OnDestroy {
     this.geom = find(this.fds.geometry.geoms, function (o) { return o.id == id; });
     this.ui.geometry['geom'].elementIndex = findIndex(this.geoms, { id: id });
     this.geomOld = cloneDeep(this.geom);
+    if (this.geom) { this.selectionService.select({ uuid: this.geom.uuid, type: 'geom' }); }
   }
 
   /** Push new element */

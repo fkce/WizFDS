@@ -7,6 +7,7 @@ import { UiStateService } from '@services/ui-state/ui-state.service';
 import { WebsocketService } from '@services/websocket/websocket.service';
 import { MainService } from '@services/main/main.service';
 import { UiState } from '@services/ui-state/ui-state';
+import { SelectionService } from '@services/selection/selection.service';
 import { Fds } from '@services/fds-object/fds-object';
 import { Main } from '@services/main/main';
 import { LibraryService } from '@services/library/library.service';
@@ -56,7 +57,7 @@ export class FiresComponent implements OnInit, OnDestroy {
   mainSub: Subscription;
   uiSub: Subscription;
   libSub: Subscription;
-  rouSub: Subscription;
+  selSub: Subscription;
 
   // Scrolbars containers
   @ViewChild('fireScrollbar', {static: false}) fireScrollbar: NgScrollbar;
@@ -74,9 +75,9 @@ export class FiresComponent implements OnInit, OnDestroy {
     public websocketService: WebsocketService,
     public uiStateService: UiStateService,
     private libraryService: LibraryService,
-    private route: ActivatedRoute,
     private snackBarService: SnackBarService,
-    private customRampDialog: MatDialog
+    private customRampDialog: MatDialog,
+    private selectionService: SelectionService
   ) { }
 
   ngOnInit() {
@@ -102,6 +103,8 @@ export class FiresComponent implements OnInit, OnDestroy {
         }
         else if (message.status == 'success') {
           this.fireOld = cloneDeep(this.fire);
+    if (this.fire) { this.selectionService.select({ uuid: this.fire.uuid, type: 'fire' }); }
+      if (this.fire) { this.selectionService.select({ uuid: this.fire.uuid, type: 'fire' }); }
           if (message.method == 'createFireSurfWeb') {
             this.snackBarService.notify('success', 'CAD: Fire layer created');
           }
@@ -114,19 +117,26 @@ export class FiresComponent implements OnInit, OnDestroy {
     );
 
     // Activate element from route or ui object
-    this.rouSub = this.route.params.subscribe((params) => {
-      if (params['idAC']) {
-        let index = -1;
-        index = findIndex(this.fires, function (o) { return o.idAC == params['idAC']; });
-        if (index >= 0) {
-          this.activate(this.fires[index].id);
-        }
-      }
-      else {
-        this.fires.length > 0 ? this.activate(this.fires[this.ui.fires['fire'].elementIndex].id) : this.fire = undefined;
-      }
-    });
+    // Open whatever is selected - a click in 3D or in CAD is what says so
+    // (#121). Replayed on subscribe, so this settles what is open on arrival.
+    this.selSub = this.selectionService.selected$.subscribe(() => this.activateSelected());
+  }
 
+  /**
+   * Open the selected element, or the one last worked on.
+   *
+   * The selection is the app's one answer to "what is the user on" (ADR-0005): a
+   * click in 3D, a click in the drawing and a click in the list below all reach
+   * here the same way. What it replaces was an `idAC` route parameter, which
+   * could only ever name an element the drawing contained.
+   */
+  private activateSelected() {
+    const selected = this.selectionService.selectedIn(this.fires);
+    if (selected) {
+      this.activate(selected.id);
+    } else {
+      this.fires.length > 0 ? this.activate(this.fires[this.ui.fires['fire'].elementIndex].id) : this.fire = undefined;
+    }
   }
 
   ngAfterViewInit() {
@@ -141,7 +151,7 @@ export class FiresComponent implements OnInit, OnDestroy {
     this.mainSub.unsubscribe();
     this.uiSub.unsubscribe();
     this.libSub.unsubscribe();
-    this.rouSub.unsubscribe();
+    this.selSub.unsubscribe();
   }
 
   /** Activate element on click */

@@ -59,6 +59,20 @@ const HOVERED_ALPHA = 0.15;
 const ENCLOSING_TYPES: readonly SceneElementType[] = ['mesh', 'init', 'zone'];
 
 /**
+ * A pick, as the user made it.
+ *
+ * The modifier travels with it because whoever owns the selection is the one who
+ * applies it: "the user picked X" is not the whole of what happened if the click
+ * was meant to extend a selection rather than replace it.
+ */
+export interface ScenePicked {
+  /** What the click landed on. Absent for a click on empty space. */
+  readonly element?: ScenePick;
+  /** Whether the click extends the selection - ctrl or shift was held. */
+  readonly add: boolean;
+}
+
+/**
  * What the user picked in the scene, and what is highlighted.
  *
  * Picking is one service for every element type, because a pick is a question
@@ -76,16 +90,27 @@ const ENCLOSING_TYPES: readonly SceneElementType[] = ['mesh', 'init', 'zone'];
 export class PickService implements SceneScoped {
 
   /**
-   * What the user picked, in the order they picked it. `undefined` for a click
-   * that landed on nothing, which is how a user drops a selection.
+   * What the user picked, as they picked it. A click that landed on nothing
+   * carries no element - which is how a user drops a selection.
    */
-  public readonly picked$: Observable<ScenePick | undefined>;
+  public readonly picked$: Observable<ScenePicked>;
 
   /** What is highlighted. The last of them is what the pick panel shows. */
   public selected: ScenePick[] = [];
 
   /** The element under the pointer, if the pointer is over one. */
   public hovered: ScenePick;
+
+  /**
+   * Whether a pick is folded into the highlight here.
+   *
+   * On for the standalone viewer, which has no `Fds` and so nowhere else for a
+   * selection to live. The app turns it off and owns the selection itself
+   * (ADR-0004): with both applying, the two would answer differently as soon as
+   * a selection reached the app by any route other than a click - from a form,
+   * or from the CAD plugin.
+   */
+  public applyOwnPicks = true;
 
   /** Who draws the obsts. Bound once, by that service itself. */
   private obstScene: ObstScene | null = null;
@@ -96,7 +121,7 @@ export class PickService implements SceneScoped {
   private selectionMaterial: BABYLON.StandardMaterial;
   private hoverMaterial: BABYLON.StandardMaterial;
 
-  private readonly pickedSubject = new Subject<ScenePick | undefined>();
+  private readonly pickedSubject = new Subject<ScenePicked>();
 
   constructor(
     private babylonService: BabylonService,
@@ -142,9 +167,10 @@ export class PickService implements SceneScoped {
    */
   public pick(ray: BABYLON.Ray, options: { add?: boolean } = {}): void {
     const hit = this.pickElement(ray);
+    const add = options.add === true;
 
-    this.applyPick(hit, options.add === true);
-    this.pickedSubject.next(hit);
+    if (this.applyOwnPicks) { this.applyPick(hit, add); }
+    this.pickedSubject.next({ element: hit, add: add });
   }
 
   /**
@@ -167,19 +193,31 @@ export class PickService implements SceneScoped {
   /**
    * Highlight exactly these elements, replacing whatever was highlighted.
    *
-   * The way in for whoever owns the selection - the app, which spans the 3D view,
-   * the forms and the CAD bridge and so is the only place that can hold it
-   * (ADR-0004, ADR-0005).
+   * Uuids and nothing else: the identity is all the caller has to know (ADR-0005),
+   * and where to draw the box is what the registry is for. The way in for whoever
+   * owns the selection - the app, which spans the 3D view, the forms and the CAD
+   * bridge and so is the only place that can hold it (ADR-0004).
+   *
+   * A uuid the scene does not draw is skipped rather than an error: the app's
+   * selection can name a &SURF, or an element of a scenario that has since been
+   * replaced, and neither is something to highlight.
    */
-  public setSelected(selected: readonly ScenePick[]): void {
-    const kept = new Set(selected.map(element => element.uuid));
+  public setSelected(uuids: readonly string[]): void {
+    const kept = new Set(uuids);
 
     Array.from(this.selectionMeshes.keys())
       .filter(uuid => !kept.has(uuid))
       .forEach(uuid => this.dropHighlight(uuid));
 
-    this.selected = [...selected];
-    this.selected
+    const drawn: ScenePick[] = [];
+    uuids.forEach(uuid => {
+      const entry = this.sceneRegistry.entryFor(uuid);
+      if (!entry) { return; }
+      drawn.push({ uuid: uuid, type: entry.type, id: entry.id, xb: entry.xb });
+    });
+
+    this.selected = drawn;
+    drawn
       .filter(element => !this.selectionMeshes.has(element.uuid))
       .forEach(element => this.addHighlight(element));
   }
@@ -209,18 +247,19 @@ export class PickService implements SceneScoped {
    * selection against - keeps working at all.
    */
   private applyPick(hit: ScenePick | undefined, add: boolean): void {
+    const current = this.selected.map(element => element.uuid);
+
     if (!hit) {
       if (!add) { this.clearSelection(); }
       return;
     }
 
-    const already = this.selected.some(element => element.uuid === hit.uuid);
-    if (add && already) {
-      this.setSelected(this.selected.filter(element => element.uuid !== hit.uuid));
+    if (add && current.indexOf(hit.uuid) !== -1) {
+      this.setSelected(current.filter(uuid => uuid !== hit.uuid));
       return;
     }
 
-    this.setSelected(add ? [...this.selected, hit] : [hit]);
+    this.setSelected(add ? [...current, hit.uuid] : [hit.uuid]);
   }
 
   /**
