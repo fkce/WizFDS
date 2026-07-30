@@ -5,7 +5,7 @@ import { Observable, Observer, Subject, BehaviorSubject } from 'rxjs';
 import { Main } from '@services/main/main';
 import { MainService } from '@services/main/main.service';
 import { CadService } from '@services/cad/cad.service';
-import { remove, each, findIndex } from 'lodash';
+import { remove, each, find, findIndex, upperCase } from 'lodash';
 import { Fds } from '@services/fds-object/fds-object';
 import { Surf } from '@services/fds-object/geometry/surf';
 import { WebsocketMessageObject } from './websocket-message';
@@ -301,8 +301,12 @@ export class WebsocketService {
     let newSurfs = this.cadService.transformSurfs(data.geometry.surfs, this.fds.geometry.surfs);
     // Clone and delete current elements
     remove(this.fds.geometry.surfs);
-    // Add inert default layer 
-    this.fds.geometry.surfs.push(new Surf(JSON.stringify({ id: "inert", editable: false })))
+    // Add inert default layer. It is not in the CAD payload, and transformSurfs
+    // carries over surfs the drawing knows nothing about - so the one from an
+    // earlier import comes back with them, and adding a second would duplicate it.
+    if (find(newSurfs, (surf: Surf) => upperCase(surf.id) == 'INERT') == undefined) {
+      this.fds.geometry.surfs.push(new Surf(JSON.stringify({ id: "inert", editable: false })))
+    }
     // Add new surfs to current scenario
     each(newSurfs, (surf) => {
       this.fds.geometry.surfs.push(surf);

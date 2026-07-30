@@ -74,6 +74,14 @@ Obiekt narysowany w przeglądarce pozostaje webowy — ma `uuid`, nie ma `idAC` 
 
 Automatyczne wypychanie odtwarzałoby dwukierunkową synchronizację, której ta decyzja i ADR-0004 celowo unikają, i natychmiast czyniłoby nowy obiekt własnością CAD.
 
+### Wyjątek: kolizja `id` z ładunkiem
+
+Reguła „przenieś każdy element bez `idAC`" ma jeden wyjątek. `&SURF` jest dla CAD-a **nazwą warstwy** — powierzchnia dodana w aplikacji i warstwa o tej samej nazwie to ta sama powierzchnia, a dwa `&SURF` o identycznym `id` są w pliku FDS niejednoznaczne. Element bez `idAC`, którego `id` przyszło w ładunku, jest więc pomijany: rysunek wygrywa, spójnie z regułą „obiekt z `idAC` pozostaje własnością CAD".
+
+Typów numerowanych automatycznie (`OBST1`, `HOLE2`, …) to nie dotyczy — `rewriteIds()` nadaje zawsze numer o jeden większy od najwyższego zajętego, więc kolizja tam nie powstaje.
+
+Osobna konsekwencja: `fExport()` dokłada domyślną warstwę `inert`, której nie ma w ładunku. Skoro scalanie przenosi ją teraz z poprzedniego importu, dokładanie drugiej duplikowałoby ją przy każdym imporcie — dlatego `fExport()` dodaje `inert` tylko wtedy, gdy scalona lista go nie zawiera.
+
 ### Tłumaczenie selekcji
 
 `fSelect` tłumaczy `idAC → uuid` na wejściu, `selectCad` `uuid → idAC` na wyjściu. Element bez `idAC` jest w tę drugą stronę pomijany — nie da się pokazać w rysunku obiektu, którego rysunek nie zawiera.
