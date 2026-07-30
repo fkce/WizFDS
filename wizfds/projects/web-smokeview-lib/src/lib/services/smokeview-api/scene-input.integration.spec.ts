@@ -39,7 +39,11 @@ function sceneInput(): SceneInput {
       }
     ],
     holes: [
-      { uuid: 'door-uuid', id: 'DOOR', xb: { x1: 1, x2: 2, y1: 1.9, y2: 2.3, z1: 0, z2: 2.1 } }
+      {
+        uuid: 'door-uuid', id: 'DOOR',
+        xb: { x1: 1, x2: 2, y1: 1.9, y2: 2.3, z1: 0, z2: 2.1 },
+        color: { r: 0.59, g: 0.9, b: 0.27, a: 0.35 }
+      }
     ],
     opens: [
       { uuid: 'open-uuid', id: 'OPEN', xb: { x1: 0, x2: 4, y1: 0, y2: 0, z1: 0, z2: 3 } }
@@ -209,5 +213,19 @@ describe('rendering a scene input', () => {
     });
     expect(registry.entryFor('init-uuid').type).toBe('init');
     expect(registry.entryFor('zone-uuid').type).toBe('zone');
+  });
+
+  it('draws an opening as well as cutting it, so there is something to click', async () => {
+    // A &HOLE is an absence: it is subtracted from every &OBST it overlaps, and
+    // what is left on screen is a doorway - nothing. Until #121 there was no way
+    // to select, move or delete one from the 3D view at all.
+    const input = sceneInput();
+
+    await service.render(input);
+
+    const registry = TestBed.inject(SceneRegistryService);
+    expect(registry.entryFor('door-uuid')).toBeTruthy();
+    expect(registry.entryFor('door-uuid').type).toBe('hole');
+    expect(registry.entryFor('door-uuid').mesh.isPickable).toBeTrue();
   });
 });

@@ -10,6 +10,7 @@ import { DevcService } from '../drawing/devc/devc.service';
 import { GeomService } from '../drawing/geom/geom.service';
 import { InitService } from '../drawing/init/init.service';
 import { ZoneService } from '../drawing/zone/zone.service';
+import { HoleRegionService } from '../drawing/hole/hole-region.service';
 import { BabylonService } from '../babylon/babylon.service';
 import { SceneBoundsService } from '../scene-bounds/scene-bounds.service';
 
@@ -29,6 +30,7 @@ export class SmokeviewApiService {
     private geomService: GeomService,
     private initService: InitService,
     private zoneService: ZoneService,
+    private holeRegionService: HoleRegionService,
     private babylonService: BabylonService,
     private sceneBounds: SceneBoundsService
   ) { }
@@ -62,8 +64,9 @@ export class SmokeviewApiService {
     this.meshService.meshes = scene.meshes;
     this.meshService.renderMeshes();
 
-    // Holes are not drawn in their own right - they are cut out of the obsts
-    // they overlap, so the obst service needs both lists together.
+    // The obst service needs both lists together: a hole is cut out of every
+    // obst it overlaps. It is also drawn in its own right, further down - being
+    // an absence, nothing else would put anything on screen where it is.
     this.obstService.obsts = scene.obsts;
     this.obstService.holes = scene.holes;
     this.obstService.renderObsts();
@@ -94,6 +97,12 @@ export class SmokeviewApiService {
 
     this.zoneService.zones = scene.zones;
     await this.settled('zones', () => this.zoneService.renderZones());
+
+    // Last: an opening is drawn over the obsts it was cut out of, and over any
+    // region that covers them, so it is the one thing that must not be hidden by
+    // what it belongs to.
+    this.holeRegionService.holes = scene.holes;
+    await this.settled('holes', () => this.holeRegionService.renderHoles());
   }
 
   /**
@@ -113,6 +122,7 @@ export class SmokeviewApiService {
     this.geomService.resetClipping();
     this.initService.resetClipping();
     this.zoneService.resetClipping();
+    this.holeRegionService.resetClipping();
   }
 
   /** Run one drawing step, keeping a failure from taking the rest down with it. */
