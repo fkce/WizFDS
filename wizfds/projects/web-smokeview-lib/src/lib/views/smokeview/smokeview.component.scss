@@ -1,102 +1,71 @@
-$red: #ff516d;
-$white: #eee;
-$grey: #888;
-$blue: #29b6f6;
-$blue-dark: #1e88e5;
-$green: #9ccc65;
-$orange: #ff9800;
-$orange-light: #fff3e0;
-$help: #b0bec5;
+// =============================================================================
+// The 3D canvas.
+//
+// Styled from the host's design tokens rather than from a palette of its own
+// (ADR-0010). Every token carries the value the library was designed against as
+// a fallback, so a host that defines none - or one whose stylesheet has not
+// loaded yet - still gets a coherent dark viewport instead of unstyled markup.
+//
+// The contract is the semantic layer of projects/wizfds/src/styles/_tokens.scss;
+// see docs/reference/ui-design-tokens.md for what each role means.
+// =============================================================================
 
-html, button, div, p {
-  font-family: "Play";
-  margin: 0;
-  padding: 0;
-}
+$surface:          var(--surface, #121212);
+$surface-1:        var(--surface-1, #1a1a1a);
+$surface-2:        var(--surface-2, #1e1e1e);
+$on-surface:       var(--on-surface, #e3e3e3);
+$on-surface-muted: var(--on-surface-muted, #b3b3b3);
+$border:           var(--border, #474747);
+$border-muted:     var(--border-muted, #282828);
+$accent:           var(--accent, #3b82f6);
+$warning:          var(--warning, #f59e0b);
+$radius-sm:        var(--radius-sm, 4px);
+$shadow-md:        var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.35));
+$font-ui:          var(--font-ui, "Fira Sans", "Segoe UI", Roboto, system-ui, sans-serif);
+$font-mono:        var(--font-mono, "Fira Code", "Consolas", monospace);
 
-button:focus {
-  outline: none;
-}
-
-button {
-  position: relative;
-  background-color: transparent;
-  color: #ccc;
-  border-radius: 2px;
-  border: 2px solid #ccc;
-  font-size: 0.9rem;
-  font-family: "Play";
-  height: 1.6rem;
-  min-height: 1.6rem;
-  padding: 2px 6px 2px 6px;
-  text-align: center;
-  transition-duration: 0.4s;
-  -webkit-transition-duration: 0.4s;
-  text-decoration: none;
-  overflow: hidden;
-  cursor: pointer;
-}
-
-button:after {
-  content: "";
-  background: $blue;
+:host {
   display: block;
-  position: absolute;
-  padding-top: 300%;
-  padding-left: 350%;
-  margin-left: -20px !important;
-  margin-top: -120%;
-  opacity: 0;
-  transition: all 0.8s;
-}
-
-button:active:after {
-  padding: 0;
-  margin: 0;
-  opacity: 1;
-  transition: 0s;
-}
-
-button:hover {
-  background: #b0bec5;
-  color: #000;
-  border: 2px solid #b0bec5;
+  // The canvas fills whatever the host gives it. It used to subtract a guessed
+  // 12rem from the viewport, which was only ever right for one of the two apps.
+  height: 100%;
+  min-height: 0;
 }
 
 .main {
-  display: flex;
   position: relative;
   width: 100%;
   height: 100%;
-  padding: 0;
-  border: 0;
-  margin: 0;
-  color: #eee;
+  font-family: $font-ui;
+  color: $on-surface;
+  background-color: $surface;
 
   canvas.renderer {
+    display: block;
     width: 100%;
-    height: calc(100vh - 12rem);
-    text-align: center;
+    height: 100%;
+    // The canvas is the working surface; a text caret over it means nothing
+    user-select: none;
+    outline: none;
   }
+
+  // --- No WebGPU: the one thing this component says in words (ADR-0001) ------
   .unsupported {
     display: flex;
-    flex: 1;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
-    height: calc(100vh - 12rem);
+    height: 100%;
     padding: 2rem;
-    color: $white;
 
     mat-icon {
       width: 3rem;
       height: 3rem;
       margin-bottom: 1rem;
-      color: $orange;
+      color: $warning;
     }
     h2 {
-      font-family: "Play";
       font-size: 1.1rem;
       font-weight: 600;
       margin: 0 0 0.75rem;
@@ -105,128 +74,62 @@ button:hover {
       max-width: 32rem;
       line-height: 1.5;
       font-size: 0.9rem;
+      color: $on-surface-muted;
     }
     p.hint {
       margin-top: 0.75rem;
-      color: $grey;
       font-size: 0.8rem;
-    }
-  }
-  .info {
-    display: flex;
-    flex-direction: column;
-    position: absolute;
-    left: 1rem;
-    top: 1rem;
-    background-color: black;
-    padding: 0.4rem;
-    opacity: 0.5;
-    z-index: 2;
-    border-radius: 0.2rem;
-    font-size: 0.78rem;
-  }
-  .help {
-    display: flex;
-    flex-direction: column;
-    position: absolute;
-    left: 1rem;
-    bottom: 1rem;
-    background-color: black;
-    padding: 0.4rem;
-    opacity: 0.5;
-    z-index: 2;
-    border-radius: 0.2rem;
-    font-size: 0.78rem;
-    height: auto;
-    td {
-      padding-right: 0.3rem;
-    }
-  }
-  .menu {
-    display: flex;
-    flex-direction: column;
-    position: absolute;
-    right: 1rem;
-    bottom: 7rem;
-    background-color: black;
-    padding: 0.4rem;
-    opacity: 0.5;
-    z-index: 2;
-    border-radius: 0.2rem;
-
-    hr {
-      margin-left: 0.5rem;
-      margin-right: 0.5rem;
-      width: calc(100% - 1rem);
-    }
-    button {
-      margin: 0.1rem;
-      font-size: 0.78rem;
+      opacity: 0.8;
     }
   }
 
-  .clip {
-    display: flex;
-    flex-direction: column;
-    position: absolute;
-    right: 1rem;
-    bottom: 1rem;
-    background-color: black;
-    padding: 0.4rem;
-    opacity: 0.5;
-    z-index: 2;
-    border-radius: 0.2rem;
-    width: auto;
-
-    p {
-      display: flex;
-      align-items: center;
-    }
-  }
-
-  //button.reset-view {
-  //  position: absolute;
-  //  left: 1rem;
-  //  top: 1rem;
-  //}
-  //button.reset-zoom {
-  //  position: absolute;
-  //  left: 1rem;
-  //  top: 4rem;
-  //}
-  //button.wireframe {
-  //  position: absolute;
-  //  left: 1rem;
-  //  top: 7rem;
-  //}
-  //button.triangle {
-  //  position: absolute;
-  //  left: 1rem;
-  //  top: 10rem;
-  //}
+  // --- Results player -------------------------------------------------------
+  // An overlay along the foot of the canvas, not a sibling of it: the canvas
+  // fills the viewport, so anything laid out beside it has no room to be in.
   .player {
+    position: absolute;
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 2;
+
     display: flex;
     align-items: center;
-    .time {
-      width: 7rem;
-    }
-    .controler {
+    gap: 0.6rem;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid $border-muted;
+    border-radius: $radius-sm;
+    background: $surface-1;
+    box-shadow: $shadow-md;
+    font-size: 0.78rem;
+
+    .control {
+      width: 1.25rem;
+      height: 1.25rem;
       cursor: pointer;
-      margin-right: 0.5rem;
+      color: $on-surface-muted;
+
+      &:hover { color: $accent; }
     }
-    .slider-container {
-      display: flex;
+
+    .frame {
+      min-width: 6rem;
+      font-family: $font-mono;
+      color: $on-surface-muted;
+    }
+
+    .track {
       flex: 1;
-      height: 1rem;
-      padding: 0;
-      margin: 0;
-      border: 1px solid gray;
-      .slider {
-        min-height: 1rem;
+      height: 0.35rem;
+      border-radius: $radius-sm;
+      background: $surface-2;
+      border: 1px solid $border;
+      overflow: hidden;
+
+      .progress {
+        height: 100%;
         width: 0;
-        padding: 0;
-        margin: 0;
-        background-color: red;
+        background: $accent;
       }
     }
   }

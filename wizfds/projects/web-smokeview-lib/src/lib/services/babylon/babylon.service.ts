@@ -4,6 +4,7 @@ import 'babylonjs-materials';
 import { BehaviorSubject } from 'rxjs';
 import { SceneLifecycleService } from './scene-lifecycle.service';
 import { SceneBoundsService } from '../scene-bounds/scene-bounds.service';
+import { SceneXb } from '../drawing/scene-input';
 
 /** WGSL sources for one shader, plus the URLs they came from (for diagnostics). */
 export interface ShaderSources {
@@ -59,6 +60,14 @@ const CAMERA = {
   maxRadius: 50,
   /** Room left around the model when framing it, so it does not touch the edges. */
   framingMargin: 1.15,
+  /**
+   * Smallest sphere frameBox() will fly to, as a fraction of the model.
+   *
+   * A &VENT is flat and a point &DEVC has no size at all, so zooming to one
+   * would otherwise put the camera exactly on it. A twentieth of the model is
+   * close enough to read the element and far enough to see what it sits on.
+   */
+  minFramedRadius: 0.05,
   /** Length of the world axes drawn at the origin. */
   axisLength: 0.1
 };
@@ -508,8 +517,37 @@ export class BabylonService {
    * fly-to-side uses this too, so both agree on what "the whole model" means.
    */
   public radiusToFit(): number {
-    const radius = this.sceneBounds.boundingRadius;
+    return this.radiusFor(this.sceneBounds.boundingRadius);
+  }
 
+  /**
+   * Point the camera at one box - what "zoom to selection" comes down to.
+   *
+   * The same framing as applySceneBounds() makes for the whole model, over a
+   * smaller sphere; everything else the camera is tuned by - the near and far
+   * planes, the wheel, the radius limits - stays as the model set it, because
+   * the model has not changed.
+   */
+  public frameBox(box: SceneXb): void {
+    if (!this.scene || !this.camera) { return; }
+
+    const target = new BABYLON.Vector3(
+      (box.x1 + box.x2) / 2, (box.y1 + box.y2) / 2, (box.z1 + box.z2) / 2);
+
+    const dx = box.x2 - box.x1, dy = box.y2 - box.y1, dz = box.z2 - box.z1;
+    // A &VENT is a plane and a point device is a point, so the sphere around one
+    // can be flat or empty. A floor is what keeps the camera off the target.
+    const radius = Math.max(
+      Math.sqrt(dx * dx + dy * dy + dz * dz) / 2,
+      CAMERA.minFramedRadius * this.sceneBounds.extent);
+
+    const from = FRAMING_DIRECTION.normalizeToNew().scale(this.radiusFor(radius));
+    this.camera.setPosition(target.add(from));
+    this.camera.setTarget(target);
+  }
+
+  /** How far the camera has to stand for a sphere of this radius to fit in view. */
+  private radiusFor(radius: number): number {
     // In portrait the horizontal field of view is the tighter one
     const aspectRatio = this.engine ? this.engine.getAspectRatio(this.camera) : 1;
     const halfMinFov = aspectRatio < 1

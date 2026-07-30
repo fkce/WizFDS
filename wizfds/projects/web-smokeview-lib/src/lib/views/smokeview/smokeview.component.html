@@ -1,8 +1,14 @@
+<!--
+    The canvas, the view cube and the overlays that belong to a gesture - and
+    nothing else. The visibility menu, the section sliders, the help table and
+    the panel naming what was picked all moved to the host, which drives them
+    through SceneViewService: the library draws, the host decides (ADR-0010).
+-->
 <div class="main" #mainContainer>
 
     <!--
-        The pointer gestures are bound here and not on the host: everything below
-        is layered over this canvas, and a click on a button or a slider is not a
+        The pointer gestures are bound here and not on the host: everything
+        layered over this canvas is not the scene, and a click on it is not a
         click in the scene. See SmokeviewComponent.onPointerDown().
     -->
     <canvas class="renderer" #rendererCanvas [hidden]="!webGPUAvailable"
@@ -22,99 +28,20 @@
         </p>
     </div>
 
-    <ng-container *ngIf="webGPUAvailable">
-    <div class="info" *ngIf="picking.lastSelected">
-        <p>
-            {{ picking.lastSelected.type }}<br>
-            id: {{ picking.lastSelected.id }}
-            <span *ngIf="picking.selected.length > 1">
-                <br>and {{ picking.selected.length - 1 }} more selected
-            </span>
-        </p>
-    </div>
-    <div class="help">
-        <mat-icon *ngIf="!showHelp" svgIcon="help-box" aria-label="Help" (click)="showHelp = showHelp ? false : true;">
-        </mat-icon>
-        <mat-icon *ngIf="showHelp" svgIcon="eye-off" aria-label="Hide help"
-            (click)="showHelp = showHelp ? false : true;"></mat-icon>
-        <table *ngIf="showHelp">
-            <tr>Rotate:<td></td> <td>hold left click + move</td> </tr>
-            <tr>Pan:<td></td> <td>hold right click + move</td> </tr>
-            <tr>Zoom:<td></td> <td>mouse scroll</td> </tr>
-            <tr>Select:<td></td> <td>left click</td> </tr>
-            <tr>Add to selection:<td></td> <td>ctrl or shift + left click</td> </tr>
-        </table>
-    </div>
-
-    <div class="menu">
-        <button (click)="openService.toogleVisibility()">Open</button>
-        <button (click)="meshService.toogleVisibility()">Mesh</button>
-        <hr>
-        <button (click)="obstService.toggleWireframe()">Trinagles</button>
-        <button (click)="obstService.toggleEdgesRendering()">Obst Outline</button>
-        <button (click)="jetfanService.setEdgesRendering(jetfanService.mesh?.edgesWidth == 0);">Jetfan Outline</button>
-        <button (click)="fireService.toogleVisibility()">Fire</button>
-        <button (click)="ventService.toogleBasicVisibility()">Vent</button>
-        <button (click)="devcService.toggleVisibility()">Device</button>
-        <button (click)="geomService.toggleVisibility()">Complex</button>
-        <button (click)="initService.toggleVisibility()">Init</button>
-        <button (click)="zoneService.toggleVisibility()">Zone</button>
-        <button (click)="holeRegionService.toggleVisibility()">Hole</button>
-    </div>
-
-    <div class="clip">
-        <p>x:&nbsp;<input type="range" [ngModel]="clipPlane('x')" (ngModelChange)="setClip('x', $event)"
-                [min]="clipMin('x')" [max]="clipMax('x')" [step]="clipStep('x')" />&nbsp;{{clipLabel('x')}}</p>
-        <p>y:&nbsp;<input type="range" [ngModel]="clipPlane('y')" (ngModelChange)="setClip('y', $event)"
-                [min]="clipMin('y')" [max]="clipMax('y')" [step]="clipStep('y')" />&nbsp;{{clipLabel('y')}}</p>
-        <p>z:&nbsp;<input type="range" [ngModel]="clipPlane('z')" (ngModelChange)="setClip('z', $event)"
-                [min]="clipMin('z')" [max]="clipMax('z')" [step]="clipStep('z')" />&nbsp;{{clipLabel('z')}}</p>
-    </div>
-    <div class="player" *ngIf="playerService.frameNo > 0">
-        <div class="time">Frame: {{playerService.frameCur}}</div>
-        <mat-icon class="controler" (click)="control()" *ngIf="!playerService.isPlay">play_circle_outline</mat-icon>
-        <mat-icon class="controler" (click)="control()" *ngIf="playerService.isPlay">pause_circle_outline</mat-icon>
-        <div slider class="slider-container">
-            <div class="slider" [style.width.px]="playerService.setSlider()"></div>
+    <!--
+        The results player. It belongs to what is drawn rather than to what is
+        edited, so it stays here while the editing chrome lives in the host -
+        Phase 6 (#89) is what gives it a Results tab to answer to.
+    -->
+    <div class="player" *ngIf="webGPUAvailable && playerService.frameNo > 0">
+        <mat-icon class="control" (click)="control()" *ngIf="!playerService.isPlay"
+            svgIcon="play" aria-label="Play"></mat-icon>
+        <mat-icon class="control" (click)="control()" *ngIf="playerService.isPlay"
+            svgIcon="pause" aria-label="Pause"></mat-icon>
+        <div class="frame">Frame {{ playerService.frameCur }}</div>
+        <div class="track">
+            <div class="progress" [style.width.px]="playerService.setSlider()"></div>
         </div>
     </div>
-    </ng-container>
 
-
-
-
-    <!-- 
-    <div class="left">
-        <p class="upload">
-            <button (click)="fileObstInput.click()">Upload OBST .json file ...</button>
-            <input hidden (change)="onObstFileSelected()" #fileObstInput type="file" id="fileObst" accept=".json">
-        </p>
-        <p class="upload">
-            <button (click)="fileSliceInput.click()">Upload SLCF .json file ...</button>
-            <input hidden (change)="onSliceFileSelected()" #fileSliceInput type="file" id="fileSlice" accept=".json">
-        </p>
-        <p class="upload">
-            <button (click)="obstService.getFromServer();sliceService.getFromServer()">Show example</button>
-        </p>
-    </div>
-    -->
-    <!--
-    <div class="right">
-        <p>
-            Rotate: <i>use left + move</i><br>
-            Zoom: <i>mouse scroll</i><br>
-            Pan: <i>mouse right + move</i>
-        </p>
-        <p>
-            Clipping:<br>
-            <span><input type="range" [ngModel]="obstService.clipX" (ngModelChange)="obstService.clip($event, 'x')" min="0" max="100" />&nbsp;{{obstService.clipX}}%</span>
-            <span><input type="range" [ngModel]="obstService.clipY" (ngModelChange)="obstService.clip($event, 'y')" min="0" max="100" />&nbsp;{{obstService.clipY}}%</span>
-            <span><input type="range" [ngModel]="obstService.clipZ" (ngModelChange)="obstService.clip($event, 'z')" min="0" max="100" />&nbsp;{{obstService.clipZ}}%</span><br>
-            <button type="button" (click)="obstService.clip(0, 'x'); obstService.clip(0, 'y'); obstService.clip(100, 'z');">Reset</button>
-        </p>
-        <p>
-            <mat-checkbox [ngModel]="sliceService.isBlank" (ngModelChange)="sliceService.toogleBlank()">Blanked</mat-checkbox>
-        </p>
-    </div>
-    -->
 </div>

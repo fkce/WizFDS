@@ -70,7 +70,6 @@ describe('SmokeviewComponent', () => {
     const message = fixture.nativeElement.querySelector('.unsupported');
     expect(message).toBeTruthy();
     expect(message.textContent).toContain('WebGPU');
-    expect(fixture.nativeElement.querySelector('.menu')).toBeNull();
   });
 
   it('does not even try to create a scene without WebGPU', async () => {
@@ -101,11 +100,24 @@ describe('SmokeviewComponent', () => {
     expect(createScene).not.toHaveBeenCalled();
   });
 
-  it('keeps the controls when WebGPU is available', async () => {
+  it('draws the canvas when WebGPU is available', async () => {
     await configure(true);
 
     expect(fixture.nativeElement.querySelector('.unsupported')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.menu')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('canvas.renderer').hidden).toBe(false);
+  });
+
+  it('holds no controls of its own - those belong to the host (ADR-0010)', async () => {
+    // The visibility menu, the section sliders, the help table and the panel
+    // naming what was picked all moved into the host's ribbon and properties
+    // palette. Leaving a copy behind would mean two places to forget to add the
+    // next switch to, and two answers about what is currently on screen.
+    await configure(true);
+
+    ['.menu', '.clip', '.help', '.info'].forEach(selector => {
+      expect(fixture.nativeElement.querySelector(selector))
+        .withContext(`${selector} still in the library`).toBeNull();
+    });
   });
 
   /**
@@ -214,11 +226,10 @@ describe('SmokeviewComponent', () => {
     });
 
     it('does not pick when the press landed on the chrome over the canvas', () => {
-      // The visibility buttons, the clip sliders, the help panel and the player
-      // controls all sit in this component, layered over the canvas. A click on
-      // one of them is not a click in the scene - and it would otherwise pick at
-      // whatever pointer position the scene last saw, so it would usually miss
-      // and clear the selection.
+      // The player controls, and whatever a gesture lays over the canvas, sit in
+      // this component above it. A press on one of them is not a press in the
+      // scene - and it would otherwise pick at whatever pointer position the
+      // scene last saw, so it would usually miss and clear the selection.
       press(fixture.nativeElement);
       release(fixture.nativeElement);
 
@@ -239,31 +250,6 @@ describe('SmokeviewComponent', () => {
     });
   });
 
-  describe('setClip', () => {
-    // One slider, one plane, but every drawing service owns its own materials -
-    // so each of them has to be told, and a service left out keeps drawing
-    // through a plane the user has dragged past it.
-
-    it('moves the plane on every element type it cuts', async () => {
-      await configure(true);
-
-      const obst = spyOn(component.obstService, 'clip');
-      const fire = spyOn(component.fireService, 'clip');
-      const vent = spyOn(component.ventService, 'clipBasic');
-      const open = spyOn(component.openService, 'clip');
-      const jetfan = spyOn(component.jetfanService, 'clip');
-
-      component.setClip('x', 3.5);
-
-      expect(obst).toHaveBeenCalledWith(3.5, 'x');
-      expect(fire).toHaveBeenCalledWith(3.5, 'x');
-      expect(vent).toHaveBeenCalledWith(3.5, 'x');
-      expect(open)
-        .withContext('openings used to be drawn with no clipping at all')
-        .toHaveBeenCalledWith(3.5, 'x');
-      expect(jetfan)
-        .withContext('the jetfan service was never told, so jetfans ignored the sliders')
-        .toHaveBeenCalledWith(3.5, 'x');
-    });
-  });
+  // The section planes moved out with the sliders that drive them; what used to
+  // be tested here is SceneViewService's now - see its spec.
 });

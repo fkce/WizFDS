@@ -77,6 +77,9 @@ export class JetfanService implements SceneScoped {
   /** Whether jetfan outlines are drawn. Meshes come and go; this does not. */
   private edgesOn = true;
 
+  /** Whether outlines are on, for whoever draws the switch that turns them off. */
+  public get outlined(): boolean { return this.edgesOn; }
+
   /** Where each jetfan of the last render went. Built here, never written back. */
   private placed: PlacedJetfan[] = [];
 

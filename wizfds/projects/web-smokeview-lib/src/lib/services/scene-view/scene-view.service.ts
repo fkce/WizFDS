@@ -1,0 +1,318 @@
+import { Injectable } from '@angular/core';
+
+import { ObstService } from '../drawing/obst/obst.service';
+import { MeshService } from '../drawing/mesh/mesh.service';
+import { OpenService } from '../drawing/open/open.service';
+import { VentService } from '../drawing/vent/vent.service';
+import { JetfanService } from '../drawing/jetfan/jetfan.service';
+import { FireService } from '../drawing/fire/fire.service';
+import { DevcService } from '../drawing/devc/devc.service';
+import { GeomService } from '../drawing/geom/geom.service';
+import { InitService } from '../drawing/init/init.service';
+import { ZoneService } from '../drawing/zone/zone.service';
+import { HoleRegionService } from '../drawing/hole/hole-region.service';
+import { BabylonService } from '../babylon/babylon.service';
+import { SceneAxis, SceneBoundsService } from '../scene-bounds/scene-bounds.service';
+import { SceneXb } from '../drawing/scene-input';
+import { EDGES_AND_FILL, EDGES_ONLY } from '../drawing/clipped-plane-layer';
+
+/** A layer of the scene that is shown and hidden as a whole. */
+export type SceneLayerId =
+  'mesh' | 'open' | 'hole' | 'vent' | 'fire' | 'devc' | 'geom' | 'init' | 'zone';
+
+/**
+ * How much of a layer is drawn.
+ *
+ * Three states because that is what the plane layers offer: an outline alone
+ * says where something is without hiding what is behind it, which is the point
+ * of drawing a &VENT at all. A layer that is only ever drawn or not answers with
+ * two of the three.
+ */
+export type SceneLayerState = 'edges' | 'filled' | 'hidden';
+
+/** A switch that changes how the model is drawn rather than what is drawn. */
+export type SceneDisplayId = 'wireframe' | 'obstOutline' | 'jetfanOutline';
+
+/** A layer, as a control that drives it needs to know it. */
+export interface SceneLayer {
+  readonly id: SceneLayerId;
+  /** What to call it in an interface - the FDS namelist, where there is one. */
+  readonly label: string;
+}
+
+/** A display switch, as a control that drives it needs to know it. */
+export interface SceneDisplay {
+  readonly id: SceneDisplayId;
+  readonly label: string;
+}
+
+/** What one layer answers about itself, whichever service draws it. */
+interface LayerBinding extends SceneLayer {
+  state(): SceneLayerState;
+  toggle(): void;
+}
+
+/** What one display switch answers about itself. */
+interface DisplayBinding extends SceneDisplay {
+  isOn(): boolean;
+  toggle(): void;
+}
+
+/**
+ * What the user can see, and from where.
+ *
+ * The library draws and the host decides (ADR-0004), so the controls that used
+ * to sit over the canvas - the visibility menu, the clip sliders - live in the
+ * host's ribbon now (ADR-0010) and reach the scene through here. One service
+ * rather than eleven injected across the boundary: which service draws a &ZONE,
+ * and how it happens to count its own visibility states, is the library's
+ * business and stops here.
+ *
+ * The state is read back off the drawing services rather than mirrored, so a
+ * control shows what is on screen even after a render has reset it.
+ */
+@Injectable({
+  providedIn: 'root'
+})
+export class SceneViewService {
+
+  private readonly layerBindings: readonly LayerBinding[];
+  private readonly displayBindings: readonly DisplayBinding[];
+
+  constructor(
+    private obstService: ObstService,
+    private meshService: MeshService,
+    private openService: OpenService,
+    private ventService: VentService,
+    private jetfanService: JetfanService,
+    private fireService: FireService,
+    private devcService: DevcService,
+    private geomService: GeomService,
+    private initService: InitService,
+    private zoneService: ZoneService,
+    private holeRegionService: HoleRegionService,
+    private babylonService: BabylonService,
+    private sceneBounds: SceneBoundsService
+  ) {
+    this.layerBindings = [
+      // A &MESH keeps its own numbering - see meshState()
+      {
+        id: 'mesh', label: 'MESH',
+        state: () => this.meshState(),
+        toggle: () => this.meshService.toogleVisibility()
+      },
+      {
+        id: 'open', label: 'OPEN',
+        state: () => planeState(this.openService.visibility),
+        toggle: () => this.openService.toogleVisibility()
+      },
+      {
+        id: 'hole', label: 'HOLE',
+        state: () => drawnState(this.holeRegionService.visible),
+        toggle: () => this.holeRegionService.toggleVisibility()
+      },
+      {
+        id: 'vent', label: 'VENT',
+        state: () => planeState(this.ventService.basicVisibility),
+        toggle: () => this.ventService.toogleBasicVisibility()
+      },
+      {
+        id: 'fire', label: 'FIRE',
+        state: () => planeState(this.fireService.visibility),
+        toggle: () => this.fireService.toogleVisibility()
+      },
+      {
+        id: 'devc', label: 'DEVC',
+        state: () => drawnState(this.devcService.visible),
+        toggle: () => this.devcService.toggleVisibility()
+      },
+      {
+        id: 'geom', label: 'GEOM',
+        state: () => drawnState(this.geomService.visible),
+        toggle: () => this.geomService.toggleVisibility()
+      },
+      {
+        id: 'init', label: 'INIT',
+        state: () => drawnState(this.initService.visible),
+        toggle: () => this.initService.toggleVisibility()
+      },
+      {
+        id: 'zone', label: 'ZONE',
+        state: () => drawnState(this.zoneService.visible),
+        toggle: () => this.zoneService.toggleVisibility()
+      }
+    ];
+
+    this.displayBindings = [
+      {
+        id: 'wireframe', label: 'Wireframe',
+        isOn: () => this.obstService.wireframe,
+        toggle: () => this.obstService.toggleWireframe()
+      },
+      {
+        id: 'obstOutline', label: 'OBST outline',
+        isOn: () => this.obstService.outlined,
+        toggle: () => this.obstService.toggleEdgesRendering()
+      },
+      {
+        id: 'jetfanOutline', label: 'Jetfan outline',
+        isOn: () => this.jetfanService.outlined,
+        toggle: () => this.jetfanService.setEdgesRendering(!this.jetfanService.outlined)
+      }
+    ];
+  }
+
+  // ==========================================
+  // Layers
+  // ==========================================
+
+  /** Every layer there is to show and hide, in the order a control lists them. */
+  public get layers(): readonly SceneLayer[] {
+    return this.layerBindings;
+  }
+
+  /** How much of one layer is currently drawn. */
+  public layerState(id: SceneLayerId): SceneLayerState {
+    return this.binding(id).state();
+  }
+
+  /** Move one layer on to its next state - what pressing its button does. */
+  public toggleLayer(id: SceneLayerId): void {
+    this.binding(id).toggle();
+  }
+
+  // ==========================================
+  // Display switches
+  // ==========================================
+
+  /** Every switch that changes how the model is drawn. */
+  public get displays(): readonly SceneDisplay[] {
+    return this.displayBindings;
+  }
+
+  /** Whether one display switch is currently on. */
+  public isDisplayOn(id: SceneDisplayId): boolean {
+    return this.displayBinding(id).isOn();
+  }
+
+  /** Flip one display switch. */
+  public toggleDisplay(id: SceneDisplayId): void {
+    this.displayBinding(id).toggle();
+  }
+
+  // ==========================================
+  // Section planes
+  // ==========================================
+
+  /**
+   * Where a clipping plane currently cuts, in FDS metres.
+   *
+   * Read off the obsts, because the three planes are set on every layer together
+   * and so all of them answer the same.
+   */
+  public clipPlane(axis: SceneAxis): number {
+    return this.obstService.clipPlane(axis);
+  }
+
+  /**
+   * How far a plane may be dragged, and how finely.
+   *
+   * In metres over the model's own extent, so a five-metre room and a
+   * four-hundred-metre tunnel both get a slider worth dragging (ADR-0002).
+   */
+  public clipMin(axis: SceneAxis): number { return this.sceneBounds.clipMin(axis); }
+  public clipMax(axis: SceneAxis): number { return this.sceneBounds.clipMax(axis); }
+  public clipStep(axis: SceneAxis): number { return this.sceneBounds.clipStep(axis); }
+
+  /** Where a plane stands, rounded to a centimetre - finer than any FDS geometry. */
+  public clipLabel(axis: SceneAxis): string {
+    return `${this.clipPlane(axis).toFixed(2)} m`;
+  }
+
+  /**
+   * Move one clipping plane, across every element type it cuts through.
+   *
+   * Each drawing service owns its own materials, so each has to be told; the
+   * plane is the same coordinate for all of them.
+   */
+  public setClip(axis: SceneAxis, metres: number): void {
+    this.obstService.clip(metres, axis);
+    this.fireService.clip(metres, axis);
+    this.ventService.clipBasic(metres, axis);
+    this.openService.clip(metres, axis);
+    // Takes the planes drawn for each jetfan with it - see JetfanService.clip()
+    this.jetfanService.clip(metres, axis);
+    this.devcService.clip(metres, axis);
+    this.geomService.clip(metres, axis);
+    this.initService.clip(metres, axis);
+    this.zoneService.clip(metres, axis);
+    this.holeRegionService.clip(metres, axis);
+  }
+
+  /**
+   * Pull every clipping plane back to showing the whole model.
+   *
+   * The planes are coordinates in metres, so they mean nothing once the model
+   * changes: z = 4 m is the ceiling of a room and the floor of a tunnel. Drawing
+   * a scenario is the moment that can happen, which is why SmokeviewApiService
+   * calls this on every render as well as the ribbon's Reset button.
+   */
+  public resetClipping(): void {
+    this.obstService.resetClipping();
+    this.fireService.resetClipping();
+    this.ventService.resetClipping();
+    this.openService.resetClipping();
+    this.jetfanService.resetClipping();
+    this.devcService.resetClipping();
+    this.geomService.resetClipping();
+    this.initService.resetClipping();
+    this.zoneService.resetClipping();
+    this.holeRegionService.resetClipping();
+  }
+
+  // ==========================================
+  // Camera
+  // ==========================================
+
+  /** Frame the whole model - the view the camera starts in. */
+  public zoomExtents(): void {
+    this.babylonService.applySceneBounds();
+  }
+
+  /** Frame one box, which is what "zoom to selection" comes down to. */
+  public zoomTo(box: SceneXb): void {
+    this.babylonService.frameBox(box);
+  }
+
+  private binding(id: SceneLayerId): LayerBinding {
+    return this.layerBindings.find(layer => layer.id === id);
+  }
+
+  private displayBinding(id: SceneDisplayId): DisplayBinding {
+    return this.displayBindings.find(display => display.id === id);
+  }
+
+  /**
+   * A &MESH's state, in its own numbering.
+   *
+   * MeshService stores the state it has just moved *to* rather than the one it
+   * came from, so its 1 is the plane layers' 0 and its 0 is their 2. Translating
+   * here is what keeps that off the ribbon.
+   */
+  private meshState(): SceneLayerState {
+    const visibility = this.meshService.visibility;
+    if (visibility === 1) { return 'edges'; }
+    return visibility === 2 ? 'filled' : 'hidden';
+  }
+}
+
+/** A plane layer's state, in the numbering ClippedPlaneLayer counts in. */
+function planeState(visibility: number): SceneLayerState {
+  if (visibility === EDGES_ONLY) { return 'edges'; }
+  return visibility === EDGES_AND_FILL ? 'filled' : 'hidden';
+}
+
+/** A layer that is either drawn or not has two of the three states. */
+function drawnState(visible: boolean): SceneLayerState {
+  return visible ? 'filled' : 'hidden';
+}

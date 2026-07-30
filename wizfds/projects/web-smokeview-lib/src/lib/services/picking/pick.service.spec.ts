@@ -361,6 +361,60 @@ describe('PickService', () => {
     });
   });
 
+  describe('where the pointer is', () => {
+    // What the status bar reads, in the metres the user would type into a `.fds`
+    // file (ADR-0002). The point is where the ray met the model, so it is a
+    // coordinate on a real surface rather than somewhere on an imagined plane.
+
+    function pointerAt(): { x: number, y: number, z: number } | null {
+      let at: { x: number, y: number, z: number } | null;
+      picking.pointerAt$.subscribe(point => at = point).unsubscribe();
+      return at;
+    }
+
+    it('is the point on the model the pointer is over', () => {
+      render([makeObst('W', WEST)]);
+
+      picking.hover(rayAlongX());
+
+      // The ray runs along +x at y = 3, z = 1.5 and meets the west wall's face
+      expect(pointerAt().x).toBeCloseTo(0, 5);
+      expect(pointerAt().y).toBeCloseTo(3, 5);
+      expect(pointerAt().z).toBeCloseTo(1.5, 5);
+    });
+
+    it('is nothing when the pointer is over empty space', () => {
+      render([makeObst('W', WEST)]);
+      picking.hover(rayAlongX());
+
+      picking.hover(rayOverhead());
+
+      expect(pointerAt()).toBeNull();
+    });
+
+    it('keeps answering while the pointer travels over one element', () => {
+      // Hovering stops short of redrawing the outline when the element has not
+      // changed, but the coordinate has - so it is published before that.
+      render([makeObst('W', WEST)]);
+      picking.hover(rayAlongX());
+
+      picking.hover(new BABYLON.Ray(
+        new BABYLON.Vector3(-5, 4.5, 2.5), new BABYLON.Vector3(1, 0, 0), 100));
+
+      expect(pointerAt().y).toBeCloseTo(4.5, 5);
+      expect(pointerAt().z).toBeCloseTo(2.5, 5);
+    });
+
+    it('is nothing once the pointer has left the canvas', () => {
+      render([makeObst('W', WEST)]);
+      picking.hover(rayAlongX());
+
+      picking.clearHover();
+
+      expect(pointerAt()).toBeNull();
+    });
+  });
+
   describe('selecting more than one', () => {
     it('replaces the selection by default', () => {
       render([makeObst('W', WEST), makeObst('E', EAST)]);

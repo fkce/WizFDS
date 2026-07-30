@@ -1,24 +1,13 @@
 import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, isDevMode } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
-import { ObstService } from '../../services/drawing/obst/obst.service';
 import { PickService } from '../../services/picking/pick.service';
 import { BabylonService } from '../../services/babylon/babylon.service';
 import { SliceService } from '../../services/drawing/slice/slice.service';
 import { PlayerService } from '../../services/player/player.service';
 import { ViewCubeService } from '../../services/babylon/viewCube/view-cube.service';
 import * as BABYLON from 'babylonjs';
-import { MeshService } from '../../services/drawing/mesh/mesh.service';
-import { OpenService } from '../../services/drawing/open/open.service';
-import { VentService } from '../../services/drawing/vent/vent.service';
-import { JetfanService } from '../../services/drawing/jetfan/jetfan.service';
-import { FireService } from '../../services/drawing/fire/fire.service';
-import { DevcService } from '../../services/drawing/devc/devc.service';
-import { GeomService } from '../../services/drawing/geom/geom.service';
-import { InitService } from '../../services/drawing/init/init.service';
-import { ZoneService } from '../../services/drawing/zone/zone.service';
-import { HoleRegionService } from '../../services/drawing/hole/hole-region.service';
-import { SceneAxis, SceneBoundsService } from '../../services/scene-bounds/scene-bounds.service';
+import { SceneBoundsService } from '../../services/scene-bounds/scene-bounds.service';
 
 /**
  * How far the pointer may travel between down and up and still count as a click,
@@ -32,6 +21,14 @@ const CLICK_SLOP = 5;
 /** PointerEvent.button for the left button - the only one that selects. */
 const PRIMARY_BUTTON = 0;
 
+/**
+ * The canvas, and the gestures made on it.
+ *
+ * What used to sit over it - the visibility menu, the section sliders, the help
+ * table, the panel naming what was picked - belongs to the host now and reaches
+ * the scene through SceneViewService (ADR-0010). The library draws and exposes
+ * an API; it does not hold an interface.
+ */
 @Component({
     selector: 'lib-smokeview',
     templateUrl: './smokeview.component.html',
@@ -46,12 +43,12 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   /**
    * Arm a possible click.
    *
-   * Bound on the canvas in the template rather than on the host: the visibility
-   * buttons, the clip sliders, the help panel and the player controls are all
-   * layered over the canvas inside this component, and a press on one of those is
-   * not a press in the scene. It would also pick at whatever pointer position the
-   * scene last saw - Babylon reads scene.pointerX off canvas events only - so it
-   * would usually miss and silently clear the selection.
+   * Bound on the canvas in the template rather than on the host: the player
+   * controls and any gesture overlay are layered over the canvas inside this
+   * component, and a press on one of those is not a press in the scene. It would
+   * also pick at whatever pointer position the scene last saw - Babylon reads
+   * scene.pointerX off canvas events only - so it would usually miss and
+   * silently clear the selection.
    */
   onPointerDown(event: PointerEvent): void {
     this.pointerDownAt = null;
@@ -96,7 +93,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /**
-   * Mark what a click would select.
+   * Mark what a click would select, and say where the pointer is.
    *
    * At most once a frame: a pick runs against everything drawn, and a scenario
    * at the scale this module is built for holds ten thousand obsts. A pointer
@@ -142,8 +139,6 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     return ray;
   }
 
-  showHelp: boolean = false;
-
   /**
    * Mirrors BabylonService.webGPUAvailable once the scene has been attempted.
    * False means the browser cannot render anything - the template says so
@@ -167,66 +162,13 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   private pointerDownAt: { x: number, y: number } | null = null;
 
   constructor(
-    public obstService: ObstService,
     public picking: PickService,
-    public meshService: MeshService,
-    public openService: OpenService,
-    public ventService: VentService,
-    public jetfanService: JetfanService,
-    public fireService: FireService,
-    public devcService: DevcService,
-    public geomService: GeomService,
-    public initService: InitService,
-    public zoneService: ZoneService,
-    public holeRegionService: HoleRegionService,
     private babylonService: BabylonService,
     public sliceService: SliceService,
     public playerService: PlayerService,
     public viewCubeService: ViewCubeService,
     private sceneBounds: SceneBoundsService
   ) { }
-
-  /**
-   * The clip sliders run in FDS metres, over the model's own extent.
-   *
-   * The value they carry is the coordinate of the cutting plane - the number the
-   * user can read off and type straight into a `.fds` file (ADR-0002). Where a
-   * slider can be dragged to follows from the model, so a five-metre room and a
-   * four-hundred-metre tunnel both get a slider worth dragging.
-   */
-  public clipMin(axis: SceneAxis): number { return this.sceneBounds.clipMin(axis); }
-  public clipMax(axis: SceneAxis): number { return this.sceneBounds.clipMax(axis); }
-  public clipStep(axis: SceneAxis): number { return this.sceneBounds.clipStep(axis); }
-
-  /** Where a clipping plane currently cuts, in metres. */
-  public clipPlane(axis: SceneAxis): number {
-    return this.obstService.clipPlane(axis);
-  }
-
-  /** Rounded to a centimetre - finer than any geometry FDS is given. */
-  public clipLabel(axis: SceneAxis): string {
-    return `${this.clipPlane(axis).toFixed(2)} m`;
-  }
-
-  /**
-   * Move one clipping plane, across every element type it cuts through.
-   *
-   * Each drawing service owns its own materials, so each has to be told; the
-   * plane is the same coordinate for all of them.
-   */
-  public setClip(axis: SceneAxis, metres: number): void {
-    this.obstService.clip(metres, axis);
-    this.fireService.clip(metres, axis);
-    this.ventService.clipBasic(metres, axis);
-    this.openService.clip(metres, axis);
-    // Takes the planes drawn for each jetfan with it - see JetfanService.clip()
-    this.jetfanService.clip(metres, axis);
-    this.devcService.clip(metres, axis);
-    this.geomService.clip(metres, axis);
-    this.initService.clip(metres, axis);
-    this.zoneService.clip(metres, axis);
-    this.holeRegionService.clip(metres, axis);
-  }
 
   ngOnInit() {
     // Decided on first paint, so an unsupported browser sees the message
@@ -264,23 +206,6 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       });
   }
-
-  /**
-   * On OBST file upload
-   */
-  //public onObstFileSelected() {
-  //  const inputNode: any = document.querySelector('#fileObst');
-
-  //  if (typeof (FileReader) !== 'undefined') {
-  //    const reader = new FileReader();
-
-  //    reader.onload = (e: any) => {
-  //      //this.obstService.getFromFile(JSON.parse(e.target.result));
-  //    };
-
-  //    reader.readAsText(inputNode.files[0], 'UTF-8');
-  //  }
-  //}
 
   ngOnDestroy() {
     this.destroyed = true;
