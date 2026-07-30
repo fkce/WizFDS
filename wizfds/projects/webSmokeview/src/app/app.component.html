@@ -1,11 +1,69 @@
-<div class="header">
-    webSmokeview
-</div>
+<header class="app-bar">
+    <mat-icon svgIcon="cube-outline" aria-hidden="true"></mat-icon>
+    <span class="brand">webSmokeview</span>
+</header>
+
 <div class="main">
-    <div class="file-explorer">
+    <aside class="file-explorer">
         <app-tree></app-tree>
-    </div>
-    <div class="smokeview-lib">
-        <lib-smokeview></lib-smokeview>
-    </div>
+    </aside>
+
+    <section class="viewer">
+        <!--
+            The controls the library used to layer over its own canvas. They live
+            here now and reach the scene through SceneViewService - the same API
+            the main app's ribbon calls (ADR-0010).
+        -->
+        <div class="control-bar">
+            <div class="group">
+                <span class="group-label">Visibility</span>
+                <button type="button" class="chip" *ngFor="let layer of view.layers"
+                    [ngClass]="'is-' + view.layerState(layer.id)" (click)="view.toggleLayer(layer.id)"
+                    [title]="'Cycle ' + layer.label + ': outline, filled, hidden'">
+                    <mat-icon [svgIcon]="layerIcon(layer.id)" aria-hidden="true"></mat-icon>
+                    <span>{{ layer.label }}</span>
+                </button>
+            </div>
+
+            <div class="group">
+                <span class="group-label">Display</span>
+                <button type="button" class="chip" *ngFor="let display of view.displays"
+                    [class.on]="view.isDisplayOn(display.id)" (click)="view.toggleDisplay(display.id)">
+                    <mat-icon [svgIcon]="displayIcon(display.id)" aria-hidden="true"></mat-icon>
+                    <span>{{ display.label }}</span>
+                </button>
+            </div>
+
+            <div class="group">
+                <span class="group-label">Section</span>
+                <!-- In metres over the model's own extent (ADR-0002) -->
+                <div class="slider" *ngFor="let axis of axes">
+                    <label>{{ axis }}</label>
+                    <input type="range" [ngModel]="view.clipPlane(axis)"
+                        (ngModelChange)="view.setClip(axis, $event)"
+                        [min]="view.clipMin(axis)" [max]="view.clipMax(axis)"
+                        [step]="view.clipStep(axis)"
+                        [attr.aria-label]="'Section plane on ' + axis" />
+                    <span class="readout">{{ view.clipLabel(axis) }}</span>
+                </div>
+                <button type="button" class="chip" (click)="view.resetClipping()">
+                    <mat-icon svgIcon="border-all-variant" aria-hidden="true"></mat-icon>
+                    <span>Show all</span>
+                </button>
+            </div>
+
+            <div class="group">
+                <span class="group-label">Camera</span>
+                <button type="button" class="chip" (click)="view.zoomExtents()"
+                    title="Frame the whole model">
+                    <mat-icon svgIcon="crop-free" aria-hidden="true"></mat-icon>
+                    <span>Extents</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="canvas">
+            <lib-smokeview></lib-smokeview>
+        </div>
+    </section>
 </div>
