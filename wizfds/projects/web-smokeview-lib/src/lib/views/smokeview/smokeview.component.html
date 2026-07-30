@@ -84,10 +84,6 @@
             <input hidden (change)="onSliceFileSelected()" #fileSliceInput type="file" id="fileSlice" accept=".json">
         </p>
         <p class="upload">
-            <button (click)="fileFdsInput.click()">Upload .fds file ...</button>
-            <input hidden (change)="onFdsFileSelected()" #fileFdsInput type="file" id="fileFds" accept=".fds">
-        </p>
-        <p class="upload">
             <button (click)="obstService.getFromServer();sliceService.getFromServer()">Show example</button>
         </p>
     </div>

@@ -45,6 +45,8 @@ Scena pozostaje prawoskrętna z osią Z w górę (`useRightHandedSystem = true`,
 - Wartości clippingu przestają być bezwymiarowe — suwaki muszą operować na zakresie bounding boxa.
 - Klasy domenowe `Obst`, `Mesh`, `Open` i `primitives` mają pole `vis` z `xbNorm`. Nie trafia ono do `toJSON()`, więc nie ma go w bazie — usunięcie jest bezpieczne, ale wymaga sprawdzenia wszystkich odczytów.
 
+**Wyjątek: `webSmokeview`.** Standalone viewer nie dostaje scenariusza, tylko eksport geometrii z SmokeView, a SmokeView normalizuje siatkę przy wczytywaniu `.smv` — `NORMALIZE_X(x)` to `(x - xbar0) / xyzmaxdiff`. Eksport nie niesie ani `xbar0`, ani `xyzmaxdiff`, więc nie ma czym tego cofnąć: najdłuższy bok modelu ma tam długość 1. Biblioteka nie widzi różnicy, bo od czasu tej decyzji wszystko mierzy od samego modelu (kamera, suwaki, grubości krawędzi) — ale współrzędna odczytana w `webSmokeview` **nie jest** współrzędną FDS. Ta decyzja obowiązuje wszędzie tam, gdzie źródłem jest obiekt `Fds`; jedynym miejscem, w którym nie obowiązuje, jest `parsers/smokeviewJson/obst-json.service.ts`. Zdjęcie wyjątku wymaga zmiany tego, co wysyła backend `webSmokeview` (zob. #106).
+
 **Precyzja.** Float32 daje ok. 7 cyfr znaczących. Przy modelu o rozciągłości 1000 m błąd reprezentacji pozycji to rząd 0,1 mm — dla tuneli i garaży bez znaczenia. Gdyby kiedyś pojawiły się modele oddalone o kilometry od originu, wracamy do tematu przesunięcia originu renderowania (rozważone i odrzucone poniżej).
 
 ## Rozważone alternatywy

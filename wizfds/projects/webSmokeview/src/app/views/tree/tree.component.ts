@@ -1,9 +1,9 @@
-import { Component, OnInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
-import { HttpManagerService, Result } from '../../services/http-manager/http-manager.service';
-import { environment } from '../../../environments/environment';
+import { Component, OnInit, AfterViewInit } from '@angular/core';
+import { Result } from '../../services/http-manager/http-manager.service';
 import { SmokeviewApiService } from 'projects/web-smokeview-lib/src/lib/services/smokeview-api/smokeview-api.service';
+import { ObstJsonService } from 'projects/web-smokeview-lib/src/lib/services/parsers/smokeviewJson/obst-json.service';
 import { TreeService } from '../../services/tree/tree.service';
-import { GeometryLoaderService } from '../../services/loaders/geometryLoader/geometry-loader.service';
+import { GeometryLoaderService, SimulationNode } from '../../services/loaders/geometryLoader/geometry-loader.service';
 
 @Component({
     selector: 'app-tree',
@@ -21,8 +21,8 @@ export class TreeComponent implements OnInit, AfterViewInit {
   tree: object = {};
 
   constructor(
-    private httpManager: HttpManagerService,
     private smvApiService: SmokeviewApiService,
+    private obstJsonService: ObstJsonService,
     private treeService: TreeService,
     private geomLoaderService: GeometryLoaderService
   ) { }
@@ -45,11 +45,11 @@ export class TreeComponent implements OnInit, AfterViewInit {
    * Load / generate smokeview geometry
    * @param simulation tree node
    */
-  public loadSmv(simulation: any) {
+  public loadSmv(simulation: SimulationNode) {
     this.geomLoaderService.loadSmv(simulation).then(
       (result: Result) => {
         if (result.meta.status == 'success') {
-          this.smvApiService.renderJsonObsts(result.data);
+          this.render(result.data);
         }
       });
   }
@@ -58,42 +58,29 @@ export class TreeComponent implements OnInit, AfterViewInit {
    * Load already generated json geometry
    * @param simulation tree node
    */
-  public loadJson(simulation: any) {
+  public loadJson(simulation: SimulationNode) {
     this.geomLoaderService.loadJson(simulation).then(
       (result: Result) => {
         if (result.meta.status == 'success') {
-          this.smvApiService.renderJsonObsts(result.data);
+          this.render(result.data);
         }
       });
   }
 
-
-
-  public getJsonObject() {
-    this.httpManager.get(environment.host + '/api/obsts').then(
-      (result: Result) => {
-
-        if (result.meta.status == 'success') {
-
-          this.smvApiService.renderJsonObsts(result.data);
-
-          // Run renderObstJson()
-          // Run renderMeshJson()
-          // Run ...
-          console.log(result.meta);
-
-          // Asigning variables
-          //this.vertices = result.data.vertices;
-          //this.colors = result.data.colors;
-          //this.indices = result.data.indices;
-
-          //this.render();
-          //this.zoomToCenter();
-          //this.zoomToMesh();
-        }
-      });
+  /**
+   * Hand a loaded simulation to the preview.
+   *
+   * Everything the library draws goes through the same typed contract, so the
+   * standalone viewer builds it from the export it loaded exactly as the app
+   * builds it from a scenario (ADR-0004). The library never sees the response.
+   *
+   * @param data the parsed export - see ObstJsonService for what it holds
+   */
+  private render(data: unknown): void {
+    // Failures are logged by the library rather than rejected, so there is
+    // nothing here to recover from - see SmokeviewApiService.render().
+    void this.smvApiService.render(this.obstJsonService.toScene(data));
   }
-
 
   public setLevel1(level: string) {
     if (this.l1 == level) {

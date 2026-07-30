@@ -17,6 +17,13 @@
  * There is no second coordinate system: the scene is drawn in metres 1:1 with
  * its origin at the FDS origin (ADR-0002), so this is both what crosses the
  * boundary and what the library draws.
+ *
+ * One producer cannot keep that promise: the standalone viewer reads geometry
+ * out of a Smokeview export, which SmokeView normalised on its way in and which
+ * carries no scale to undo it with. Its boxes are in SmokeView's units, and the
+ * library cannot tell the difference - everything is measured off the model
+ * itself, so it draws either way. See ObstJsonService, which is the only place
+ * that happens.
  */
 export interface SceneXb {
     readonly x1: number,

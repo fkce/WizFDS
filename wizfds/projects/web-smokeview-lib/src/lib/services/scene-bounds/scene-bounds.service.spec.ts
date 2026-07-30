@@ -227,35 +227,6 @@ describe('SceneBoundsService', () => {
       expect(service.extent).toBeGreaterThan(0);
     });
 
-    it('measures a vertex buffer past the same nonsense', () => {
-      service.setFromPositions([
-        -39.9, -25.5, -4.2,
-        27.6, 10.8, 6.9,
-        1e20, 1e20, 1e20
-      ]);
-
-      expect(service.extent).toBeLessThan(1000);
-      expect(service.box.x2).toBe(27.6);
-    });
-  });
-
-  describe('measuring a raw vertex buffer', () => {
-    // The standalone viewer reads geometry straight out of a Smokeview export
-    // and has no scenario to hand over - see ADR-0004.
-
-    it('spans every position in the buffer', () => {
-      service.setFromPositions([0, 0, 0, 6, 2, 3, -1, 5, 1]);
-
-      expect(service.box).toEqual({ x1: -1, x2: 6, y1: 0, y2: 5, z1: 0, z2: 3 });
-    });
-
-    it('ignores an empty buffer', () => {
-      service.setFrom([{ x1: 0, x2: 10, y1: 0, y2: 8, z1: 0, z2: 4 }]);
-
-      service.setFromPositions([]);
-
-      expect(service.box.x2).toBe(10);
-    });
   });
 
   describe('clip planes', () => {

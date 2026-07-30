@@ -116,40 +116,6 @@ describe('ObstService', () => {
     expect(service).toBeTruthy();
   });
 
-  describe('renderJson', () => {
-    // The standalone viewer reads geometry straight out of a Smokeview export
-    // and has no scenario to hand over - see ADR-0004.
-
-    it('does not empty the buffers it was handed on the next render', () => {
-      const data = {
-        vertices: [0, 0, 0, 1, 0, 0, 1, 1, 0],
-        colors: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        indices: [0, 1, 2]
-      };
-
-      service.renderJson(data);
-      service.obsts = [makeObst('W1', { x1: 0, x2: 4, y1: 2, y2: 2.2, z1: 0, z2: 3 })];
-      service.holes = [];
-      service.renderObsts();
-
-      expect(data.vertices.length).toBe(9);
-      expect(data.indices.length).toBe(3);
-    });
-
-    it('draws the buffer it was handed on a mesh of its own', () => {
-      // Nothing to instance and nothing to identify: there is no scenario behind
-      // these triangles, only the export they were read out of.
-      service.renderJson({
-        vertices: [0, 0, 0, 1, 0, 0, 1, 1, 0],
-        colors: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        indices: [0, 1, 2]
-      });
-
-      expect(service.jsonMesh).toBeTruthy();
-      expect(service.jsonMesh.getTotalVertices()).toBe(3);
-    });
-  });
-
   describe('scene coordinates', () => {
     // The scene is drawn in FDS metres 1:1 with its origin at the FDS origin, so
     // a coordinate read off the screen can be typed straight into a .fds file -
@@ -394,10 +360,7 @@ describe('ObstService', () => {
 
       expect(service.opaqueMesh).toBeUndefined();
       expect(service.transparentMesh).toBeUndefined();
-      expect(service.jsonMesh).toBeNull();
-      expect(service.vertices.length).toBe(0);
-      expect(service.indices.length).toBe(0);
-      expect(service.positions.length).toBe(0);
+      expect(service.pickableMeshes()).toEqual([]);
     });
 
     it('leaves the service able to draw into the next scene', () => {

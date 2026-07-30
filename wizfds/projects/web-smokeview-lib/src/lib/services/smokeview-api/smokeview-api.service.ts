@@ -38,6 +38,10 @@ export class SmokeviewApiService {
    * element type crosses this boundary the same way - flat, typed and read-only
    * (ADR-0004).
    *
+   * The only way in, for both apps that use the library: `wizfds` builds the
+   * input from its `Fds` object, and the standalone viewer from a loaded
+   * Smokeview export - see SceneInputService and ObstJsonService respectively.
+   *
    * The promise settles once everything has been drawn and never rejects: a
    * failed render is logged rather than left to surface as an unhandled
    * rejection in the host app.
@@ -77,20 +81,6 @@ export class SmokeviewApiService {
 
     this.devcService.devcs = scene.devcs;
     await this.settled('devices', () => this.devcService.renderDevcs());
-  }
-
-  /**
-   * Draw obsts from a pre-built vertex buffer.
-   *
-   * The standalone viewer reads geometry straight out of a Smokeview export, so
-   * it has no scenario to hand over - see ADR-0004. The buffer is what the model
-   * is measured from instead.
-   */
-  public renderJsonObsts(data: any) {
-    this.sceneBounds.setFromPositions((data && data.vertices) || []);
-    this.babylonService.applySceneBounds();
-    this.resetClipping();
-    this.obstService.renderJson(data);
   }
 
   /**
