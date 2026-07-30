@@ -17,6 +17,7 @@ import { DevcService } from '../../services/drawing/devc/devc.service';
 import { GeomService } from '../../services/drawing/geom/geom.service';
 import { InitService } from '../../services/drawing/init/init.service';
 import { ZoneService } from '../../services/drawing/zone/zone.service';
+import { HoleRegionService } from '../../services/drawing/hole/hole-region.service';
 import { SceneAxis, SceneBoundsService } from '../../services/scene-bounds/scene-bounds.service';
 
 /**
@@ -177,6 +178,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     public geomService: GeomService,
     public initService: InitService,
     public zoneService: ZoneService,
+    public holeRegionService: HoleRegionService,
     private babylonService: BabylonService,
     public sliceService: SliceService,
     public playerService: PlayerService,
@@ -223,6 +225,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     this.geomService.clip(metres, axis);
     this.initService.clip(metres, axis);
     this.zoneService.clip(metres, axis);
+    this.holeRegionService.clip(metres, axis);
   }
 
   ngOnInit() {

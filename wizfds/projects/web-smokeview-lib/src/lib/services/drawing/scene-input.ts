@@ -55,12 +55,10 @@ export interface SceneColor {
  * them and scanning all of them for a uuid is work the scene can save it.
  *
  * The names are the app's own words for these elements, which are the FDS
- * namelist names lowercased. Only what is drawn is here: a &HOLE is cut out of
- * the obsts it overlaps and never drawn in its own right, so no pick can return
- * one and nothing has to handle it.
+ * namelist names lowercased. Only what is drawn is here.
  */
 export type SceneElementType =
-    'obst' | 'mesh' | 'open' | 'vent' | 'fire' | 'jetfan' | 'devc' | 'geom' | 'init' | 'zone';
+    'obst' | 'hole' | 'mesh' | 'open' | 'vent' | 'fire' | 'jetfan' | 'devc' | 'geom' | 'init' | 'zone';
 
 /** Everything the library draws has an identity, an FDS name and a box. */
 export interface SceneElement {
@@ -74,8 +72,19 @@ export interface SceneElement {
 /** A &MESH. Drawn as an outline, in a colour the library picks itself. */
 export type SceneMesh = SceneElement;
 
-/** A &HOLE. Cut out of the obsts it overlaps; never drawn on its own. */
-export type SceneHole = SceneElement;
+/**
+ * A &HOLE - an opening, cut out of every &OBST it overlaps.
+ *
+ * It is also drawn in its own right, as a translucent outlined box. Nothing else
+ * would put anything on screen where a hole is - that is the point of one - so
+ * without a box of its own there is nothing to click, and a doorway could not be
+ * selected, moved or deleted from the 3D view at all.
+ *
+ * Like an &INIT and a &ZONE it has no colour in FDS, so the app picks one.
+ */
+export interface SceneHole extends SceneElement {
+    readonly color: SceneColor
+}
 
 /** An `OPEN` vent. Drawn as a plane, in a colour the library picks itself. */
 export type SceneOpen = SceneElement;

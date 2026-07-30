@@ -5,6 +5,7 @@ import { PickService, ScenePicked } from './pick.service';
 import { ObstService } from '../drawing/obst/obst.service';
 import { MeshService } from '../drawing/mesh/mesh.service';
 import { InitService } from '../drawing/init/init.service';
+import { HoleRegionService } from '../drawing/hole/hole-region.service';
 import { BabylonService } from '../babylon/babylon.service';
 import { SceneBoundsService } from '../scene-bounds/scene-bounds.service';
 import {
@@ -38,7 +39,7 @@ function makeObst(id: string, xb: SceneXb, color: SceneColor = OPAQUE): SceneObs
 }
 
 function makeHole(id: string, xb: SceneXb): SceneHole {
-  return { id: id, uuid: `${id}-uuid`, xb: xb };
+  return { id: id, uuid: `${id}-uuid`, xb: xb, color: { r: 0.59, g: 0.9, b: 0.27, a: 0.35 } };
 }
 
 function makeMesh(id: string, xb: SceneXb): SceneMesh {
@@ -69,6 +70,7 @@ describe('PickService', () => {
   let obsts: ObstService;
   let meshes: MeshService;
   let inits: InitService;
+  let holeRegions: HoleRegionService;
   let engine: BABYLON.NullEngine;
   let scene: BABYLON.Scene;
 
@@ -100,6 +102,7 @@ describe('PickService', () => {
     obsts = TestBed.inject(ObstService);
     meshes = TestBed.inject(MeshService);
     inits = TestBed.inject(InitService);
+    holeRegions = TestBed.inject(HoleRegionService);
     picking = TestBed.inject(PickService);
   });
 
@@ -236,6 +239,21 @@ describe('PickService', () => {
       picking.pick(rayAlongX());
 
       expect(picking.lastSelected.id).toBe('W');
+    });
+
+    it('picks a &HOLE, which is drawn only so that it can be', async () => {
+      // An opening is cut out of the wall, so nothing else puts anything on
+      // screen where it is - the box drawn for it is the only thing to click.
+      const doorway = { x1: 4.9, x2: 5.3, y1: 2, y2: 4, z1: 0, z2: 2.1 };
+      render([makeObst('DOOR', MIDDLE)], [makeHole('H', doorway)]);
+      holeRegions.holes = [makeHole('H', doorway)];
+      await holeRegions.renderHoles();
+
+      // Straight through the opening: y = 3 and z = 1.5 are both inside it
+      picking.pick(rayAlongX());
+
+      expect(picking.lastSelected.type).toBe('hole');
+      expect(picking.lastSelected.id).toBe('H');
     });
 
     it('still picks the region where nothing solid is behind it', async () => {

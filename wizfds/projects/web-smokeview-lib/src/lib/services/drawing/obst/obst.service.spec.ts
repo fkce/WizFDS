@@ -28,7 +28,8 @@ function makeHole(id: string, xb: SceneXb): SceneHole {
   return {
     id: id,
     uuid: `${id}-uuid`,
-    xb: xb
+    xb: xb,
+    color: { r: 0.59, g: 0.9, b: 0.27, a: 0.35 }
   };
 }
 

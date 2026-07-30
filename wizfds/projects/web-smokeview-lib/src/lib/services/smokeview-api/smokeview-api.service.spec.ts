@@ -106,7 +106,10 @@ describe('SmokeviewApiService', () => {
 
   it('hands the holes to the obst service, which is what cuts them', async () => {
     const obstService = TestBed.inject(ObstService);
-    const holes = [{ uuid: 'h', id: 'HOLE', xb: { x1: 0, x2: 1, y1: 0, y2: 1, z1: 0, z2: 1 } }];
+    const holes = [{
+      uuid: 'h', id: 'HOLE', xb: { x1: 0, x2: 1, y1: 0, y2: 1, z1: 0, z2: 1 },
+      color: { r: 0.59, g: 0.9, b: 0.27, a: 0.35 }
+    }];
 
     await service.render({ ...emptyScene(), holes: holes });
 

@@ -50,6 +50,24 @@ const INIT_RGB: number[] = [170, 100, 255];
 const ZONE_RGB: number[] = [255, 90, 200];
 
 /**
+ * A &HOLE: green, which nothing else on screen is.
+ *
+ * An opening is not a condition region, so it must not read as one - and it is
+ * drawn over the very obst it was cut out of, so it has to be told apart from
+ * the wall around it at a glance.
+ */
+const HOLE_RGB: number[] = [150, 230, 70];
+
+/**
+ * How solid an opening is drawn.
+ *
+ * A little more than a condition region: a hole is small, often seen edge-on
+ * through the thickness of a wall, and it is the thing being worked on rather
+ * than a note about the space.
+ */
+const HOLE_ALPHA = 0.35;
+
+/**
  * How solid a condition region is drawn.
  *
  * An &INIT and a &ZONE cover the geometry they apply to by design - a warm layer
@@ -105,7 +123,8 @@ export class SceneInputService {
       })),
       obsts: geometry.obsts.map((obst: Obst) => this.obst(obst, surfs)),
       holes: geometry.holes.map((hole: Hole): SceneHole => ({
-        uuid: hole.uuid, id: hole.id, xb: this.xb(hole.xb)
+        uuid: hole.uuid, id: hole.id, xb: this.xb(hole.xb),
+        color: this.color(HOLE_RGB, HOLE_ALPHA, HOLE_RGB)
       })),
       opens: geometry.opens.map((open: Open): SceneOpen => ({
         uuid: open.uuid, id: open.id, xb: this.xb(open.xb)
