@@ -52,10 +52,12 @@ export class PropertiesPaletteComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.sub = this.selection.selected$.subscribe(selected => {
-      // The palette shows one element; a multi-selection is named by a count.
-      // Looked up rather than trusted, as a selection outlives the render that
-      // produced it - see VisualizeComponent.onPicked().
-      this.found = selected.length > 0 ? this.elements.byUuid(selected[0].uuid) : undefined;
+      // The palette shows one element - the one last clicked - and names the
+      // rest of a multi-selection by a count. Looked up rather than trusted, as
+      // a selection outlives the render that produced it - see
+      // VisualizeComponent.onPicked().
+      const last = this.selection.lastSelected;
+      this.found = last ? this.elements.byUuid(last.uuid) : undefined;
       this.alsoSelected = Math.max(selected.length - 1, 0);
     });
   }

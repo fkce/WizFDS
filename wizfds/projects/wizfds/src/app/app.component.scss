@@ -169,7 +169,7 @@ mat-progress-bar.progress {
     &.saved .dot { background: var(--success); }
     &.unsaved .dot {
       background: var(--danger);
-      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.18);
+      box-shadow: 0 0 0 3px var(--danger-glow);
     }
     &.idle .dot { background: var(--on-surface-muted); }
   }

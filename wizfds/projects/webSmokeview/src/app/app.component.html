@@ -59,6 +59,11 @@
                     <mat-icon svgIcon="crop-free" aria-hidden="true"></mat-icon>
                     <span>Extents</span>
                 </button>
+                <!-- The same flights clicking a face of the view cube makes -->
+                <button type="button" class="chip" *ngFor="let standard of view.standardViews"
+                    (click)="view.viewFrom(standard.side)">
+                    <span>{{ standard.label }}</span>
+                </button>
             </div>
         </div>
 

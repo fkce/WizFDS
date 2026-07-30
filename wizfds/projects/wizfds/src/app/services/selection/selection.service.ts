@@ -53,6 +53,19 @@ export class SelectionService {
   }
 
   /**
+   * The element selected most recently - what a panel that shows one element
+   * shows, and what a contextual tab is named after.
+   *
+   * The last and not the first: a ctrl+click appends, so the first is the one
+   * the user chose longest ago, and a palette naming it would stop following the
+   * clicks as soon as a second element was added. The pick panel this replaces
+   * read the same end of the list.
+   */
+  public get lastSelected(): SelectedElement | undefined {
+    return this.selected[this.selected.length - 1];
+  }
+
+  /**
    * Select one element.
    *
    * @param options `add` extends the selection, and takes the element back out

@@ -12,6 +12,7 @@ import { InitService } from '../drawing/init/init.service';
 import { ZoneService } from '../drawing/zone/zone.service';
 import { HoleRegionService } from '../drawing/hole/hole-region.service';
 import { BabylonService } from '../babylon/babylon.service';
+import { ViewCubeService } from '../babylon/viewCube/view-cube.service';
 import { SceneAxis, SceneBoundsService } from '../scene-bounds/scene-bounds.service';
 import { SceneXb } from '../drawing/scene-input';
 import { EDGES_AND_FILL, EDGES_ONLY } from '../drawing/clipped-plane-layer';
@@ -44,6 +45,43 @@ export interface SceneLayer {
 export interface SceneDisplay {
   readonly id: SceneDisplayId;
   readonly label: string;
+}
+
+/**
+ * A standard view, named as the view cube names its own faces.
+ *
+ * The four an engineer reaches for: a plan, the two elevations, and the
+ * isometric the camera starts in. Clicking the cube offers the rest.
+ */
+export interface SceneStandardView {
+  /** The side ViewCubeService.zoomToSide() flies to. */
+  readonly side: string;
+  readonly label: string;
+}
+
+export const STANDARD_VIEWS: readonly SceneStandardView[] = [
+  { side: 'top', label: 'Top' },
+  { side: 'front', label: 'Front' },
+  { side: 'right', label: 'Right' },
+  { side: 'leftTopFront', label: 'Iso' }
+];
+
+/**
+ * The icon each layer state reads as, in MDI names.
+ *
+ * Here rather than in each host because both of them draw the same control - the
+ * ribbon's Visibility panel and the standalone viewer's control bar - and the
+ * three states have to look the same in the two apps or they stop meaning the
+ * same thing.
+ */
+export function layerStateIcon(state: SceneLayerState): string {
+  return state === 'hidden' ? 'eye-off-outline'
+    : state === 'edges' ? 'square-outline' : 'checkbox-blank';
+}
+
+/** The icon a display switch reads as. Same reason as above. */
+export function displaySwitchIcon(on: boolean): string {
+  return on ? 'checkbox-marked-outline' : 'checkbox-blank-outline';
 }
 
 /** What one layer answers about itself, whichever service draws it. */
@@ -92,7 +130,8 @@ export class SceneViewService {
     private zoneService: ZoneService,
     private holeRegionService: HoleRegionService,
     private babylonService: BabylonService,
-    private sceneBounds: SceneBoundsService
+    private sceneBounds: SceneBoundsService,
+    private viewCube: ViewCubeService
   ) {
     this.layerBindings = [
       // A &MESH keeps its own numbering - see meshState()
@@ -254,8 +293,8 @@ export class SceneViewService {
    *
    * The planes are coordinates in metres, so they mean nothing once the model
    * changes: z = 4 m is the ceiling of a room and the floor of a tunnel. Drawing
-   * a scenario is the moment that can happen, which is why SmokeviewApiService
-   * calls this on every render as well as the ribbon's Reset button.
+   * a scenario is one moment that can happen, which is why SmokeviewApiService
+   * calls this as well as the "show all" button.
    */
   public resetClipping(): void {
     this.obstService.resetClipping();
@@ -274,9 +313,22 @@ export class SceneViewService {
   // Camera
   // ==========================================
 
+  /** The standard views a control can offer, in the order it lists them. */
+  public readonly standardViews = STANDARD_VIEWS;
+
   /** Frame the whole model - the view the camera starts in. */
   public zoomExtents(): void {
     this.babylonService.applySceneBounds();
+  }
+
+  /**
+   * Fly to one standard view.
+   *
+   * The same flight clicking the view cube makes, so the cube in the canvas and
+   * the buttons in the host answer to one implementation.
+   */
+  public viewFrom(side: string): void {
+    this.viewCube.zoomToSide(side);
   }
 
   /** Frame one box, which is what "zoom to selection" comes down to. */

@@ -50,6 +50,27 @@ describe('ViewportStatusService', () => {
     expect(service.grid).toBeNull();
   });
 
+  it('is silent while the 3D view is not open', () => {
+    expect(service.active).toBe(false);
+
+    service.enter();
+
+    expect(service.active).toBe(true);
+  });
+
+  it('stays on the bar while the pointer crosses empty space', () => {
+    // The pointer crosses a lot of it, and a segment that came and went with it
+    // would reflow the status row several times a second - so the bar shows the
+    // segment for as long as the view is open and dashes what it cannot say.
+    service.enter();
+    service.setCursor({ x: 2.5, y: 1, z: 1.5 });
+
+    service.setCursor(null);
+
+    expect(service.active).toBe(true);
+    expect(service.cursor).toBeNull();
+  });
+
   it('holds the point the preview reported, in metres', () => {
     service.setCursor({ x: 2.5, y: 1, z: 1.5 });
 
@@ -105,10 +126,12 @@ describe('ViewportStatusService', () => {
     // The status bar is the whole app's, so the 3D view has to take its readout
     // back down on the way out - otherwise a stale coordinate sits there while
     // the user edits a form.
+    service.enter();
     service.setCursor({ x: 2.5, y: 1, z: 1.5 });
 
-    service.clear();
+    service.leave();
 
+    expect(service.active).toBe(false);
     expect(service.cursor).toBeNull();
     expect(service.grid).toBeNull();
   });

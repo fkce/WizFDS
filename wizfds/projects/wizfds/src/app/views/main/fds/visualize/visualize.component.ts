@@ -43,6 +43,7 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // The status bar belongs to the whole app, so what the pointer is doing in
     // the scene reaches it through a service rather than directly (ADR-0010).
+    this.viewportStatus.enter();
     this.pointerSub = this.pickService.pointerAt$
       .subscribe(point => this.viewportStatus.setCursor(point));
 
@@ -121,9 +122,7 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.pickedSub.unsubscribe();
     this.selectedSub.unsubscribe();
     this.pointerSub.unsubscribe();
-    // Otherwise the last coordinate the pointer touched sits in the status bar
-    // while the user edits a form
-    this.viewportStatus.clear();
+    this.viewportStatus.leave();
   }
 
 }

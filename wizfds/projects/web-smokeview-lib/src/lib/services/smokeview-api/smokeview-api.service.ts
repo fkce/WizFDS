@@ -61,9 +61,8 @@ export class SmokeviewApiService {
     // makes the answer the same however little the scenario contains.
     this.sceneBounds.setFromScene(scene);
     this.babylonService.applySceneBounds();
-    // The planes are coordinates in metres (ADR-0002), so they mean nothing once
-    // the model changes: z = 4 m is the ceiling of a room and the floor of a
-    // tunnel. Drawing a scenario is the moment that can happen.
+    // The section planes are coordinates, so a new model makes nonsense of them
+    // - see SceneViewService.resetClipping()
     this.sceneView.resetClipping();
 
     this.meshService.meshes = scene.meshes;

@@ -1,8 +1,9 @@
 import { Component } from '@angular/core';
 
-import { SceneViewService } from '../../../web-smokeview-lib/src/lib/services/scene-view/scene-view.service';
+import {
+  displaySwitchIcon, layerStateIcon, SceneDisplayId, SceneLayerId, SceneViewService
+} from '../../../web-smokeview-lib/src/lib/services/scene-view/scene-view.service';
 import { SceneAxis } from '../../../web-smokeview-lib/src/lib/services/scene-bounds/scene-bounds.service';
-import { SceneDisplayId, SceneLayerId } from '../../../web-smokeview-lib/src/lib/services/scene-view/scene-view.service';
 
 /**
  * The standalone viewer's shell.
@@ -25,14 +26,17 @@ export class AppComponent {
 
   constructor(public view: SceneViewService) { }
 
-  /** The icon that says how much of a layer is drawn. */
+  /**
+   * The icons the switches read as.
+   *
+   * The mapping is the library's, so this bar and the main app's ribbon say the
+   * same thing with the same picture.
+   */
   layerIcon(id: SceneLayerId): string {
-    const state = this.view.layerState(id);
-    return state === 'hidden' ? 'eye-off-outline'
-      : state === 'edges' ? 'square-outline' : 'checkbox-blank';
+    return layerStateIcon(this.view.layerState(id));
   }
 
   displayIcon(id: SceneDisplayId): string {
-    return this.view.isDisplayOn(id) ? 'checkbox-marked-outline' : 'checkbox-blank-outline';
+    return displaySwitchIcon(this.view.isDisplayOn(id));
   }
 }

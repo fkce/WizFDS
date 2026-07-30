@@ -85,7 +85,7 @@ SCSS biblioteki przechodzi na **kontrakt tokenowy** — `var(--surface-1)`, `var
 
 Ribbon powstał w całości: QAT, zakładki Home / View / Measure, zakładka kontekstowa, panele z tytułami u dołu i zwijanie do samych zakładek. Wypełniony jest jednak wyłącznie tym, co w tej chwili istnieje — reszta przycisków jest wyszarzona z podpowiedzią mówiącą, na co czeka. To świadomy wybór: pusty panel nie mówi nic, a wyszarzona komenda to dokładnie to, co AutoCAD robi z komendą, która w danym momencie nie ma zastosowania.
 
-Aktywne dziś: widoczność per warstwa, tryby wyświetlania, płaszczyzny przekrojów, „zoom extents", zakładka kontekstowa (otwórz formularz, przybliż do zaznaczenia) i paleta właściwości. Wyszarzone do czasu #123–#127: undo/redo w QAT, cały panel Draw wraz z selektorem SURF-a, Modify, Snap, oba pomiary i „usuń" w zakładce kontekstowej.
+Aktywne dziś: widoczność per warstwa, tryby wyświetlania, płaszczyzny przekrojów, kamera („zoom extents" plus widoki standardowe Top / Front / Right / Iso, te same przeloty co kliknięcie ściany ViewCube'a), zakładka kontekstowa (otwórz formularz, przybliż do zaznaczenia) i paleta właściwości. Wyszarzone do czasu #123–#127: undo/redo w QAT, cały panel Draw wraz z selektorem SURF-a, Modify, Snap, oba pomiary i „usuń" w zakładce kontekstowej.
 
 Dwie rzeczy z tej decyzji przesunięto jawnie, bo obie zależą od #123:
 

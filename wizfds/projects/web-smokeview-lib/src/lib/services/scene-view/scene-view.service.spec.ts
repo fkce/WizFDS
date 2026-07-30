@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 
-import { SceneViewService } from './scene-view.service';
+import { displaySwitchIcon, layerStateIcon, SceneViewService } from './scene-view.service';
 import { ObstService } from '../drawing/obst/obst.service';
 import { MeshService } from '../drawing/mesh/mesh.service';
 import { OpenService } from '../drawing/open/open.service';
@@ -14,6 +14,7 @@ import { ZoneService } from '../drawing/zone/zone.service';
 import { HoleRegionService } from '../drawing/hole/hole-region.service';
 import { BabylonService } from '../babylon/babylon.service';
 import { SceneBoundsService } from '../scene-bounds/scene-bounds.service';
+import { ViewCubeService } from '../babylon/viewCube/view-cube.service';
 
 /** A layer drawn through ClippedPlaneLayer: edges only → edges and fill → hidden. */
 function planeLayer(record: string[], name: string) {
@@ -99,6 +100,10 @@ describe('SceneViewService', () => {
           useValue: {
             clipMin: () => -1, clipMax: () => 11, clipStep: () => 0.1
           }
+        },
+        {
+          provide: ViewCubeService,
+          useValue: { zoomToSide: (side: string) => record.push(`viewFrom:${side}`) }
         }
       ]
     });
@@ -216,6 +221,33 @@ describe('SceneViewService', () => {
     it('frames one box - what "zoom to selection" means', () => {
       service.zoomTo({ x1: 1, x2: 3, y1: 0, y2: 1, z1: 0, z2: 2 });
       expect(record).toEqual(['frame:1-3']);
+    });
+
+    it('flies to a standard view the way clicking the cube does', () => {
+      // One implementation for the cube in the canvas and the buttons in the
+      // host, so the two cannot end up framing a plan differently.
+      expect(service.standardViews.map(view => view.side))
+        .toEqual(['top', 'front', 'right', 'leftTopFront']);
+
+      service.viewFrom('top');
+
+      expect(record).toEqual(['viewFrom:top']);
+    });
+  });
+
+  describe('what the switches look like', () => {
+    // The mapping is here rather than in each host, because the ribbon and the
+    // standalone viewer's control bar draw the same three states.
+
+    it('has a picture for each of the three states', () => {
+      expect(layerStateIcon('hidden')).toBe('eye-off-outline');
+      expect(layerStateIcon('edges')).toBe('square-outline');
+      expect(layerStateIcon('filled')).toBe('checkbox-blank');
+    });
+
+    it('shows a display switch as ticked or not', () => {
+      expect(displaySwitchIcon(true)).toBe('checkbox-marked-outline');
+      expect(displaySwitchIcon(false)).toBe('checkbox-blank-outline');
     });
   });
 });

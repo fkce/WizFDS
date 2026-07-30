@@ -9,7 +9,7 @@ import { formRouteFor } from '@services/elements/form-routes';
 import { SaveState, saveStateOf } from '@services/main/save-state';
 import { SelectedElement, SelectionService } from '@services/selection/selection.service';
 import {
-  SceneDisplayId, SceneLayerId, SceneLayerState, SceneViewService
+  displaySwitchIcon, layerStateIcon, SceneDisplayId, SceneLayerId, SceneViewService
 } from '../../../../../../../../web-smokeview-lib/src/lib/services/scene-view/scene-view.service';
 import { SceneAxis } from '../../../../../../../../web-smokeview-lib/src/lib/services/scene-bounds/scene-bounds.service';
 
@@ -17,10 +17,11 @@ import { SceneAxis } from '../../../../../../../../web-smokeview-lib/src/lib/ser
 export type RibbonTabId = 'home' | 'view' | 'measure' | 'context';
 
 /**
- * The tabs that are always there.
+ * The tabs that are always there, in the order the strip lists them.
  *
- * Phase 6 (#89) adds a Results tab to this list - the player, the slices, the
- * frame it is on - which is why the tab strip is a list rather than markup.
+ * A list rather than four near-identical buttons in the markup, and the one
+ * place the order is decided. Phase 6 (#89) adds a Results tab here - and a
+ * panel block for it in the template, which is where a tab's contents live.
  */
 const FIXED_TABS: ReadonlyArray<{ id: RibbonTabId, label: string }> = [
   { id: 'home', label: 'Home' },
@@ -114,11 +115,12 @@ export class RibbonComponent implements OnInit, OnDestroy {
   // ==========================================
 
   /**
-   * What the contextual tab is called - the type of what is selected, as FDS
-   * spells it. Null when nothing is selected, and the tab is not there at all.
+   * What the contextual tab is called - the type of what was last selected, as
+   * FDS spells it. Null when nothing is selected, and the tab is not there.
    */
   get contextLabel(): string | null {
-    return this.selected.length > 0 ? this.selected[0].type.toUpperCase() : null;
+    const last = this.selection.lastSelected;
+    return last ? last.type.toUpperCase() : null;
   }
 
   select(tab: RibbonTabId): void {
@@ -146,15 +148,18 @@ export class RibbonComponent implements OnInit, OnDestroy {
   // View tab
   // ==========================================
 
-  /** The icon that says how much of a layer is drawn. */
+  /**
+   * The icons the switches read as.
+   *
+   * The mapping is the library's, so that this panel and the standalone
+   * viewer's control bar say the same thing with the same picture.
+   */
   layerIcon(id: SceneLayerId): string {
-    const state: SceneLayerState = this.view.layerState(id);
-    return state === 'hidden' ? 'eye-off-outline'
-      : state === 'edges' ? 'square-outline' : 'checkbox-blank';
+    return layerStateIcon(this.view.layerState(id));
   }
 
   displayIcon(id: SceneDisplayId): string {
-    return this.view.isDisplayOn(id) ? 'checkbox-marked-outline' : 'checkbox-blank-outline';
+    return displaySwitchIcon(this.view.isDisplayOn(id));
   }
 
   // ==========================================
@@ -178,16 +183,17 @@ export class RibbonComponent implements OnInit, OnDestroy {
 
   /** The `ID` of the selected element, as its form and the `.fds` file show it. */
   get selectedId(): string {
-    const found = this.selected.length > 0
-      ? this.elements.byUuid(this.selected[0].uuid) : undefined;
+    const last = this.selection.lastSelected;
+    const found = last ? this.elements.byUuid(last.uuid) : undefined;
     return found ? found.element.id : '';
   }
 
   /** Open what is selected in the form that holds all of its fields. */
   openForm(): void {
-    if (this.selected.length === 0) { return; }
+    const last = this.selection.lastSelected;
+    if (!last) { return; }
 
-    const route = formRouteFor(this.selected[0].type);
+    const route = formRouteFor(last.type);
     if (route) { this.router.navigate([route]); }
   }
 

@@ -163,8 +163,17 @@
             title="Frame the whole model">
             <mat-icon svgIcon="crop-free" aria-hidden="true"></mat-icon><span>Extents</span>
           </button>
+          <!-- The same flights the view cube in the canvas makes when a face of
+               it is clicked; the cube offers the rest of the sides. -->
+          <div class="panel-body column tight">
+            <button type="button" class="cmd wide" *ngFor="let standard of view.standardViews"
+              (click)="view.viewFrom(standard.side)">
+              <mat-icon svgIcon="cube-outline" aria-hidden="true"></mat-icon>
+              <span>{{ standard.label }}</span>
+            </button>
+          </div>
         </div>
-        <div class="panel-title">Camera</div>
+        <div class="panel-title">Camera &amp; ViewCube</div>
       </section>
     </ng-container>
 

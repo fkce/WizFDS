@@ -57,7 +57,9 @@ describe('RibbonComponent', () => {
       setClip: jasmine.createSpy('setClip'),
       resetClipping: jasmine.createSpy('resetClipping'),
       zoomExtents: jasmine.createSpy('zoomExtents'),
-      zoomTo: jasmine.createSpy('zoomTo')
+      zoomTo: jasmine.createSpy('zoomTo'),
+      standardViews: [{ side: 'top', label: 'Top' }],
+      viewFrom: jasmine.createSpy('viewFrom')
     };
 
     await TestBed.configureTestingModule({
@@ -109,6 +111,18 @@ describe('RibbonComponent', () => {
       fixture.detectChanges();
 
       expect(component.contextLabel).toBe('JETFAN');
+    });
+
+    it('follows the last click, not the first', () => {
+      // Ctrl+click appends to the selection, so the first entry is what the user
+      // chose longest ago. A tab named after it would stop following the clicks.
+      selection.select({ uuid: 'wall-uuid', type: 'obst' });
+
+      selection.select({ uuid: 'jetfan-uuid', type: 'jetfan' }, { add: true });
+      fixture.detectChanges();
+
+      expect(component.contextLabel).toBe('JETFAN');
+      expect(component.selectedId).toBe('JF1');
     });
 
     it('gives the tab strip back when the selection is dropped', () => {

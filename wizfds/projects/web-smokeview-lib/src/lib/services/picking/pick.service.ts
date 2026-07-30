@@ -192,7 +192,8 @@ export class PickService implements SceneScoped {
    * @param options `add` extends the selection instead of replacing it
    */
   public pick(ray: BABYLON.Ray, options: { add?: boolean } = {}): void {
-    const hit = this.pickElement(ray);
+    const found = this.pickAlong(ray);
+    const hit = found ? found.element : undefined;
     const add = options.add === true;
 
     if (this.applyOwnPicks) { this.applyPick(hit, add); }
@@ -304,12 +305,6 @@ export class PickService implements SceneScoped {
     }
 
     this.setSelected(add ? [...current, hit.uuid] : [hit.uuid]);
-  }
-
-  /** Which element a ray reaches first, without where on it that happened. */
-  private pickElement(ray: BABYLON.Ray): ScenePick | undefined {
-    const found = this.pickAlong(ray);
-    return found ? found.element : undefined;
   }
 
   /**

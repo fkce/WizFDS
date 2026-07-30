@@ -98,6 +98,19 @@ describe('PropertiesPaletteComponent', () => {
     expect(component.alsoSelected).toBe(1);
   });
 
+  it('shows the element last clicked, not the first', () => {
+    // Ctrl+click appends to the selection, so the first entry is the one chosen
+    // longest ago - a palette naming it would stop following the clicks. The
+    // pick panel this replaces read the same end of the list.
+    selection.select({ uuid: 'wall-uuid', type: 'obst' });
+
+    selection.select({ uuid: 'surf-uuid', type: 'surf' }, { add: true });
+    fixture.detectChanges();
+
+    expect(component.type).toBe('SURF');
+    expect(component.id).toBe('CONCRETE');
+  });
+
   it('empties again when the selection is dropped', () => {
     selection.select({ uuid: 'wall-uuid', type: 'obst' });
     fixture.detectChanges();
