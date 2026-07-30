@@ -1,0 +1,158 @@
+<div class="single-amper-container">
+
+  <div class="list-wrapper">
+    <div class="list-drawer">
+      <div class="list-title" (click)="add()">
+        <mat-icon>add_box</mat-icon> Add INIT
+      </div>
+      <ng-scrollbar #initScrollbar (scrolled)="scrollbarUpdate()">
+        <div class="list-items">
+          <div class="list-item" *ngFor="let initItem of inits | slice: ui.general.init.begin:(ui.general.init.begin + ui.listRange)">
+            <a (click)="activate(initItem.id)" [ngClass]="{active: initItem === init}">{{initItem.id}}</a>
+            <mat-icon class="red-hover" (click)="delete(initItem.id)">delete_forever</mat-icon>
+          </div>
+        </div>
+      </ng-scrollbar>
+      <div class="list-bottom" *ngIf="inits.length > ui.listRange">
+        <mat-icon *ngIf="ui.general.init.begin > 0" (click)="uiStateService.decreaseRange('general.init')">chevron_left</mat-icon>
+        <div>{{ui.general.init.begin}} - {{ui.general.init.begin + ui.listRange > inits.length ? inits.length : ui.general.init.begin
+          + ui.listRange}}</div>
+        <mat-icon *ngIf="ui.general.init.begin + ui.listRange < inits.length" (click)="uiStateService.increaseRange('general.init')">chevron_right</mat-icon>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-box current">
+    <div *ngIf="!init">
+      <label>Select or add new init</label>
+    </div>
+    <div *ngIf="init">
+
+      <div class="form-title">
+        <label>{{init.id}} definition</label>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label>Id:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="init.id" idInput stringInput>
+          </div>
+        </div>
+        <div>
+          <label matTooltip="Set the region on cell centres rather than on cell nodes"
+            [matTooltipDisabled]="!main.settings.tooltips">Cell centered:</label>
+          <div class="field-container">
+            <mat-checkbox [(ngModel)]="init.cell_centered"></mat-checkbox>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-title">
+        <label class="header">Region</label>
+      </div>
+      <div class="form-row">
+        <div>
+          <label>X1:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="init.xb.x1" decimalInput>
+            <ng-katex equation="m"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>X2:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="init.xb.x2" decimalInput>
+            <ng-katex equation="m"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>Y1:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="init.xb.y1" decimalInput>
+            <ng-katex equation="m"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>Y2:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="init.xb.y2" decimalInput>
+            <ng-katex equation="m"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>Z1:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="init.xb.z1" decimalInput>
+            <ng-katex equation="m"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>Z2:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="init.xb.z2" decimalInput>
+            <ng-katex equation="m"></ng-katex>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-title">
+        <label class="header">Initial state</label>
+      </div>
+      <label class="info">
+        FDS starts this region at the ambient conditions of &amp;MISC. Fill in only what should
+        differ - anything left empty is not written.
+      </label>
+      <div class="form-row">
+        <div>
+          <label>Temperature:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="init.temperature" decimalInput>
+            <ng-katex equation="^\circ C"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label>Density:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="init.density" decimalInput>
+            <ng-katex equation="kg/m^3"></ng-katex>
+          </div>
+        </div>
+        <div>
+          <label matTooltip="Heat release rate per unit volume, for a region that starts burning"
+            [matTooltipDisabled]="!main.settings.tooltips">Hrrpuv:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="init.hrrpuv" decimalInput>
+            <ng-katex equation="kW/m^3"></ng-katex>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-title">
+        <label class="header">Species</label>
+      </div>
+      <label class="info" *ngIf="specs.length == 0">
+        This scenario defines no species yet - add one under Specie to start a region at a
+        concentration.
+      </label>
+      <div class="form-row" *ngIf="specs.length > 0">
+        <div>
+          <label>Spec id:</label>
+          <div class="field-container">
+            <ng-select [items]="specs" placeholder="Select species" [(ngModel)]="specId" [searchable]="false">
+            </ng-select>
+          </div>
+        </div>
+        <div>
+          <label matTooltip="Mass fraction of that species in the region" [matTooltipDisabled]="!main.settings.tooltips">Mass
+            fraction:</label>
+          <div class="field-container">
+            <input type="text" [ngModelOptions]="{updateOn:'blur'}" [(ngModel)]="massFraction" decimalInput>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>

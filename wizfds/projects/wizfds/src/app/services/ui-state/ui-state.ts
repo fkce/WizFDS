@@ -42,6 +42,7 @@ export class UiState {
 		}
 		else {
 			this.fdsMenu = {
+				general: false,
 				geometry: false,
 				ventilation: false,
 				fire: false,
@@ -49,11 +50,20 @@ export class UiState {
 				specie: false
 			}
 		}
+		// Added for old scenarios - General became a group when &INIT got a form
+		if (this.fdsMenu.general == undefined) { this.fdsMenu.general = false; }
 
 		this.projects = { begin: 0, listRange: 20 };
 		this.active = base.active != undefined ? base.active : 'projects';
 
-		this.general = base.general != undefined ? base.general : { tab: 0, list: 0, elementIndex: 0 };
+		this.general = base.general != undefined ? base.general : {
+			tab: 0, list: 0, elementIndex: 0,
+			init: { scrollPosition: 0, begin: 0, elementIndex: 0, help: 'closed' },
+			zone: { scrollPosition: 0, begin: 0, elementIndex: 0, help: 'closed' }
+		};
+		// Added for old scenarios - add init and zone
+		if (this.general.init == undefined) { this.general.init = { scrollPosition: 0, begin: 0, elementIndex: 0, help: 'closed' }; }
+		if (this.general.zone == undefined) { this.general.zone = { scrollPosition: 0, begin: 0, elementIndex: 0, help: 'closed' }; }
 
 		this.geometry = base.geometry != undefined ? base.geometry : {
 			tab: 0,

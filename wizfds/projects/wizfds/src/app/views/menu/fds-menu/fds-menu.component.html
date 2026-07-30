@@ -1,11 +1,27 @@
 <div class="fds-menu" [class.collapsed]="layout.collapsed">
 
   <!-- General -->
-  <div class="n1 leaf" routerLink="fds/general" (click)="activate('general')"
-    [ngClass]="{'active': uiState.active == 'general'}"
-    matTooltip="General" matTooltipPosition="right" [matTooltipDisabled]="!layout.collapsed">
-    <mat-icon class="row-icon" [ngClass]="{'active': uiState.active == 'general'}" svgIcon="cog-transfer-outline" aria-label="General"></mat-icon>
-    <a class="nav-label" [ngClass]="{'active': uiState.active == 'general'}">General</a>
+  <div class="nav-group">
+    <div class="n1 group-header" (click)="toggleMenu('general')" [class.expanded]="uiState.fdsMenu.general">
+      <mat-icon class="row-icon" svgIcon="cog-transfer-outline" aria-label="General"></mat-icon>
+      <a class="nav-label">General</a>
+      <mat-icon class="chevron">{{ uiState.fdsMenu.general ? 'expand_less' : 'expand_more' }}</mat-icon>
+    </div>
+    <div class="ng2" [ngClass]="uiState.fdsMenu.general ? 'open' : 'close'">
+      <div class="flyout-title">General</div>
+      <div class="n2" routerLink="fds/general" (click)="activate('general')" [ngClass]="{'active': uiState.active == 'general'}">
+        <mat-icon class="row-icon" [ngClass]="{'active': uiState.active == 'general'}" svgIcon="cog-transfer-outline" aria-label="Simulation"></mat-icon>
+        <a class="nav-label" [ngClass]="{'active': uiState.active == 'general'}">Simulation</a>
+      </div>
+      <div class="n2" routerLink="fds/general/init" (click)="activate('init')" [ngClass]="{'active': uiState.active == 'init'}">
+        <mat-icon class="row-icon" [ngClass]="{'active': uiState.active == 'init'}" svgIcon="thermometer" aria-label="Init"></mat-icon>
+        <a class="nav-label" [ngClass]="{'active': uiState.active == 'init'}">Init</a>
+      </div>
+      <div class="n2" routerLink="fds/general/zone" (click)="activate('zone')" [ngClass]="{'active': uiState.active == 'zone'}">
+        <mat-icon class="row-icon" [ngClass]="{'active': uiState.active == 'zone'}" svgIcon="gauge" aria-label="Zone"></mat-icon>
+        <a class="nav-label" [ngClass]="{'active': uiState.active == 'zone'}">Zone</a>
+      </div>
+    </div>
   </div>
 
   <!-- Geometry -->
