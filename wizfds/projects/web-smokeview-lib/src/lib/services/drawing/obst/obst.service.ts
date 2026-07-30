@@ -254,6 +254,70 @@ export class ObstService implements SceneScoped, ObstScene {
   }
 
   /**
+   * Draw one obst again, leaving every other one alone.
+   *
+   * The incremental path of ADR-0004: a full `renderObsts()` rebuilds both
+   * pools and re-cuts every opening through CSG, which at ten thousand obsts is
+   * seconds of work - not something to spend because one wall moved. This costs
+   * one slot in a pool, or one mesh.
+   *
+   * Also how an obst is added: an obst the scene has never drawn simply has
+   * nothing to take away first. The caller keeps `obsts` and `holes` up to date,
+   * so that the next full render draws the same thing this did.
+   */
+  public redrawObst(obst: SceneObst): void {
+    // A selected obst stands on a mesh of its own so that it can be edited
+    // (ADR-0006). Redrawing it must not quietly put it back in the pool.
+    const wasPromoted = this.ownMeshes.get(obst.uuid)?.promotedFrom != null;
+
+    this.undraw(obst.uuid);
+    if (!this.pool) { this.ensurePools(); }
+
+    const placed: PlacedObst = {
+      obst: obst,
+      color: this.helperService.toRgba(obst.color),
+      holeXbs: this.holeService.holesFor(obst, this.holes).map((hole: SceneHole) => hole.xb)
+    };
+
+    const carved = this.carve(placed);
+    if (carved) {
+      this.addOwnMesh(obst, carved, placed.color[3] < 1, null);
+    } else {
+      this.pool.add({ uuid: obst.uuid, id: obst.id, xb: obst.xb, color: placed.color });
+      if (wasPromoted) { this.promote(obst.uuid); }
+    }
+
+    this.rememberPlaced(placed);
+    this.applyEdgesToAll();
+  }
+
+  /** Take one obst off the screen - it has left the scenario. */
+  public removeObst(uuid: string): void {
+    this.undraw(uuid);
+    this.placed = this.placed.filter(placed => placed.obst.uuid !== uuid);
+  }
+
+  /** Take whatever is currently drawing this obst out of the scene. */
+  private undraw(uuid: string): void {
+    const own = this.ownMeshes.get(uuid);
+    if (own) {
+      this.sceneRegistry.forget(uuid);
+      own.solid.dispose();
+      if (own.cap) { own.cap.dispose(); }
+      this.ownMeshes.delete(uuid);
+      return;
+    }
+
+    if (this.pool) { this.pool.remove(uuid); }
+  }
+
+  /** Keep the record of the last render in step with a single-obst redraw. */
+  private rememberPlaced(placed: PlacedObst): void {
+    const index = this.placed.findIndex(candidate => candidate.obst.uuid === placed.obst.uuid);
+    if (index >= 0) { this.placed[index] = placed; } else { this.placed.push(placed); }
+  }
+
+  /**
    * Work out how each obst is drawn.
    *
    * Colours arrive resolved: the app looks the &SURF up, because it is the app

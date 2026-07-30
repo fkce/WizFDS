@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, HostListener, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 import { SmokeviewApiService } from '../../../../../../../web-smokeview-lib/src/lib/services/smokeview-api/smokeview-api.service';
 import { MainService } from '@services/main/main.service';
 import { Main } from '@services/main/main';
@@ -6,10 +6,14 @@ import { SceneInputService } from '@services/scene-input/scene-input.service';
 import { SelectionService } from '@services/selection/selection.service';
 import { ElementsService } from '@services/elements/elements.service';
 import { ViewportStatusService } from '@services/viewport-status/viewport-status.service';
+import { FdsEditService } from '@services/fds-edit/fds-edit.service';
+import { FdsValidationService } from '@services/fds-validation/fds-validation.service';
 import { combineLatest, Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { BabylonService } from '../../../../../../../web-smokeview-lib/src/lib/services/babylon/babylon.service';
 import { PickService } from '../../../../../../../web-smokeview-lib/src/lib/services/picking/pick.service';
+import { EditStreamService } from '../../../../../../../web-smokeview-lib/src/lib/services/editing/edit-stream.service';
+import { SceneChange } from '../../../../../../../web-smokeview-lib/src/lib/services/drawing/scene-change';
 
 @Component({
     selector: 'app-visualize',
@@ -26,6 +30,8 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
   pickedSub: Subscription;
   selectedSub: Subscription;
   pointerSub: Subscription;
+  commandSub: Subscription;
+  appliedSub: Subscription;
 
   constructor(
     private mainService: MainService,
@@ -33,6 +39,9 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
     private sceneInputService: SceneInputService,
     private babylonService: BabylonService,
     private pickService: PickService,
+    private editStream: EditStreamService,
+    private fdsEdit: FdsEditService,
+    private validation: FdsValidationService,
     private selectionService: SelectionService,
     private elementsService: ElementsService,
     private viewportStatus: ViewportStatusService
@@ -55,6 +64,16 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.pickedSub = this.pickService.picked$.subscribe(picked => this.onPicked(picked));
     this.selectedSub = this.selectionService.selected$
       .subscribe(() => this.pickService.setSelected(this.selectionService.selectedUuids()));
+
+    // The other half of the boundary: state goes in through render(), intent
+    // comes back out here. The library asks, the app decides (ADR-0004).
+    this.commandSub = this.editStream.commands$
+      .subscribe(command => this.fdsEdit.apply(command));
+
+    // Every producer of edits arrives on this one stream - the command stream
+    // above, the properties palette, the ribbon, undo and redo - so this is the
+    // only place the preview has to be told from.
+    this.appliedSub = this.fdsEdit.applied$.subscribe(change => this.onApplied(change));
   }
 
   /**
@@ -76,6 +95,52 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.selectionService.select(
       { uuid: found.element.uuid, type: found.type }, { add: picked.add });
+  }
+
+  /**
+   * Show what an applied edit did.
+   *
+   * Through `update()` and not `render()`: a full render rebuilds the instance
+   * pools and re-cuts every opening through CSG, which is seconds of work at the
+   * scale this is built for and not something one moved wall may cost
+   * (ADR-0004).
+   *
+   * A deleted element leaves the selection with it - it would otherwise name
+   * something the scenario no longer holds, and the palette and the contextual
+   * tab would go on offering to edit it.
+   */
+  private onApplied(change: SceneChange): void {
+    const removed = new Set((change.removed ?? []).map(gone => gone.uuid));
+    if (removed.size > 0) {
+      this.selectionService.setSelection(
+        this.selectionService.selected.filter(element => !removed.has(element.uuid)));
+    }
+
+    void this.smvApiService.update(change);
+  }
+
+  /**
+   * Undo and redo, while the 3D view is what the user is working in.
+   *
+   * Not in a field: `[(ngModel)]` writes straight to the model, so an edit typed
+   * into a form never reaches the command channel and is not in this history
+   * (ADR-0009). Ctrl+Z there has to stay the browser's own text undo, or a user
+   * correcting a typo would move a wall instead.
+   */
+  @HostListener('document:keydown', ['$event'])
+  onKeyDown(event: KeyboardEvent): void {
+    if (!event.ctrlKey && !event.metaKey) { return; }
+    if (isTyping(event.target)) { return; }
+
+    const key = event.key.toLowerCase();
+    // Ctrl+Shift+Z as well as Ctrl+Y: both are redo, and which one a user
+    // reaches for depends on what else they use
+    const redo = key === 'y' || (key === 'z' && event.shiftKey);
+    const undo = key === 'z' && !event.shiftKey;
+    if (!redo && !undo) { return; }
+
+    event.preventDefault();
+    if (redo) { this.fdsEdit.redo(); } else { this.fdsEdit.undo(); }
   }
 
   ngAfterViewInit() {
@@ -112,6 +177,11 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
       // in CAD, while there was no scene at all to draw it in.
       this.pickService.setSelected(this.selectionService.selectedUuids());
     });
+
+    // What FDS will make of the scenario as it stands, for the palette and the
+    // count in the status bar. On opening it as well as on every edit: a
+    // scenario can arrive from CAD, or from the database, already wrong.
+    this.validation.revalidate();
   }
 
   ngOnDestroy() {
@@ -122,7 +192,18 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.pickedSub.unsubscribe();
     this.selectedSub.unsubscribe();
     this.pointerSub.unsubscribe();
+    this.commandSub.unsubscribe();
+    this.appliedSub.unsubscribe();
     this.viewportStatus.leave();
   }
 
+}
+
+/** Whether the keystroke belongs to a field the user is typing in. */
+function isTyping(target: EventTarget | null): boolean {
+  const element = target as HTMLElement;
+  if (!element || !element.tagName) { return false; }
+
+  const tag = element.tagName.toLowerCase();
+  return tag === 'input' || tag === 'textarea' || tag === 'select' || element.isContentEditable;
 }

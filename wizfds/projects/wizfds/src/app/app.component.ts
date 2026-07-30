@@ -2,7 +2,7 @@ import { Router, NavigationEnd } from '@angular/router';
 import { Component, isDevMode } from '@angular/core';
 import { filter } from 'rxjs/operators';
 import { googleAnalytics } from '../assets/analytics';
-import { includes, isEqual, cloneDeep } from 'lodash';
+import { includes } from 'lodash';
 
 
 import { MainService } from '@services/main/main.service';
@@ -20,6 +20,8 @@ import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 import { LayoutService } from '@services/layout/layout.service';
 import { SaveState, saveStateOf } from '@services/main/save-state';
 import { ViewportStatusService } from '@services/viewport-status/viewport-status.service';
+import { AutoSaveService } from '@services/auto-save/auto-save.service';
+import { FdsValidationService } from '@services/fds-validation/fds-validation.service';
 
 @Component({
     selector: 'app-root',
@@ -56,7 +58,9 @@ export class AppComponent {
     public websocketService: WebsocketService,
     private snackBarService: SnackBarService,
     public layout: LayoutService,
-    public viewportStatus: ViewportStatusService
+    public viewportStatus: ViewportStatusService,
+    public validation: FdsValidationService,
+    private autoSave: AutoSaveService
   ) {
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
@@ -87,6 +91,11 @@ export class AppComponent {
 
     this.libraryService.loadLibrary();
     this.libraryService.libraryObservable.subscribe(library => this.lib = library);
+
+    // Auto-save used to run from ngDoCheck here, deep-comparing the whole
+    // scenario on every change-detection pass - which meant on every mouse move
+    // over the 3D canvas. It has a clock of its own now (ADR-0009).
+    this.autoSave.start();
 
     setTimeout(() => {
       this.websocket.initializeWebSocket();
@@ -143,51 +152,10 @@ export class AppComponent {
 
   }
 
-  ngDoCheck(): void {
-
-    // !!!!!!!!! TODO - wylaczyc w przypadku tworzenia nowego obiektu -> dodac jeszcze jedna zmienną
-
-    // Autosave changes in FdsObject every 20 seconds when change is detected
-    // First check if FdsObject was changed
-    if (this.main.currentFdsScenario != undefined && !isEqual(this.main.autoSave.fdsObjectDiffer, this.main.currentFdsScenario.fdsObject) && !this.main.autoSave.disable) {
-      clearTimeout(this.main.autoSave.fdsObjectTimeout);
-      // Check if scenario or project was not changed in the meanwhile
-      if (this.main.autoSave.fdsObjectDiffer != null && this.main.autoSave.timeoutScenarioId == this.main.currentFdsScenario.id) {
-        this.main.autoSave.fdsObjectSaveFont = 'red';
-
-        this.main.autoSave.fdsObjectTimeout = setTimeout(() => {
-          this.fdsScenarioService.updateFdsScenario(this.main.currentProject.id, this.main.currentFdsScenario.id, 'all', true);
-        }, 20000);
-        this.main.autoSave.fdsObjectDiffer = cloneDeep(this.main.currentFdsScenario.fdsObject);
-      }
-      else {
-        this.main.autoSave.timeoutScenarioId = this.main.currentFdsScenario.id;
-        this.main.autoSave.fdsObjectDiffer = cloneDeep(this.main.currentFdsScenario.fdsObject);
-      }
-    }
-
-    // Autosave changes in Library every 20 seconds when change is detected
-    // First check if Library was changed
-    //if (this.lib != undefined && !isEqual(this.main.autoSave.libDiffer, this.lib)) {
-    //  clearTimeout(this.main.autoSave.libTimeout);
-    //  // Check if not null else init
-    //  if (this.main.autoSave.libDiffer != null) {
-    //    this.main.autoSave.libSaveFont = 'mdi mdi-content-save-edit red';
-    //    this.main.autoSave.libTimeout = setTimeout(() => {
-    //      this.libraryService.updateLibrary(true);
-    //    }, 20000);
-    //    this.main.autoSave.libDiffer = cloneDeep(this.lib);
-    //  }
-    //  else {
-    //    this.main.autoSave.libDiffer = cloneDeep(this.lib);
-    //  }
-    //}
-
-  }
-
   ngOnDestroy() {
     this.wsSub.unsubscribe();
     this.mainSub.unsubscribe();
+    this.autoSave.stop();
   }
 
   setCurrentFdsScenario(projectId: number, fdsScenarioId: number) {

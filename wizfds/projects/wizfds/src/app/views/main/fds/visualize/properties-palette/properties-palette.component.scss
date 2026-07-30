@@ -120,8 +120,8 @@
       @include no-select;
     }
 
-    // Read-only on purpose - a coordinate typed here is an edit command, and
-    // that stream is #123. Styled as a read-out rather than as a dead input.
+    // A coordinate typed here is an edit command (#123), so these are fields
+    // and read as fields - the ID and the SURF above stay read-outs.
     input {
       flex: 1 1 auto;
       min-width: 0;
@@ -134,7 +134,16 @@
       font-family: var(--font-mono);
       font-size: 0.72rem;
       text-align: right;
-      cursor: default;
+
+      &[readonly] { cursor: default; }
+
+      &:not([readonly]):hover { border-color: var(--border); }
+
+      &:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 1px var(--accent-line);
+      }
     }
     .mono {
       font-family: var(--font-mono);
@@ -176,6 +185,38 @@
     background: var(--accent);
     border-color: var(--accent);
     color: var(--on-accent);
+  }
+}
+
+// What FDS will make of the element. A note, not a barrier - the edit has
+// already been applied by the time one of these appears (ADR-0009).
+.warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.7rem;
+
+  .warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.35rem;
+    padding: 0.3rem 0.4rem;
+    border: 1px solid var(--warning-line);
+    border-left-width: 2px;
+    border-left-color: var(--warning);
+    border-radius: var(--radius-sm);
+    background: var(--warning-soft);
+    font-size: 0.68rem;
+    line-height: 1.35;
+    color: var(--on-surface);
+
+    mat-icon {
+      flex: 0 0 auto;
+      width: 0.85rem;
+      height: 0.85rem;
+      margin-top: 0.1rem;
+      color: var(--warning);
+    }
   }
 }
 

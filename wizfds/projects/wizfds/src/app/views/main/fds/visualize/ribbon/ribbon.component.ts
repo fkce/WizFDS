@@ -8,6 +8,8 @@ import { ElementsService } from '@services/elements/elements.service';
 import { formRouteFor } from '@services/elements/form-routes';
 import { SaveState, saveStateOf } from '@services/main/save-state';
 import { SelectedElement, SelectionService } from '@services/selection/selection.service';
+import { HistoryService } from '@services/history/history.service';
+import { FdsEditService } from '@services/fds-edit/fds-edit.service';
 import {
   displaySwitchIcon, layerStateIcon, SceneDisplayId, SceneLayerId, SceneViewService
 } from '../../../../../../../../web-smokeview-lib/src/lib/services/scene-view/scene-view.service';
@@ -38,7 +40,6 @@ const FIXED_TABS: ReadonlyArray<{ id: RibbonTabId, label: string }> = [
  * or a button that is missing.
  */
 const AWAITING_GEOMETRY_TOOLS = 'Available once the geometry editing tools land';
-const AWAITING_HISTORY = 'Available once undo and redo land';
 const AWAITING_MEASURE = 'Available once the measuring tools land';
 
 /**
@@ -62,7 +63,6 @@ export class RibbonComponent implements OnInit, OnDestroy {
   readonly axes: readonly SceneAxis[] = ['x', 'y', 'z'];
 
   readonly awaitingGeometryTools = AWAITING_GEOMETRY_TOOLS;
-  readonly awaitingHistory = AWAITING_HISTORY;
   readonly awaitingMeasure = AWAITING_MEASURE;
 
   /**
@@ -90,6 +90,8 @@ export class RibbonComponent implements OnInit, OnDestroy {
     public view: SceneViewService,
     private selection: SelectionService,
     private elements: ElementsService,
+    private history: HistoryService,
+    private fdsEdit: FdsEditService,
     private router: Router,
     private mainService: MainService
   ) { }
@@ -136,6 +138,38 @@ export class RibbonComponent implements OnInit, OnDestroy {
 
   get saveState(): SaveState {
     return saveStateOf(this.main);
+  }
+
+  get canUndo(): boolean {
+    return this.history.canUndo;
+  }
+
+  get canRedo(): boolean {
+    return this.history.canRedo;
+  }
+
+  /**
+   * What the button offers to take back.
+   *
+   * It names the operation rather than saying "Undo": the history holds edits
+   * made through the command channel, and a change typed into a form is not one
+   * of them (ADR-0009). Naming what would actually happen is what keeps that
+   * boundary honest.
+   */
+  get undoTitle(): string {
+    return this.canUndo ? `Undo ${this.history.undoLabel} (Ctrl+Z)` : 'Nothing to undo';
+  }
+
+  get redoTitle(): string {
+    return this.canRedo ? `Redo ${this.history.redoLabel} (Ctrl+Y)` : 'Nothing to redo';
+  }
+
+  undo(): void {
+    this.fdsEdit.undo();
+  }
+
+  redo(): void {
+    this.fdsEdit.redo();
   }
 
   get saveLabel(): string {
@@ -195,6 +229,28 @@ export class RibbonComponent implements OnInit, OnDestroy {
 
     const route = formRouteFor(last.type);
     if (route) { this.router.navigate([route]); }
+  }
+
+  /**
+   * What the delete button offers, named after what it would remove.
+   *
+   * No confirmation behind it, and none is wanted: Ctrl+Z takes it straight back
+   * (ADR-0009), which is the answer AutoCAD gives to the same question.
+   */
+  get deleteTitle(): string {
+    if (this.selected.length === 0) { return 'Nothing selected'; }
+    return this.selected.length > 1
+      ? `Delete the ${this.selected.length} selected elements`
+      : `Delete ${this.selectedId || this.contextLabel}`;
+  }
+
+  /** Take everything selected out of the scenario. */
+  deleteSelection(): void {
+    if (this.selected.length === 0) { return; }
+
+    this.fdsEdit.apply({
+      kind: 'delete', uuids: this.selected.map(element => element.uuid)
+    });
   }
 
   /**

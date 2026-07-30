@@ -6,6 +6,7 @@ import { Router } from '@angular/router';
 import { RibbonComponent } from './ribbon.component';
 import { MainService } from '@services/main/main.service';
 import { SelectionService } from '@services/selection/selection.service';
+import { FdsEditService } from '@services/fds-edit/fds-edit.service';
 import { FdsScenario } from '@services/fds-scenario/fds-scenario';
 import { appServiceProviders } from '../../../../../../testing/app-service-testing';
 import { SceneViewService } from '../../../../../../../../web-smokeview-lib/src/lib/services/scene-view/scene-view.service';
@@ -204,6 +205,97 @@ describe('RibbonComponent', () => {
 
       expect(component.collapsed).toBe(false);
       expect(component.active).toBe('measure');
+    });
+  });
+
+  describe('the Quick Access Toolbar', () => {
+    // AutoCAD puts undo, redo and the save indicator here, and so does this.
+    // The history holds edits made through the command channel only - a change
+    // typed into a form is not one of them (ADR-0009).
+
+    let fdsEdit: FdsEditService;
+
+    /** The two history buttons, in the order the toolbar shows them. */
+    function historyButtons(): HTMLButtonElement[] {
+      return Array.from<HTMLButtonElement>(
+        fixture.nativeElement.querySelectorAll('.qat .qat-btn'))
+        .filter(button => ['Undo', 'Redo'].indexOf(button.getAttribute('aria-label')) !== -1);
+    }
+
+    beforeEach(() => {
+      fdsEdit = TestBed.inject(FdsEditService);
+    });
+
+    it('offers nothing to undo before anything has been edited', () => {
+      const [undo, redo] = historyButtons();
+
+      expect(undo.disabled).toBe(true);
+      expect(redo.disabled).toBe(true);
+      expect(undo.title).toBe('Nothing to undo');
+    });
+
+    it('names the operation it would take back', () => {
+      fdsEdit.apply({ kind: 'move', uuids: ['wall-uuid'], delta: { dx: 1, dy: 0, dz: 0 } });
+      fixture.detectChanges();
+
+      expect(historyButtons()[0].disabled).toBe(false);
+      expect(historyButtons()[0].title).toBe('Undo Move (Ctrl+Z)');
+    });
+
+    it('takes the edit back when it is pressed', () => {
+      fdsEdit.apply({ kind: 'move', uuids: ['wall-uuid'], delta: { dx: 1, dy: 0, dz: 0 } });
+      fixture.detectChanges();
+
+      historyButtons()[0].click();
+
+      const fds = TestBed.inject(MainService).main.currentFdsScenario.fdsObject;
+      expect(fds.geometry.obsts[0].xb.x1).toBe(0);
+    });
+
+    it('offers the redo once something has been undone', () => {
+      fdsEdit.apply({ kind: 'move', uuids: ['wall-uuid'], delta: { dx: 1, dy: 0, dz: 0 } });
+      fdsEdit.undo();
+      fixture.detectChanges();
+
+      historyButtons()[1].click();
+
+      const fds = TestBed.inject(MainService).main.currentFdsScenario.fdsObject;
+      expect(fds.geometry.obsts[0].xb.x1).toBe(1);
+    });
+  });
+
+  describe('deleting the selection', () => {
+    // A delete is a command over what is selected and needs no gesture, so it
+    // works from #123 - unlike Move and Resize, which wait for the gizmo (#124).
+
+    it('takes the selected element out of the scenario', () => {
+      selection.select({ uuid: 'wall-uuid', type: 'obst' });
+      fixture.detectChanges();
+
+      component.deleteSelection();
+
+      const fds = TestBed.inject(MainService).main.currentFdsScenario.fdsObject;
+      expect(fds.geometry.obsts.length).toBe(0);
+    });
+
+    it('names what it would remove', () => {
+      selection.select({ uuid: 'wall-uuid', type: 'obst' });
+
+      expect(component.deleteTitle).toBe('Delete WALL');
+    });
+
+    it('names the count when several are selected', () => {
+      selection.select({ uuid: 'wall-uuid', type: 'obst' });
+      selection.select({ uuid: 'jetfan-uuid', type: 'jetfan' }, { add: true });
+
+      expect(component.deleteTitle).toBe('Delete the 2 selected elements');
+    });
+
+    it('does nothing with nothing selected', () => {
+      component.deleteSelection();
+
+      const fds = TestBed.inject(MainService).main.currentFdsScenario.fdsObject;
+      expect(fds.geometry.obsts.length).toBe(1);
     });
   });
 });

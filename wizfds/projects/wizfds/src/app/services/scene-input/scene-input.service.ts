@@ -15,12 +15,14 @@ import { Geom } from '@services/fds-object/geometry/geom';
 import { Init } from '@services/fds-object/general/init';
 import { Zone } from '@services/fds-object/general/zone';
 import { Xb } from '@services/fds-object/primitives';
+import { FdsElementType } from '@services/elements/elements.service';
 import {
   isSceneDevcMarker, isSceneJetfanDirection, SceneColor, SceneDevc, SceneDevcExtent, SceneDevcMarker,
   SceneFire,
   SceneGeom, SceneHole, SceneInit, SceneInput, SceneJetfan, SceneMesh, SceneObst, SceneOpen,
   SceneVent, SceneXb, SceneZone
 } from '../../../../../web-smokeview-lib/src/lib/services/drawing/scene-input';
+import { SceneDrawnElement } from '../../../../../web-smokeview-lib/src/lib/services/drawing/scene-change';
 
 /** Drawn for an obst whose &SURF cannot be resolved. Opaque, so it stays visible. */
 const FALLBACK_OBST_RGB: number[] = [255, 208, 0];
@@ -118,17 +120,10 @@ export class SceneInputService {
     const surfs: Surf[] = geometry.surfs;
 
     return {
-      meshes: geometry.meshes.map((mesh: Mesh): SceneMesh => ({
-        uuid: mesh.uuid, id: mesh.id, xb: this.xb(mesh.xb)
-      })),
+      meshes: geometry.meshes.map((mesh: Mesh) => this.mesh(mesh)),
       obsts: geometry.obsts.map((obst: Obst) => this.obst(obst, surfs)),
-      holes: geometry.holes.map((hole: Hole): SceneHole => ({
-        uuid: hole.uuid, id: hole.id, xb: this.xb(hole.xb),
-        color: this.color(HOLE_RGB, HOLE_ALPHA, HOLE_RGB)
-      })),
-      opens: geometry.opens.map((open: Open): SceneOpen => ({
-        uuid: open.uuid, id: open.id, xb: this.xb(open.xb)
-      })),
+      holes: geometry.holes.map((hole: Hole) => this.hole(hole)),
+      opens: geometry.opens.map((open: Open) => this.open(open)),
       vents: ventilation.vents.map((vent: Vent) => this.vent(vent)),
       fires: fds.fires.fires.map((fire: Fire) => this.fire(fire)),
       jetfans: ventilation.jetfans.map((jetfan: JetFan) => this.jetfan(jetfan)),
@@ -138,14 +133,78 @@ export class SceneInputService {
       geoms: (geometry.geoms ?? [])
         .map((geom: Geom) => this.geom(geom, surfs))
         .filter((geom: SceneGeom) => geom.faces.length > 0),
-      inits: (fds.general?.inits ?? []).map((init: Init): SceneInit => ({
-        uuid: init.uuid, id: init.id, xb: this.xb(init.xb),
-        color: this.color(INIT_RGB, REGION_ALPHA, INIT_RGB)
-      })),
-      zones: (fds.general?.zones ?? []).map((zone: Zone): SceneZone => ({
-        uuid: zone.uuid, id: zone.id, xb: this.xb(zone.xb),
-        color: this.color(ZONE_RGB, REGION_ALPHA, ZONE_RGB)
-      }))
+      inits: (fds.general?.inits ?? []).map((init: Init) => this.init(init)),
+      zones: (fds.general?.zones ?? []).map((zone: Zone) => this.zone(zone))
+    };
+  }
+
+  /**
+   * One element, flattened the same way the whole scenario is.
+   *
+   * What the incremental redraw is built from: an applied command changed a
+   * handful of elements, and each of them has to reach the library in exactly
+   * the form it would have arrived in through `fromFds()` - same colours, same
+   * resolved &SURF, same copied coordinates. Which is why this shares every
+   * per-type method with it rather than restating any of them.
+   *
+   * Undefined for an element the preview does not draw - a &SURF and a &SLCF
+   * have no shape - and for a &GEOM with no triangles, on the same reasoning as
+   * above.
+   */
+  public drawn(type: FdsElementType, element: any, fds: Fds): SceneDrawnElement | undefined {
+    if (!element) { return undefined; }
+    const surfs: Surf[] = fds.geometry.surfs;
+
+    switch (type) {
+      case 'mesh': return { type: 'mesh', element: this.mesh(element) };
+      case 'obst': return { type: 'obst', element: this.obst(element, surfs) };
+      case 'hole': return { type: 'hole', element: this.hole(element) };
+      case 'open': return { type: 'open', element: this.open(element) };
+      case 'vent': return { type: 'vent', element: this.vent(element) };
+      case 'fire': return { type: 'fire', element: this.fire(element) };
+      case 'jetfan': return { type: 'jetfan', element: this.jetfan(element) };
+      case 'devc': return { type: 'devc', element: this.devc(element) };
+      case 'init': return { type: 'init', element: this.init(element) };
+      case 'zone': return { type: 'zone', element: this.zone(element) };
+      case 'geom': {
+        const geom = this.geom(element, surfs);
+        return geom.faces.length > 0 ? { type: 'geom', element: geom } : undefined;
+      }
+      default: return undefined;
+    }
+  }
+
+  /** A &MESH: an outline, in a colour the library picks itself. */
+  private mesh(mesh: Mesh): SceneMesh {
+    return { uuid: mesh.uuid, id: mesh.id, xb: this.xb(mesh.xb) };
+  }
+
+  /** A &HOLE, in the one colour nothing else on screen is drawn in. */
+  private hole(hole: Hole): SceneHole {
+    return {
+      uuid: hole.uuid, id: hole.id, xb: this.xb(hole.xb),
+      color: this.color(HOLE_RGB, HOLE_ALPHA, HOLE_RGB)
+    };
+  }
+
+  /** An `OPEN` vent: a plane, coloured by the library. */
+  private open(open: Open): SceneOpen {
+    return { uuid: open.uuid, id: open.id, xb: this.xb(open.xb) };
+  }
+
+  /** An &INIT - a region that starts in a state other than ambient. */
+  private init(init: Init): SceneInit {
+    return {
+      uuid: init.uuid, id: init.id, xb: this.xb(init.xb),
+      color: this.color(INIT_RGB, REGION_ALPHA, INIT_RGB)
+    };
+  }
+
+  /** A &ZONE - a sealed pressure zone. */
+  private zone(zone: Zone): SceneZone {
+    return {
+      uuid: zone.uuid, id: zone.id, xb: this.xb(zone.xb),
+      color: this.color(ZONE_RGB, REGION_ALPHA, ZONE_RGB)
     };
   }
 
