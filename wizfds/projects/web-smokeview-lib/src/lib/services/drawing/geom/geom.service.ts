@@ -145,7 +145,9 @@ export class GeomService implements SceneScoped {
     mesh.freezeWorldMatrix();
 
     // One mesh per geom, so the mesh alone identifies it
-    this.sceneRegistry.register(geom.uuid, { mesh: mesh });
+    this.sceneRegistry.register(geom.uuid, {
+      mesh: mesh, type: 'geom', id: geom.id, xb: geom.xb
+    });
 
     // After the buffer: the edges renderer reads the geometry it is given at
     // the moment it is enabled

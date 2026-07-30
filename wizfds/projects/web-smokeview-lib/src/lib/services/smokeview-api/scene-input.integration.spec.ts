@@ -194,11 +194,10 @@ describe('rendering a scene input', () => {
       });
   });
 
-  it('records where the condition regions were drawn, though they answer no pick', async () => {
-    // An &INIT and a &ZONE are deliberately not pickable - the wall inside one
-    // is what a ctrl+click has to reach. The registry is still the one place
-    // that says which scene object is which element, and that is what lets the
-    // app find what it drew for a region without walking the scene.
+  it('records the condition regions as the elements they are', async () => {
+    // They used to be drawn unpickable, so that the wall inside one stayed
+    // reachable. Since #121 they are selectable like anything else, and a pick
+    // reaches the wall because a region yields to it - see PickService.
     const input = sceneInput();
 
     await service.render(input);
@@ -206,7 +205,9 @@ describe('rendering a scene input', () => {
     const registry = TestBed.inject(SceneRegistryService);
     ['init-uuid', 'zone-uuid'].forEach(uuid => {
       expect(registry.entryFor(uuid)).withContext(uuid).toBeTruthy();
-      expect(registry.entryFor(uuid).mesh.isPickable).withContext(uuid).toBeFalse();
+      expect(registry.entryFor(uuid).mesh.isPickable).withContext(uuid).toBeTrue();
     });
+    expect(registry.entryFor('init-uuid').type).toBe('init');
+    expect(registry.entryFor('zone-uuid').type).toBe('zone');
   });
 });

@@ -289,7 +289,7 @@ export class JetfanService implements SceneScoped {
     // A jetfan is drawn as a box; its transparency is the alpha the app put in
     // the colour, and the pair is what turns that into a choice of pool.
     const boxes: PooledBox[] = this.placed.map((placed: PlacedJetfan) => ({
-      uuid: placed.jetfan.uuid, xb: placed.xb, color: placed.color
+      uuid: placed.jetfan.uuid, id: placed.jetfan.id, xb: placed.xb, color: placed.color
     }));
 
     this.pool.setBoxes(boxes);
@@ -313,7 +313,7 @@ export class JetfanService implements SceneScoped {
     if (this.pool) { return; }
 
     this.pool = new BoxPoolPair(
-      'jetfans', 'jetfansTransparent',
+      'jetfans', 'jetfansTransparent', 'jetfan',
       this.babylonService.scene, this.helpersService, this.sceneRegistry);
   }
 

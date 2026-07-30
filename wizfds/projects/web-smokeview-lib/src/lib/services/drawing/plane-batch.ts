@@ -2,7 +2,7 @@ import * as BABYLON from 'babylonjs';
 
 import { HelpersService } from '../helpers/helpers.service';
 import { FaceRange, SceneRegistryService } from '../babylon/scene-registry.service';
-import { SceneXb } from './scene-input';
+import { SceneElementType, SceneXb } from './scene-input';
 
 /** One axis-aligned rectangle drawn out of a batch's shared buffer. */
 export interface BatchedPlane {
@@ -14,6 +14,8 @@ export interface BatchedPlane {
    * nothing for a pick to land on and nothing to register.
    */
   readonly uuid?: string,
+  /** Its FDS `ID`. Absent alongside `uuid`, and for the same reason. */
+  readonly id?: string,
   /** Where it stands, in FDS metres. */
   readonly xb: SceneXb,
   /** Its colour as a flat rgba array, every component in 0..1. */
@@ -49,6 +51,8 @@ export class PlaneBatch {
 
   constructor(
     name: string,
+    /** Which kind of element this batch holds - every plane in it is one of these. */
+    private readonly type: SceneElementType,
     scene: BABYLON.Scene,
     private readonly helpers: HelpersService,
     private readonly registry: SceneRegistryService
@@ -107,7 +111,8 @@ export class PlaneBatch {
 
       if (plane.uuid !== undefined) {
         faces.push({
-          uuid: plane.uuid, first: facesBefore, count: indices.length / 3 - facesBefore
+          uuid: plane.uuid, id: plane.id ?? '', xb: plane.xb,
+          first: facesBefore, count: indices.length / 3 - facesBefore
         });
       }
     });
@@ -126,8 +131,11 @@ export class PlaneBatch {
 
     // After the buffer, not before: which plane a face belongs to is settled by
     // what actually went into it
-    faces.forEach(({ uuid, first, count }) => {
-      this.registry.register(uuid, { mesh: this.mesh, faces: { first: first, count: count } });
+    faces.forEach(({ uuid, id, xb, first, count }) => {
+      this.registry.register(uuid, {
+        mesh: this.mesh, type: this.type, id: id, xb: xb,
+        faces: { first: first, count: count }
+      });
     });
   }
 

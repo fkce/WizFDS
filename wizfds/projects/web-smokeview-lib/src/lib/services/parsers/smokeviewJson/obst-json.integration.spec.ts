@@ -6,7 +6,7 @@ import { exportOfBoxes } from './obst-json.fixture';
 import { SmokeviewApiService } from '../../smokeview-api/smokeview-api.service';
 import { BabylonService } from '../../babylon/babylon.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
-import { ObstSelectionService } from '../../drawing/obst/obst-selection.service';
+import { PickService } from '../../picking/pick.service';
 
 /**
  * Two walls well apart, as `<chid>_obst.json` holds them.
@@ -35,7 +35,7 @@ describe('rendering a Smokeview export', () => {
   let adapter: ObstJsonService;
   let api: SmokeviewApiService;
   let registry: SceneRegistryService;
-  let selection: ObstSelectionService;
+  let picking: PickService;
   let engine: BABYLON.NullEngine;
   let scene: BABYLON.Scene;
 
@@ -64,7 +64,7 @@ describe('rendering a Smokeview export', () => {
     adapter = TestBed.inject(ObstJsonService);
     api = TestBed.inject(SmokeviewApiService);
     registry = TestBed.inject(SceneRegistryService);
-    selection = TestBed.inject(ObstSelectionService);
+    picking = TestBed.inject(PickService);
   });
 
   afterEach(() => {
@@ -85,10 +85,10 @@ describe('rendering a Smokeview export', () => {
     // Along +x at mid-height: the west wall first, as the pointer would find it
     const ray = new BABYLON.Ray(
       new BABYLON.Vector3(-1, 0.3, 0.15), new BABYLON.Vector3(1, 0, 0), 10);
-    selection.selectObst(ray);
+    picking.pick(ray);
 
-    expect(selection.pickedObst).toBeTruthy();
-    expect(selection.pickedObst.id).toBe('OBST 1');
+    expect(picking.lastSelected).toBeTruthy();
+    expect(picking.lastSelected.id).toBe('OBST 1');
   });
 
   it('measures the scene from what was loaded', async () => {

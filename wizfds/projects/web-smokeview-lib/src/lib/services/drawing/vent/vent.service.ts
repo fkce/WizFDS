@@ -168,9 +168,14 @@ export class VentService implements SceneScoped {
     if (this.opaqueBatch) { return; }
 
     const scene = this.babylonService.scene;
-    this.opaqueBatch = new PlaneBatch('vents', scene, this.helpersService, this.sceneRegistry);
+    // These two hold only the planes a jetfan's inlet and outlet are drawn as -
+    // parts of a jetfan, not &VENTs of the scenario. They carry no uuid, so
+    // nothing in them is registered and no pick can reach one; the type is what
+    // they would be if one ever did.
+    this.opaqueBatch = new PlaneBatch(
+      'vents', 'jetfan', scene, this.helpersService, this.sceneRegistry);
     this.transparentBatch = new PlaneBatch(
-      'ventsTransparent', scene, this.helpersService, this.sceneRegistry);
+      'ventsTransparent', 'jetfan', scene, this.helpersService, this.sceneRegistry);
   }
 
   /**
@@ -252,7 +257,7 @@ export class VentService implements SceneScoped {
       const color = this.helpersService.toRgba(vent.color);
       const key = `${color[0].toFixed(3)},${color[1].toFixed(3)},${color[2].toFixed(3)}`;
       if (!grouped.has(key)) { grouped.set(key, []); }
-      grouped.get(key).push({ uuid: vent.uuid, xb: vent.xb, color: color });
+      grouped.get(key).push({ uuid: vent.uuid, id: vent.id, xb: vent.xb, color: color });
     });
 
     // A colour nobody uses any more takes its batch - and everything that batch
@@ -278,7 +283,7 @@ export class VentService implements SceneScoped {
 
     const group: BasicVentGroup = {
       batch: new PlaneBatch(
-        `basicVents_${this.basicGroups.size}`, this.babylonService.scene,
+        `basicVents_${this.basicGroups.size}`, 'vent', this.babylonService.scene,
         this.helpersService, this.sceneRegistry),
       edgeColor: new BABYLON.Color4(color[0], color[1], color[2], 1)
     };

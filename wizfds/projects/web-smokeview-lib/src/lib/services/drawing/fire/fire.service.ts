@@ -90,13 +90,16 @@ export class FireService implements SceneScoped {
   public async renderFires(): Promise<void> {
     if (!this.batch) {
       this.batch = new PlaneBatch(
-        'fires', this.babylonService.scene, this.helpersService, this.sceneRegistry);
+        'fires', 'fire', this.babylonService.scene, this.helpersService, this.sceneRegistry);
     }
 
     this.batch.setPlanes((this.fires || []).map((fire: SceneFire) => {
       const color = this.helpersService.toRgba(fire.color);
       // Fires are always drawn opaque, whatever the &SURF says
-      return { uuid: fire.uuid, xb: fire.xb, color: [color[0], color[1], color[2], 1.0] };
+      return {
+        uuid: fire.uuid, id: fire.id, xb: fire.xb,
+        color: [color[0], color[1], color[2], 1.0]
+      };
     }));
 
     await this.layer.attach([{ mesh: this.batch.mesh, edgeColor: FIRE_EDGE_COLOR }]);

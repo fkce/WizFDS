@@ -1,6 +1,13 @@
 <div class="main" #mainContainer>
 
-    <canvas class="renderer" #rendererCanvas [hidden]="!webGPUAvailable"></canvas>
+    <!--
+        The pointer gestures are bound here and not on the host: everything below
+        is layered over this canvas, and a click on a button or a slider is not a
+        click in the scene. See SmokeviewComponent.onPointerDown().
+    -->
+    <canvas class="renderer" #rendererCanvas [hidden]="!webGPUAvailable"
+        (pointerdown)="onPointerDown($event)" (pointerup)="onPointerUp($event)"
+        (pointermove)="onPointerMove()" (pointerleave)="onPointerLeave()"></canvas>
 
     <div class="unsupported" *ngIf="!webGPUAvailable">
         <mat-icon svgIcon="alert-circle-outline" aria-hidden="true"></mat-icon>
@@ -16,12 +23,12 @@
     </div>
 
     <ng-container *ngIf="webGPUAvailable">
-    <div class="info" *ngIf="obstSelection.pickedObst">
+    <div class="info" *ngIf="picking.lastSelected">
         <p>
-            id: {{ obstSelection.pickedObst.id }}<br>
-            surf_id: {{ obstSelection.pickedObst.surfId }}
-            <span *ngIf="obstSelection.pickedObsts.length > 1">
-                <br>and {{ obstSelection.pickedObsts.length - 1 }} more selected
+            {{ picking.lastSelected.type }}<br>
+            id: {{ picking.lastSelected.id }}
+            <span *ngIf="picking.selected.length > 1">
+                <br>and {{ picking.selected.length - 1 }} more selected
             </span>
         </p>
     </div>
@@ -34,8 +41,8 @@
             <tr>Rotate:<td></td> <td>hold left click + move</td> </tr>
             <tr>Pan:<td></td> <td>hold right click + move</td> </tr>
             <tr>Zoom:<td></td> <td>mouse scroll</td> </tr>
-            <tr>Select:<td></td> <td>ctrl + left click</td> </tr>
-            <tr>Add to selection:<td></td> <td>ctrl + shift + left click</td> </tr>
+            <tr>Select:<td></td> <td>left click</td> </tr>
+            <tr>Add to selection:<td></td> <td>ctrl or shift + left click</td> </tr>
         </table>
     </div>
 

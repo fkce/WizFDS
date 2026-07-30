@@ -47,6 +47,21 @@ export interface SceneColor {
     readonly a: number
 }
 
+/**
+ * The kinds of element the library draws.
+ *
+ * A pick answers with one of these next to the `uuid`, so whoever is told about
+ * it knows which of the scenario's lists to look in - the app holds eleven of
+ * them and scanning all of them for a uuid is work the scene can save it.
+ *
+ * The names are the app's own words for these elements, which are the FDS
+ * namelist names lowercased. Only what is drawn is here: a &HOLE is cut out of
+ * the obsts it overlaps and never drawn in its own right, so no pick can return
+ * one and nothing has to handle it.
+ */
+export type SceneElementType =
+    'obst' | 'mesh' | 'open' | 'vent' | 'fire' | 'jetfan' | 'devc' | 'geom' | 'init' | 'zone';
+
 /** Everything the library draws has an identity, an FDS name and a box. */
 export interface SceneElement {
     readonly uuid: string,

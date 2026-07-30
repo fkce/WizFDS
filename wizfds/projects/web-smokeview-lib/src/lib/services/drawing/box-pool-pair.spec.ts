@@ -12,12 +12,12 @@ const SLAB: SceneXb = { x1: 0, x2: 4, y1: 0, y2: 4, z1: 3, z2: 3.2 };
 
 /** Fully opaque - the alpha the app resolved from a &SURF with TRANSPARENCY=1. */
 function solid(uuid: string, xb: SceneXb = WALL): PooledBox {
-  return { uuid: uuid, xb: xb, color: [1, 0.8, 0, 1] };
+  return { uuid: uuid, id: uuid.toUpperCase(), xb: xb, color: [1, 0.8, 0, 1] };
 }
 
 /** Short of fully opaque - glazing. */
 function glazed(uuid: string, xb: SceneXb = SLAB): PooledBox {
-  return { uuid: uuid, xb: xb, color: [0, 0.5, 1, 0.4] };
+  return { uuid: uuid, id: uuid.toUpperCase(), xb: xb, color: [0, 0.5, 1, 0.4] };
 }
 
 describe('BoxPoolPair', () => {
@@ -32,7 +32,7 @@ describe('BoxPoolPair', () => {
     TestBed.configureTestingModule({});
     registry = TestBed.inject(SceneRegistryService);
     pair = new BoxPoolPair(
-      'obstOpaque', 'obstTransparent', scene, TestBed.inject(HelpersService), registry);
+      'obstOpaque', 'obstTransparent', 'obst', scene, TestBed.inject(HelpersService), registry);
   });
 
   afterEach(() => {
@@ -94,7 +94,9 @@ describe('BoxPoolPair', () => {
     it('has nothing to say about an element drawn on a mesh of its own', () => {
       // An obst with an opening is registered against its own mesh, not a pool
       pair.setBoxes([solid('a')]);
-      registry.register('cut', { mesh: new BABYLON.Mesh('cut', scene) });
+      registry.register('cut', {
+        mesh: new BABYLON.Mesh('cut', scene), type: 'obst', id: 'CUT', xb: WALL
+      });
 
       expect(pair.poolFor('cut')).toBeUndefined();
     });

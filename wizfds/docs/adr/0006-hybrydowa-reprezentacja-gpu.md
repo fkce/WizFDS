@@ -98,6 +98,16 @@ Dwie rzeczy, które ujawniło sprowadzenie tego do jednego miejsca:
 
 Stan uniformów i trzystanowy przycisk widoczności, wspólne dla wszystkich warstw płaszczyzn, siedzą w `ClippedPlaneLayer` — inaczej czwarty element geometrii wejściowej skopiowałby je po raz czwarty.
 
+## Uzupełnienie po wdrożeniu (#121): zaznaczenie samo nie wyprowadza z puli
+
+Decyzja wymienia „obiekt **zaznaczony** lub przeciągany" jako powód przydziału do osobnego mesha. Po wdrożeniu #121 to zawężamy: **z puli wychodzi tylko zaznaczony `&OBST`**.
+
+Powodem wyprowadzenia jest edycja w miejscu — możliwość przesunięcia obiektu bez przepisywania bufora, który dzieli z dziesięcioma tysiącami innych. Zaznaczenie jest jedynie tym, co ją poprzedza, i samo z siebie nic nie kosztuje: podświetlenie to osobne, półprzezroczyste pudełko rysowane nad obiektem, niezależne od tego, jak obiekt jest reprezentowany.
+
+`&MESH`, `&INIT` i `&ZONE` są od #121 zaznaczalne i **zostają w swoich pulach**. Żadnego z nich nie przesuwa się gizmem — domena obliczeniowa i strefa warunków to pudełka opisane współrzędnymi w formularzu — a jest ich w scenariuszu kilka, nie tysiące, więc wyprowadzanie ich nic by nie dało.
+
+Kiedy przeciąganie obejmie kolejny typ, wyprowadzenie z puli dołoży się razem z nim, w tym samym miejscu (`PickService.addHighlight()`).
+
 ## Rozważone alternatywy
 
 - **Wyłącznie osobne meshe.** Najprostsze i całkowicie wystarczające przy setkach obiektów — ale nie przy dziesięciu tysiącach.

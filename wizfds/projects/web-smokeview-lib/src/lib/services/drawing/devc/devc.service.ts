@@ -140,23 +140,26 @@ export class DevcService implements SceneScoped {
   public async renderDevcs(): Promise<void> {
     const markers = new Map<SceneDevcMarker, PooledBox[]>();
     const bodies: PooledBox[] = [];
-    const planes: { uuid: string, xb: SceneXb, color: readonly number[] }[] = [];
+    const planes: { uuid: string, id: string, xb: SceneXb, color: readonly number[] }[] = [];
 
     (this.devcs || []).forEach((devc: SceneDevc) => {
       const color = this.helpersService.toRgba(devc.color);
 
       if (devc.extent === 'plane') {
-        planes.push({ uuid: devc.uuid, xb: devc.xb, color: color });
+        planes.push({ uuid: devc.uuid, id: devc.id, xb: devc.xb, color: color });
         return;
       }
       if (devc.extent === 'point') {
         const marker = DEVC_MARKER_SHAPES[devc.marker] ? devc.marker : 'sensor';
         if (!markers.has(marker)) { markers.set(marker, []); }
-        markers.get(marker).push({ uuid: devc.uuid, xb: this.markerBox(devc.xb), color: color });
+        markers.get(marker).push({
+          uuid: devc.uuid, id: devc.id, xb: this.markerBox(devc.xb), color: color
+        });
         return;
       }
       bodies.push({
         uuid: devc.uuid,
+        id: devc.id,
         xb: devc.extent === 'linear' ? this.beamBox(devc.xb) : devc.xb,
         color: color
       });
@@ -220,7 +223,7 @@ export class DevcService implements SceneScoped {
 
     // The material follows on the next attach(), which every render ends with
     const pool = new BoxInstancePool(
-      `devc_${marker.replace(/\s+/g, '_')}`, this.babylonService.scene,
+      `devc_${marker.replace(/\s+/g, '_')}`, 'devc', this.babylonService.scene,
       this.helpersService, this.sceneRegistry, DEVC_MARKER_SHAPES[marker]);
     this.markerPools.set(marker, pool);
     return pool;
@@ -229,7 +232,8 @@ export class DevcService implements SceneScoped {
   private ensureExtentPool(): BoxInstancePool {
     if (!this.extentPool) {
       this.extentPool = new BoxInstancePool(
-        'devcBodies', this.babylonService.scene, this.helpersService, this.sceneRegistry);
+        'devcBodies', 'devc', this.babylonService.scene,
+        this.helpersService, this.sceneRegistry);
     }
     return this.extentPool;
   }
@@ -237,7 +241,8 @@ export class DevcService implements SceneScoped {
   private ensurePlaneBatch(): PlaneBatch {
     if (!this.planeBatch) {
       this.planeBatch = new PlaneBatch(
-        'devcPlanes', this.babylonService.scene, this.helpersService, this.sceneRegistry);
+        'devcPlanes', 'devc', this.babylonService.scene,
+        this.helpersService, this.sceneRegistry);
     }
     return this.planeBatch;
   }

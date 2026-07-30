@@ -4,13 +4,13 @@ import * as BABYLON from 'babylonjs';
 import { forEach, find } from 'lodash';
 import { HelpersService } from '../../helpers/helpers.service';
 import { HoleService } from '../hole/hole.service';
-import { SceneHole, SceneObst, SceneXb } from '../scene-input';
+import { SceneElement, SceneHole, SceneObst, SceneXb } from '../scene-input';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
 import { SceneAxis, SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 import { PooledBox, isTranslucent } from '../box-instance-pool';
 import { BoxPoolPair } from '../box-pool-pair';
-import { ObstScene, ObstSelectionService } from './obst-selection.service';
+import { ObstScene, PickService } from '../../picking/pick.service';
 import { SOLID_EDGE_COLOR } from '../../../consts/drawing';
 
 /**
@@ -112,14 +112,14 @@ export class ObstService implements SceneScoped, ObstScene {
     private holeService: HoleService,
     private sceneBounds: SceneBoundsService,
     private sceneRegistry: SceneRegistryService,
-    private selection: ObstSelectionService,
+    private picking: PickService,
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
-    // The selection asks this service where the obsts are; injecting it the
-    // other way round would be a cycle, and this is the side that knows a
-    // re-render has to drop whatever was chosen.
-    this.selection.bind(this);
+    // Picking asks this service about the clipping planes and about singling an
+    // obst out of its pool; injecting it the other way round would be a cycle,
+    // and this is the side that knows a re-render has to drop what was chosen.
+    this.picking.bind(this);
     this.resetClipping();
   }
 
@@ -137,16 +137,6 @@ export class ObstService implements SceneScoped, ObstScene {
   public ownMeshFor(uuid: string): BABYLON.Mesh | undefined {
     const own = this.ownMeshes.get(uuid);
     return own ? own.solid : undefined;
-  }
-
-  /**
-   * The obst behind a uuid, as the app described it - one of the four questions
-   * a selection asks (see ObstScene). Only obsts of the last render are known:
-   * a pick can only land on something that was drawn.
-   */
-  public obstFor(uuid: string): SceneObst | undefined {
-    const placed = find(this.placed, (candidate: PlacedObst) => candidate.obst.uuid === uuid);
-    return placed ? placed.obst : undefined;
   }
 
   /**
@@ -215,8 +205,8 @@ export class ObstService implements SceneScoped, ObstScene {
     // A selection made against the previous scenario names obsts that may no
     // longer be there, and holds meshes promoted out of a pool that is about to
     // be rebuilt.
-    this.selection.clearSelection();
-    this.selection.clearHover();
+    this.picking.clearSelection();
+    this.picking.clearHover();
 
     this.placed = this.placeObsts();
     this.ensurePools();
@@ -231,7 +221,9 @@ export class ObstService implements SceneScoped, ObstScene {
         return;
       }
 
-      boxes.push({ uuid: placed.obst.uuid, xb: placed.obst.xb, color: placed.color });
+      boxes.push({
+        uuid: placed.obst.uuid, id: placed.obst.id, xb: placed.obst.xb, color: placed.color
+      });
     });
 
     // Every mesh of the previous render goes, including the ones an opening no
@@ -244,7 +236,7 @@ export class ObstService implements SceneScoped, ObstScene {
     this.pool.setBoxes(boxes);
 
     cut.forEach(({ placed, vertexData }) => this.addOwnMesh(
-      placed.obst.uuid, vertexData, placed.color[3] < 1, null
+      placed.obst, vertexData, placed.color[3] < 1, null
     ));
 
     this.ensureMaterials();
@@ -332,7 +324,7 @@ export class ObstService implements SceneScoped, ObstScene {
     if (this.pool) { return; }
 
     this.pool = new BoxPoolPair(
-      'obstOpaque', 'obstTransparent',
+      'obstOpaque', 'obstTransparent', 'obst',
       this.babylonService.scene, this.helperService, this.sceneRegistry);
     this.opaqueCap = this.pool.opaque.createTwin('obstBackCapOpaque');
   }
@@ -344,8 +336,10 @@ export class ObstService implements SceneScoped, ObstScene {
    *                     from one
    */
   private addOwnMesh(
-    uuid: string, vertexData: BABYLON.VertexData, transparent: boolean, promotedFrom: PooledBox | null
+    drawn: SceneElement, vertexData: BABYLON.VertexData,
+    transparent: boolean, promotedFrom: PooledBox | null
   ): void {
+    const uuid = drawn.uuid;
     const scene = this.babylonService.scene;
     const solid = new BABYLON.Mesh(`obst_${uuid}`, scene);
     vertexData.applyToMesh(solid);
@@ -364,7 +358,9 @@ export class ObstService implements SceneScoped, ObstScene {
     this.ownMeshes.set(uuid, {
       solid: solid, cap: cap, transparent: transparent, promotedFrom: promotedFrom
     });
-    this.sceneRegistry.register(uuid, { mesh: solid });
+    this.sceneRegistry.register(uuid, {
+      mesh: solid, type: 'obst', id: drawn.id, xb: drawn.xb
+    });
 
     this.applyMaterials();
     this.applyEdges(solid, this.sceneBounds.edgeWidth);
@@ -395,7 +391,7 @@ export class ObstService implements SceneScoped, ObstScene {
     const box = this.pool.remove(uuid);
     if (!box) { return; }
 
-    this.addOwnMesh(uuid, this.boxVertexData(box), isTranslucent(box), box);
+    this.addOwnMesh(box, this.boxVertexData(box), isTranslucent(box), box);
   }
 
   /** Put an obst that was singled out back into the pool it came from. */

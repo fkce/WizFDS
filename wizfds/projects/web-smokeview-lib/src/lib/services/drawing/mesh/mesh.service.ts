@@ -71,11 +71,11 @@ export class MeshService implements SceneScoped {
   public renderMeshes(): void {
     if (!this.pool) {
       this.pool = new BoxInstancePool(
-        'meshes', this.babylonService.scene, this.helperService, this.sceneRegistry);
+        'meshes', 'mesh', this.babylonService.scene, this.helperService, this.sceneRegistry);
     }
 
     this.pool.setBoxes((this.meshes || []).map((mesh: SceneMesh) => ({
-      uuid: mesh.uuid, xb: mesh.xb, color: MESH_COLOR
+      uuid: mesh.uuid, id: mesh.id, xb: mesh.xb, color: MESH_COLOR
     })));
 
     this.ensureMaterial();

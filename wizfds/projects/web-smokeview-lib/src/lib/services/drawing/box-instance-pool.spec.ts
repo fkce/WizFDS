@@ -12,7 +12,7 @@ const SLAB: SceneXb = { x1: 0, x2: 4, y1: 0, y2: 4, z1: 3, z2: 3.2 };
 const COLUMN: SceneXb = { x1: 10, x2: 10.4, y1: 10, y2: 10.4, z1: 0, z2: 3 };
 
 function box(uuid: string, xb: SceneXb, color: number[] = [1, 0, 0, 1]): PooledBox {
-  return { uuid: uuid, xb: xb, color: color };
+  return { uuid: uuid, id: uuid.toUpperCase(), xb: xb, color: color };
 }
 
 describe('BoxInstancePool', () => {
@@ -28,7 +28,7 @@ describe('BoxInstancePool', () => {
     TestBed.configureTestingModule({});
     registry = TestBed.inject(SceneRegistryService);
     helpers = TestBed.inject(HelpersService);
-    pool = new BoxInstancePool('obstOpaque', scene, helpers, registry);
+    pool = new BoxInstancePool('obstOpaque', 'obst', scene, helpers, registry);
   });
 
   afterEach(() => {

@@ -42,7 +42,7 @@ describe('RegionLayer', () => {
     bounds.setFrom([{ x1: 0, x2: 10, y1: 0, y2: 8, z1: 0, z2: 4 }]);
 
     layer = new RegionLayer(
-      { poolName: 'testRegions', materialName: 'testRegionShader' },
+      { poolName: 'testRegions', materialName: 'testRegionShader', type: 'init' },
       TestBed.inject(BabylonService), TestBed.inject(HelpersService),
       bounds, registry, 'RegionLayerSpec');
   });
@@ -99,12 +99,13 @@ describe('RegionLayer', () => {
     expect(registry.entryFor('SHAFT-uuid')).toBeUndefined();
   });
 
-  it('never answers a pick, so it cannot shadow the geometry it overlaps', async () => {
-    // A region describes a condition; the wall inside it is the thing the user
-    // edits, and ctrl+click has to reach it.
+  it('answers a pick, because a region is an element like any other', async () => {
+    // It used to refuse one, so that the wall inside it stayed reachable. #121
+    // makes every drawn type selectable and moves that concern to where a pick is
+    // resolved: a region yields to anything solid behind it (see PickService).
     await layer.render([region('SHAFT', { x1: 0, x2: 10, y1: 0, y2: 8, z1: 0, z2: 4 })]);
 
-    expect(layer.mesh.isPickable).toBeFalse();
+    expect(layer.mesh.isPickable).toBeTrue();
   });
 
   it('outlines the boxes, so a region reads as a region rather than a block', async () => {
