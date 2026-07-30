@@ -143,6 +143,33 @@ describe('drawing a scenario', () => {
     expect(JSON.stringify(deepSnapshot(fds))).toBe(before);
   });
 
+  it('draws the &INIT and the &ZONE of the scenario, from their own XB', async () => {
+    // The definition of done for #118: both are condition regions the app holds
+    // under `general`, and neither used to reach the preview at all.
+    await smokeviewApi.render(sceneInput.fromFds(fds));
+
+    const boxOf = (poolName: string) => {
+      const pool = scene.getMeshByName(poolName) as BABYLON.Mesh;
+      const matrix = pool.thinInstanceGetWorldMatrices()[0];
+      return {
+        centre: BABYLON.Vector3.TransformCoordinates(BABYLON.Vector3.Zero(), matrix),
+        corner: BABYLON.Vector3.TransformCoordinates(new BABYLON.Vector3(0.5, 0.5, 0.5), matrix)
+      };
+    };
+
+    // HOT_LAYER, 0..10 x 0..8 x 2.5..4
+    const init = boxOf('inits');
+    expect(init.centre.x).toBeCloseTo(5, 6);
+    expect(init.centre.z).toBeCloseTo(3.25, 6);
+    expect(init.corner.z).toBeCloseTo(4, 6);
+
+    // SHAFT, 8..10 x 6..8 x 0..4
+    const zone = boxOf('zones');
+    expect(zone.centre.x).toBeCloseTo(9, 6);
+    expect(zone.centre.y).toBeCloseTo(7, 6);
+    expect(zone.corner.z).toBeCloseTo(4, 6);
+  });
+
   it('puts geometry in the scene - so the comparisons above are not vacuous', async () => {
     // An empty scenario would satisfy "unchanged" without proving anything.
     await smokeviewApi.render(sceneInput.fromFds(fds));

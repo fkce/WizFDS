@@ -211,7 +211,11 @@ export class SceneBoundsService implements SceneScoped {
       // A geom carries the box its triangles occupy for exactly this - a
       // scenario whose only geometry is a &GEOM is still a scenario
       ...(scene.geoms || []).map(geom => geom.xb),
-      ...(scene.devcs || []).map(devc => devc.xb)
+      ...(scene.devcs || []).map(devc => devc.xb),
+      // Neither is matter, but both are somewhere: a scenario that is nothing
+      // but a warm layer still has to be measured before it can be looked at
+      ...(scene.inits || []).map(init => init.xb),
+      ...(scene.zones || []).map(zone => zone.xb)
     ]);
   }
 

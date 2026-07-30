@@ -12,11 +12,14 @@ import { JetFan } from '@services/fds-object/ventilation/jet-fan';
 import { Fire } from '@services/fds-object/fire/fire';
 import { Devc } from '@services/fds-object/output/devc';
 import { Geom } from '@services/fds-object/geometry/geom';
+import { Init } from '@services/fds-object/general/init';
+import { Zone } from '@services/fds-object/general/zone';
 import { Xb } from '@services/fds-object/primitives';
 import {
   isSceneDevcMarker, isSceneJetfanDirection, SceneColor, SceneDevc, SceneDevcExtent, SceneDevcMarker,
   SceneFire,
-  SceneGeom, SceneHole, SceneInput, SceneJetfan, SceneMesh, SceneObst, SceneOpen, SceneVent, SceneXb
+  SceneGeom, SceneHole, SceneInit, SceneInput, SceneJetfan, SceneMesh, SceneObst, SceneOpen,
+  SceneVent, SceneXb, SceneZone
 } from '../../../../../web-smokeview-lib/src/lib/services/drawing/scene-input';
 
 /** Drawn for an obst whose &SURF cannot be resolved. Opaque, so it stays visible. */
@@ -36,6 +39,25 @@ const DEVC_RGB: number[] = [0, 220, 255];
 
 /** Drawn for a &GEOM whose &SURF cannot be resolved. */
 const FALLBACK_GEOM_RGB: number[] = [180, 180, 180];
+
+/**
+ * An &INIT has no colour in FDS either, so the preview gives it one - violet,
+ * which nothing else on screen is.
+ */
+const INIT_RGB: number[] = [170, 100, 255];
+
+/** And a &ZONE: pink, so the two condition regions never read as one. */
+const ZONE_RGB: number[] = [255, 90, 200];
+
+/**
+ * How solid a condition region is drawn.
+ *
+ * An &INIT and a &ZONE cover the geometry they apply to by design - a warm layer
+ * sits over a whole storey, a pressure zone contains a stairwell - so the point
+ * of drawing them at all is lost if they hide it. Low enough to read the walls
+ * through, high enough to see where the region ends.
+ */
+const REGION_ALPHA = 0.25;
 
 /**
  * Which marker a device is drawn with, by the FDS QUANTITY it measures.
@@ -96,7 +118,15 @@ export class SceneInputService {
       // would measure the scene from a box it never occupies
       geoms: (geometry.geoms ?? [])
         .map((geom: Geom) => this.geom(geom, surfs))
-        .filter((geom: SceneGeom) => geom.faces.length > 0)
+        .filter((geom: SceneGeom) => geom.faces.length > 0),
+      inits: (fds.general?.inits ?? []).map((init: Init): SceneInit => ({
+        uuid: init.uuid, id: init.id, xb: this.xb(init.xb),
+        color: this.color(INIT_RGB, REGION_ALPHA, INIT_RGB)
+      })),
+      zones: (fds.general?.zones ?? []).map((zone: Zone): SceneZone => ({
+        uuid: zone.uuid, id: zone.id, xb: this.xb(zone.xb),
+        color: this.color(ZONE_RGB, REGION_ALPHA, ZONE_RGB)
+      }))
     };
   }
 

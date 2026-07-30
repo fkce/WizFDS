@@ -84,6 +84,20 @@ function sceneInput(): SceneInput {
         faces: [0, 1, 2, 0, 2, 3],
         color: { r: 0.7, g: 0.7, b: 0.7, a: 1 }
       }
+    ],
+    inits: [
+      {
+        uuid: 'init-uuid', id: 'HOT_LAYER',
+        xb: { x1: 0, x2: 10, y1: 0, y2: 8, z1: 2.5, z2: 4 },
+        color: { r: 0.67, g: 0.39, b: 1, a: 0.25 }
+      }
+    ],
+    zones: [
+      {
+        uuid: 'zone-uuid', id: 'SHAFT',
+        xb: { x1: 8, x2: 10, y1: 6, y2: 8, z1: 0, z2: 4 },
+        color: { r: 1, g: 0.35, b: 0.78, a: 0.25 }
+      }
     ]
   };
 }
@@ -159,7 +173,8 @@ describe('rendering a scene input', () => {
 
   it('draws an empty scenario without writing into it', async () => {
     const frozen = deepFreeze({
-      meshes: [], obsts: [], holes: [], opens: [], vents: [], fires: [], jetfans: [], devcs: [], geoms: []
+      meshes: [], obsts: [], holes: [], opens: [], vents: [], fires: [], jetfans: [],
+      devcs: [], geoms: [], inits: [], zones: []
     } as SceneInput);
 
     await expectAsync(service.render(frozen)).toBeResolved();
@@ -177,5 +192,21 @@ describe('rendering a scene input', () => {
       .forEach(uuid => {
         expect(registry.entryFor(uuid)).withContext(`${uuid} must be in the registry`).toBeTruthy();
       });
+  });
+
+  it('records where the condition regions were drawn, though they answer no pick', async () => {
+    // An &INIT and a &ZONE are deliberately not pickable - the wall inside one
+    // is what a ctrl+click has to reach. The registry is still the one place
+    // that says which scene object is which element, and that is what lets the
+    // app find what it drew for a region without walking the scene.
+    const input = sceneInput();
+
+    await service.render(input);
+
+    const registry = TestBed.inject(SceneRegistryService);
+    ['init-uuid', 'zone-uuid'].forEach(uuid => {
+      expect(registry.entryFor(uuid)).withContext(uuid).toBeTruthy();
+      expect(registry.entryFor(uuid).mesh.isPickable).withContext(uuid).toBeFalse();
+    });
   });
 });

@@ -2,13 +2,26 @@
  * A scenario with one of everything the 3D preview can draw, in a 10 x 8 x 4 m
  * room: a mesh, two obsts with different &SURFs, a doorway, an `OPEN` vent, a
  * ventilation vent, a fire, a jetfan, four devices covering the four ways a
- * &DEVC can occupy space, and a &GEOM.
+ * &DEVC can occupy space, a &GEOM, an &INIT and a &ZONE.
  *
  * Every element type is present so that none of them is left crossing the
  * app/library boundary by a different route than the others.
  */
 export function scenarioJson(): object {
   return {
+    general: {
+      // Both are condition regions rather than matter, and neither has a colour
+      // in FDS - the preview invents one. See SceneInputService.
+      inits: [{
+        id: 'HOT_LAYER', uuid: 'init-uuid',
+        xb: { x1: 0, x2: 10, y1: 0, y2: 8, z1: 2.5, z2: 4 },
+        temperature: 80
+      }],
+      zones: [{
+        id: 'SHAFT', uuid: 'zone-uuid',
+        xb: { x1: 8, x2: 10, y1: 6, y2: 8, z1: 0, z2: 4 }
+      }]
+    },
     geometry: {
       meshes: [{ id: 'MESH', uuid: 'mesh-uuid', xb: { x1: 0, x2: 10, y1: 0, y2: 8, z1: 0, z2: 4 } }],
       surfs: [
