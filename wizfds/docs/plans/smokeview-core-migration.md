@@ -83,12 +83,18 @@ Po zamknięciu listy migracyjnej — nowe elementy geometrii wejściowej: `&DEVC
 
 ## Faza 5 — Edycja geometrii
 
-1. **Strumień komend edycji** z biblioteki, walidacja i zastosowanie po stronie aplikacji, undo/redo na `Fds`. [ADR-0004]
-2. **Gizmo** przesuwania i skalowania, z podglądem gestu rysowanym lokalnie i komendą emitowaną na jego zakończenie.
-3. **Snapowanie**: do siatki `&MESH`, do krawędzi i naroży istniejącej geometrii, do wprowadzonej wartości.
-4. **Rysowanie nowych obiektów**: OBST, HOLE, VENT.
-5. **`CadService` na `uuid`** — przegląd wszystkich miejsc traktujących `idAC` jako klucz główny, tłumaczenie `idAC` → `uuid` przy selekcji z CAD. [ADR-0005]
-6. **Wymiarowanie i pomiar odległości.**
+Osiem kroków, **sekwencyjnie** — każdy potrzebuje tego, co zbudował poprzedni, i każdy zostawia podgląd działający. Decyzje: [ADR-0004], [ADR-0005], [ADR-0009], [ADR-0010].
+
+1. **`CadService` na `uuid`** (#120) — jedna funkcja scalająca dla wszystkich czternastu metod `transform*`: dopasowanie po `idAC` tylko wśród elementów, które go mają, elementy bez `idAC` przechodzą import nietknięte. Naprawia utratę danych, która dzieje się już dziś. [ADR-0005]
+2. **Jedno zaznaczenie po `uuid`** (#121) — wspólne dla 3D, formularzy i pluginu CAD; zaznaczalne wszystkie rysowane typy, `&HOLE` zyskuje półprzezroczystą próżnię, żeby dało się w niego kliknąć. [ADR-0004], [ADR-0005]
+3. **Interfejs** (#122) — ribbon w stylu AutoCAD jako chrome widoku 3D, paleta właściwości, współrzędne i aktywna siatka w status barze; biblioteka redukuje się do kanwy i API, jej SCSS przechodzi na kontrakt tokenowy. [ADR-0010]
+4. **Strumień komend, walidacja, undo/redo** (#123) — historia jako patch elementu, jeden gest to jeden wpis; przyrostowe `update()` obok pełnego `render()`; autosave przechodzi z `isEqual` w `ngDoCheck` na flagę dirty. Walidacja ostrzega, nie blokuje. [ADR-0004], [ADR-0009]
+5. **Gizmo, snapowanie, dynamic input** (#124) — `PositionGizmo` do przesuwania plus własne uchwyty na sześciu ścianach; Grid / Edge / Corner z priorytetem naroże > krawędź > siatka i tolerancją w pikselach; siatka z `&MESH` pod kursorem. Tu też usuwanie i przesuwanie wielu naraz.
+6. **Rysowanie nowych obiektów** (#125) — OBST, HOLE, VENT gestem `BOX` w trzech krokach; bieżący SURF jako odpowiednik warstwy bieżącej.
+7. **Kopiowanie, szyk, odbicie** (#126) — trzy warianty tej samej komendy tworzenia, więc po kroku 6 niemal darmowe.
+8. **Wymiarowanie i pomiar odległości** (#127) — efemerycznie; FDS nie ma encji adnotacji, więc nic nie jest zapisywane.
+
+Świadomie poza zakresem: linia komend AutoCAD-owa (wymaga zaprojektowania języka komend — osobne przedsięwzięcie), trwałe wymiary w stanie UI, automatyczna dwukierunkowa synchronizacja z CAD, undo dla zmian z formularzy, edycja w standalone viewerze.
 
 ---
 

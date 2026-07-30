@@ -40,3 +40,40 @@ Scenariusz może zawierać jednocześnie obiekty z obu źródeł. Import z CAD n
 
 - **Scenariusz jest albo CAD-owy, albo webowy, bez mieszania.** Zero zmian w `CadService`, ale użytkownik nie może dorysować w przeglądarce do modelu z CAD — a to najbardziej naturalna ścieżka migracji.
 - **Wygaszenie pluginu CAD od razu, tryb tylko-import.** Najczystsze docelowo, ale wymaga, żeby edytor webowy najpierw dorównał możliwościom CAD.
+
+## Uzupełnienie (2026-07-30)
+
+Rozpoznanie przed Fazą 5 (#88) pokazało, że problem jest poważniejszy niż opisany wyżej, i domknęło pytanie o usuwanie po stronie CAD.
+
+### To nie jest problem przyszły
+
+`fExport()` (`websocket.service.ts:277`) jest **pełną podmianą**: dla każdej kolekcji czyści listę przez `remove(...)` i wypełnia ją od nowa z ładunku CAD. A `transformObsts()` (`cad.service.ts:409`) — jak wszystkie czternaście metod `transform*` — buduje wynik **wyłącznie** z elementów przychodzących. Cokolwiek jest w `currentElements`, a czego ładunek nie wymienia, po prostu wypada.
+
+Czyli OBST dodany przyciskiem w formularzu (`obstruction.component.ts:157`, tworzy `Obst` bez `idAC`) **znika przy najbliższym imporcie z CAD już dziś**. To samo dotyczy dziury, pożaru, urządzenia, wentylacji.
+
+### Reguła scalania
+
+Wynikiem scalania jest:
+
+- każdy element z ładunku CAD, dopasowany do istniejącego po `idAC` **w obrębie elementów, które `idAC` mają** — pola przepisywane dokładnie jak dziś;
+- plus każdy istniejący element **bez** `idAC`, przeniesiony nietknięty.
+
+Brak w ładunku oznacza więc „usunięto w CAD" tylko dla elementów, które z CAD przyszły. Dla elementu narysowanego w przeglądarce nie oznacza nic.
+
+Konsekwencja techniczna: `rewriteIds()` (`cad.service.ts:62`) nadaje `id` elementom przychodzącym z pustym `id`, kontynuując od najwyższego numeru — musi więc widzieć **połączoną** listę, inaczej nowy OBST z CAD dostanie numer zajęty przez obiekt narysowany w przeglądarce.
+
+### Obiekt z `idAC` pozostaje własnością CAD
+
+Rysunek jest panem geometrii swoich obiektów. Edycja w przeglądarce obiektu, który ma `idAC`, zostanie nadpisana przy najbliższym imporcie — tak jak dziś nadpisywana jest zmiana `xb` wprowadzona w formularzu. To reguła świadoma, nie przeoczenie.
+
+Odrzucono odłączanie obiektu od CAD przy pierwszej edycji: jego odpowiednik z rysunku wrócił by przy następnym imporcie jako nowy obiekt, zostawiając użytkownika z dwiema ścianami.
+
+### W drugą stronę nic nie jedzie samo
+
+Obiekt narysowany w przeglądarce pozostaje webowy — ma `uuid`, nie ma `idAC` i nie trafia do CAD automatycznie, nawet gdy plugin jest podłączony. Istniejący jawny przycisk „Create CAD element" w formularzu (`obstruction.component.ts:200`, wysyła `createObstWeb`) pozostaje jedyną drogą dla kogoś, kto chce mieć ten obiekt także na rysunku.
+
+Automatyczne wypychanie odtwarzałoby dwukierunkową synchronizację, której ta decyzja i ADR-0004 celowo unikają, i natychmiast czyniłoby nowy obiekt własnością CAD.
+
+### Tłumaczenie selekcji
+
+`fSelect` tłumaczy `idAC → uuid` na wejściu, `selectCad` `uuid → idAC` na wyjściu. Element bez `idAC` jest w tę drugą stronę pomijany — nie da się pokazać w rysunku obiektu, którego rysunek nie zawiera.

@@ -48,3 +48,21 @@ Biblioteka może utrzymywać stan **czysto prezentacyjny** (co jest zaznaczone, 
 
 - **Biblioteka z własnym modelem dokumentu i dwukierunkową synchronizacją.** Większa niezależność biblioteki, ale dwa modele do utrzymania w zgodzie i undo/redo musiałoby obejmować oba.
 - **Wspólny pakiet modelu geometrii dla aplikacji i biblioteki.** Najczystsze docelowo, ale wymaga ruszenia klas w `services/fds-object`, z których korzysta cała aplikacja i `JsonFdsService`. Do rozważenia później, gdy kontrakt z punktu 1 się ustabilizuje.
+
+## Uzupełnienie (2026-07-30)
+
+Rozpoznanie przed Fazą 5 (#88) doprecyzowało trzy rzeczy, których ta decyzja nie rozstrzygała.
+
+### Dwie drogi wejścia, nie jedna
+
+Punkt 4 przepływu — „zmieniony stan wraca do biblioteki" — nie może przebiegać przez `render(SceneInput)`. Pełny render odbudowuje pule thin instances, wszystkie odejmowania `&HOLE` przez CSG i materiały; przy dziesięciu tysiącach obstów to sekundy, nie milisekundy, a więc nie do wywołania po przesunięciu jednej ściany.
+
+API biblioteki zyskuje **drugą drogę wejścia**: metodę przyrostową przyjmującą listę zmienionych, dodanych i usuniętych elementów, adresowanych po `uuid`. Aplikacja wie, co zmieniła — sama zastosowała komendę. `render()` pozostaje pełnym wejściem przy wejściu w widok i przełączeniu scenariusza. `SceneRegistryService` ma już `register()` i `forget(uuid)`, więc księgowanie istnieje.
+
+### Zaznaczenie należy do aplikacji
+
+Ta decyzja wymieniała „co jest zaznaczone" jako przykład stanu czysto prezentacyjnego, który biblioteka może trzymać. To zawężamy: **autorytatywne zaznaczenie żyje w aplikacji**, w serwisie kluczowanym po `uuid` (ADR-0005), bo spina trzy rzeczy poza biblioteką — podświetlenie na liście, aktywny element formularza i selekcję z pluginu CAD. Biblioteka jest o zaznaczeniu **informowana** i trzyma wyłącznie jego rysunek: obwódkę, półprzezroczyste pudełko, marker.
+
+### Budżet klatki ma drugiego konsumenta
+
+Sekcja „Negatywne" wskazywała jako koszt pełny obieg komendy przy przeciąganiu i rozwiązywała go lokalnym podglądem gestu. To niewystarczające. Autosave wykonuje `isEqual` całego `fdsObject` w `ngDoCheck` komponentu głównego (`app.component.ts:149`), a `pointerdown` i `pointermove` w `SmokeviewComponent` są `@HostListener`-ami — więc każdy ruch myszy nad kanwą wywołuje `tick()` i wraz z nim głębokie porównanie scenariusza, niezależnie od tego, czy jakakolwiek komenda została wyemitowana. Rozwiązanie opisuje ADR-0009.
