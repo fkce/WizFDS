@@ -80,3 +80,16 @@ SCSS biblioteki przechodzi na **kontrakt tokenowy** — `var(--surface-1)`, `var
 - **Biblioteka zachowuje wbudowane UI, host je ukrywa.** Zero pracy w standalone viewerze, ale dwa zestawy tych samych kontrolek i dwa miejsca, w których można zapomnieć dodać nowy przełącznik.
 - **Jawny przełącznik „podgląd / edycja".** Chroniłby przed przypadkową zmianą przy przeglądaniu, ale użytkownicy gubią się, w którym trybie są; narzędzia dają ten sam efekt bez trybu globalnego.
 - **Pola `XB` wprost w zakładce kontekstowej, bez palety.** Oszczędza miejsce po prawej, ale sześć pól liczbowych w ribbonie jest ciasne, a ribbon przestaje być paskiem narzędzi i staje się formularzem.
+
+## Uzupełnienie (2026-07-30) — co weszło z #122, a co czeka
+
+Ribbon powstał w całości: QAT, zakładki Home / View / Measure, zakładka kontekstowa, panele z tytułami u dołu i zwijanie do samych zakładek. Wypełniony jest jednak wyłącznie tym, co w tej chwili istnieje — reszta przycisków jest wyszarzona z podpowiedzią mówiącą, na co czeka. To świadomy wybór: pusty panel nie mówi nic, a wyszarzona komenda to dokładnie to, co AutoCAD robi z komendą, która w danym momencie nie ma zastosowania.
+
+Aktywne dziś: widoczność per warstwa, tryby wyświetlania, płaszczyzny przekrojów, „zoom extents", zakładka kontekstowa (otwórz formularz, przybliż do zaznaczenia) i paleta właściwości. Wyszarzone do czasu #123–#127: undo/redo w QAT, cały panel Draw wraz z selektorem SURF-a, Modify, Snap, oba pomiary i „usuń" w zakładce kontekstowej.
+
+Dwie rzeczy z tej decyzji przesunięto jawnie, bo obie zależą od #123:
+
+- **Paleta właściwości jest tylko do odczytu.** Wpisanie współrzędnej ma emitować komendę edycji — a strumień komend, jego walidacja i historia to #123. Zapis wprost do `Fds` w międzyczasie omijałby historię, którą tamto issue wprowadza, i wymagałby pełnego `render()`, co ADR-0004 wyklucza.
+- **Licznik ostrzeżeń o regułach FDS nie trafił na status bar.** W aplikacji nie ma dziś żadnej walidacji reguł FDS; powstaje ona w #123. Współrzędne kursora i aktywna siatka `&MESH` z krokiem — są.
+
+Interfejs biblioteki dla hosta to `SceneViewService` (warstwy, przełączniki wyświetlania, przekroje, kamera) obok istniejącego `SmokeviewApiService` (rysowanie sceny). Rozdzielone, bo pierwszy dotyczy prezentacji, drugi treści sceny; oba są publiczne i wołane tak samo przez ribbon i przez pasek standalone viewera.
