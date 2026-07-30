@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Main } from '@services/main/main';
 import { Fds } from '@services/fds-object/fds-object';
 import { UiState } from '@services/ui-state/ui-state';
+import { SelectionService } from '@services/selection/selection.service';
 import { Library } from '@services/library/library';
 import { Slcf } from '@services/fds-object/output/slcf';
 import { quantities } from '@enums/fds/enums/fds-enums-quantities';
@@ -48,7 +49,7 @@ export class SliceComponent implements OnInit, OnDestroy {
   mainSub: Subscription;
   uiSub: Subscription;
   libSub: Subscription;
-  rouSub: Subscription;
+  selSub: Subscription;
 
   // Scrolbars containers
   @ViewChild('slcfScrollbar', {static: false}) slcfScrollbar: NgScrollbar;
@@ -63,8 +64,8 @@ export class SliceComponent implements OnInit, OnDestroy {
     public websocketService: WebsocketService,
     public uiStateService: UiStateService,
     private libraryService: LibraryService,
-    private route: ActivatedRoute,
-    private snackBarService: SnackBarService
+    private snackBarService: SnackBarService,
+    private selectionService: SelectionService
   ) { }
 
   ngOnInit() {
@@ -89,6 +90,8 @@ export class SliceComponent implements OnInit, OnDestroy {
         }
         else if (message.status == 'success') {
           this.slcfOld = cloneDeep(this.slcf);
+    if (this.slcf) { this.selectionService.select({ uuid: this.slcf.uuid, type: 'slcf' }); }
+      if (this.slcf) { this.selectionService.select({ uuid: this.slcf.uuid, type: 'slcf' }); }
           if (message.method == 'createSlcfSurfWeb') {
             this.snackBarService.notify('success', 'CAD: Slice layer created');
           }
@@ -101,19 +104,26 @@ export class SliceComponent implements OnInit, OnDestroy {
     );
 
     // Activate element from route or ui object
-    this.rouSub = this.route.params.subscribe((params) => {
-      if (params['idAC']) {
-        let index = -1;
-        index = findIndex(this.slcfs, function (o) { return o.idAC == params['idAC']; });
-        if (index >= 0) {
-          this.activate(this.slcfs[index].id);
-        }
-      }
-      else {
-        this.slcfs.length > 0 ? this.activate(this.slcfs[this.ui.output['slcf'].elementIndex].id) : this.slcf = undefined;
-      }
-    });
+    // Open whatever is selected - a click in 3D or in CAD is what says so
+    // (#121). Replayed on subscribe, so this settles what is open on arrival.
+    this.selSub = this.selectionService.selected$.subscribe(() => this.activateSelected());
+  }
 
+  /**
+   * Open the selected element, or the one last worked on.
+   *
+   * The selection is the app's one answer to "what is the user on" (ADR-0005): a
+   * click in 3D, a click in the drawing and a click in the list below all reach
+   * here the same way. What it replaces was an `idAC` route parameter, which
+   * could only ever name an element the drawing contained.
+   */
+  private activateSelected() {
+    const selected = this.selectionService.selectedIn(this.slcfs);
+    if (selected) {
+      this.activate(selected.id);
+    } else {
+      this.slcfs.length > 0 ? this.activate(this.slcfs[this.ui.output['slcf'].elementIndex].id) : this.slcf = undefined;
+    }
   }
 
   ngAfterViewInit() {
@@ -128,7 +138,7 @@ export class SliceComponent implements OnInit, OnDestroy {
     this.mainSub.unsubscribe();
     this.uiSub.unsubscribe();
     this.libSub.unsubscribe();
-    this.rouSub.unsubscribe();
+    this.selSub.unsubscribe();
   }
 
   /** Activate element on click */

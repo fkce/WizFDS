@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 
 import { Open } from '@services/fds-object/geometry/open';
 import { UiState } from '@services/ui-state/ui-state';
+import { SelectionService } from '@services/selection/selection.service';
 import { UiStateService } from '@services/ui-state/ui-state.service';
 import { Fds } from '@services/fds-object/fds-object';
 import { Mesh } from '@services/fds-object/geometry/mesh';
@@ -42,7 +43,7 @@ export class MeshComponent implements OnInit, OnDestroy {
   wsSub: Subscription;
   mainSub: Subscription;
   uiSub: Subscription;
-  rouSub: Subscription;
+  selSub: Subscription;
 
   // Scrolbars containers
   @ViewChild('meshScrollbar', {static: false}) meshScrollbar: NgScrollbar;
@@ -55,8 +56,8 @@ export class MeshComponent implements OnInit, OnDestroy {
     private mainService: MainService,
     public websocketService: WebsocketService,
     public uiStateService: UiStateService,
-    private route: ActivatedRoute,
-    private snackBarService: SnackBarService
+    private snackBarService: SnackBarService,
+    private selectionService: SelectionService
   ) { }
 
   ngOnInit() {
@@ -72,51 +73,33 @@ export class MeshComponent implements OnInit, OnDestroy {
     this.opens = this.main.currentFdsScenario.fdsObject.geometry.opens;
 
     // Activate element from route or ui object
-    this.rouSub = this.route.params.subscribe((params) => {
-      if (params['idAC']) {
-        let index = -1;
+    // Open whatever is selected - a click in 3D or in CAD is what says so
+    // (#121). Replayed on subscribe, so this settles what is open on arrival.
+    this.selSub = this.selectionService.selected$.subscribe(() => this.activateSelected());
+  }
 
-        switch (params['type']) {
-          case 'mesh':
-            index = findIndex(this.meshes, function (o) { return o.idAC == params['idAC']; });
-            if (index >= 0) {
-              this.activate(this.meshes[index].id, 'mesh');
-            }
-            // Set range list
-            let elementBegin = Math.floor((index + 1) / this.ui.listRange) * this.ui.listRange;
-            this.ui.geometry['mesh'].begin = elementBegin;
-            this.ui.geometry['mesh'].elementIndex = index;
-            // Set scrool y position, timeout needed to wait for view init
-            setTimeout(() => {
-              let elementNumber = this.meshes.length - (index + 1) > this.ui.listRange ? this.ui.listRange : this.meshes.length % this.ui.listRange;
-              const viewport = this.meshScrollbar?.viewport;
-              if (viewport) {
-                const vh = viewport.offsetHeight || 0;
-                let elementHeight = elementNumber > 0 ? vh / elementNumber : 0;
-                try { viewport.scrollYTo(elementHeight * (index - elementBegin)); } catch {}
-              }
-            }, 100);
+  /**
+   * Open the selected element of each list, or the one last worked on.
+   *
+   * The selection is the app's one answer to "what is the user on" (ADR-0005): a
+   * click in 3D, a click in the drawing and a click in the list below all reach
+   * here the same way. What it replaces was an `idAC` route parameter, which
+   * could only ever name an element the drawing contained.
+   */
+  private activateSelected() {
+    const selectedMesh = this.selectionService.selectedIn(this.meshes);
+    if (selectedMesh) {
+      this.activate(selectedMesh.id, 'mesh');
+    } else {
+      this.meshes.length > 0 ? this.activate(this.meshes[this.ui.geometry['mesh'].elementIndex].id, 'mesh') : this.mesh = undefined;
+    }
 
-            // Activate element from second list
-            this.opens.length > 0 ? this.activate(this.opens[this.ui.geometry['open'].elementIndex].id, 'open') : this.open = undefined;
-            break;
-
-          case 'open':
-            index = findIndex(this.opens, function (o) { return o.idAC == params['idAC']; });
-            if (index >= 0) {
-              this.activate(this.opens[index].id, 'open');
-            }
-            this.meshes.length > 0 ? this.activate(this.meshes[this.ui.geometry['mesh'].elementIndex].id, 'mesh') : this.mesh = undefined;
-            break;
-
-        }
-      }
-      else {
-        this.meshes.length > 0 ? this.activate(this.meshes[this.ui.geometry['mesh'].elementIndex].id, 'mesh') : this.mesh = undefined;
-        this.opens.length > 0 ? this.activate(this.opens[this.ui.geometry['open'].elementIndex].id, 'open') : this.open = undefined;
-      }
-    });
-
+    const selectedOpen = this.selectionService.selectedIn(this.opens);
+    if (selectedOpen) {
+      this.activate(selectedOpen.id, 'open');
+    } else {
+      this.opens.length > 0 ? this.activate(this.opens[this.ui.geometry['open'].elementIndex].id, 'open') : this.open = undefined;
+    }
   }
 
   ngAfterViewInit() {
@@ -140,7 +123,7 @@ export class MeshComponent implements OnInit, OnDestroy {
     //this.wsSub.unsubscribe();
     this.mainSub.unsubscribe();
     this.uiSub.unsubscribe();
-    this.rouSub.unsubscribe();
+    this.selSub.unsubscribe();
   }
 
   /** Activate element on click */
@@ -149,11 +132,13 @@ export class MeshComponent implements OnInit, OnDestroy {
       this.mesh = find(this.fds.geometry.meshes, function (o) { return o.id == id; });
       this.ui.geometry['mesh'].elementIndex = findIndex(this.meshes, { id: id });
       this.meshOld = cloneDeep(this.mesh);
+      if (this.mesh) { this.selectionService.select({ uuid: this.mesh.uuid, type: 'mesh' }); }
     }
     else if (type == 'open') {
       this.open = find(this.fds.geometry.opens, function (o) { return o.id == id; });
       this.ui.geometry['open'].elementIndex = findIndex(this.opens, { id: id });
       this.openOld = cloneDeep(this.open);
+      if (this.open) { this.selectionService.select({ uuid: this.open.uuid, type: 'open' }); }
     }
   }
 

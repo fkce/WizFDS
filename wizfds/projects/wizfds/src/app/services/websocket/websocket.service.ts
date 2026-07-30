@@ -5,12 +5,39 @@ import { Observable, Observer, Subject, BehaviorSubject } from 'rxjs';
 import { Main } from '@services/main/main';
 import { MainService } from '@services/main/main.service';
 import { CadService } from '@services/cad/cad.service';
-import { remove, each, find, findIndex, upperCase } from 'lodash';
+import { remove, each, find, upperCase } from 'lodash';
 import { Fds } from '@services/fds-object/fds-object';
 import { Surf } from '@services/fds-object/geometry/surf';
 import { WebsocketMessageObject } from './websocket-message';
 import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 import { Fire } from '@services/fds-object/fire/fire';
+import { ElementsService, FdsElementType } from '@services/elements/elements.service';
+import { SelectionService } from '@services/selection/selection.service';
+
+/**
+ * The form that shows each kind of element.
+ *
+ * A click in the drawing opens the element in the app, and this says where. Two
+ * kinds share a form - a &MESH with an `OPEN`, an &OBST with a &HOLE - and the
+ * form works out which of its lists holds the selected element, so nothing here
+ * has to tell it.
+ */
+const FORM_ROUTES: { readonly [type in FdsElementType]?: string } = {
+  mesh: 'fds/geometry/mesh',
+  open: 'fds/geometry/mesh',
+  obst: 'fds/geometry/obstruction',
+  hole: 'fds/geometry/obstruction',
+  geom: 'fds/geometry/complex',
+  surf: 'fds/geometry/surface',
+  vent: 'fds/ventilation/basic',
+  jetfan: 'fds/ventilation/jetfan',
+  fire: 'fds/fire/fire',
+  devc: 'fds/output/device',
+  slcf: 'fds/output/slice',
+  spec: 'fds/specie/injection',
+  init: 'fds/general/init',
+  zone: 'fds/general/zone'
+};
 
 @Injectable({
   providedIn: 'root',
@@ -34,7 +61,9 @@ export class WebsocketService {
     private mainService: MainService,
     private cadService: CadService,
     private router: Router,
-    private snackBarService: SnackBarService
+    private snackBarService: SnackBarService,
+    private elementsService: ElementsService,
+    private selectionService: SelectionService
   ) {
     this.mainService.getMain().subscribe(main => this.main = main);
   }
@@ -251,26 +280,35 @@ export class WebsocketService {
     return;
   }
 
-  /** 
-   * Select CAD element after clicking in web aplication
+  /**
+   * Show an element of the scenario in the drawing.
+   *
+   * Takes a `uuid`, because that is what identifies an element in the app
+   * (ADR-0005), and translates it here - the `idAC` is a link to CAD and is the
+   * bridge's business, not the caller's.
+   *
+   * An element without one is skipped rather than sent: it was drawn in the
+   * browser, and there is nothing to show in a drawing that does not contain it.
    */
-  public selectCad(idAC: number) {
+  public selectCad(uuid: string) {
+    if (!this.isConnected) { return; }
 
-    if (this.isConnected) {
-      // Prepare message
-      let message: WebsocketMessageObject = {
-        method: 'selectObjectWeb',
-        data: {
-          idAC: idAC
-        },
-        id: this.idGenerator(),
-        requestID: '',
-        status: "waiting"
-      }
+    const idAC = this.elementsService.idACOf(uuid);
+    if (!idAC) { return; }
 
-      // Send message to CAD
-      this.sendMessage(message);
+    // Prepare message
+    let message: WebsocketMessageObject = {
+      method: 'selectObjectWeb',
+      data: {
+        idAC: idAC
+      },
+      id: this.idGenerator(),
+      requestID: '',
+      status: "waiting"
     }
+
+    // Send message to CAD
+    this.sendMessage(message);
   }
 
   /** Importing CAD geometry */
@@ -426,159 +464,23 @@ export class WebsocketService {
   }
 
   /**
-   * 
-   * @param data Message data with idAC
+   * A click in the drawing selects the same element in the app.
+   *
+   * The plugin names the element by `idAC`, so this is where `idAC` becomes a
+   * `uuid` (ADR-0005). Selecting rather than navigating with the id is what puts
+   * the 3D preview and the form on the same footing: both read the selection, so
+   * a click in CAD highlights the element in 3D *and* opens it in its form.
+   *
+   * @param data message data, carrying the idAC the user clicked in CAD
    */
   public fSelect(data: any) {
+    const found = this.elementsService.byIdAC(data?.idAC);
+    // A drawing can hold objects the scenario knows nothing about
+    if (!found) { return; }
 
-    let idAC = data.idAC;
+    this.selectionService.setSelection([{ uuid: found.element.uuid, type: found.type }]);
 
-    if (idAC && idAC != "") {
-      let element = this.findElementByIdAC(idAC);
-
-      switch (element['type']) {
-        case 'mesh':
-          this.router.navigate(['fds/geometry/mesh', { idAC: idAC, type: 'mesh' }]);
-          break;
-        case 'open':
-          this.router.navigate(['fds/geometry/mesh', { idAC: idAC, type: 'open' }]);
-          break;
-        case 'surf':
-          this.router.navigate(['fds/geometry/surface', { idAC: idAC }]);
-          break;
-        case 'obst':
-          this.router.navigate(['fds/geometry/obstruction', { idAC: idAC, type: 'obst' }]);
-          break;
-        case 'hole':
-          this.router.navigate(['fds/geometry/obstruction', { idAC: idAC, type: 'hole' }]);
-          break;
-        case 'geom':
-          this.router.navigate(['fds/geometry/complex', { idAC: idAC }]);
-          break;
-        case 'vent':
-          this.router.navigate(['fds/ventilation/basic', { idAC: idAC }]);
-          break;
-        case 'jetfan':
-          this.router.navigate(['fds/ventilation/jetfan', { idAC: idAC }]);
-          break;
-        case 'spec':
-          this.router.navigate(['fds/specie/injection', { idAC: idAC }]);
-          break;
-        case 'fire':
-          this.router.navigate(['fds/fire/fire', { idAC: idAC }]);
-          break;
-        case 'slcf':
-          this.router.navigate(['fds/output/slice', { idAC: idAC }]);
-          break;
-        case 'devc':
-          this.router.navigate(['fds/output/device', { idAC: idAC }]);
-          break;
-      }
-
-      // lista range
-
-    }
+    const route = FORM_ROUTES[found.type];
+    if (route) { this.router.navigate([route]); }
   }
-
-  private findElementByIdAC(idAC): object {
-
-    let result: any;
-
-    let element = {
-      type: "",
-      index: "",
-      idAC: idAC
-    };
-
-    result = findIndex(this.fds.geometry.meshes, function (elem) { return elem.idAC == idAC; });
-
-    if (result >= 0) {
-      element.type = 'mesh';
-      element.index = result;
-      return element;
-    }
-
-    result = findIndex(this.fds.geometry.opens, function (elem) { return elem.idAC == idAC; });
-
-    if (result >= 0) {
-      element.type = 'open';
-      element.index = result;
-      return element;
-    }
-    result = findIndex(this.fds.geometry.obsts, function (elem) { return elem.idAC == idAC; });
-
-    if (result >= 0) {
-      element.type = 'obst';
-      element.index = result;
-      return element;
-    }
-
-    result = findIndex(this.fds.geometry.holes, function (elem) { return elem.idAC == idAC; });
-
-    if (result >= 0) {
-      element.type = 'hole';
-      element.index = result;
-      return element;
-    }
-
-    result = findIndex(this.fds.geometry.geoms, function (elem) { return elem.idAC == idAC; });
-
-    if (result >= 0) {
-      element.type = 'geom';
-      element.index = result;
-      return element;
-    }
-
-    result = findIndex(this.fds.ventilation.vents, function (elem) { return elem.idAC == idAC; });
-
-    if (result >= 0) {
-      element.type = 'vent';
-      element.index = result;
-      return element;
-    }
-
-    result = findIndex(this.fds.ventilation.jetfans, function (elem) { return elem.idAC == idAC; });
-
-    if (result >= 0) {
-      element.type = 'jetfan';
-      element.index = result;
-      return element;
-    }
-
-    result = findIndex(this.fds.specie.vents, function (elem) { return elem.idAC == idAC; });
-
-    if (result >= 0) {
-      element.type = 'spev';
-      element.index = result;
-      return element;
-    }
-
-    result = findIndex(this.fds.fires.fires, function (elem) { return elem.idAC == idAC; });
-
-    if (result >= 0) {
-      element.type = 'fire';
-      element.index = result;
-      return element;
-    }
-
-    result = findIndex(this.fds.output.slcfs, function (elem) { return elem.idAC == idAC; });
-
-    if (result >= 0) {
-      element.type = 'slcf';
-      element.index = result;
-      return element;
-    }
-
-    result = findIndex(this.fds.output.devcs, function (elem) { return elem.idAC == idAC; });
-
-    if (result >= 0) {
-      element.type = 'devc';
-      element.index = result;
-      return element;
-    }
-
-    return element;
-
-  }
-
 }

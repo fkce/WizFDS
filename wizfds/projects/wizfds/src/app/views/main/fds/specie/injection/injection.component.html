@@ -11,7 +11,7 @@
             <div class="list-item"
               *ngFor="let ventItem of specie.vents | slice:ui.specie.vent.begin:(ui.specie.vent.begin + ui.listRange)">
               <a [ngClass]="{active: ventItem===vent}"
-                (click)="activate(ventItem.id, 'vent'); websocketService.selectCad(ventItem.idAC)"> {{ventItem.id}} </a>
+                (click)="activate(ventItem.id, 'vent'); websocketService.selectCad(ventItem.uuid)"> {{ventItem.id}} </a>
               <mat-icon class="red-hover" (click)="delete(ventItem.id, 'vent')">delete_forever</mat-icon>
             </div>
           </div>

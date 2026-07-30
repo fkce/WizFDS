@@ -8,7 +8,7 @@
   <ng-scrollbar #jetfanScrollbar (scrolled)="scrollbarUpdate('jetfan')">
         <div class="list-items">
           <div class="list-item" *ngFor="let jetfanItem of ventilation.jetfans | slice: ui.ventilation.jetfan.begin:(ui.ventilation.jetfan.begin + ui.listRange)">
-            <a (click)="activate(jetfanItem.id); websocketService.selectCad(jetfanItem.idAC)" [ngClass]="{active: jetfanItem === jetfan}">{{jetfanItem.id}}</a>
+            <a (click)="activate(jetfanItem.id); websocketService.selectCad(jetfanItem.uuid)" [ngClass]="{active: jetfanItem === jetfan}">{{jetfanItem.id}}</a>
             <mat-icon class="red-hover" (click)="delete(jetfanItem.id)">delete_forever</mat-icon>
           </div>
         </div>

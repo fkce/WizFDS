@@ -9,6 +9,7 @@ import { WebsocketService } from '@services/websocket/websocket.service';
 import { MainService } from '@services/main/main.service';
 import { FdsEnums } from '@enums/fds/enums/fds-enums';
 import { UiState } from '@services/ui-state/ui-state';
+import { SelectionService } from '@services/selection/selection.service';
 import { Fds } from '@services/fds-object/fds-object';
 import { Main } from '@services/main/main';
 import { IdGeneratorService } from '@services/id-generator/id-generator.service';
@@ -56,7 +57,7 @@ export class InjectionComponent implements OnInit, OnDestroy {
   mainSub: Subscription;
   uiSub: Subscription;
   libSub: Subscription;
-  rouSub: Subscription;
+  selSub: Subscription;
 
   // Scrolbars containers
   @ViewChild('ventScrollbar', {static: false}) ventScrollbar: NgScrollbar;
@@ -73,8 +74,8 @@ export class InjectionComponent implements OnInit, OnDestroy {
     public websocketService: WebsocketService,
     public uiStateService: UiStateService,
     private libraryService: LibraryService,
-    private route: ActivatedRoute,
-    private snackBarService: SnackBarService
+    private snackBarService: SnackBarService,
+    private selectionService: SelectionService
   ) { }
 
   ngOnInit() {
@@ -116,21 +117,28 @@ export class InjectionComponent implements OnInit, OnDestroy {
     );
 
     // Activate element from route or ui object
-    this.rouSub = this.route.params.subscribe((params) => {
-      if (params['idAC']) {
-        let index = -1;
-        index = findIndex(this.vents, function (o) { return o.idAC == params['idAC']; });
-        if (index >= 0) {
-          this.activate(this.vents[index].id, 'mesh');
-        }
-        this.surfs.length > 0 ? this.activate(this.surfs[this.ui.geometry['surf'].elementIndex].id, 'surf') : this.surf = undefined;
-      }
-      else {
-        this.vents.length > 0 ? this.activate(this.vents[this.ui.specie['vent'].elementIndex].id, 'vent') : this.vent = undefined;
-        this.surfs.length > 0 ? this.activate(this.surfs[this.ui.specie['surf'].elementIndex].id, 'surf') : this.surf = undefined;
-      }
-    });
+    // Open whatever is selected - a click in 3D or in CAD is what says so
+    // (#121). Replayed on subscribe, so this settles what is open on arrival.
+    this.selSub = this.selectionService.selected$.subscribe(() => this.activateSelected());
 
+  }
+
+  /**
+   * Open the selected element, or the one last worked on.
+   *
+   * The selection is the app's one answer to "what is the user on" (ADR-0005): a
+   * click in 3D, a click in the drawing and a click in the list below all reach
+   * here the same way. What it replaces was an `idAC` route parameter, which
+   * could only ever name an element the drawing contained.
+   */
+  private activateSelected() {
+    const selected = this.selectionService.selectedIn(this.vents);
+    if (selected) {
+      this.activate(selected.id, 'vent');
+    } else {
+      this.vents.length > 0 ? this.activate(this.vents[this.ui.specie['vent'].elementIndex].id, 'vent') : this.vent = undefined;
+      this.surfs.length > 0 ? this.activate(this.surfs[this.ui.specie['surf'].elementIndex].id, 'surf') : this.surf = undefined;
+    }
   }
 
   ngAfterViewInit() {
@@ -146,7 +154,7 @@ export class InjectionComponent implements OnInit, OnDestroy {
     this.mainSub.unsubscribe();
     this.uiSub.unsubscribe();
     this.libSub.unsubscribe();
-    this.rouSub.unsubscribe();
+    this.selSub.unsubscribe();
   }
 
   /** Activate element on click */
@@ -155,6 +163,7 @@ export class InjectionComponent implements OnInit, OnDestroy {
       this.vent = find(this.fds.specie.vents, function (o) { return o.id == id; });
       this.ui.specie['vent'].elementIndex = findIndex(this.vents, { id: id });
       this.ventOld = cloneDeep(this.vent);
+      if (this.vent) { this.selectionService.select({ uuid: this.vent.uuid, type: 'spec' }); }
     }
     else if (type == 'surf') {
       if (!library) {
@@ -327,7 +336,7 @@ export class InjectionComponent implements OnInit, OnDestroy {
 
   /** Select CAD element */
   public selectCad(type: string = '') {
-    this.websocketService.selectCad(this.vent.idAC);
+    this.websocketService.selectCad(this.vent.uuid);
   }
 
   // COMPONENT METHODS

@@ -1,13 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import * as BABYLON from 'babylonjs';
 
-import { PickService } from './pick.service';
+import { PickService, ScenePicked } from './pick.service';
 import { ObstService } from '../drawing/obst/obst.service';
 import { MeshService } from '../drawing/mesh/mesh.service';
 import { InitService } from '../drawing/init/init.service';
 import { BabylonService } from '../babylon/babylon.service';
 import { SceneBoundsService } from '../scene-bounds/scene-bounds.service';
-import { ScenePick } from '../babylon/scene-registry.service';
 import {
   SceneColor, SceneHole, SceneInit, SceneMesh, SceneObst, SceneXb
 } from '../drawing/scene-input';
@@ -255,36 +254,61 @@ describe('PickService', () => {
   describe('telling whoever owns the selection', () => {
     it('emits what the user picked', () => {
       render([makeObst('W', WEST)]);
-      const seen: (ScenePick | undefined)[] = [];
+      const seen: ScenePicked[] = [];
       picking.picked$.subscribe(pick => seen.push(pick));
 
       picking.pick(rayAlongX());
 
       expect(seen.length).toBe(1);
-      expect(seen[0].uuid).toBe('W-uuid');
-      expect(seen[0].type).toBe('obst');
+      expect(seen[0].element.uuid).toBe('W-uuid');
+      expect(seen[0].element.type).toBe('obst');
+      expect(seen[0].add).toBeFalse();
     });
 
     it('emits a miss, which is how a user drops a selection', () => {
       render([makeObst('W', WEST)]);
-      const seen: (ScenePick | undefined)[] = [];
+      const seen: ScenePicked[] = [];
       picking.picked$.subscribe(pick => seen.push(pick));
 
       picking.pick(rayOverhead());
 
-      expect(seen).toEqual([undefined]);
+      expect(seen).toEqual([{ element: undefined, add: false }]);
     });
 
-    it('highlights exactly what it is told to', () => {
-      // The way in for the app, which is what owns the selection (ADR-0004)
+    it('highlights exactly the uuids it is told to', () => {
+      // The way in for the app, which is what owns the selection (ADR-0004).
+      // Uuids alone: where to draw the box is the registry's business.
       render([makeObst('W', WEST), makeObst('E', EAST)]);
       picking.pick(rayAlongX());
 
-      picking.setSelected([{ uuid: 'E-uuid', type: 'obst', id: 'E', xb: EAST }]);
+      picking.setSelected(['E-uuid']);
 
       expect(picking.selected.map(element => element.id)).toEqual(['E']);
       expect(scene.getMeshByName('picked_W-uuid')).toBeNull();
       expect(scene.getMeshByName('picked_E-uuid')).toBeTruthy();
+    });
+
+    it('skips a uuid the scene does not draw', () => {
+      // The app's selection can name a &SURF, or an element of a scenario that
+      // has since been replaced. Neither is something to highlight.
+      render([makeObst('W', WEST)]);
+
+      expect(() => picking.setSelected(['W-uuid', 'surf-uuid'])).not.toThrow();
+      expect(picking.selected.map(element => element.uuid)).toEqual(['W-uuid']);
+    });
+
+    it('leaves the selection alone when the app owns it', () => {
+      // Both applying would make the two disagree as soon as a selection reached
+      // the app by any route other than a click - a form, or the CAD plugin.
+      render([makeObst('W', WEST)]);
+      picking.applyOwnPicks = false;
+      const seen: ScenePicked[] = [];
+      picking.picked$.subscribe(pick => seen.push(pick));
+
+      picking.pick(rayAlongX());
+
+      expect(seen.length).toBe(1);
+      expect(picking.selected).toEqual([]);
     });
   });
 

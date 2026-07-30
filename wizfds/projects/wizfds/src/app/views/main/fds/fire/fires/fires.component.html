@@ -8,7 +8,7 @@
   <ng-scrollbar #fireScrollbar (scrolled)="scrollbarUpdate('fire')">
         <div class="list-items">
           <div class="list-item" *ngFor="let fireItem of fires | slice: ui.fires.fire.begin:(ui.fires.fire.begin + ui.listRange)">
-            <a (click)="activate(fireItem.id); websocketService.selectCad(fireItem.idAC)" [ngClass]="{active: fireItem === fire}">{{fireItem.id}}</a>
+            <a (click)="activate(fireItem.id); websocketService.selectCad(fireItem.uuid)" [ngClass]="{active: fireItem === fire}">{{fireItem.id}}</a>
             <mat-icon class="red-hover" (click)="delete(fireItem.id)">delete_forever</mat-icon>
           </div>
         </div>

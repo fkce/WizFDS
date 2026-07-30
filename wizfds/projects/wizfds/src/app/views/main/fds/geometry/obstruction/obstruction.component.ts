@@ -9,6 +9,7 @@ import { Main } from '@services/main/main';
 import { MainService } from '@services/main/main.service';
 import { UiStateService } from '@services/ui-state/ui-state.service';
 import { UiState } from '@services/ui-state/ui-state';
+import { SelectionService } from '@services/selection/selection.service';
 import { FdsEnums } from '@enums/fds/enums/fds-enums';
 import { WebsocketMessageObject } from '@services/websocket/websocket-message';
 
@@ -43,7 +44,7 @@ export class ObstructionComponent implements OnInit, OnDestroy {
   wsSub: Subscription;
   mainSub: Subscription;
   uiSub: Subscription;
-  rouSub: Subscription;
+  selSub: Subscription;
 
   // Scrolbars containers
   @ViewChild('obstScrollbar', {static: false}) obstScrollbar: NgScrollbar;
@@ -55,8 +56,8 @@ export class ObstructionComponent implements OnInit, OnDestroy {
   constructor(
     private mainService: MainService,
     public websocketService: WebsocketService,
-    private route: ActivatedRoute,
-    public uiStateService: UiStateService
+    public uiStateService: UiStateService,
+    private selectionService: SelectionService
   ) { }
 
   ngOnInit() {
@@ -93,35 +94,33 @@ export class ObstructionComponent implements OnInit, OnDestroy {
       }
     );
 
-    // Activate element from route or ui object
-    this.rouSub = this.route.params.subscribe((params) => {
-      if (params['idAC']) {
-        let index = -1;
+    // Open whatever is selected - a click in 3D or in CAD is what says so (#121).
+    // Replayed on subscribe, so this also settles what is open on arrival.
+    this.selSub = this.selectionService.selected$.subscribe(() => this.activateSelected());
+  }
 
-        switch (params['type']) {
-          case 'obst':
-            index = findIndex(this.obsts, function (o) { return o.idAC == params['idAC']; });
-            if (index >= 0) {
-              this.activate(this.obsts[index].id, 'obst');
-            }
-            this.holes.length > 0 ? this.activate(this.holes[this.ui.geometry['hole'].elementIndex].id, 'hole') : this.hole = undefined;
-            break;
+  /**
+   * Open the selected element of each list, or the one last worked on.
+   *
+   * The selection is the app's one answer to "what is the user on" (ADR-0005): a
+   * click in 3D, a click in the drawing and a click in the list below all reach
+   * here the same way. What it replaces was an `idAC` route parameter, which
+   * could only ever name an element the drawing contained.
+   */
+  private activateSelected() {
+    const selectedObst = this.selectionService.selectedIn(this.obsts);
+    if (selectedObst) {
+      this.activate(selectedObst.id, 'obst');
+    } else {
+      this.obsts.length > 0 ? this.activate(this.obsts[this.ui.geometry['obst'].elementIndex].id, 'obst') : this.obst = undefined;
+    }
 
-          case 'hole':
-            index = findIndex(this.holes, function (o) { return o.idAC == params['idAC']; });
-            if (index >= 0) {
-              this.activate(this.holes[index].id, 'hole');
-            }
-            this.obsts.length > 0 ? this.activate(this.obsts[this.ui.geometry['obst'].elementIndex].id, 'obst') : this.obst = undefined;
-            break;
-
-        }
-      }
-      else {
-        this.obsts.length > 0 ? this.activate(this.obsts[this.ui.geometry['obst'].elementIndex].id, 'obst') : this.obst = undefined;
-        this.holes.length > 0 ? this.activate(this.holes[this.ui.geometry['hole'].elementIndex].id, 'hole') : this.hole = undefined;
-      }
-    });
+    const selectedHole = this.selectionService.selectedIn(this.holes);
+    if (selectedHole) {
+      this.activate(selectedHole.id, 'hole');
+    } else {
+      this.holes.length > 0 ? this.activate(this.holes[this.ui.geometry['hole'].elementIndex].id, 'hole') : this.hole = undefined;
+    }
   }
 
   ngAfterViewInit() {
@@ -136,7 +135,7 @@ export class ObstructionComponent implements OnInit, OnDestroy {
     this.wsSub.unsubscribe();
     this.mainSub.unsubscribe();
     this.uiSub.unsubscribe();
-    this.rouSub.unsubscribe();
+    this.selSub.unsubscribe();
   }
 
   /** Activate element on click */
@@ -145,11 +144,13 @@ export class ObstructionComponent implements OnInit, OnDestroy {
       this.obst = find(this.fds.geometry.obsts, function (o) { return o.id == id; });
       this.ui.geometry['obst'].elementIndex = findIndex(this.obsts, { id: id });
       this.obstOld = cloneDeep(this.obst);
+      if (this.obst) { this.selectionService.select({ uuid: this.obst.uuid, type: 'obst' }); }
     }
     else if (type == 'hole') {
       this.hole = find(this.fds.geometry.holes, function (o) { return o.id == id; });
       this.ui.geometry['hole'].elementIndex = findIndex(this.holes, { id: id });
       this.holeOld = cloneDeep(this.hole);
+      if (this.hole) { this.selectionService.select({ uuid: this.hole.uuid, type: 'hole' }); }
     }
   }
 

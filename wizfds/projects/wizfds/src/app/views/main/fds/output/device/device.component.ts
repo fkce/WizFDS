@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Main } from '@services/main/main';
 import { Fds } from '@services/fds-object/fds-object';
 import { UiState } from '@services/ui-state/ui-state';
+import { SelectionService } from '@services/selection/selection.service';
 import { Library } from '@services/library/library';
 import { Devc } from '@services/fds-object/output/devc';
 import { Prop } from '@services/fds-object/output/prop';
@@ -48,7 +49,7 @@ export class DeviceComponent implements OnInit, OnDestroy {
   mainSub: Subscription;
   uiSub: Subscription;
   libSub: Subscription;
-  rouSub: Subscription;
+  selSub: Subscription;
 
   // Scrolbars containers
   @ViewChild('devcScrollbar', {static: false}) devcScrollbar: NgScrollbar;
@@ -65,9 +66,9 @@ export class DeviceComponent implements OnInit, OnDestroy {
     private mainService: MainService,
     public uiStateService: UiStateService,
     private libraryService: LibraryService,
-    private route: ActivatedRoute,
     private snackBarService: SnackBarService,
-    public websocketService: WebsocketService
+    public websocketService: WebsocketService,
+    private selectionService: SelectionService
   ) { }
 
   ngOnInit() {
@@ -93,6 +94,8 @@ export class DeviceComponent implements OnInit, OnDestroy {
         }
         else if (message.status == 'success') {
           this.devcOld = cloneDeep(this.devc);
+    if (this.devc) { this.selectionService.select({ uuid: this.devc.uuid, type: 'devc' }); }
+      if (this.devc) { this.selectionService.select({ uuid: this.devc.uuid, type: 'devc' }); }
           if (message.method == 'createDevcSurfWeb') {
             this.snackBarService.notify('success', 'CAD: Device layer created');
           }
@@ -105,19 +108,26 @@ export class DeviceComponent implements OnInit, OnDestroy {
     );
 
     // Activate element from route or ui object
-    this.rouSub = this.route.params.subscribe((params) => {
-      if (params['idAC']) {
-        let index = -1;
-        index = findIndex(this.devcs, function (o) { return o.idAC == params['idAC']; });
-        if (index >= 0) {
-          this.activate(this.devcs[index].id);
-        }
-      }
-      else {
-        this.devcs.length > 0 ? this.activate(this.devcs[this.ui.output['devc'].elementIndex].id) : this.devc = undefined;
-      }
-    });
+    // Open whatever is selected - a click in 3D or in CAD is what says so
+    // (#121). Replayed on subscribe, so this settles what is open on arrival.
+    this.selSub = this.selectionService.selected$.subscribe(() => this.activateSelected());
+  }
 
+  /**
+   * Open the selected element, or the one last worked on.
+   *
+   * The selection is the app's one answer to "what is the user on" (ADR-0005): a
+   * click in 3D, a click in the drawing and a click in the list below all reach
+   * here the same way. What it replaces was an `idAC` route parameter, which
+   * could only ever name an element the drawing contained.
+   */
+  private activateSelected() {
+    const selected = this.selectionService.selectedIn(this.devcs);
+    if (selected) {
+      this.activate(selected.id);
+    } else {
+      this.devcs.length > 0 ? this.activate(this.devcs[this.ui.output['devc'].elementIndex].id) : this.devc = undefined;
+    }
   }
 
   ngAfterViewInit() {
@@ -132,7 +142,7 @@ export class DeviceComponent implements OnInit, OnDestroy {
     this.mainSub.unsubscribe();
     this.uiSub.unsubscribe();
     this.libSub.unsubscribe();
-    this.rouSub.unsubscribe();
+    this.selSub.unsubscribe();
   }
 
   /** Activate element on click */

@@ -3,6 +3,7 @@ import { Component, OnInit, ViewChild, OnDestroy } from '@angular/core';
 import { Main } from '@services/main/main';
 import { Fds } from '@services/fds-object/fds-object';
 import { UiState } from '@services/ui-state/ui-state';
+import { SelectionService } from '@services/selection/selection.service';
 import { Init } from '@services/fds-object/general/init';
 import { Spec } from '@services/fds-object/specie/spec';
 import { MainService } from '@services/main/main.service';
@@ -42,13 +43,15 @@ export class InitComponent implements OnInit, OnDestroy {
 
   mainSub: Subscription;
   uiSub: Subscription;
+  selSub: Subscription;
 
   // Scrollbars containers
   @ViewChild('initScrollbar', { static: false }) initScrollbar: NgScrollbar;
 
   constructor(
     private mainService: MainService,
-    public uiStateService: UiStateService
+    public uiStateService: UiStateService,
+    private selectionService: SelectionService
   ) { }
 
   ngOnInit() {
@@ -58,9 +61,26 @@ export class InitComponent implements OnInit, OnDestroy {
     this.fds = this.main.currentFdsScenario.fdsObject;
     this.inits = this.fds.general.inits;
 
-    this.inits.length > 0
-      ? this.activate(this.inits[this.ui.general['init'].elementIndex].id)
-      : this.init = undefined;
+    // Open whatever is selected - a click in 3D is what says so (#121).
+    // Replayed on subscribe, so this settles what is open on arrival.
+    this.selSub = this.selectionService.selected$.subscribe(() => this.activateSelected());
+  }
+
+  /**
+   * Open the selected element, or the one last worked on.
+   *
+   * A condition region is selectable in the 3D preview since #121, and the
+   * selection is the app's one answer to what the user is on (ADR-0005).
+   */
+  private activateSelected() {
+    const selected = this.selectionService.selectedIn(this.inits);
+    if (selected) {
+      this.activate(selected.id);
+    } else {
+      this.inits.length > 0
+        ? this.activate(this.inits[this.ui.general['init'].elementIndex].id)
+        : this.init = undefined;
+    }
   }
 
   ngAfterViewInit() {
@@ -73,6 +93,7 @@ export class InitComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.mainSub.unsubscribe();
     this.uiSub.unsubscribe();
+    this.selSub.unsubscribe();
   }
 
   /** The species of this scenario, for the concentration an &INIT can start. */
@@ -110,6 +131,7 @@ export class InitComponent implements OnInit, OnDestroy {
   public activate(id: string) {
     this.init = find(this.inits, (o: Init) => o.id == id);
     this.ui.general['init'].elementIndex = findIndex(this.inits, { id: id });
+    if (this.init) { this.selectionService.select({ uuid: this.init.uuid, type: 'init' }); }
   }
 
   /** Push new element */
