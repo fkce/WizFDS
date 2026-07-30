@@ -133,6 +133,20 @@ mat-progress-bar.progress {
   .status-left .cad-file .mono {
     color: var(--on-surface);
   }
+
+  // The 3D read-outs sit after the CAD file, each behind a hairline of its own -
+  // the left group only zeroes the padding on the segment that starts the row.
+  .status-left .status-seg + .status-seg {
+    padding-left: 0.6rem;
+    border-left: 1px solid var(--border-muted);
+  }
+  .status-left .cursor .mono,
+  .status-left .grid .mono {
+    color: var(--on-surface);
+  }
+  .status-left .grid .mono.muted {
+    color: var(--on-surface-muted);
+  }
   .muted {
     color: var(--on-surface-muted);
     opacity: 0.75;

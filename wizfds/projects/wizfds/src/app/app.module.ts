@@ -100,6 +100,8 @@ import { StepsDialogComponent } from './views/main/fds/shared/ramp-chart/steps-d
 import { SmokeviewModule } from '../../../web-smokeview-lib/src/lib/views/smokeview/smokeview.module';
 import { SmokeviewApiModule } from '../../../web-smokeview-lib/src/lib/services/smokeview-api/smokeview-api.module';
 import { VisualizeComponent } from './views/main/fds/visualize/visualize.component';
+import { RibbonComponent } from './views/main/fds/visualize/ribbon/ribbon.component';
+import { PropertiesPaletteComponent } from './views/main/fds/visualize/properties-palette/properties-palette.component';
 
 @NgModule({
     declarations: [
@@ -150,6 +152,8 @@ import { VisualizeComponent } from './views/main/fds/visualize/visualize.compone
         PositiveNumberPipe,
     StepsDialogComponent,
     VisualizeComponent,
+    RibbonComponent,
+    PropertiesPaletteComponent,
     NgKatexShimComponent
     ],
     imports: [

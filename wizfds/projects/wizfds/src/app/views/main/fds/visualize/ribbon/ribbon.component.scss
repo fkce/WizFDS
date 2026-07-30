@@ -1,0 +1,369 @@
+// =============================================================================
+// The ribbon over the 3D view.
+//
+// AutoCAD's anatomy on WizFDS's tokens (ADR-0010): a Quick Access Toolbar, a tab
+// strip with a contextual tab, and named panels whose titles sit along the foot
+// the way AutoCAD's do. Nothing here defines a colour of its own.
+// =============================================================================
+// Straight to the palette rather than through app.component.scss: only the
+// no-select mixin is wanted, and that file also carries the shell's own rules.
+@use "../../../../../../styles/palette" as *;
+
+:host {
+  display: block;
+  position: relative;
+  z-index: 3; // over the canvas, so the help card and the panels are not cut off
+}
+
+.ribbon {
+  background:
+    linear-gradient(var(--scanline), var(--scanline)),
+    var(--surface-1);
+  border-bottom: 1px solid var(--border-muted);
+  box-shadow: 0 1px 0 var(--edge-highlight) inset, var(--shadow-sm);
+  font-family: var(--font-ui);
+  @include no-select;
+}
+
+// --- Quick Access Toolbar ----------------------------------------------------
+.qat {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  height: 1.7rem;
+  padding: 0 0.4rem;
+  border-bottom: 1px solid var(--border-muted);
+  font-size: 0.68rem;
+  color: var(--on-surface-muted);
+
+  .qat-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.4rem;
+    height: 1.4rem;
+    min-height: 1.4rem;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--on-surface-muted);
+    cursor: pointer;
+    transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+
+    &::after { display: none; } // kill the global button ripple
+
+    mat-icon {
+      width: 0.95rem;
+      height: 0.95rem;
+      color: inherit;
+    }
+
+    &:hover:not(:disabled) {
+      background: var(--surface-2);
+      border-color: var(--border-muted);
+      color: var(--on-surface);
+    }
+    &.on {
+      color: var(--accent);
+      background: var(--accent-soft);
+      border-color: var(--accent-line);
+    }
+    &:disabled {
+      opacity: 0.38;
+      cursor: not-allowed;
+      background: transparent;
+      border-color: transparent;
+    }
+  }
+
+  .qat-sep {
+    width: 1px;
+    height: 0.9rem;
+    margin: 0 0.35rem;
+    background: var(--border-muted);
+  }
+  .qat-spacer { flex: 1 1 auto; }
+
+  .qat-save {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0 0.35rem;
+    letter-spacing: 0.02em;
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--on-surface-muted);
+    }
+    &.saved .dot { background: var(--success); }
+    &.unsaved .dot {
+      background: var(--danger);
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.18);
+    }
+  }
+}
+
+// --- Tab strip ---------------------------------------------------------------
+.tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.15rem;
+  padding: 0 0.4rem;
+  height: 1.9rem;
+  border-bottom: 1px solid var(--border-muted);
+
+  .tab {
+    height: 1.65rem;
+    padding: 0 0.85rem;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    background: transparent;
+    color: var(--on-surface-muted);
+    font-family: var(--font-ui);
+    font-size: 0.76rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background-color 0.12s ease, color 0.12s ease;
+
+    &::after { display: none; } // kill the global button ripple
+
+    &:hover { background: var(--surface-2); color: var(--on-surface); }
+
+    &.active {
+      background: var(--surface);
+      border-color: var(--border-muted);
+      color: var(--on-surface);
+      box-shadow: inset 0 2px 0 var(--accent);
+    }
+
+    // The contextual tab announces itself - it was not there a moment ago
+    &.contextual {
+      color: var(--accent);
+      background: var(--accent-soft);
+      &.active {
+        background: var(--surface);
+        box-shadow: inset 0 2px 0 var(--accent-hover);
+        color: var(--accent-hover);
+      }
+    }
+  }
+}
+
+// --- Panels ------------------------------------------------------------------
+.panels {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  padding: 0.3rem 0.4rem 0;
+  overflow-x: auto;
+
+  .panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 0 0.7rem 0.15rem;
+    border-right: 1px solid var(--border-muted);
+
+    &:last-child { border-right: none; }
+
+    .panel-body {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.3rem;
+      padding-bottom: 0.3rem;
+
+      &.column { flex-direction: column; align-items: stretch; }
+      &.tight { gap: 0.1rem; }
+      &.grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(5.2rem, 1fr));
+        gap: 0.2rem;
+      }
+    }
+
+    .panel-title {
+      text-align: center;
+      font-size: 0.62rem;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--on-surface-muted);
+      opacity: 0.75;
+      padding-top: 0.15rem;
+      border-top: 1px solid var(--border-muted);
+    }
+  }
+}
+
+// --- Commands ----------------------------------------------------------------
+// One button shape in two arrangements: `big` stacks the icon over the label the
+// way AutoCAD's primary commands do, `wide` sets them side by side for the rows
+// of switches.
+.cmd {
+  display: flex;
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--on-surface-muted);
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+
+  &::after { display: none; } // kill the global button ripple
+
+  mat-icon {
+    width: 1.1rem;
+    height: 1.1rem;
+    flex: 0 0 auto;
+    color: inherit;
+  }
+
+  &.big {
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.2rem;
+    width: 3.9rem;
+    height: 3.4rem;
+    min-height: 3.4rem;
+    padding: 0.3rem 0.15rem;
+    text-align: center;
+
+    mat-icon { width: 1.35rem; height: 1.35rem; }
+    span { line-height: 1.1; }
+  }
+
+  &.wide {
+    gap: 0.35rem;
+    height: 1.5rem;
+    min-height: 1.5rem;
+    padding: 0 0.45rem;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--surface-2);
+    border-color: var(--border-muted);
+    color: var(--on-surface);
+  }
+
+  // A switch that is on, and a layer that is drawn, read the same: accent.
+  &.on,
+  &.is-filled {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
+  }
+  // Outline only - drawn, but not filling anything in
+  &.is-edges {
+    color: var(--on-surface);
+    border-color: var(--border-muted);
+  }
+  &.is-hidden {
+    color: var(--on-surface-muted);
+    opacity: 0.55;
+  }
+
+  // A command whose tool has not landed yet. Greyed rather than absent, so the
+  // panel says what will be in it - see the tooltips in the component.
+  &:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+    background: transparent;
+    border-color: transparent;
+  }
+}
+
+// --- Fields, sliders and read-outs -------------------------------------------
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding-top: 0.25rem;
+
+  label {
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--on-surface-muted);
+  }
+  select {
+    width: 7rem;
+    height: 1.5rem;
+    min-height: 1.5rem;
+    font-size: 0.72rem;
+  }
+  select:disabled { opacity: 0.38; cursor: not-allowed; }
+}
+
+.slider {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 1.35rem;
+
+  label {
+    width: 0.8rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--on-surface-muted);
+    text-transform: uppercase;
+  }
+  input[type="range"] {
+    flex: 1 1 auto;
+    width: 7.5rem;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .readout {
+    width: 4.2rem;
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--on-surface);
+  }
+}
+
+.readout-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  height: 1.2rem;
+  font-size: 0.72rem;
+
+  label {
+    width: 2.6rem;
+    color: var(--on-surface-muted);
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .mono {
+    font-family: var(--font-mono);
+    color: var(--on-surface);
+  }
+}
+
+// --- The navigation help, out of the canvas and into the ribbon --------------
+.help-card {
+  position: absolute;
+  right: 0.5rem;
+  top: 1.8rem;
+  z-index: 5;
+  padding: 0.5rem 0.7rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  font-size: 0.72rem;
+  color: var(--on-surface-muted);
+
+  td { padding: 0.1rem 0.6rem 0.1rem 0; white-space: nowrap; }
+  td:first-child { color: var(--on-surface); }
+}

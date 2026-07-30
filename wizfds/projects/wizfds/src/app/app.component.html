@@ -28,6 +28,30 @@
         <mat-icon svgIcon="vector-square" aria-hidden="true"></mat-icon>
         <span>No CAD file linked</span>
       </span>
+
+      <!--
+        What the pointer is doing in the 3D view, where AutoCAD puts it. Both
+        segments are absent everywhere else: ViewportStatusService is empty
+        unless the 3D view is filling it (ADR-0010).
+      -->
+      <span class="status-seg cursor" *ngIf="viewportStatus.cursor">
+        <mat-icon svgIcon="axis-arrow" aria-hidden="true"></mat-icon>
+        <span class="mono">
+          {{ viewportStatus.cursor.x | number:'1.2-2' }},
+          {{ viewportStatus.cursor.y | number:'1.2-2' }},
+          {{ viewportStatus.cursor.z | number:'1.2-2' }} m
+        </span>
+      </span>
+
+      <span class="status-seg grid" *ngIf="viewportStatus.grid">
+        <mat-icon svgIcon="grid" aria-hidden="true"></mat-icon>
+        <span class="mono">{{ viewportStatus.grid.id }}</span>
+        <span class="mono muted">
+          {{ viewportStatus.grid.cell.i | number:'1.2-3' }} ×
+          {{ viewportStatus.grid.cell.j | number:'1.2-3' }} ×
+          {{ viewportStatus.grid.cell.k | number:'1.2-3' }} m
+        </span>
+      </span>
     </div>
 
     <div class="status-right">

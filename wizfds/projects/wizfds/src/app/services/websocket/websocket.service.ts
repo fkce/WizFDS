@@ -11,33 +11,9 @@ import { Surf } from '@services/fds-object/geometry/surf';
 import { WebsocketMessageObject } from './websocket-message';
 import { SnackBarService } from '@services/snack-bar/snack-bar.service';
 import { Fire } from '@services/fds-object/fire/fire';
-import { ElementsService, FdsElementType } from '@services/elements/elements.service';
+import { ElementsService } from '@services/elements/elements.service';
+import { formRouteFor } from '@services/elements/form-routes';
 import { SelectionService } from '@services/selection/selection.service';
-
-/**
- * The form that shows each kind of element.
- *
- * A click in the drawing opens the element in the app, and this says where. Two
- * kinds share a form - a &MESH with an `OPEN`, an &OBST with a &HOLE - and the
- * form works out which of its lists holds the selected element, so nothing here
- * has to tell it.
- */
-const FORM_ROUTES: { readonly [type in FdsElementType]?: string } = {
-  mesh: 'fds/geometry/mesh',
-  open: 'fds/geometry/mesh',
-  obst: 'fds/geometry/obstruction',
-  hole: 'fds/geometry/obstruction',
-  geom: 'fds/geometry/complex',
-  surf: 'fds/geometry/surface',
-  vent: 'fds/ventilation/basic',
-  jetfan: 'fds/ventilation/jetfan',
-  fire: 'fds/fire/fire',
-  devc: 'fds/output/device',
-  slcf: 'fds/output/slice',
-  spec: 'fds/specie/injection',
-  init: 'fds/general/init',
-  zone: 'fds/general/zone'
-};
 
 @Injectable({
   providedIn: 'root',
@@ -480,7 +456,7 @@ export class WebsocketService {
 
     this.selectionService.setSelection([{ uuid: found.element.uuid, type: found.type }]);
 
-    const route = FORM_ROUTES[found.type];
+    const route = formRouteFor(found.type);
     if (route) { this.router.navigate([route]); }
   }
 }

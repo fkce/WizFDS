@@ -1,0 +1,218 @@
+<div class="ribbon" [class.collapsed]="collapsed">
+
+  <!-- ===== Quick Access Toolbar ============================================ -->
+  <div class="qat">
+    <button type="button" class="qat-btn" disabled [title]="awaitingHistory" aria-label="Undo">
+      <mat-icon svgIcon="undo" aria-hidden="true"></mat-icon>
+    </button>
+    <button type="button" class="qat-btn" disabled [title]="awaitingHistory" aria-label="Redo">
+      <mat-icon svgIcon="redo" aria-hidden="true"></mat-icon>
+    </button>
+
+    <span class="qat-sep"></span>
+
+    <span class="qat-save" [ngClass]="saveState">
+      <i class="dot"></i>
+      <span>{{ saveLabel }}</span>
+    </span>
+
+    <span class="qat-spacer"></span>
+
+    <button type="button" class="qat-btn" [class.on]="showHelp" (click)="showHelp = !showHelp"
+      title="Navigating the view" aria-label="Navigating the view">
+      <mat-icon svgIcon="help-circle-outline" aria-hidden="true"></mat-icon>
+    </button>
+    <button type="button" class="qat-btn" (click)="collapsed = !collapsed"
+      [title]="collapsed ? 'Show the panels' : 'Minimise to the tabs'"
+      aria-label="Minimise the ribbon">
+      <mat-icon [svgIcon]="collapsed ? 'chevron-double-down' : 'chevron-double-up'"
+        aria-hidden="true"></mat-icon>
+    </button>
+  </div>
+
+  <!-- The help table that used to sit in a corner of the canvas -->
+  <div class="help-card" *ngIf="showHelp">
+    <table>
+      <tr><td>Rotate</td><td>hold left button + move</td></tr>
+      <tr><td>Pan</td><td>hold right button + move</td></tr>
+      <tr><td>Zoom</td><td>mouse wheel</td></tr>
+      <tr><td>Select</td><td>left click</td></tr>
+      <tr><td>Add to selection</td><td>ctrl or shift + left click</td></tr>
+    </table>
+  </div>
+
+  <!-- ===== Tabs =========================================================== -->
+  <div class="tabs" role="tablist">
+    <button type="button" class="tab" *ngFor="let tab of tabs" role="tab"
+      [class.active]="active === tab.id" [attr.aria-selected]="active === tab.id"
+      (click)="select(tab.id)">{{ tab.label }}</button>
+
+    <!-- Named after what is selected, and gone when nothing is - the mechanism
+         AutoCAD calls a ribbon contextual tab state. -->
+    <button type="button" class="tab contextual" role="tab" *ngIf="contextLabel"
+      [class.active]="active === 'context'" [attr.aria-selected]="active === 'context'"
+      (click)="select('context')">{{ contextLabel }}</button>
+  </div>
+
+  <!-- ===== Panels ========================================================= -->
+  <div class="panels" *ngIf="!collapsed" [ngSwitch]="active">
+
+    <!-- ---------- Home ---------------------------------------------------- -->
+    <ng-container *ngSwitchCase="'home'">
+      <section class="panel">
+        <div class="panel-body">
+          <button type="button" class="cmd big" disabled [title]="awaitingGeometryTools">
+            <mat-icon svgIcon="cube-outline" aria-hidden="true"></mat-icon><span>OBST</span>
+          </button>
+          <button type="button" class="cmd big" disabled [title]="awaitingGeometryTools">
+            <mat-icon svgIcon="vector-difference-ab" aria-hidden="true"></mat-icon><span>HOLE</span>
+          </button>
+          <button type="button" class="cmd big" disabled [title]="awaitingGeometryTools">
+            <mat-icon svgIcon="shape-rectangle-plus" aria-hidden="true"></mat-icon><span>VENT</span>
+          </button>
+          <div class="field" [title]="awaitingGeometryTools">
+            <label>SURF</label>
+            <select disabled>
+              <option *ngFor="let surf of surfs">{{ surf.id }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="panel-title">Draw</div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-body">
+          <button type="button" class="cmd big" disabled [title]="awaitingGeometryTools">
+            <mat-icon svgIcon="cursor-move" aria-hidden="true"></mat-icon><span>Move</span>
+          </button>
+          <button type="button" class="cmd big" disabled [title]="awaitingGeometryTools">
+            <mat-icon svgIcon="arrow-top-right-bottom-left" aria-hidden="true"></mat-icon><span>Resize</span>
+          </button>
+          <button type="button" class="cmd big" disabled [title]="awaitingGeometryTools">
+            <mat-icon svgIcon="delete-outline" aria-hidden="true"></mat-icon><span>Delete</span>
+          </button>
+        </div>
+        <div class="panel-title">Modify</div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-body column">
+          <button type="button" class="cmd wide" disabled [title]="awaitingGeometryTools">
+            <mat-icon svgIcon="checkbox-blank-outline" aria-hidden="true"></mat-icon><span>Grid</span>
+          </button>
+          <button type="button" class="cmd wide" disabled [title]="awaitingGeometryTools">
+            <mat-icon svgIcon="checkbox-blank-outline" aria-hidden="true"></mat-icon><span>Edge</span>
+          </button>
+          <button type="button" class="cmd wide" disabled [title]="awaitingGeometryTools">
+            <mat-icon svgIcon="checkbox-blank-outline" aria-hidden="true"></mat-icon><span>Corner</span>
+          </button>
+        </div>
+        <div class="panel-title">Snap</div>
+      </section>
+    </ng-container>
+
+    <!-- ---------- View ---------------------------------------------------- -->
+    <ng-container *ngSwitchCase="'view'">
+      <section class="panel">
+        <div class="panel-body grid-3">
+          <button type="button" class="cmd wide" *ngFor="let layer of view.layers"
+            [ngClass]="'is-' + view.layerState(layer.id)"
+            (click)="view.toggleLayer(layer.id)"
+            [title]="'Cycle ' + layer.label + ': outline, filled, hidden'">
+            <mat-icon [svgIcon]="layerIcon(layer.id)" aria-hidden="true"></mat-icon>
+            <span>{{ layer.label }}</span>
+          </button>
+        </div>
+        <div class="panel-title">Visibility</div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-body column">
+          <button type="button" class="cmd wide" *ngFor="let display of view.displays"
+            [class.on]="view.isDisplayOn(display.id)" (click)="view.toggleDisplay(display.id)">
+            <mat-icon [svgIcon]="displayIcon(display.id)" aria-hidden="true"></mat-icon>
+            <span>{{ display.label }}</span>
+          </button>
+        </div>
+        <div class="panel-title">Display</div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-body column">
+          <!-- In metres over the model's own extent, so the numbers are the ones
+               that would go into a `.fds` file (ADR-0002). -->
+          <div class="slider" *ngFor="let axis of axes">
+            <label>{{ axis }}</label>
+            <input type="range" [ngModel]="view.clipPlane(axis)"
+              (ngModelChange)="view.setClip(axis, $event)"
+              [min]="view.clipMin(axis)" [max]="view.clipMax(axis)" [step]="view.clipStep(axis)"
+              [attr.aria-label]="'Section plane on ' + axis" />
+            <span class="readout">{{ view.clipLabel(axis) }}</span>
+          </div>
+          <button type="button" class="cmd wide" (click)="view.resetClipping()">
+            <mat-icon svgIcon="border-all-variant" aria-hidden="true"></mat-icon>
+            <span>Show all</span>
+          </button>
+        </div>
+        <div class="panel-title">Section</div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-body">
+          <button type="button" class="cmd big" (click)="view.zoomExtents()"
+            title="Frame the whole model">
+            <mat-icon svgIcon="crop-free" aria-hidden="true"></mat-icon><span>Extents</span>
+          </button>
+        </div>
+        <div class="panel-title">Camera</div>
+      </section>
+    </ng-container>
+
+    <!-- ---------- Measure -------------------------------------------------- -->
+    <ng-container *ngSwitchCase="'measure'">
+      <section class="panel">
+        <div class="panel-body">
+          <button type="button" class="cmd big" disabled [title]="awaitingMeasure">
+            <mat-icon svgIcon="ruler" aria-hidden="true"></mat-icon><span>Distance</span>
+          </button>
+          <button type="button" class="cmd big" disabled [title]="awaitingMeasure">
+            <mat-icon svgIcon="ruler-square" aria-hidden="true"></mat-icon><span>Dimensions</span>
+          </button>
+        </div>
+        <div class="panel-title">Measure</div>
+      </section>
+    </ng-container>
+
+    <!-- ---------- Contextual ----------------------------------------------- -->
+    <ng-container *ngSwitchCase="'context'">
+      <section class="panel">
+        <div class="panel-body column tight">
+          <div class="readout-row"><label>Type</label><span class="mono">{{ contextLabel }}</span></div>
+          <div class="readout-row"><label>ID</label><span class="mono">{{ selectedId }}</span></div>
+          <div class="readout-row" *ngIf="selected.length > 1">
+            <label>Also</label><span class="mono">{{ selected.length - 1 }} more</span>
+          </div>
+        </div>
+        <div class="panel-title">Selection</div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-body">
+          <button type="button" class="cmd big" (click)="openForm()"
+            title="Open the full form for this element">
+            <mat-icon svgIcon="open-in-new" aria-hidden="true"></mat-icon><span>Open form</span>
+          </button>
+          <button type="button" class="cmd big" (click)="zoomToSelection()"
+            title="Fly the camera to the selection">
+            <mat-icon svgIcon="magnify-scan" aria-hidden="true"></mat-icon><span>Zoom to</span>
+          </button>
+          <button type="button" class="cmd big" disabled [title]="awaitingGeometryTools">
+            <mat-icon svgIcon="delete-outline" aria-hidden="true"></mat-icon><span>Delete</span>
+          </button>
+        </div>
+        <div class="panel-title">Actions</div>
+      </section>
+    </ng-container>
+
+  </div>
+</div>

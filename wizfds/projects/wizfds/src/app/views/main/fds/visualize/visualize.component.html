@@ -1,1 +1,15 @@
-<lib-smokeview></lib-smokeview>
+<!--
+  The 3D view: the ribbon over it, the canvas, and the properties palette down
+  the right. The library holds none of this - it draws, the host decides
+  (ADR-0010).
+-->
+<div class="viewport">
+  <app-ribbon></app-ribbon>
+
+  <div class="viewport-body">
+    <div class="viewport-canvas">
+      <lib-smokeview></lib-smokeview>
+    </div>
+    <app-properties-palette></app-properties-palette>
+  </div>
+</div>
