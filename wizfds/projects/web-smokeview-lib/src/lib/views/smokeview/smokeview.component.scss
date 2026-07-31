@@ -96,17 +96,14 @@ $font-mono:        var(--font-mono, "Fira Code", "Consolas", monospace);
     z-index: 3;
     transform: translate(1rem, 1rem);
 
-    // Transparent to the mouse, fields included. The panel stands at the
-    // cursor while a drag is running, and it is a sibling of the canvas: a
-    // pointermove that hits it bubbles up PAST the canvas, so Babylon - whose
-    // listeners sit on the canvas element - never sees the move and the drag
-    // freezes on its first frame. Typing needs no clicks: the field is focused
-    // programmatically when the gesture starts, and Tab walks the rest (#124).
+    // Transparent to the mouse, fields included - see the rule at the foot of
+    // this block. The panel stands at the cursor while a drag is running, and
+    // it is a sibling of the canvas: a pointermove that hits it bubbles up PAST
+    // the canvas, so Babylon - whose listeners sit on the canvas element -
+    // never sees the move and the drag freezes on its first frame. Typing needs
+    // no clicks: the field is focused programmatically when the gesture starts,
+    // and Tab walks the rest (#124).
     pointer-events: none;
-
-    * {
-      pointer-events: none;
-    }
 
     display: flex;
     align-items: center;
@@ -119,6 +116,14 @@ $font-mono:        var(--font-mono, "Fira Code", "Consolas", monospace);
     font-family: $font-mono;
     font-size: 0.75rem;
     white-space: nowrap;
+
+    // The other half of the pointer transparency above: `pointer-events` does
+    // not inherit into elements that set their own, and an <input> is exactly
+    // the kind of element a stylesheet resets - so every descendant is told
+    // explicitly, or the fields would go on eating the drag.
+    * {
+      pointer-events: none;
+    }
 
     .snap {
       padding: 0.05rem 0.35rem;
