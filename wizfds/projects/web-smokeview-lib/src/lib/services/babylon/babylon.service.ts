@@ -208,6 +208,7 @@ export class BabylonService {
       console.error('[BabylonService] Disposing the engine failed', e);
     } finally {
       this.engine = null;
+      this.cameraAttached = false;
     }
 
     // The scene took them with it; this is about not redrawing over corpses
@@ -280,6 +281,24 @@ export class BabylonService {
 
     // This attaches the camera to the canvas
     this.camera.attachControl(this.canvas, true);
+    this.cameraAttached = true;
+
+    /*
+     * Every pointer ray is built through this camera, whichever one rendered
+     * last.
+     *
+     * The view cube renders through a second camera, into a corner of the
+     * canvas, and Babylon leaves `scene.activeCamera` on whichever of the two
+     * went last - the cube's. Without this, the InputManager builds every
+     * pointer ray from a camera three metres from the origin, aimed through a
+     * viewport a fifth of the canvas wide. Nothing that reads those rays can
+     * work: a gizmo handle is missed at nearly every press, because the ray
+     * offered to it points somewhere else entirely (#124).
+     *
+     * ViewCubeService picks with its own camera, passed explicitly, so it is
+     * unaffected.
+     */
+    this.scene.cameraToUseForPointers = this.camera;
 
     this.scene.activeCameras.push(this.camera);
 
@@ -353,6 +372,32 @@ export class BabylonService {
       console.error('[BabylonService] Manifold failed to load - obst openings will not be cut', e);
     }
   }
+
+  /**
+   * Whether a drag on the canvas turns the camera.
+   *
+   * The left button does two jobs in this view: it orbits the camera and it
+   * drags a manipulator, and which one a press means is decided by whether it
+   * landed on a handle. Holding the modifier takes the camera out of the
+   * contest for the duration, so a drag can only be the tool - see
+   * SmokeviewComponent.onKeyDown().
+   */
+  public setCameraControl(enabled: boolean): void {
+    if (!this.scene || !this.canvas || this.cameraAttached === enabled) { return; }
+
+    this.cameraAttached = enabled;
+
+    // Every camera, not just the model's: the view cube's is attached to the
+    // whole canvas as well, so leaving it on would spin the cube in its corner
+    // while the drag it was meant to free went nowhere.
+    const cameras = this.scene.activeCameras?.length ? this.scene.activeCameras : [this.camera];
+    cameras.forEach(camera => {
+      if (enabled) { camera.attachControl(this.canvas, true); } else { camera.detachControl(); }
+    });
+  }
+
+  /** Whether the camera currently answers to the pointer. */
+  private cameraAttached = false;
 
   public animate(): void {
     // We have to run this outside angular zones,

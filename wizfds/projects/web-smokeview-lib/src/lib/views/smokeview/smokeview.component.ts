@@ -172,24 +172,34 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   // ==========================================
 
   /**
-   * Ctrl suspends snapping for the gesture, and Escape abandons it.
+   * Ctrl suspends snapping, shift takes the camera out of the way, and Escape
+   * abandons the gesture.
    *
-   * On the window rather than the canvas: by the time either is pressed the
-   * pointer has been captured, and what has focus is as likely to be a field of
-   * the dynamic input as the canvas itself. Once a gesture is running the
-   * suspension latches, so releasing ctrl half way through a drag does not pull
-   * the element back onto the grid - see GizmoService.setSnapSuspended().
+   * On the window rather than the canvas: by the time any of them is pressed
+   * the pointer has been captured, and what has focus is as likely to be a
+   * field of the dynamic input as the canvas itself. Once a gesture is running
+   * the snap suspension latches, so releasing ctrl half way through a drag does
+   * not pull the element back onto the grid - see
+   * GizmoService.setSnapSuspended().
+   *
+   * Shift is the answer to the left button doing two jobs. A press decides
+   * between orbiting the camera and dragging a manipulator by whether it landed
+   * on a handle, and a near miss silently turns the model instead - which moves
+   * the handle the user was aiming at. Held down, the camera stops answering
+   * the pointer at all, so a drag can only be the tool.
    */
   @HostListener('window:keydown', ['$event'])
   onKeyDown(event: KeyboardEvent): void {
     this.gizmo.setSnapSuspended(event.ctrlKey);
+    this.babylonService.setCameraControl(!event.shiftKey);
     if (event.key === 'Escape') { this.gizmo.cancel(); }
   }
 
-  /** Between gestures, releasing ctrl puts snapping back. */
+  /** Releasing them gives the camera back, and snapping between gestures. */
   @HostListener('window:keyup', ['$event'])
   onKeyUp(event: KeyboardEvent): void {
     this.gizmo.setSnapSuspended(event.ctrlKey);
+    this.babylonService.setCameraControl(!event.shiftKey);
   }
 
   /** A number typed into a field takes that field over from the mouse. */
@@ -348,6 +358,8 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy() {
     this.destroyed = true;
+    // A view left while shift was held must not hand the next one a deaf camera
+    this.babylonService.setCameraControl(true);
     if (this.sceneSub) {
       this.sceneSub.unsubscribe();
     }

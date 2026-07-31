@@ -30,6 +30,8 @@ describe('SmokeviewComponent', () => {
       createScene: () => Promise.resolve(),
       disposeScene: () => { },
       animate: () => { },
+      // Shift takes the camera out of the way of a drag (#124)
+      setCameraControl: () => { },
       engine: null,
       scene: null
     };
@@ -87,6 +89,7 @@ describe('SmokeviewComponent', () => {
           createScene,
           disposeScene: () => { },
           animate: () => { },
+          setCameraControl: () => { },
           engine: null,
           scene: null
         }
@@ -132,6 +135,8 @@ describe('SmokeviewComponent', () => {
     let picking: jasmine.SpyObj<PickService>;
     let engine: BABYLON.NullEngine;
     let scene: BABYLON.Scene;
+    /** What the component asked of the camera, in order. */
+    let cameraControl: boolean[];
 
     /** The canvas the scene is drawn on - the only surface a pick may come from. */
     const canvas = (): HTMLCanvasElement =>
@@ -150,6 +155,7 @@ describe('SmokeviewComponent', () => {
     beforeEach(async () => {
       Object.defineProperty(navigator, 'gpu', { value: {}, configurable: true });
 
+      cameraControl = [];
       engine = new BABYLON.NullEngine();
       scene = new BABYLON.Scene(engine);
       // A real camera: the ray is built through scene.createPickingRay()
@@ -176,7 +182,8 @@ describe('SmokeviewComponent', () => {
               scene$: new BehaviorSubject<any>(null),
               createScene: () => Promise.resolve(),
               disposeScene: () => { },
-              animate: () => { }
+              animate: () => { },
+              setCameraControl: (on: boolean) => cameraControl.push(on)
             }
           },
           { provide: ViewCubeService, useValue: { pickSide: () => undefined, init: () => { } } },
@@ -193,6 +200,34 @@ describe('SmokeviewComponent', () => {
     afterEach(() => {
       scene.dispose();
       engine.dispose();
+    });
+
+    /**
+     * Shift is what the left button needs, because it does two jobs (#124).
+     *
+     * A press decides between orbiting the camera and dragging a manipulator by
+     * whether it landed on a handle, and a near miss turns the model instead -
+     * which moves the very handle that was being aimed at. Held down, the
+     * camera stops answering the pointer, so a drag can only be the tool.
+     */
+    it('takes the camera out of the way while shift is held', () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Shift', shiftKey: true }));
+
+      expect(cameraControl).toEqual([false]);
+    });
+
+    it('gives the camera back when shift is released', () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Shift', shiftKey: true }));
+
+      window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift', shiftKey: false }));
+
+      expect(cameraControl).toEqual([false, true]);
+    });
+
+    it('leaves the camera alone for a keystroke that is not shift', () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
+
+      expect(cameraControl).toEqual([true]);
     });
 
     it('selects on a plain click in the scene', () => {
