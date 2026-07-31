@@ -43,7 +43,17 @@ export interface GestureView {
  * On screen and not in metres, as `PositionGizmo`'s arrows are: a handle a
  * fixed size in metres is a speck on a tunnel and fills the view of a cupboard.
  */
-const HANDLE_PIXELS = 12;
+const HANDLE_PIXELS = 18;
+
+/**
+ * How much thicker than Babylon's default the translate arrows are drawn.
+ *
+ * The default is a hairline, and its collider is no wider: missing it hands the
+ * drag to the camera, which orbits the model out from under the user. Three is
+ * about the width of the face handles, so the two manipulators are grabbed with
+ * the same amount of care.
+ */
+const ARROW_THICKNESS = 3;
 
 /** One gesture, while it is happening. */
 interface Gesture {
@@ -378,7 +388,9 @@ export class GizmoService implements SceneScoped {
             boxes: boxes,
             union: unionOf(Array.from(boxes.values())),
             face: face,
-            input: kind === 'move' ? GestureInput.forMove() : GestureInput.forFace(face),
+            input: kind === 'move'
+                ? GestureInput.forMove()
+                : GestureInput.forFace(face, boxes.get(uuids[0])[face]),
             hit: null,
             at: BABYLON.Vector3.Zero(),
             finished: false
@@ -546,7 +558,7 @@ export class GizmoService implements SceneScoped {
         if (!this.positionGizmo) {
             this.anchor = new BABYLON.TransformNode('gizmoAnchor', this.layer.originalScene);
 
-            const gizmo = new BABYLON.PositionGizmo(this.layer);
+            const gizmo = new BABYLON.PositionGizmo(this.layer, ARROW_THICKNESS);
             gizmo.planarGizmoEnabled = true;
             gizmo.updateGizmoRotationToMatchAttachedMesh = false;
 

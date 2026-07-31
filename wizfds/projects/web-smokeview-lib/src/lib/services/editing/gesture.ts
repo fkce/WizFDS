@@ -67,9 +67,18 @@ export class GestureInput {
      * The panel a face drag shows: the coordinate being dragged, by its own
      * name, and as an absolute position rather than a delta - it is the number
      * that will end up in the `.fds` file.
+     *
+     * Seeded with where the face already stands, which a translate does not
+     * need: a move that never moved is a delta of zero and asks for nothing,
+     * but a *coordinate* of zero is the origin of the model. A press on a
+     * handle that is released without travelling delivers a drag start and a
+     * drag end with no move between them, and it must leave the element
+     * exactly as it was rather than collapse it against its opposite face.
      */
-    public static forFace(face: SceneFace): GestureInput {
-        return new GestureInput([face], new Map([[face, face.toUpperCase()]]));
+    public static forFace(face: SceneFace, at: number): GestureInput {
+        const input = new GestureInput([face], new Map([[face, face.toUpperCase()]]));
+        input.setLive({ [face]: at });
+        return input;
     }
 
     /** What the panel draws. */

@@ -244,6 +244,24 @@ describe('GizmoService', () => {
       expect((commands[0] as any).xb).toEqual({ x1: 0.2, x2: 0.2, y1: 0, y2: 6, z1: 0, z2: 3 });
     });
 
+    it('asks for nothing when the handle was pressed but never moved', () => {
+      // A click on a handle delivers a drag start and a drag end with no move
+      // between them. The panel has to open on the coordinate the face is
+      // already at, or the gesture commits the number it was seeded with and
+      // collapses the element to nothing (#124).
+      gizmo.beginResize('x2');
+
+      gizmo.commit();
+
+      expect(commands).toEqual([]);
+    });
+
+    it('opens the panel on the coordinate the face already stands at', () => {
+      gizmo.beginResize('x2');
+
+      expect(gizmo.gesture.fields[0].value).toBe(0.2);
+    });
+
     it('has no handles to offer when several elements are selected', () => {
       // Which face of which element a drag would be is not a question the six
       // handles can answer, so the ribbon offers Move instead.

@@ -94,15 +94,14 @@ describe('GestureInput - a face drag', () => {
 
   it('offers the coordinate by its own name, as an absolute position', () => {
     // Not a delta: it is the number that ends up in the `.fds` file.
-    const input = GestureInput.forFace('x2');
-    input.setLive({ x2: 0.4 });
+    const input = GestureInput.forFace('x2', 0.4);
 
     expect(input.fields.map(field => field.label)).toEqual(['X2']);
     expect(input.resolved).toEqual({ x2: 0.4 });
   });
 
   it('has nowhere else for Tab to go', () => {
-    const input = GestureInput.forFace('z1');
+    const input = GestureInput.forFace('z1', 0);
 
     input.next();
 
