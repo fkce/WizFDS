@@ -151,6 +151,9 @@ export class GizmoService implements SceneScoped {
     /** Where the anchor stood when the current translate began. */
     private anchorAtStart: BABYLON.Vector3 | null = null;
 
+    /** How far a face handle has been dragged along its axis, in metres. */
+    private handleReach = 0;
+
     constructor(
         private babylonService: BabylonService,
         private pickService: PickService,
@@ -525,6 +528,15 @@ export class GizmoService implements SceneScoped {
         // One of our own rather than the shared default, which outlives the
         // scene it was made for and would be handed to the next one
         this.layer = new BABYLON.UtilityLayerRenderer(scene);
+
+        // Pinned to the camera the model is drawn with, because this scene has
+        // two: the view cube renders through a second one into a corner of the
+        // canvas, and the scene's `activeCamera` is left on whichever went last.
+        // A utility layer following that would size the gizmo against a camera
+        // three metres from the origin - and against one the gizmo stands
+        // *behind*, which comes out as a negative scale, flips the winding of
+        // every triangle and hands the whole manipulator to backface culling.
+        this.layer.setRenderCamera(this.babylonService.camera);
     }
 
     /** The three arrows and the three plane handles, over the selection. */
@@ -604,10 +616,19 @@ export class GizmoService implements SceneScoped {
                 dragAxis: new BABYLON.Vector3(
                     axis === 'x' ? 1 : 0, axis === 'y' ? 1 : 0, axis === 'z' ? 1 : 0)
             });
-            // Babylon moves the handle; where it may go is this service's answer
-            behavior.moveAttached = true;
-            behavior.onDragStartObservable.add(() => this.beginResize(face));
-            behavior.onDragObservable.add(() => this.onHandleDrag(face, handle));
+
+            // Babylon must not move the handle: where a face may go is this
+            // service's answer, and the handles are put on the previewed box
+            // after every frame (see updateHandles). Left on, the two write to
+            // the same position in the same tick and pin the handle where it
+            // started.
+            behavior.moveAttached = false;
+
+            behavior.onDragStartObservable.add(() => {
+                this.handleReach = 0;
+                this.beginResize(face);
+            });
+            behavior.onDragObservable.add(event => this.onHandleDrag(face, event));
             behavior.onDragEndObservable.add(() => this.commit());
 
             handle.addBehavior(behavior);
@@ -630,8 +651,20 @@ export class GizmoService implements SceneScoped {
         });
     }
 
-    private onHandleDrag(face: SceneFace, handle: BABYLON.Mesh): void {
-        this.trackResize(handle.position[faceAxis(face)]);
+    /**
+     * How far the pointer has taken a face handle, and where that puts it.
+     *
+     * Accumulated from the drag events rather than read off the handle: the
+     * handle is drawn wherever the *previewed* box says, which is not where the
+     * pointer would have put it once a snap or the flat-face clamp has had a
+     * say. Reading the mesh back would feed that answer in as the next input.
+     */
+    private onHandleDrag(face: SceneFace, event: { delta: BABYLON.Vector3 }): void {
+        const gesture = this.current;
+        if (!gesture || gesture.kind !== 'resize') { return; }
+
+        this.handleReach += event.delta[faceAxis(face)];
+        this.trackResize(gesture.boxes.get(gesture.uuids[0])[face] + this.handleReach);
     }
 
     /** Put the handles on the faces of a box - the element's, or a preview's. */

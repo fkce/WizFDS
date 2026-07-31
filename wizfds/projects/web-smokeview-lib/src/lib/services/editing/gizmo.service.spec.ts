@@ -256,6 +256,22 @@ describe('GizmoService', () => {
 
   describe('the manipulator on screen', () => {
 
+    it('is drawn through the camera the model is drawn with', () => {
+      // The scene has two: the view cube renders through a second one into a
+      // corner of the canvas, and `activeCamera` is left on whichever went
+      // last. A manipulator sized against that one comes out at a negative
+      // scale - which flips the winding of every triangle and hands the whole
+      // gizmo to backface culling, so nothing is on screen at all (#124).
+      const viewCube = new BABYLON.ArcRotateCamera(
+        'cameraView', 0, Math.PI / 2, 3, BABYLON.Vector3.Zero(), scene);
+      scene.activeCamera = viewCube;
+
+      draw('west', WEST);
+      select('west');
+
+      expect((gizmo as any).layer.getRenderCamera().name).toBe('camera');
+    });
+
     it('offers nothing while nothing is selected', () => {
       expect(gizmo.canResize).toBe(false);
       expect(gizmo.gesture).toBeNull();
