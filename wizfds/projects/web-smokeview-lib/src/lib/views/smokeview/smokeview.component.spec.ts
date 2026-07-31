@@ -124,6 +124,34 @@ describe('SmokeviewComponent', () => {
   });
 
   /**
+   * The dynamic input must never stand between the mouse and the canvas (#124).
+   *
+   * It appears at the cursor the moment a gesture starts, and it is a sibling
+   * of the canvas - so a pointermove that hits it bubbles up past the canvas,
+   * and Babylon, whose listeners sit on the canvas element, never sees the
+   * move. The observed result: a drag starts (the press landed on the canvas,
+   * the panel was not up yet) and then freezes on the first move. Typing needs
+   * no clicks - the field is focused programmatically and Tab walks on.
+   */
+  describe('the dynamic input overlay', () => {
+    it('lets every pointer event fall through to the canvas', async () => {
+      await configure(true);
+      component.gesture = {
+        kind: 'move', activeKey: 'dx', at: { x: 100, y: 100 }, snap: null,
+        fields: [{ key: 'dx', label: 'dX', value: 0, typed: false }]
+      } as any;
+      fixture.detectChanges();
+
+      const panel: HTMLElement = fixture.nativeElement.querySelector('.dynamic-input');
+      expect(panel).toBeTruthy();
+      expect(getComputedStyle(panel).pointerEvents).toBe('none');
+
+      const field: HTMLElement = panel.querySelector('input');
+      expect(getComputedStyle(field).pointerEvents).toBe('none');
+    });
+  });
+
+  /**
    * The pointer gestures: what selects, what belongs to the camera, and what the
    * chrome layered over the canvas must never do.
    *

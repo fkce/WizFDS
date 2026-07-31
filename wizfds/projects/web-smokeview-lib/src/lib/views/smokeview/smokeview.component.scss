@@ -96,6 +96,18 @@ $font-mono:        var(--font-mono, "Fira Code", "Consolas", monospace);
     z-index: 3;
     transform: translate(1rem, 1rem);
 
+    // Transparent to the mouse, fields included. The panel stands at the
+    // cursor while a drag is running, and it is a sibling of the canvas: a
+    // pointermove that hits it bubbles up PAST the canvas, so Babylon - whose
+    // listeners sit on the canvas element - never sees the move and the drag
+    // freezes on its first frame. Typing needs no clicks: the field is focused
+    // programmatically when the gesture starts, and Tab walks the rest (#124).
+    pointer-events: none;
+
+    * {
+      pointer-events: none;
+    }
+
     display: flex;
     align-items: center;
     gap: 0.4rem;

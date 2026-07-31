@@ -485,20 +485,30 @@ export class GizmoService implements SceneScoped {
         };
     }
 
-    /** Where a point in the model falls on the canvas, in pixels. */
+    /**
+     * Where a point in the model falls on the canvas, in **CSS pixels**.
+     *
+     * CSS and not device pixels, because the answer is written into
+     * `style.left` of a DOM overlay. The engine renders at CSS times
+     * `devicePixelRatio` (see BabylonService's hardware scaling), so a
+     * projection into the render viewport is off by that ratio - at the
+     * Windows 175% scaling this module's users actually run, the panel landed
+     * nearly twice as far from the cursor as the gesture it belonged to.
+     */
     private screenOf(point: BABYLON.Vector3): { x: number, y: number } {
         const scene = this.babylonService.scene;
         const engine = this.babylonService.engine;
         const camera = this.babylonService.camera;
+        const canvas = this.babylonService.canvas;
         // Before the first frame there is no viewport to project into, and the
         // panel has nowhere to be
-        if (!scene || !engine || !camera?.viewport) { return { x: 0, y: 0 }; }
+        if (!scene || !engine || !canvas || !camera?.viewport) { return { x: 0, y: 0 }; }
 
         const projected = BABYLON.Vector3.Project(
             point,
             BABYLON.Matrix.Identity(),
             scene.getTransformMatrix(),
-            camera.viewport.toGlobal(engine.getRenderWidth(), engine.getRenderHeight())
+            camera.viewport.toGlobal(canvas.clientWidth, canvas.clientHeight)
         );
 
         return { x: projected.x, y: projected.y };
