@@ -92,4 +92,13 @@ Dwie rzeczy z tej decyzji przesunięto jawnie, bo obie zależą od #123:
 - **Paleta właściwości jest tylko do odczytu.** Wpisanie współrzędnej ma emitować komendę edycji — a strumień komend, jego walidacja i historia to #123. Zapis wprost do `Fds` w międzyczasie omijałby historię, którą tamto issue wprowadza, i wymagałby pełnego `render()`, co ADR-0004 wyklucza.
 - **Licznik ostrzeżeń o regułach FDS nie trafił na status bar.** W aplikacji nie ma dziś żadnej walidacji reguł FDS; powstaje ona w #123. Współrzędne kursora i aktywna siatka `&MESH` z krokiem — są.
 
+## Uzupełnienie (2026-07-30) — co odblokowało #123
+
+Obie odłożone rzeczy weszły wraz z kanałem komend:
+
+- **Paleta właściwości jest edytowalna.** Sześć pól `XB` emituje `setXb` — tę samą komendę, którą będzie emitował gizmo (#124) — więc współrzędna wpisana w palecie trafia na stos cofania i wywołuje przyrostowe przerysowanie, a nie pełny `render()`. Pola wracają do stanu modelu, gdy tekst nie czyta się jako liczba, i podążają za każdą zmianą zrobioną gdzie indziej.
+- **Ostrzeżenia są w dwóch miejscach.** Treść w palecie, przy elemencie, którego dotyczy; licznik w status barze, obok współrzędnych kursora. Bursztynowe, nie czerwone — nic nie blokują (ADR-0009).
+
+W QAT działa undo/redo, a przyciski nazywają operację („Undo Move"), nie „ostatnią zmianę" — bo zmiana z formularza nie przechodzi przez ten kanał i w historii jej nie ma. Odblokowało się też „usuń": kasowanie jest komendą nad zaznaczeniem i nie potrzebuje żadnego gestu, w odróżnieniu od Move i Resize, które czekają na #124. Reszta panelu Draw, Snap i oba pomiary — nadal wyszarzone, do #125–#127.
+
 Interfejs biblioteki dla hosta to `SceneViewService` (warstwy, przełączniki wyświetlania, przekroje, kamera) obok istniejącego `SmokeviewApiService` (rysowanie sceny). Rozdzielone, bo pierwszy dotyczy prezentacji, drugi treści sceny; oba są publiczne i wołane tak samo przez ribbon i przez pasek standalone viewera.

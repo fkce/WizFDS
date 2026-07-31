@@ -256,6 +256,36 @@ export class PickService implements SceneScoped {
   }
 
   /**
+   * Draw the highlight around where the selection is *now*.
+   *
+   * `setSelected()` only adds an outline for a uuid that has none, because
+   * re-outlining an unchanged selection would take an obst out of its pool and
+   * put it back on every call. But an element that has been edited is still the
+   * same uuid in a different place, and its outline would stay behind on the box
+   * it used to occupy - so an incremental redraw ends here (#123).
+   */
+  public redrawSelection(): void {
+    const uuids = this.selected.map(element => element.uuid);
+    if (uuids.length === 0) { return; }
+
+    // The boxes only - not the pool bookkeeping, which is untouched by an edit:
+    // what was singled out for editing is still singled out afterwards.
+    this.selectionMeshes.forEach(mesh => mesh.dispose());
+    this.selectionMeshes.clear();
+
+    const drawn: ScenePick[] = [];
+    uuids.forEach(uuid => {
+      const entry = this.sceneRegistry.entryFor(uuid);
+      if (!entry) { return; }
+
+      drawn.push({ uuid: uuid, type: entry.type, id: entry.id, xb: entry.xb });
+      this.selectionMeshes.set(uuid, this.outlineBox(
+        entry.xb, `picked_${uuid}`, SELECTED_COLOR, SELECTED_ALPHA));
+    });
+    this.selected = drawn;
+  }
+
+  /**
    * Drop the current selection. Called when a pick misses, which can happen
    * before anything was ever selected.
    */

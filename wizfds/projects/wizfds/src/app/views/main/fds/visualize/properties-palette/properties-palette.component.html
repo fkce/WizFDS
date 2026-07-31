@@ -30,12 +30,24 @@
       </div>
     </div>
 
+    <!-- Typing here emits the same setXb command the gizmo will (#123), so an
+         edit made in the palette lands on the undo stack like any other. -->
     <div class="group" *ngIf="hasXb">
       <div class="group-title">XB &nbsp;<span class="unit">m</span></div>
       <div class="row" *ngFor="let field of xbFields">
         <label [attr.for]="'palette-' + field.key">{{ field.label }}</label>
-        <input [id]="'palette-' + field.key" type="text" readonly
-          [value]="coordinate(field.key)" />
+        <input [id]="'palette-' + field.key" type="text" inputmode="decimal"
+          [(ngModel)]="values[field.key]" (blur)="commit()"
+          (keydown.enter)="commit()" (keydown.escape)="cancel()" />
+      </div>
+    </div>
+
+    <!-- What FDS will make of the element. It never blocks the edit: FDS itself
+         snaps a misaligned &OBST to the grid and computes on (ADR-0009). -->
+    <div class="warnings" *ngIf="warnings.length > 0">
+      <div class="warning" *ngFor="let warning of warnings">
+        <mat-icon svgIcon="alert-outline" aria-hidden="true"></mat-icon>
+        <span>{{ warning.message }}</span>
       </div>
     </div>
 
@@ -47,10 +59,6 @@
       <mat-icon svgIcon="open-in-new" aria-hidden="true"></mat-icon>
       <span>Open the full form</span>
     </button>
-
-    <!-- Typing a coordinate here is meant to emit the same edit command a gizmo
-         does; that command stream, with its validation and undo, is #123. -->
-    <p class="note">Read-only until the geometry editing tools land.</p>
   </div>
 
 </aside>

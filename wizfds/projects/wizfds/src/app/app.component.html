@@ -58,6 +58,16 @@
           </span>
           <ng-template #noGrid><span class="mono muted">no &amp;MESH here</span></ng-template>
         </span>
+
+        <!--
+          What FDS will make of the scenario as it stands. A count and not a
+          list: none of it blocks anything, and which element each one is about
+          is what the properties palette answers (ADR-0009).
+        -->
+        <span class="status-seg warnings" *ngIf="validation.count > 0">
+          <mat-icon svgIcon="alert-outline" aria-hidden="true"></mat-icon>
+          <span>{{ validation.count }} {{ validation.count === 1 ? 'warning' : 'warnings' }}</span>
+        </span>
       </ng-container>
     </div>
 

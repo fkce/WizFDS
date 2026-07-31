@@ -10,6 +10,7 @@ import { LibraryService } from '@services/library/library.service';
 import { UiStateService } from '@services/ui-state/ui-state.service';
 import { CadService } from '@services/cad/cad.service';
 import { IdGeneratorService } from '@services/id-generator/id-generator.service';
+import { FdsScenarioService } from '@services/fds-scenario/fds-scenario.service';
 
 /**
  * Everything the app's services need to be constructed in a test.
@@ -32,6 +33,10 @@ export function appServiceProviders(): (Provider | EnvironmentProviders)[] {
     LibraryService,
     UiStateService,
     CadService,
-    IdGeneratorService
+    IdGeneratorService,
+    // Auto-save schedules a write through this, so anything that applies an
+    // edit command reaches it. Nothing leaves the browser - the HTTP it would
+    // make is intercepted above.
+    FdsScenarioService
   ];
 }

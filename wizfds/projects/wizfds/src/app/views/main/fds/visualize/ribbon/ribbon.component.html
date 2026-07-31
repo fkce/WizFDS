@@ -2,10 +2,15 @@
 
   <!-- ===== Quick Access Toolbar ============================================ -->
   <div class="qat">
-    <button type="button" class="qat-btn" disabled [title]="awaitingHistory" aria-label="Undo">
+    <!-- The history holds edits made through the command channel; a change typed
+         into a form is not one of them, so these name the operation rather than
+         claiming to undo "the last change" (ADR-0009). -->
+    <button type="button" class="qat-btn" [disabled]="!canUndo" [title]="undoTitle"
+      (click)="undo()" aria-label="Undo">
       <mat-icon svgIcon="undo" aria-hidden="true"></mat-icon>
     </button>
-    <button type="button" class="qat-btn" disabled [title]="awaitingHistory" aria-label="Redo">
+    <button type="button" class="qat-btn" [disabled]="!canRedo" [title]="redoTitle"
+      (click)="redo()" aria-label="Redo">
       <mat-icon svgIcon="redo" aria-hidden="true"></mat-icon>
     </button>
 
@@ -88,7 +93,10 @@
           <button type="button" class="cmd big" disabled [title]="awaitingGeometryTools">
             <mat-icon svgIcon="arrow-top-right-bottom-left" aria-hidden="true"></mat-icon><span>Resize</span>
           </button>
-          <button type="button" class="cmd big" disabled [title]="awaitingGeometryTools">
+          <!-- Move and Resize are gestures and wait for the gizmo (#124); a
+               delete is a command over the selection and needs none. -->
+          <button type="button" class="cmd big" [disabled]="selected.length === 0"
+            [title]="deleteTitle" (click)="deleteSelection()">
             <mat-icon svgIcon="delete-outline" aria-hidden="true"></mat-icon><span>Delete</span>
           </button>
         </div>
@@ -215,7 +223,8 @@
             title="Fly the camera to the selection">
             <mat-icon svgIcon="magnify-scan" aria-hidden="true"></mat-icon><span>Zoom to</span>
           </button>
-          <button type="button" class="cmd big" disabled [title]="awaitingGeometryTools">
+          <button type="button" class="cmd big" [disabled]="selected.length === 0"
+            [title]="deleteTitle" (click)="deleteSelection()">
             <mat-icon svgIcon="delete-outline" aria-hidden="true"></mat-icon><span>Delete</span>
           </button>
         </div>

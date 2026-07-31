@@ -147,6 +147,14 @@ mat-progress-bar.progress {
   .status-left .grid .mono.muted {
     color: var(--on-surface-muted);
   }
+
+  // How many FDS rules the scenario currently breaks. Amber and not red: none
+  // of it stops anything, and FDS computes a scenario that breaks all of them
+  // (ADR-0009). Absent altogether when there is nothing to say.
+  .status-left .warnings {
+    color: var(--warning);
+    mat-icon { color: var(--warning); opacity: 1; }
+  }
   .muted {
     color: var(--on-surface-muted);
     opacity: 0.75;
