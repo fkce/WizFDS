@@ -55,6 +55,16 @@ const HANDLE_PIXELS = 18;
  */
 const ARROW_THICKNESS = 3;
 
+/**
+ * How much bigger than Babylon's default the whole manipulator is drawn.
+ *
+ * The default is sized for a scene you are looking at from a few metres. Here
+ * the camera stands a hundred and more away from a building, and an arrow that
+ * subtends a dozen pixels is one you miss - and a miss is not nothing, it hands
+ * the drag to the camera and orbits the model out from under the aim.
+ */
+const GIZMO_SCALE = 1.6;
+
 /** One gesture, while it is happening. */
 interface Gesture {
     readonly kind: GizmoMode,
@@ -560,6 +570,7 @@ export class GizmoService implements SceneScoped {
 
             const gizmo = new BABYLON.PositionGizmo(this.layer, ARROW_THICKNESS);
             gizmo.planarGizmoEnabled = true;
+            gizmo.scaleRatio = GIZMO_SCALE;
             gizmo.updateGizmoRotationToMatchAttachedMesh = false;
 
             gizmo.onDragStartObservable.add(() => this.onGizmoDragStart());
