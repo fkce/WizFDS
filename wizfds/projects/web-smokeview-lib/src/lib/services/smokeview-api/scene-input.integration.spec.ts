@@ -24,7 +24,10 @@ function deepFreeze<T>(value: T): T {
 function sceneInput(): SceneInput {
   return {
     meshes: [
-      { uuid: 'mesh-uuid', id: 'MESH', xb: { x1: 0, x2: 10, y1: 0, y2: 8, z1: 0, z2: 4 } }
+      {
+        uuid: 'mesh-uuid', id: 'MESH', xb: { x1: 0, x2: 10, y1: 0, y2: 8, z1: 0, z2: 4 },
+        cell: { i: 0.25, j: 0.25, k: 0.25 }
+      }
     ],
     obsts: [
       {

@@ -13,7 +13,11 @@ import { filter } from 'rxjs/operators';
 import { BabylonService } from '../../../../../../../web-smokeview-lib/src/lib/services/babylon/babylon.service';
 import { PickService } from '../../../../../../../web-smokeview-lib/src/lib/services/picking/pick.service';
 import { EditStreamService } from '../../../../../../../web-smokeview-lib/src/lib/services/editing/edit-stream.service';
+import { SnapService } from '../../../../../../../web-smokeview-lib/src/lib/services/editing/snap.service';
+import { GizmoService } from '../../../../../../../web-smokeview-lib/src/lib/services/editing/gizmo.service';
 import { SceneChange } from '../../../../../../../web-smokeview-lib/src/lib/services/drawing/scene-change';
+import { ScenePoint } from '../../../../../../../web-smokeview-lib/src/lib/services/scene-bounds/scene-bounds.service';
+import { ViewportGrid } from '@services/viewport-status/viewport-status.service';
 
 @Component({
     selector: 'app-visualize',
@@ -39,6 +43,8 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
     private sceneInputService: SceneInputService,
     private babylonService: BabylonService,
     private pickService: PickService,
+    private snapService: SnapService,
+    private gizmoService: GizmoService,
     private editStream: EditStreamService,
     private fdsEdit: FdsEditService,
     private validation: FdsValidationService,
@@ -54,12 +60,17 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
     // the scene reaches it through a service rather than directly (ADR-0010).
     this.viewportStatus.enter();
     this.pointerSub = this.pickService.pointerAt$
-      .subscribe(point => this.viewportStatus.setCursor(point));
+      .subscribe(point => this.viewportStatus.setCursor(point, this.gridAt(point)));
 
     // The app owns the selection, not the preview (ADR-0004): the forms and the
     // CAD bridge are outside the library, and only one of the two may apply a
     // pick or the two would answer differently.
     this.pickService.applyOwnPicks = false;
+
+    // And this is the app that can act on an edit. The gizmo is off by default
+    // so that the standalone viewer, which has no `Fds` and nothing subscribed
+    // to the command stream, does not offer to move what it cannot save (#88).
+    this.gizmoService.enabled = true;
 
     this.pickedSub = this.pickService.picked$.subscribe(picked => this.onPicked(picked));
     this.selectedSub = this.selectionService.selected$
@@ -74,6 +85,20 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
     // above, the properties palette, the ribbon, undo and redo - so this is the
     // only place the preview has to be told from.
     this.appliedSub = this.fdsEdit.applied$.subscribe(change => this.onApplied(change));
+  }
+
+  /**
+   * Which &MESH's grid is in force where the pointer is.
+   *
+   * Asked of the library rather than worked out here: it is the same question a
+   * snap answers on every frame of a drag, and the bar has to name the grid the
+   * edit will actually obey (#124).
+   */
+  private gridAt(point: ScenePoint | null): ViewportGrid | null {
+    if (!point) { return null; }
+
+    const grid = this.snapService.gridAt(point);
+    return grid ? { id: grid.meshId, cell: grid.cell } : null;
   }
 
   /**
@@ -120,17 +145,30 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /**
-   * Undo and redo, while the 3D view is what the user is working in.
+   * Delete, undo and redo, while the 3D view is what the user is working in.
    *
    * Not in a field: `[(ngModel)]` writes straight to the model, so an edit typed
    * into a form never reaches the command channel and is not in this history
    * (ADR-0009). Ctrl+Z there has to stay the browser's own text undo, or a user
-   * correcting a typo would move a wall instead.
+   * correcting a typo would move a wall instead - and Delete has to stay the
+   * key that removes a character, not a wall.
    */
   @HostListener('document:keydown', ['$event'])
   onKeyDown(event: KeyboardEvent): void {
-    if (!event.ctrlKey && !event.metaKey) { return; }
     if (isTyping(event.target)) { return; }
+
+    // No confirmation behind it, and none is wanted: Ctrl+Z takes it straight
+    // back, which is the answer AutoCAD gives to the same question (#124).
+    if (event.key === 'Delete') {
+      const uuids = this.selectionService.selectedUuids();
+      if (uuids.length === 0) { return; }
+
+      event.preventDefault();
+      this.fdsEdit.apply({ kind: 'delete', uuids: uuids });
+      return;
+    }
+
+    if (!event.ctrlKey && !event.metaKey) { return; }
 
     const key = event.key.toLowerCase();
     // Ctrl+Shift+Z as well as Ctrl+Y: both are redo, and which one a user
@@ -195,6 +233,9 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.commandSub.unsubscribe();
     this.appliedSub.unsubscribe();
     this.viewportStatus.leave();
+    // The services are the application's, not this view's - a gizmo left armed
+    // would attach itself to a selection made in a form.
+    this.gizmoService.enabled = false;
   }
 
 }

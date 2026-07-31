@@ -157,7 +157,11 @@ describe('SmokeviewComponent', () => {
         'camera', 0, Math.PI / 3, 10, BABYLON.Vector3.Zero(), scene);
 
       picking = jasmine.createSpyObj<PickService>(
-        'PickService', ['pick', 'hover', 'clearHover', 'clearSelection', 'setSelected', 'bind']);
+        'PickService',
+        ['pick', 'hover', 'clearHover', 'clearSelection', 'setSelected', 'bind',
+          'previewMove', 'previewBox', 'endPreview'],
+        // The gizmo stands on the selection and is told about it here (#124)
+        { selection$: new BehaviorSubject<any>([]) });
 
       await TestBed.configureTestingModule({
         imports: [FormsModule, MatIconModule],

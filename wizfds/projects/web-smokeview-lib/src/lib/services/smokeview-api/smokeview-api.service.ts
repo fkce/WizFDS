@@ -17,6 +17,7 @@ import { HoleRegionService } from '../drawing/hole/hole-region.service';
 import { BabylonService } from '../babylon/babylon.service';
 import { SceneBoundsService } from '../scene-bounds/scene-bounds.service';
 import { SceneViewService } from '../scene-view/scene-view.service';
+import { SnapService } from '../editing/snap.service';
 
 @Injectable({
   providedIn: 'root'
@@ -52,7 +53,10 @@ export class SmokeviewApiService {
     // Which obsts an opening cuts is a question about boxes, and this is what
     // answers it - the incremental path has to ask it without cutting anything
     private holeService: HoleService,
-    private pickService: PickService
+    private pickService: PickService,
+    // What a gesture catches on is the scene as it is now, so this is told at
+    // the same two moments the library is (#124)
+    private snapService: SnapService
   ) { }
 
   /**
@@ -76,6 +80,9 @@ export class SmokeviewApiService {
     // Kept so that an incremental update knows what the rest of the scenario
     // is - it is told what changed, not what everything now looks like.
     this.scene = scene;
+    // And so that a gesture catches on what is on screen, including whatever
+    // the user drew a moment ago (#124)
+    this.snapService.setScene(scene);
 
     // Measure first: the camera, the clip sliders, the edge widths and the world
     // axes are all multiples of how big the model is (ADR-0002). Doing it here
@@ -224,6 +231,7 @@ export class SmokeviewApiService {
     const previous = this.scene;
     const scene = applyChange(previous, change);
     this.scene = scene;
+    this.snapService.setScene(scene);
     const types = typesIn(change);
 
     // Both lists, always: the obsts are drawn from the openings that cut them,

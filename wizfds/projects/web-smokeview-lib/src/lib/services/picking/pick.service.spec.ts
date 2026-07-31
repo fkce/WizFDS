@@ -43,7 +43,7 @@ function makeHole(id: string, xb: SceneXb): SceneHole {
 }
 
 function makeMesh(id: string, xb: SceneXb): SceneMesh {
-  return { id: id, uuid: `${id}-uuid`, xb: xb };
+  return { id: id, uuid: `${id}-uuid`, xb: xb, cell: { i: 0.25, j: 0.25, k: 0.25 } };
 }
 
 function makeInit(id: string, xb: SceneXb): SceneInit {
@@ -489,6 +489,80 @@ describe('PickService', () => {
       picking.clearSelection();
 
       expect(highlight.isDisposed()).toBe(true);
+    });
+  });
+
+  describe('a gesture in progress', () => {
+    /**
+     * The preview a drag draws (#124).
+     *
+     * Nothing is committed until the pointer comes up (ADR-0004), so what moves
+     * under the user's hand is the outline and not the model. The element itself
+     * is left exactly where the scenario says it is.
+     */
+    it('draws the outline where the gesture has the element', () => {
+      render([makeObst('W', WEST)]);
+      picking.setSelected(['W-uuid']);
+
+      picking.previewMove({ dx: 3, dy: 0, dz: 0 });
+
+      // WEST spans x 0 to 0.2, so its outline is centred on 0.1 and lands on 3.1
+      expect(scene.getMeshByName('picked_W-uuid').position.x).toBeCloseTo(3.1, 6);
+    });
+
+    it('leaves what the scenario says alone while it does', () => {
+      render([makeObst('W', WEST)]);
+      picking.setSelected(['W-uuid']);
+
+      picking.previewMove({ dx: 3, dy: 0, dz: 0 });
+
+      expect(picking.lastSelected.xb.x1).toBe(0);
+    });
+
+    it('draws one element at a box of its own, which is what a face drag is', () => {
+      render([makeObst('W', WEST)]);
+      picking.setSelected(['W-uuid']);
+
+      picking.previewBox('W-uuid', { x1: 0, x2: 1, y1: 0, y2: 6, z1: 0, z2: 3 });
+
+      const outline = scene.getMeshByName('picked_W-uuid');
+      expect(outline.position.x).toBeCloseTo(0.5, 6);
+      expect(outline.getBoundingInfo().boundingBox.extendSize.x).toBeCloseTo(0.5, 6);
+    });
+
+    it('puts the outline back where the model has it when the gesture ends', () => {
+      render([makeObst('W', WEST)]);
+      picking.setSelected(['W-uuid']);
+      picking.previewMove({ dx: 3, dy: 0, dz: 0 });
+
+      picking.endPreview();
+
+      expect(scene.getMeshByName('picked_W-uuid').position.x).toBeCloseTo(0.1, 6);
+    });
+  });
+
+  describe('telling a tool what is selected', () => {
+    it('replays the selection, so a gizmo attaches to what is already picked', () => {
+      // A tool is switched on long after the click that made the selection.
+      render([makeObst('W', WEST)]);
+      picking.setSelected(['W-uuid']);
+
+      let seen: readonly { uuid: string }[] = [];
+      picking.selection$.subscribe(selected => seen = selected);
+
+      expect(seen.map(element => element.uuid)).toEqual(['W-uuid']);
+    });
+
+    it('says so again once an edit has moved what is selected', () => {
+      // The gizmo stands on the selection, so it has to be told to follow it.
+      render([makeObst('W', WEST)]);
+      picking.setSelected(['W-uuid']);
+
+      let times = 0;
+      picking.selection$.subscribe(() => times++);
+      picking.redrawSelection();
+
+      expect(times).toBe(2);
     });
   });
 

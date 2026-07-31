@@ -10,6 +10,7 @@ import { FdsEditService } from '@services/fds-edit/fds-edit.service';
 import { FdsScenario } from '@services/fds-scenario/fds-scenario';
 import { appServiceProviders } from '../../../../../../testing/app-service-testing';
 import { SceneViewService } from '../../../../../../../../web-smokeview-lib/src/lib/services/scene-view/scene-view.service';
+import { GizmoService } from '../../../../../../../../web-smokeview-lib/src/lib/services/editing/gizmo.service';
 
 /**
  * The chrome of the 3D view.
@@ -74,6 +75,8 @@ describe('RibbonComponent', () => {
 
     TestBed.inject(MainService).setCurrentFdsScenario(scenario());
     selection = TestBed.inject(SelectionService);
+    // The ribbon only ever exists in the app, which is the host that edits (#88)
+    TestBed.inject(GizmoService).enabled = true;
 
     fixture = TestBed.createComponent(RibbonComponent);
     component = fixture.componentInstance;
@@ -296,6 +299,56 @@ describe('RibbonComponent', () => {
 
       const fds = TestBed.inject(MainService).main.currentFdsScenario.fdsObject;
       expect(fds.geometry.obsts.length).toBe(1);
+    });
+  });
+  /**
+   * The Modify and Snap panels (#124).
+   *
+   * The ribbon owns neither gesture: it says which manipulator is on screen and
+   * which modes catch, and the library does the dragging (ADR-0010).
+   */
+  describe('Modify and Snap', () => {
+
+    it('opens on the arrows, which is the gesture a user reaches for first', () => {
+      expect(component.gizmo.mode).toBe('move');
+    });
+
+    it('chooses which manipulator is on screen', () => {
+      selection.select({ uuid: 'wall-uuid', type: 'obst' });
+
+      component.gizmo.setMode('resize');
+
+      expect(component.gizmo.mode).toBe('resize');
+    });
+
+    it('offers neither with nothing selected', () => {
+      expect(component.canModify).toBe(false);
+      expect(component.moveTitle).toBe('Nothing selected');
+    });
+
+    it('says why resize is not on offer for a multiple selection', () => {
+      selection.select({ uuid: 'wall-uuid', type: 'obst' });
+      selection.select({ uuid: 'jetfan-uuid', type: 'jetfan' }, { add: true });
+      fixture.detectChanges();
+
+      expect(component.gizmo.canResize).toBe(false);
+      expect(component.resizeTitle).toBe('Resize acts on one element at a time');
+    });
+
+    it('starts with all three snap modes on, as OSNAP does', () => {
+      expect(component.snapModes.map(mode => component.snap.isOn(mode.id)))
+        .toEqual([true, true, true]);
+    });
+
+    it('lists them in the order a snap tries them', () => {
+      expect(component.snapModes.map(mode => mode.id)).toEqual(['corner', 'edge', 'grid']);
+    });
+
+    it('turns one mode off without touching the others', () => {
+      component.snap.toggle('grid');
+
+      expect(component.snap.isOn('grid')).toBe(false);
+      expect(component.snap.isOn('corner')).toBe(true);
     });
   });
 });

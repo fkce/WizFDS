@@ -1,4 +1,7 @@
-import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, isDevMode } from '@angular/core';
+import {
+  Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, ViewChildren,
+  QueryList, HostListener, NgZone, isDevMode
+} from '@angular/core';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { PickService } from '../../services/picking/pick.service';
@@ -8,6 +11,8 @@ import { PlayerService } from '../../services/player/player.service';
 import { ViewCubeService } from '../../services/babylon/viewCube/view-cube.service';
 import * as BABYLON from 'babylonjs';
 import { SceneBoundsService } from '../../services/scene-bounds/scene-bounds.service';
+import { GestureView, GizmoService } from '../../services/editing/gizmo.service';
+import { GestureKey } from '../../services/editing/gesture';
 
 /**
  * How far the pointer may travel between down and up and still count as a click,
@@ -40,6 +45,30 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('rendererCanvas', { static: true }) rendererCanvas: ElementRef<HTMLCanvasElement>;
   @ViewChild('mainContainer', { static: true }) mainContainer: ElementRef<HTMLCanvasElement>;
 
+  /** The fields of the dynamic input, so a gesture can put the caret in one. */
+  @ViewChildren('gestureField') gestureFields: QueryList<ElementRef<HTMLInputElement>>;
+
+  /**
+   * What the dynamic input is showing, or null when no gesture is running.
+   *
+   * One of the overlays that belong to a gesture, which is why it is here and
+   * not in the host's ribbon (ADR-0010): it stands at the cursor, over the
+   * canvas, and only exists while the pointer is down.
+   */
+  gesture: GestureView | null = null;
+
+  /** What is in each field, as text - the user's, not the model's. */
+  values: Partial<Record<GestureKey, string>> = {};
+
+  /**
+   * The fields the keyboard has taken charge of.
+   *
+   * A field mid-typing reads as `-` or `1.`, and neither is a number yet - so
+   * the live value must not be written back over it while the mouse goes on
+   * moving. See GestureInput.type().
+   */
+  private editing = new Set<GestureKey>();
+
   /**
    * Arm a possible click.
    *
@@ -66,6 +95,15 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    // A press on an arrow or a face handle starts a gesture; it is not a click
+    // at whatever stands behind it, and releasing it must not drop the very
+    // selection the gesture is about (#124).
+    if (this.gizmo.isPointerOnGizmo) return;
+
+    // Ctrl held as the gesture starts suspends snapping for the whole of it -
+    // and each press arms the latch afresh, so it never carries over
+    this.gizmo.setSnapSuspended(event.ctrlKey);
+
     this.pointerDownAt = { x: event.clientX, y: event.clientY };
   }
 
@@ -88,6 +126,9 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (!downAt || !this.babylonService.scene) return;
     if (Math.hypot(event.clientX - downAt.x, event.clientY - downAt.y) > CLICK_SLOP) return;
+
+    // A drag that stayed within the slop is still a drag, not a click
+    if (this.gizmo.isDragging) return;
 
     this.picking.pick(this.pickingRay(), { add: event.ctrlKey || event.shiftKey });
   }
@@ -126,6 +167,95 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     this.picking.clearHover();
   }
 
+  // ==========================================
+  // The dynamic input (#124)
+  // ==========================================
+
+  /**
+   * Ctrl suspends snapping for the gesture, and Escape abandons it.
+   *
+   * On the window rather than the canvas: by the time either is pressed the
+   * pointer has been captured, and what has focus is as likely to be a field of
+   * the dynamic input as the canvas itself. Once a gesture is running the
+   * suspension latches, so releasing ctrl half way through a drag does not pull
+   * the element back onto the grid - see GizmoService.setSnapSuspended().
+   */
+  @HostListener('window:keydown', ['$event'])
+  onKeyDown(event: KeyboardEvent): void {
+    this.gizmo.setSnapSuspended(event.ctrlKey);
+    if (event.key === 'Escape') { this.gizmo.cancel(); }
+  }
+
+  /** Between gestures, releasing ctrl puts snapping back. */
+  @HostListener('window:keyup', ['$event'])
+  onKeyUp(event: KeyboardEvent): void {
+    this.gizmo.setSnapSuspended(event.ctrlKey);
+  }
+
+  /** A number typed into a field takes that field over from the mouse. */
+  onType(key: GestureKey, event: Event): void {
+    const text = (event.target as HTMLInputElement).value;
+    this.editing.add(key);
+    this.values[key] = text;
+    this.gizmo.type(key, text);
+  }
+
+  /**
+   * Enter commits, Escape abandons the whole gesture, Tab moves on.
+   *
+   * The three keys AutoCAD's dynamic input answers to, and the reason this
+   * project needs no command line for typing an exact dimension (ADR-0010).
+   */
+  onFieldKey(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.gizmo.commit();
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.gizmo.cancel();
+      return;
+    }
+
+    if (event.key === 'Tab') {
+      // Held here rather than left to the browser: the panel is over a canvas,
+      // and the next thing in the document order is not the next field.
+      event.preventDefault();
+      this.gizmo.nextField();
+      this.focusActiveField();
+    }
+  }
+
+  /** Show what the gesture is doing, without stepping on what is being typed. */
+  private onGesture(view: GestureView | null): void {
+    const starting = !this.gesture && !!view;
+    this.gesture = view;
+
+    if (!view) {
+      this.values = {};
+      this.editing.clear();
+      return;
+    }
+
+    view.fields
+      .filter(field => !this.editing.has(field.key))
+      .forEach(field => this.values[field.key] = field.value.toFixed(3));
+
+    // A gesture is typed into the moment it starts, without clicking first -
+    // which is the whole point of the panel being at the cursor
+    if (starting) { setTimeout(() => this.focusActiveField()); }
+  }
+
+  private focusActiveField(): void {
+    if (!this.gesture || !this.gestureFields) { return; }
+
+    const index = this.gesture.fields.findIndex(field => field.key === this.gesture.activeKey);
+    const input = this.gestureFields.toArray()[Math.max(index, 0)];
+    if (input) { input.nativeElement.select(); }
+  }
+
   /**
    * A ray from the camera through the pointer, long enough to cross the whole
    * model from wherever the camera stands. A fixed length used to do, back when
@@ -147,6 +277,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   webGPUAvailable: boolean = true;
 
   private sceneSub: Subscription;
+  private gestureSub: Subscription;
 
   /** Set in ngOnDestroy - createScene() is awaited and can outlive the view. */
   private destroyed = false;
@@ -167,13 +298,21 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     public sliceService: SliceService,
     public playerService: PlayerService,
     public viewCubeService: ViewCubeService,
-    private sceneBounds: SceneBoundsService
+    private sceneBounds: SceneBoundsService,
+    private gizmo: GizmoService,
+    private zone: NgZone
   ) { }
 
   ngOnInit() {
     // Decided on first paint, so an unsupported browser sees the message
     // straight away instead of after a failed engine initialisation.
     this.webGPUAvailable = BabylonService.isWebGPUSupported();
+
+    // A drag arrives from Babylon's own pointer handling, and the render loop
+    // runs outside the zone (see BabylonService.animate) - so the panel is
+    // brought back into it rather than trusting the frame to do it.
+    this.gestureSub = this.gizmo.gesture$.subscribe(view =>
+      this.zone.run(() => this.onGesture(view)));
   }
 
   async ngAfterViewInit() {
@@ -211,6 +350,9 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     this.destroyed = true;
     if (this.sceneSub) {
       this.sceneSub.unsubscribe();
+    }
+    if (this.gestureSub) {
+      this.gestureSub.unsubscribe();
     }
     // Tears down scene and engine, and resets every scene-scoped service
     this.babylonService.disposeScene();

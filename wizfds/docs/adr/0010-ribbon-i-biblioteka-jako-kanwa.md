@@ -102,3 +102,15 @@ Obie odłożone rzeczy weszły wraz z kanałem komend:
 W QAT działa undo/redo, a przyciski nazywają operację („Undo Move"), nie „ostatnią zmianę" — bo zmiana z formularza nie przechodzi przez ten kanał i w historii jej nie ma. Odblokowało się też „usuń": kasowanie jest komendą nad zaznaczeniem i nie potrzebuje żadnego gestu, w odróżnieniu od Move i Resize, które czekają na #124. Reszta panelu Draw, Snap i oba pomiary — nadal wyszarzone, do #125–#127.
 
 Interfejs biblioteki dla hosta to `SceneViewService` (warstwy, przełączniki wyświetlania, przekroje, kamera) obok istniejącego `SmokeviewApiService` (rysowanie sceny). Rozdzielone, bo pierwszy dotyczy prezentacji, drugi treści sceny; oba są publiczne i wołane tak samo przez ribbon i przez pasek standalone viewera.
+
+## Uzupełnienie (2026-07-31) — co odblokowało #124
+
+Panel Modify i panel Snap są żywe, a dynamic input istnieje.
+
+- **Move i Resize to wybór manipulatora, nie tryb.** Trzy strzałki `PositionGizmo` i sześć własnych uchwytów ścian narysowane naraz byłyby nieczytelne, więc dwa przyciski wybierają między nimi. Zwykły klik nadal zaznacza, przeciągnięcie w pustce nadal obraca kamerę — globalnego trybu wciąż nie ma. Resize jest wyszarzony przy zaznaczeniu wielokrotnym, bo „która ściana którego elementu" nie jest pytaniem, na które sześć uchwytów odpowiada.
+- **Snap to trzy niezależne przełączniki**, wypisane w kolejności, w jakiej snap ich próbuje: Corner, Edge, Grid. Wszystkie domyślnie włączone, tak jak OSNAP; ctrl zawiesza je na czas jednego gestu.
+- **Dynamic input jest w bibliotece**, przy kursorze: `dx/dy/dz` przy przesuwaniu, zmieniana współrzędna przy ciągnięciu ściany. Tab przełącza pole, Enter zatwierdza, Esc anuluje cały gest, a wpisana liczba przejmuje pole od myszy — pozostałe pola dalej podążają za kursorem. Marker snapu rysowany jest w akcencie, a tryb, który złapał, jest nazwany w tym samym panelu.
+- **Gizmo jest wyłączony, dopóki host go nie włączy.** `GizmoService.enabled` domyślnie `false`; ustawia je tylko `wizfds`. Standalone viewer nie ma `Fds`, do którego dałoby się zastosować komendę, ani niczego zapisanego na strumieniu komend — gest byłby tam przesunięciem obwódki, która wraca na miejsce po puszczeniu przycisku, a edycja w standalone viewerze jest świadomie poza zakresem (#88). Ten sam przełącznik i ten sam powód co `PickService.applyOwnPicks`.
+- **Status bar nazywa siatkę, której edycja usłucha.** `ViewportStatusService` przestał jej szukać sam — dostaje ją gotową stamtąd, gdzie liczy się snap (ADR-0004).
+
+Wyszarzone do czasu #125–#127 zostają: panel Draw wraz z selektorem SURF-a i oba pomiary.

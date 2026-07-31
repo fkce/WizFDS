@@ -174,9 +174,22 @@ export class SceneInputService {
     }
   }
 
-  /** A &MESH: an outline, in a colour the library picks itself. */
+  /**
+   * A &MESH: an outline, in a colour the library picks itself.
+   *
+   * Its cell size crosses with it, because that is the grid an edit snaps to
+   * and which mesh's grid applies at a point has to be answered while the
+   * pointer is moving (#124). `isize` / `jsize` / `ksize` are already the size
+   * of one cell in metres - the class works them out from `IJK` when either is
+   * set (see Mesh.isize).
+   */
   private mesh(mesh: Mesh): SceneMesh {
-    return { uuid: mesh.uuid, id: mesh.id, xb: this.xb(mesh.xb) };
+    return {
+      uuid: mesh.uuid, id: mesh.id, xb: this.xb(mesh.xb),
+      cell: {
+        i: this.metres(mesh.isize), j: this.metres(mesh.jsize), k: this.metres(mesh.ksize)
+      }
+    };
   }
 
   /** A &HOLE, in the one colour nothing else on screen is drawn in. */

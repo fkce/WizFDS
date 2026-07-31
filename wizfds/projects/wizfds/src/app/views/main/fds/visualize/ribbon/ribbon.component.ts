@@ -14,6 +14,9 @@ import {
   displaySwitchIcon, layerStateIcon, SceneDisplayId, SceneLayerId, SceneViewService
 } from '../../../../../../../../web-smokeview-lib/src/lib/services/scene-view/scene-view.service';
 import { SceneAxis } from '../../../../../../../../web-smokeview-lib/src/lib/services/scene-bounds/scene-bounds.service';
+import { GizmoService } from '../../../../../../../../web-smokeview-lib/src/lib/services/editing/gizmo.service';
+import { SnapService } from '../../../../../../../../web-smokeview-lib/src/lib/services/editing/snap.service';
+import { SnapMode } from '../../../../../../../../web-smokeview-lib/src/lib/services/editing/snap';
 
 /** Which tab of the ribbon is open. */
 export type RibbonTabId = 'home' | 'view' | 'measure' | 'context';
@@ -43,6 +46,18 @@ const AWAITING_GEOMETRY_TOOLS = 'Available once the geometry editing tools land'
 const AWAITING_MEASURE = 'Available once the measuring tools land';
 
 /**
+ * The three snap modes, in the order they take priority.
+ *
+ * Corner before edge before grid, which is the order a snap tries them in - so
+ * the panel reads as what it does (#124).
+ */
+const SNAP_MODES: ReadonlyArray<{ id: SnapMode, label: string, title: string }> = [
+  { id: 'corner', label: 'Corner', title: 'Catch on the corners of existing geometry' },
+  { id: 'edge', label: 'Edge', title: 'Catch on its edges' },
+  { id: 'grid', label: 'Grid', title: 'Catch on the cell boundaries of the active &MESH' }
+];
+
+/**
  * The chrome of the 3D view: a Quick Access Toolbar, tabs, and named panels.
  *
  * The anatomy is AutoCAD's, because the users of WizFDS are AutoCAD users and
@@ -61,6 +76,7 @@ export class RibbonComponent implements OnInit, OnDestroy {
 
   readonly tabs = FIXED_TABS;
   readonly axes: readonly SceneAxis[] = ['x', 'y', 'z'];
+  readonly snapModes = SNAP_MODES;
 
   readonly awaitingGeometryTools = AWAITING_GEOMETRY_TOOLS;
   readonly awaitingMeasure = AWAITING_MEASURE;
@@ -68,9 +84,9 @@ export class RibbonComponent implements OnInit, OnDestroy {
   /**
    * View rather than Home, which is where AutoCAD opens.
    *
-   * Home holds the drawing and modifying tools, and none of them exists yet
-   * (#125, #126); View drives everything that does. To be reconsidered once the
-   * tools arrive.
+   * Home's Modify and Snap panels work as of #124, but its Draw panel is still
+   * empty (#125) - so View remains the tab that drives the most. To be moved
+   * once there is something to draw with.
    */
   active: RibbonTabId = 'view';
 
@@ -88,6 +104,8 @@ export class RibbonComponent implements OnInit, OnDestroy {
 
   constructor(
     public view: SceneViewService,
+    public gizmo: GizmoService,
+    public snap: SnapService,
     private selection: SelectionService,
     private elements: ElementsService,
     private history: HistoryService,
@@ -209,6 +227,41 @@ export class RibbonComponent implements OnInit, OnDestroy {
    */
   get surfs(): any[] {
     return this.elements.listOf('surf');
+  }
+
+  // ==========================================
+  // Modify and Snap (#124)
+  // ==========================================
+
+  /**
+   * Both act on the selection, so neither means anything without one.
+   *
+   * Which manipulator is on screen is `gizmo.mode`, and the template asks it
+   * directly - as the Visibility panel asks `view.layerState()`. What is here
+   * is what the ribbon knows and the library does not: whether a command has
+   * anything to act on, and what to call it.
+   */
+  get canModify(): boolean {
+    return this.selected.length > 0;
+  }
+
+  /**
+   * What the Resize button offers, and why it sometimes offers nothing.
+   *
+   * Which face of which element a drag would be is not a question six handles
+   * can answer for a multiple selection.
+   */
+  get resizeTitle(): string {
+    if (!this.canModify) { return 'Nothing selected'; }
+    return this.gizmo.canResize
+      ? 'Drag a face to change one XB coordinate'
+      : 'Resize acts on one element at a time';
+  }
+
+  get moveTitle(): string {
+    return this.canModify
+      ? 'Drag an arrow or a plane handle to move the selection'
+      : 'Nothing selected';
   }
 
   // ==========================================
