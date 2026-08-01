@@ -31,7 +31,14 @@ export interface GestureView {
     readonly fields: readonly GestureField[],
     /** Which field the keyboard is in - what the panel focuses. */
     readonly activeKey: GestureKey,
-    /** Where to put the panel, in canvas pixels. */
+    /**
+     * Where to put the panel: at the cursor, in canvas-local CSS pixels.
+     *
+     * The cursor and not the gesture's own position - a slab spans half the
+     * model, and a panel anchored to its centre wanders across the screen
+     * while the hand stays put. AutoCAD's dynamic input rides the crosshair
+     * for the same reason.
+     */
     readonly at: { x: number, y: number },
     /** What caught the gesture, if anything did - named beside the cursor. */
     readonly snap: SnapMode | null
@@ -79,8 +86,6 @@ interface Gesture {
     readonly input: GestureInput,
     /** What has caught it, as of the last frame. */
     hit: SnapMode | null,
-    /** Where the gesture currently is, snapped, in metres. */
-    at: BABYLON.Vector3,
     /** Whether it has already been settled by the keyboard. */
     finished: boolean
 }
@@ -289,11 +294,6 @@ export class GizmoService implements SceneScoped {
         gesture.input.setLive({
             dx: snapped.delta.dx, dy: snapped.delta.dy, dz: snapped.delta.dz
         });
-        gesture.at = new BABYLON.Vector3(
-            (gesture.union.x1 + gesture.union.x2) / 2 + snapped.delta.dx,
-            (gesture.union.y1 + gesture.union.y2) / 2 + snapped.delta.dy,
-            (gesture.union.z1 + gesture.union.z2) / 2 + snapped.delta.dz
-        );
 
         this.snapService.showMarker(snapped.hit);
         this.pickService.previewMove(this.resolvedDelta(gesture));
@@ -314,10 +314,8 @@ export class GizmoService implements SceneScoped {
             base, face, coordinate, new Set(gesture.uuids));
         const box = dragFace(base, face, dragged.coordinate);
 
-        const centre = faceCentre(box, face);
         gesture.hit = dragged.hit ? dragged.hit.mode : null;
         gesture.input.setLive({ [face]: box[face] });
-        gesture.at = new BABYLON.Vector3(centre.x, centre.y, centre.z);
 
         this.snapService.showMarker(dragged.hit);
         this.pickService.previewBox(gesture.uuids[0], box);
@@ -402,7 +400,6 @@ export class GizmoService implements SceneScoped {
                 ? GestureInput.forMove()
                 : GestureInput.forFace(face, boxes.get(uuids[0])[face]),
             hit: null,
-            at: BABYLON.Vector3.Zero(),
             finished: false
         };
 
@@ -480,38 +477,22 @@ export class GizmoService implements SceneScoped {
             kind: gesture.kind,
             fields: gesture.input.fields,
             activeKey: gesture.input.activeKey,
-            at: this.screenOf(gesture.at),
+            at: this.pointerOnCanvas(),
             snap: gesture.hit
         };
     }
 
     /**
-     * Where a point in the model falls on the canvas, in **CSS pixels**.
+     * Where the pointer is over the canvas, in CSS pixels.
      *
-     * CSS and not device pixels, because the answer is written into
-     * `style.left` of a DOM overlay. The engine renders at CSS times
-     * `devicePixelRatio` (see BabylonService's hardware scaling), so a
-     * projection into the render viewport is off by that ratio - at the
-     * Windows 175% scaling this module's users actually run, the panel landed
-     * nearly twice as far from the cursor as the gesture it belonged to.
+     * Babylon keeps it in exactly that space - `clientX` minus the canvas rect
+     * (InputManager._updatePointerPosition) - which is also the space a DOM
+     * overlay inside the canvas's container is positioned in. No projection
+     * and no devicePixelRatio arithmetic, so it cannot drift from the hand.
      */
-    private screenOf(point: BABYLON.Vector3): { x: number, y: number } {
+    private pointerOnCanvas(): { x: number, y: number } {
         const scene = this.babylonService.scene;
-        const engine = this.babylonService.engine;
-        const camera = this.babylonService.camera;
-        const canvas = this.babylonService.canvas;
-        // Before the first frame there is no viewport to project into, and the
-        // panel has nowhere to be
-        if (!scene || !engine || !canvas || !camera?.viewport) { return { x: 0, y: 0 }; }
-
-        const projected = BABYLON.Vector3.Project(
-            point,
-            BABYLON.Matrix.Identity(),
-            scene.getTransformMatrix(),
-            camera.viewport.toGlobal(canvas.clientWidth, canvas.clientHeight)
-        );
-
-        return { x: projected.x, y: projected.y };
+        return scene ? { x: scene.pointerX, y: scene.pointerY } : { x: 0, y: 0 };
     }
 
     // ==========================================
