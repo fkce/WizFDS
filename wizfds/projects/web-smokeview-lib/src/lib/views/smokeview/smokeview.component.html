@@ -40,11 +40,15 @@
         <!-- Which mode caught it, named beside the cursor as the marker is drawn -->
         <span class="snap" *ngIf="gesture.snap">{{ gesture.snap }}</span>
 
-        <label class="field" *ngFor="let field of gesture.fields">
+        <!-- Readouts, not a form: nothing here may take the focus, because the
+             canvas answers its blur by releasing every held button and the drag
+             dies under the hand. The keyboard reaches the gesture through the
+             window - see SmokeviewComponent.routeGestureKey(). -->
+        <label class="field" *ngFor="let field of gesture.fields"
+            [class.active]="field.key === gesture.activeKey">
             <span class="name">{{ field.label }}</span>
-            <input #gestureField type="text" inputmode="decimal" autocomplete="off"
+            <input type="text" readonly tabindex="-1" autocomplete="off"
                 [class.typed]="field.typed" [value]="values[field.key]"
-                (input)="onType(field.key, $event)" (keydown)="onFieldKey($event)"
                 [attr.aria-label]="field.label" />
             <span class="unit">m</span>
         </label>

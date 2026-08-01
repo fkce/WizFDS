@@ -1,6 +1,6 @@
 import {
-  Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, ViewChildren,
-  QueryList, HostListener, NgZone, isDevMode
+  Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild,
+  HostListener, NgZone, isDevMode
 } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
@@ -44,9 +44,6 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @ViewChild('rendererCanvas', { static: true }) rendererCanvas: ElementRef<HTMLCanvasElement>;
   @ViewChild('mainContainer', { static: true }) mainContainer: ElementRef<HTMLCanvasElement>;
-
-  /** The fields of the dynamic input, so a gesture can put the caret in one. */
-  @ViewChildren('gestureField') gestureFields: QueryList<ElementRef<HTMLInputElement>>;
 
   /**
    * What the dynamic input is showing, or null when no gesture is running.
@@ -172,15 +169,19 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   // ==========================================
 
   /**
-   * Ctrl suspends snapping, shift takes the camera out of the way, and Escape
-   * abandons the gesture.
+   * Ctrl suspends snapping, shift takes the camera out of the way, Escape
+   * abandons the gesture - and while a gesture runs, the keyboard IS the
+   * dynamic input.
    *
-   * On the window rather than the canvas: by the time any of them is pressed
-   * the pointer has been captured, and what has focus is as likely to be a
-   * field of the dynamic input as the canvas itself. Once a gesture is running
-   * the snap suspension latches, so releasing ctrl half way through a drag does
-   * not pull the element back onto the grid - see
-   * GizmoService.setSnapSuspended().
+   * On the window rather than on the panel's fields, and the fields are never
+   * focused at all. They must not be: the canvas holds the focus during a
+   * drag, and Babylon answers the canvas's blur by synthesising a release of
+   * every held button (WebDeviceInputSystem._pointerBlurEvent) - so the moment
+   * anything steals the focus, the drag dies under the user's hand. Focusing
+   * the panel's field on gesture start was exactly that, and it is why a held
+   * drag ended two milliseconds after it began while a scripted one, over in
+   * one tick, never noticed. Typing therefore never touches DOM focus: keys
+   * are routed here, straight into the gesture (#124).
    *
    * Shift is the answer to the left button doing two jobs. A press decides
    * between orbiting the camera and dragging a manipulator by whether it landed
@@ -192,7 +193,63 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   onKeyDown(event: KeyboardEvent): void {
     this.gizmo.setSnapSuspended(event.ctrlKey);
     this.babylonService.setCameraControl(!event.shiftKey);
-    if (event.key === 'Escape') { this.gizmo.cancel(); }
+    if (event.key === 'Escape') { this.gizmo.cancel(); return; }
+
+    if (this.gesture) { this.routeGestureKey(event); }
+  }
+
+  /**
+   * One keystroke of the dynamic input.
+   *
+   * The AutoCAD contract: digits state the dimension, Tab moves along, Enter
+   * settles, Backspace corrects - all while the mouse goes on dragging. The
+   * first digit replaces what the mouse was showing rather than appending to
+   * it, exactly as a focused-and-selected field would have behaved.
+   */
+  private routeGestureKey(event: KeyboardEvent): void {
+    if (event.ctrlKey || event.metaKey || event.altKey) { return; }
+    const key = this.gesture.activeKey;
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.gizmo.commit();
+      return;
+    }
+
+    if (event.key === 'Tab') {
+      // The panel floats over a canvas; the next thing in the document order
+      // is not the next field
+      event.preventDefault();
+      this.gizmo.nextField();
+      return;
+    }
+
+    if (event.key === 'Backspace') {
+      event.preventDefault();
+      const trimmed = (this.values[key] ?? '').slice(0, -1);
+      this.applyTyped(key, trimmed);
+      return;
+    }
+
+    // The characters a coordinate is made of. Comma types as a decimal point -
+    // the numeric keypad of every Polish keyboard produces one.
+    if (/^[0-9.,+-]$/.test(event.key)) {
+      event.preventDefault();
+      const typed = event.key === ',' ? '.' : event.key;
+      const base = this.editing.has(key) ? (this.values[key] ?? '') : '';
+      this.applyTyped(key, base + typed);
+    }
+  }
+
+  /** Put one field's text where both the panel and the gesture read it. */
+  private applyTyped(key: GestureKey, text: string): void {
+    if (text === '') {
+      this.editing.delete(key);
+    } else {
+      this.editing.add(key);
+    }
+    this.values[key] = text;
+    this.gizmo.type(key, text);
   }
 
   /** Releasing them gives the camera back, and snapping between gestures. */
@@ -202,45 +259,8 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     this.babylonService.setCameraControl(!event.shiftKey);
   }
 
-  /** A number typed into a field takes that field over from the mouse. */
-  onType(key: GestureKey, event: Event): void {
-    const text = (event.target as HTMLInputElement).value;
-    this.editing.add(key);
-    this.values[key] = text;
-    this.gizmo.type(key, text);
-  }
-
-  /**
-   * Enter commits, Escape abandons the whole gesture, Tab moves on.
-   *
-   * The three keys AutoCAD's dynamic input answers to, and the reason this
-   * project needs no command line for typing an exact dimension (ADR-0010).
-   */
-  onFieldKey(event: KeyboardEvent): void {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      this.gizmo.commit();
-      return;
-    }
-
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      this.gizmo.cancel();
-      return;
-    }
-
-    if (event.key === 'Tab') {
-      // Held here rather than left to the browser: the panel is over a canvas,
-      // and the next thing in the document order is not the next field.
-      event.preventDefault();
-      this.gizmo.nextField();
-      this.focusActiveField();
-    }
-  }
-
   /** Show what the gesture is doing, without stepping on what is being typed. */
   private onGesture(view: GestureView | null): void {
-    const starting = !this.gesture && !!view;
     this.gesture = view;
 
     if (!view) {
@@ -252,18 +272,6 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     view.fields
       .filter(field => !this.editing.has(field.key))
       .forEach(field => this.values[field.key] = field.value.toFixed(3));
-
-    // A gesture is typed into the moment it starts, without clicking first -
-    // which is the whole point of the panel being at the cursor
-    if (starting) { setTimeout(() => this.focusActiveField()); }
-  }
-
-  private focusActiveField(): void {
-    if (!this.gesture || !this.gestureFields) { return; }
-
-    const index = this.gesture.fields.findIndex(field => field.key === this.gesture.activeKey);
-    const input = this.gestureFields.toArray()[Math.max(index, 0)];
-    if (input) { input.nativeElement.select(); }
   }
 
   /**

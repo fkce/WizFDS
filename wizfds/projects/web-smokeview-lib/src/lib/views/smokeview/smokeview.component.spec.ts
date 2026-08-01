@@ -8,6 +8,7 @@ import * as BABYLON from 'babylonjs';
 import { BabylonService } from '../../services/babylon/babylon.service';
 import { ViewCubeService } from '../../services/babylon/viewCube/view-cube.service';
 import { PickService } from '../../services/picking/pick.service';
+import { GizmoService } from '../../services/editing/gizmo.service';
 import { SmokeviewComponent } from './smokeview.component';
 
 describe('SmokeviewComponent', () => {
@@ -148,6 +149,46 @@ describe('SmokeviewComponent', () => {
 
       const field: HTMLElement = panel.querySelector('input');
       expect(getComputedStyle(field).pointerEvents).toBe('none');
+    });
+
+    it('never takes the focus - the canvas blur would end the drag', async () => {
+      // Babylon answers the canvas losing focus by synthesising a release of
+      // every held button (WebDeviceInputSystem._pointerBlurEvent), so a panel
+      // that focused its field killed the very gesture it was reporting on.
+      await configure(true);
+      (document.activeElement as HTMLElement)?.blur?.();
+
+      component.gesture = {
+        kind: 'move', activeKey: 'dx', at: { x: 100, y: 100 }, snap: null,
+        fields: [{ key: 'dx', label: 'dX', value: 0, typed: false }]
+      } as any;
+      fixture.detectChanges();
+      await new Promise(resolve => setTimeout(resolve, 20));
+
+      expect(document.activeElement === document.body
+        || document.activeElement === null).toBe(true);
+    });
+
+    it('routes typing through the window, straight into the gesture', async () => {
+      await configure(true);
+      const gizmo = TestBed.inject(GizmoService);
+      const typed = spyOn(gizmo, 'type');
+      const tabbed = spyOn(gizmo, 'nextField');
+
+      component.gesture = {
+        kind: 'move', activeKey: 'dx', at: { x: 100, y: 100 }, snap: null,
+        fields: [{ key: 'dx', label: 'dX', value: 0, typed: false }]
+      } as any;
+      fixture.detectChanges();
+
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: '5' }));
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: ',' }));
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab' }));
+
+      // The comma types as a decimal point - the numeric keypad of a Polish
+      // keyboard produces one
+      expect(typed.calls.allArgs()).toEqual([['dx', '5'], ['dx', '5.']]);
+      expect(tabbed).toHaveBeenCalled();
     });
   });
 

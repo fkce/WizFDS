@@ -172,6 +172,13 @@ $font-mono:        var(--font-mono, "Fira Code", "Consolas", monospace);
           color: $accent;
         }
       }
+
+      // Where the next keystroke lands - what Tab moves. Not the browser's
+      // focus: nothing in this panel may ever take that, or the canvas blur
+      // would end the drag (see routeGestureKey).
+      &.active input {
+        border-color: $accent;
+      }
     }
   }
 
