@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import * as BABYLON from 'babylonjs';
 
-import { GizmoService } from './gizmo.service';
+import { faceOutward, GizmoService, handleBasis } from './gizmo.service';
 import { SnapService } from './snap.service';
 import { EditStreamService } from './edit-stream.service';
 import { SceneEditCommand } from './edit-command';
@@ -269,6 +269,67 @@ describe('GizmoService', () => {
       select('west', 'east');
 
       expect(gizmo.canResize).toBe(false);
+    });
+  });
+
+  /**
+   * The face handles are AutoCAD's stretch grips: flat triangles, tip pointing
+   * the way the face goes (#124).
+   *
+   * A triangle only reads if it faces the viewer, so each handle turns to the
+   * camera every frame - with its tip pinned to where the face's axis falls on
+   * the screen. The two functions here are that arithmetic, kept pure.
+   */
+  describe('the triangle handles', () => {
+
+    it('points each triangle out of the box, along its own face', () => {
+      expect(faceOutward('x1').asArray()).toEqual([-1, 0, 0]);
+      expect(faceOutward('x2').asArray()).toEqual([1, 0, 0]);
+      expect(faceOutward('z2').asArray()).toEqual([0, 0, 1]);
+    });
+
+    it('faces the camera with the tip held on the axis', () => {
+      // Camera looking along -y at the model; an x2 handle: the tip stays on
+      // +x, the triangle's plane turns to the camera.
+      const basis = handleBasis(new BABYLON.Vector3(0, -1, 0), new BABYLON.Vector3(1, 0, 0));
+
+      expect(basis.right.asArray()).toEqual([1, 0, 0]);
+      expect(basis.forward.asArray()).toEqual([0, -1, 0]);
+      // Orthonormal - the up axis is what makes it a rotation and not a shear
+      expect(BABYLON.Vector3.Dot(basis.up, basis.right)).toBeCloseTo(0, 6);
+      expect(BABYLON.Vector3.Dot(basis.up, basis.forward)).toBeCloseTo(0, 6);
+      expect(basis.up.length()).toBeCloseTo(1, 6);
+    });
+
+    it('keeps only the on-screen part of an axis that leans towards the camera', () => {
+      // The axis has a component along the view; the tip direction is what is
+      // left of it on the screen, renormalised.
+      const toCamera = new BABYLON.Vector3(0, -1, 0);
+      const leaning = new BABYLON.Vector3(0.7, -0.7, 0).normalize();
+
+      const basis = handleBasis(toCamera, leaning);
+
+      expect(basis.right.x).toBeCloseTo(1, 6);
+      expect(basis.right.y).toBeCloseTo(0, 6);
+    });
+
+    it('still answers with a full basis when the axis points at the camera', () => {
+      // Looking straight down the axis being dragged: there is no direction on
+      // screen for the tip, and an all-zero basis would collapse the triangle.
+      const along = handleBasis(new BABYLON.Vector3(1, 0, 0), new BABYLON.Vector3(1, 0, 0));
+
+      expect(along.right.length()).toBeCloseTo(1, 6);
+      expect(BABYLON.Vector3.Dot(along.right, along.forward)).toBeCloseTo(0, 6);
+    });
+
+    it('builds the handles as triangles that are turned each frame', () => {
+      draw('west', WEST);
+      select('west');
+      gizmo.setMode('resize');
+
+      const handle = (gizmo as any).handles.get('x2') as BABYLON.Mesh;
+      expect(handle.getTotalVertices()).toBe(3);
+      expect(handle.rotationQuaternion).not.toBeNull();
     });
   });
 

@@ -620,9 +620,12 @@ export class GizmoService implements SceneScoped {
         const material = new BABYLON.StandardMaterial('faceHandle', utility);
         material.emissiveColor = ACCENT_COLOR;
         material.disableLighting = true;
+        // A flat triangle has a back, and the camera can be on either side of a
+        // face - the grip has to read from both
+        material.backFaceCulling = false;
 
         SCENE_FACES.forEach(face => {
-            const handle = BABYLON.MeshBuilder.CreateBox(`faceHandle_${face}`, { size: 1 }, utility);
+            const handle = this.triangleHandle(`faceHandle_${face}`, utility);
             handle.material = material;
 
             const axis = faceAxis(face);
@@ -656,13 +659,50 @@ export class GizmoService implements SceneScoped {
         this.handleSizing = utility.onBeforeRenderObservable.add(() => this.resizeHandles());
     }
 
-    /** Hold the handles at the same size on screen, wherever the camera is. */
+    /**
+     * Hold the handles at the same size on screen, and turned to the viewer.
+     *
+     * A flat triangle only reads when its plane faces the camera, so each
+     * handle is a billboard - but not Babylon's, whose axes follow the screen.
+     * The tip has to stay pinned to where the face's own axis falls on the
+     * screen, or the grip would stop saying which way the face goes; that is
+     * what `handleBasis` computes, and it is the same promise AutoCAD's
+     * triangular stretch grips make in a rotated view.
+     */
     private resizeHandles(): void {
-        this.handles.forEach(handle => {
+        const camera = this.babylonService.camera;
+
+        this.handles.forEach((handle, face) => {
             const size = Math.max(
                 HANDLE_PIXELS * this.snapService.metresPerPixelAt(handle.position), 1e-4);
             handle.scaling.set(size, size, size);
+
+            if (!camera) { return; }
+            const toCamera = camera.position.subtract(handle.position).normalize();
+            const basis = handleBasis(toCamera, faceOutward(face));
+            handle.rotationQuaternion = BABYLON.Quaternion.RotationQuaternionFromAxis(
+                basis.right, basis.up, basis.forward);
         });
+    }
+
+    /**
+     * One stretch grip: a flat triangle, tip on local +x, about a unit across,
+     * centred on the point it grips - as AutoCAD centres its own.
+     */
+    private triangleHandle(name: string, utility: BABYLON.Scene): BABYLON.Mesh {
+        const handle = new BABYLON.Mesh(name, utility);
+
+        const shape = new BABYLON.VertexData();
+        shape.positions = [
+            0.65, 0, 0,        // the tip - what points the way
+            -0.65, 0.5, 0,
+            -0.65, -0.5, 0
+        ];
+        shape.indices = [0, 1, 2];
+        shape.normals = [0, 0, 1, 0, 0, 1, 0, 0, 1];
+        shape.applyToMesh(handle);
+
+        return handle;
     }
 
     /**
@@ -730,6 +770,46 @@ export class GizmoService implements SceneScoped {
         this.layer = null;
         this.publish();
     }
+}
+
+/**
+ * Which way a face's stretch grip points: out of the box, along its own axis.
+ *
+ * The direction a user pulls to grow the element - the promise the triangle's
+ * tip makes.
+ */
+export function faceOutward(face: SceneFace): BABYLON.Vector3 {
+    const axis = faceAxis(face);
+    const sign = face.endsWith('1') ? -1 : 1;
+    return new BABYLON.Vector3(
+        axis === 'x' ? sign : 0, axis === 'y' ? sign : 0, axis === 'z' ? sign : 0);
+}
+
+/**
+ * The orientation of one grip: facing the camera, tip held on its axis.
+ *
+ * `right` is where the local +x - the tip - goes: the face's outward axis with
+ * its towards-the-camera component removed, i.e. what is left of the axis on
+ * the screen. `forward` is the triangle's plane normal, straight at the
+ * camera. Looking directly down the axis leaves nothing on screen to point
+ * along; any direction across the view serves then, and the constant one keeps
+ * the grip from spinning as the camera crosses the degeneracy.
+ */
+export function handleBasis(
+    toCamera: BABYLON.Vector3, outward: BABYLON.Vector3
+): { right: BABYLON.Vector3, up: BABYLON.Vector3, forward: BABYLON.Vector3 } {
+    const forward = toCamera.normalizeToNew();
+
+    let right = outward.subtract(forward.scale(BABYLON.Vector3.Dot(outward, forward)));
+    if (right.lengthSquared() < 1e-6) {
+        right = BABYLON.Vector3.Cross(forward, BABYLON.Vector3.Up());
+        if (right.lengthSquared() < 1e-6) {
+            right = BABYLON.Vector3.Cross(forward, BABYLON.Vector3.Right());
+        }
+    }
+    right.normalize();
+
+    return { right: right, up: BABYLON.Vector3.Cross(forward, right), forward: forward };
 }
 
 /** The box that encloses all of them. */
