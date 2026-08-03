@@ -50,7 +50,7 @@ export interface GestureView {
  * On screen and not in metres, as `PositionGizmo`'s arrows are: a handle a
  * fixed size in metres is a speck on a tunnel and fills the view of a cupboard.
  */
-const HANDLE_PIXELS = 18;
+const HANDLE_PIXELS = 12;
 
 /**
  * How much thicker than Babylon's default the translate arrows are drawn.
@@ -660,14 +660,14 @@ export class GizmoService implements SceneScoped {
     }
 
     /**
-     * Hold the handles at the same size on screen, and turned to the viewer.
+     * Hold the handles at the same size on screen, lying in their own plane
+     * of movement.
      *
-     * A flat triangle only reads when its plane faces the camera, so each
-     * handle is a billboard - but not Babylon's, whose axes follow the screen.
-     * The tip has to stay pinned to where the face's own axis falls on the
-     * screen, or the grip would stop saying which way the face goes; that is
-     * what `handleBasis` computes, and it is the same promise AutoCAD's
-     * triangular stretch grips make in a rotated view.
+     * Each grip lies in a plane containing the axis it drags - the tip IS
+     * that axis, exactly, as AutoCAD orients a stretch grip in the plane it
+     * stretches in. The only freedom a flat shape has left, the roll about
+     * that axis, is turned towards the camera every frame so the triangle
+     * never goes edge-on while its direction stays true - see `handleBasis`.
      */
     private resizeHandles(): void {
         const camera = this.babylonService.camera;
@@ -786,28 +786,31 @@ export function faceOutward(face: SceneFace): BABYLON.Vector3 {
 }
 
 /**
- * The orientation of one grip: facing the camera, tip held on its axis.
+ * The orientation of one grip: in the plane of its movement, turned to the
+ * viewer.
  *
- * `right` is where the local +x - the tip - goes: the face's outward axis with
- * its towards-the-camera component removed, i.e. what is left of the axis on
- * the screen. `forward` is the triangle's plane normal, straight at the
- * camera. Looking directly down the axis leaves nothing on screen to point
- * along; any direction across the view serves then, and the constant one keeps
- * the grip from spinning as the camera crosses the degeneracy.
+ * `right` - the tip - is the face's outward axis itself, exactly: the grip
+ * lies in a plane containing the direction it drags, and its tip never leaves
+ * that axis however the camera stands. The one freedom left is the roll about
+ * that axis, and it is spent on the viewer: `forward`, the triangle's plane
+ * normal, is the towards-the-camera direction with its along-axis component
+ * removed. Looking straight down the axis leaves no roll to prefer - and no
+ * way to drag along it either - so a constant fallback keeps the grip from
+ * spinning as the camera crosses the degeneracy.
  */
 export function handleBasis(
     toCamera: BABYLON.Vector3, outward: BABYLON.Vector3
 ): { right: BABYLON.Vector3, up: BABYLON.Vector3, forward: BABYLON.Vector3 } {
-    const forward = toCamera.normalizeToNew();
+    const right = outward.normalizeToNew();
 
-    let right = outward.subtract(forward.scale(BABYLON.Vector3.Dot(outward, forward)));
-    if (right.lengthSquared() < 1e-6) {
-        right = BABYLON.Vector3.Cross(forward, BABYLON.Vector3.Up());
-        if (right.lengthSquared() < 1e-6) {
-            right = BABYLON.Vector3.Cross(forward, BABYLON.Vector3.Right());
+    let forward = toCamera.subtract(right.scale(BABYLON.Vector3.Dot(toCamera, right)));
+    if (forward.lengthSquared() < 1e-6) {
+        forward = BABYLON.Vector3.Cross(right, BABYLON.Vector3.Up());
+        if (forward.lengthSquared() < 1e-6) {
+            forward = BABYLON.Vector3.Cross(right, BABYLON.Vector3.Right());
         }
     }
-    right.normalize();
+    forward.normalize();
 
     return { right: right, up: BABYLON.Vector3.Cross(forward, right), forward: forward };
 }

@@ -288,9 +288,9 @@ describe('GizmoService', () => {
       expect(faceOutward('z2').asArray()).toEqual([0, 0, 1]);
     });
 
-    it('faces the camera with the tip held on the axis', () => {
-      // Camera looking along -y at the model; an x2 handle: the tip stays on
-      // +x, the triangle's plane turns to the camera.
+    it('lies in the plane of its axis, turned to the camera', () => {
+      // Camera looking along -y at the model; an x2 handle: the tip is +x and
+      // the triangle's plane faces the camera.
       const basis = handleBasis(new BABYLON.Vector3(0, -1, 0), new BABYLON.Vector3(1, 0, 0));
 
       expect(basis.right.asArray()).toEqual([1, 0, 0]);
@@ -301,16 +301,20 @@ describe('GizmoService', () => {
       expect(basis.up.length()).toBeCloseTo(1, 6);
     });
 
-    it('keeps only the on-screen part of an axis that leans towards the camera', () => {
-      // The axis has a component along the view; the tip direction is what is
-      // left of it on the screen, renormalised.
+    it('holds the tip on the axis itself, however the camera leans', () => {
+      // The direction the grip promises is the direction the drag will take -
+      // never a screen approximation of it. Only the roll about that axis
+      // follows the camera.
       const toCamera = new BABYLON.Vector3(0, -1, 0);
       const leaning = new BABYLON.Vector3(0.7, -0.7, 0).normalize();
 
       const basis = handleBasis(toCamera, leaning);
 
-      expect(basis.right.x).toBeCloseTo(1, 6);
-      expect(basis.right.y).toBeCloseTo(0, 6);
+      expect(basis.right.x).toBeCloseTo(leaning.x, 6);
+      expect(basis.right.y).toBeCloseTo(leaning.y, 6);
+      // The plane still faces the viewer as much as the axis allows
+      expect(BABYLON.Vector3.Dot(basis.forward, basis.right)).toBeCloseTo(0, 6);
+      expect(BABYLON.Vector3.Dot(basis.forward, toCamera)).toBeGreaterThan(0);
     });
 
     it('still answers with a full basis when the axis points at the camera', () => {
