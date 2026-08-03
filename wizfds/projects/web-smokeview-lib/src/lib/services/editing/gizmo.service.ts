@@ -176,6 +176,21 @@ export class GizmoService implements SceneScoped {
     /** Where the anchor stood when the current translate began. */
     private anchorAtStart: BABYLON.Vector3 | null = null;
 
+    /**
+     * The pointer's own accumulated movement, with no snap corrections in it.
+     *
+     * Kept apart from where the anchor is drawn, because the anchor is drawn
+     * at the *snapped* position and Babylon delivers the drag as increments on
+     * top of it. Folding those increments into the snapped result would let a
+     * catch consume the pointer's progress frame by frame - a slow drag could
+     * then never build up the distance to escape, and stayed pinned within one
+     * tolerance of the catch however far the hand went.
+     */
+    private readonly rawDragDelta = BABYLON.Vector3.Zero();
+
+    /** Where the snap left the anchor last frame, relative to the start. */
+    private readonly lastSnappedDelta = BABYLON.Vector3.Zero();
+
     /** How far a face handle has been dragged along its axis, in metres. */
     private handleReach = 0;
 
@@ -581,23 +596,31 @@ export class GizmoService implements SceneScoped {
 
     private onGizmoDragStart(): void {
         this.anchorAtStart = this.anchor.position.clone();
+        this.rawDragDelta.setAll(0);
+        this.lastSnappedDelta.setAll(0);
         this.beginMove();
     }
 
     private onGizmoDrag(): void {
         if (!this.current || !this.anchorAtStart) { return; }
 
-        const moved = this.anchor.position.subtract(this.anchorAtStart);
+        // This frame's increment of the hand: what Babylon added on top of
+        // wherever the snap left the anchor. Accumulated raw - see rawDragDelta.
+        const fresh = this.anchor.position
+            .subtract(this.anchorAtStart)
+            .subtract(this.lastSnappedDelta);
+        this.rawDragDelta.addInPlace(fresh);
+
         this.trackMove(
-            { dx: moved.x, dy: moved.y, dz: moved.z },
+            { dx: this.rawDragDelta.x, dy: this.rawDragDelta.y, dz: this.rawDragDelta.z },
             axesMoved(this.positionGizmo));
 
         // Put the arrows where the snap decided the gesture is, not where the
         // pointer would have had it - otherwise the gizmo and the outline part
         // company as soon as anything catches.
         const delta = this.resolvedDelta(this.current);
-        this.anchor.position = this.anchorAtStart.add(
-            new BABYLON.Vector3(delta.dx, delta.dy, delta.dz));
+        this.lastSnappedDelta.set(delta.dx, delta.dy, delta.dz);
+        this.anchor.position = this.anchorAtStart.add(this.lastSnappedDelta);
     }
 
     private onGizmoDragEnd(): void {
@@ -640,6 +663,13 @@ export class GizmoService implements SceneScoped {
             // the same position in the same tick and pin the handle where it
             // started.
             behavior.moveAttached = false;
+
+            // The drag axis is a WORLD axis. Left at the default, Babylon
+            // rotates it into the handle's own frame - harmless while the
+            // handles were unrotated boxes, but a grip that turns to face the
+            // camera each frame would drag along wherever its local axis
+            // happens to point, not along the face's.
+            behavior.useObjectOrientationForDragging = false;
 
             behavior.onDragStartObservable.add(() => {
                 this.handleReach = 0;

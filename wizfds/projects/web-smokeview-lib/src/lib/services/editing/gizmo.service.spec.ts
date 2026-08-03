@@ -186,6 +186,37 @@ describe('GizmoService', () => {
       expect((commands[0] as any).delta.dx).toBeCloseTo(9.8, 6);
     });
 
+    it('escapes a snap catch by accumulating the pointer, not the snapped result', () => {
+      // The wall shares its corners with the column, so any small lift is
+      // caught and corrected back to zero. Babylon feeds the drag as per-frame
+      // increments on top of wherever the anchor was left - and the anchor is
+      // left at the SNAPPED position. If each frame's increment lands on the
+      // snapped-back anchor, the catch consumes the pointer's progress and a
+      // slow drag is pinned within one tolerance of the catch for good: the
+      // user could lift a slab by exactly the snap aperture and no further,
+      // however far the mouse went (#124).
+      snapping.setScene({
+        ...emptyScene(),
+        obsts: [{
+          uuid: 'column', id: 'C1', surfId: '', permitHole: true,
+          color: { r: 1, g: 1, b: 1, a: 1 },
+          xb: { x1: 0, x2: 0.2, y1: 0, y2: 0.2, z1: 0, z2: 3 }
+        }]
+      });
+
+      const adapter: any = gizmo;
+      adapter.onGizmoDragStart();
+      // A slow, steady lift: 12 frames of 5 cm, far past the ~28 cm tolerance
+      for (let frame = 0; frame < 12; frame++) {
+        adapter.anchor.position.z += 0.05;
+        adapter.onGizmoDrag();
+      }
+      adapter.onGizmoDragEnd();
+
+      expect(commands.length).toBe(1);
+      expect((commands[0] as any).delta.dz).toBeGreaterThan(0.5);
+    });
+
     it('shows what the gesture is doing while it runs, and nothing after', () => {
       gizmo.beginMove();
       gizmo.trackMove({ dx: 2, dy: 0, dz: 0 }, ['x']);
