@@ -49,15 +49,17 @@ export function faceCentre(xb: SceneXb, face: SceneFace): ScenePoint {
 /**
  * The box that results from dragging one face to a coordinate.
  *
- * Exactly one number changes. A face pushed past its opposite stops flat rather
- * than turning the box inside out: an `XB` with `x1` above `x2` is not a box
- * FDS can read at all, whereas a box of no thickness is one it reads and warns
- * about - and warning is what this system does with a doubtful edit (ADR-0009).
+ * Exactly one number changes. A face pushed towards its opposite stops
+ * `minimum` short of it rather than turning the box inside out: an `XB` with
+ * `x1` above `x2` is not a box FDS can read at all. The caller says what the
+ * minimum is - one grid cell, for a resize under a &MESH - and a minimum of
+ * zero stops flat, which is a box FDS reads and warns about.
  */
-export function dragFace(xb: SceneXb, face: SceneFace, to: number): SceneXb {
+export function dragFace(xb: SceneXb, face: SceneFace, to: number, minimum = 0): SceneXb {
     const axis = faceAxis(face);
     const near = face === `${axis}1`;
     const opposite = xb[near ? `${axis}2` : `${axis}1`];
+    const limit = near ? opposite - minimum : opposite + minimum;
 
-    return { ...xb, [face]: near ? Math.min(to, opposite) : Math.max(to, opposite) };
+    return { ...xb, [face]: near ? Math.min(to, limit) : Math.max(to, limit) };
 }

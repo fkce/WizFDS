@@ -6,7 +6,7 @@ import { BabylonService } from '../babylon/babylon.service';
 import { SceneLifecycleService, SceneScoped } from '../babylon/scene-lifecycle.service';
 import { ScenePick } from '../babylon/scene-registry.service';
 import { SceneRegistryService } from '../babylon/scene-registry.service';
-import { SceneAxis } from '../scene-bounds/scene-bounds.service';
+import { SceneAxis, ScenePoint } from '../scene-bounds/scene-bounds.service';
 import { PickService } from '../picking/pick.service';
 import { SceneXb } from '../drawing/scene-input';
 import { EditStreamService } from './edit-stream.service';
@@ -53,24 +53,57 @@ export interface GestureView {
 const HANDLE_PIXELS = 12;
 
 /**
- * How much thicker than Babylon's default the translate arrows are drawn.
+ * How far a grip's base stands clear of the face it drags, in metres.
  *
- * The default is a hairline, and its collider is no wider: missing it hands the
- * drag to the camera, which orbits the model out from under the user. Three is
- * about the width of the face handles, so the two manipulators are grabbed with
- * the same amount of care.
+ * Not zero, because a grip centred on its face reaches half its length into
+ * the element - and on an element one cell across, the two opposing grips met
+ * in the middle and read as one mark. Held off the wall, they point away from
+ * each other and cannot meet however thin the element is.
  */
-const ARROW_THICKNESS = 3;
+const GRIP_CLEARANCE = 0.1;
 
 /**
- * How much bigger than Babylon's default the whole manipulator is drawn.
- *
- * The default is sized for a scene you are looking at from a few metres. Here
- * the camera stands a hundred and more away from a building, and an arrow that
- * subtends a dozen pixels is one you miss - and a miss is not nothing, it hands
- * the drag to the camera and orbits the model out from under the aim.
+ * Half the grip triangle's own length: the tip sits this far ahead of its
+ * centre, the base this far behind (see triangleHandle). What placeHandles()
+ * multiplies by the on-screen scale to stand the *base* at the clearance
+ * distance, not the centre.
  */
-const GIZMO_SCALE = 1.6;
+const GRIP_HALF = 0.65;
+
+/**
+ * How big the plan square is drawn, in screen pixels - the same 12 as the face
+ * handles, so the two manipulators read as one family.
+ */
+const MOVE_SQUARE_PIXELS = 12;
+
+/**
+ * How long an axis arrow is, in screen pixels.
+ *
+ * About a quarter of what Babylon's triad subtended here: long enough to say
+ * which way it drags and to give the eye a track to run along, short enough
+ * that it stops covering the element it stands on
+ * (docs/research/move-gizmo-design.md).
+ */
+const MOVE_ARROW_PIXELS = 45;
+
+/** The daylight between the square's edge and the start of an arrow, in pixels. */
+const MOVE_GAP_PIXELS = 8;
+
+/**
+ * The arrow's proportions, in units of its own length.
+ *
+ * The drawing is a hairline - the grabbing is the collider's job, the same
+ * split AutoCAD makes between grip size and aperture, and the one Babylon
+ * itself quietly made under the old triad.
+ */
+const ARROW_LINE_HALF = 0.017;  // half the shaft's width - about a pixel and a half
+const ARROW_HEAD_AT = 0.78;     // where the shaft ends and the head begins
+const ARROW_HEAD_HALF = 0.11;   // half the head's width - about ten pixels
+const ARROW_HIT_GIRTH = 0.36;   // the collider's girth - about sixteen pixels
+const ARROW_HIT_LENGTH = 1.1;   // the collider's length - a whisker past the head
+
+/** The plan square's collider, in units of the square's side - about 22 px. */
+const SQUARE_HIT_DIAMETER = 1.8;
 
 /** One gesture, while it is happening. */
 interface Gesture {
@@ -96,9 +129,11 @@ interface Gesture {
  * Two manipulators, because an &OBST is always axis-aligned and the two
  * gestures are not the same shape (#124):
  *
- * - **move** is Babylon's `PositionGizmo` - three axis arrows and three plane
- *   handles, a constant size on screen, and a drag projection that has been
- *   tested by everyone who uses Babylon;
+ * - **move** is a square on the selection's base that slides it in plan, and
+ *   one arrow per horizontal axis - the height is typed, not dragged, which is
+ *   where it comes from anyway. Our own grips rather than Babylon's
+ *   `PositionGizmo`, whose triad spoke a game editor's language and covered a
+ *   small element whole (docs/research/move-gizmo-design.md);
  * - **resize** is six face handles of our own, because each face is exactly one
  *   `XB` coordinate. A `BoundingBoxGizmo` corner moves two or three faces at
  *   once and works by scaling about the centre, which would have to be
@@ -166,33 +201,34 @@ export class GizmoService implements SceneScoped {
 
     /** The layer the manipulators are drawn in, over everything else. */
     private layer: BABYLON.UtilityLayerRenderer | null = null;
-    private positionGizmo: BABYLON.PositionGizmo | null = null;
-    private anchor: BABYLON.TransformNode | null = null;
     private readonly handles = new Map<SceneFace, BABYLON.Mesh>();
+    private readonly moveHandles = new Map<MoveHandle, BABYLON.Mesh>();
 
-    /** What holds the handles at a constant size on screen - see buildHandles. */
-    private handleSizing: BABYLON.Observer<BABYLON.Scene> | null = null;
+    /** Every mesh the pointer may land on, mapped to the handle it belongs to. */
+    private readonly hitTargets = new Map<BABYLON.AbstractMesh, BABYLON.Mesh>();
 
-    /** Where the anchor stood when the current translate began. */
-    private anchorAtStart: BABYLON.Vector3 | null = null;
+    /** One material for every handle, and a brighter one for the hovered one. */
+    private handleMaterial: BABYLON.StandardMaterial | null = null;
+    private hoverMaterial: BABYLON.StandardMaterial | null = null;
 
     /**
      * The pointer's own accumulated movement, with no snap corrections in it.
      *
-     * Kept apart from where the anchor is drawn, because the anchor is drawn
-     * at the *snapped* position and Babylon delivers the drag as increments on
-     * top of it. Folding those increments into the snapped result would let a
-     * catch consume the pointer's progress frame by frame - a slow drag could
-     * then never build up the distance to escape, and stayed pinned within one
-     * tolerance of the catch however far the hand went.
+     * Babylon delivers a drag as increments of the pointer. Summed raw, they
+     * are where the hand is; folded into the snapped preview instead, a catch
+     * would consume the pointer's progress frame by frame, and a slow drag
+     * could never build up the distance to escape it.
      */
     private readonly rawDragDelta = BABYLON.Vector3.Zero();
 
-    /** Where the snap left the anchor last frame, relative to the start. */
-    private readonly lastSnappedDelta = BABYLON.Vector3.Zero();
-
     /** How far a face handle has been dragged along its axis, in metres. */
     private handleReach = 0;
+
+    /** The box the face handles stand on - the element's, or the drag's preview. */
+    private handleBox: SceneXb | null = null;
+
+    /** Where the move handles stand while no gesture shifts them - the union base. */
+    private moveBase: ScenePoint | null = null;
 
     constructor(
         private babylonService: BabylonService,
@@ -236,7 +272,7 @@ export class GizmoService implements SceneScoped {
 
     /** Whether a drag is in progress, so a click is not also a selection. */
     public get isDragging(): boolean {
-        return !!this.current || !!this.positionGizmo?.isDragging;
+        return !!this.current;
     }
 
     /**
@@ -246,23 +282,24 @@ export class GizmoService implements SceneScoped {
      * and a release on one from dropping the selection the gesture is about.
      */
     public get isPointerOnGizmo(): boolean {
-        if (this.positionGizmo?.isHovered) { return true; }
+        return !!this.pickedHandle();
+    }
 
+    /**
+     * The handle under the pointer, apertures included, or null.
+     *
+     * Where the pointer is comes from the scene the canvas belongs to; what
+     * it might have hit is in the layer drawn over it. The apertures too:
+     * a press the drag will claim must not read as a press in the scene.
+     */
+    private pickedHandle(): BABYLON.Mesh | null {
         const scene = this.babylonService.scene;
-        if (this.handles.size === 0 || !this.layer || !scene) { return false; }
+        if (this.hitTargets.size === 0 || !this.layer || !scene) { return null; }
 
-        // Where the pointer is comes from the scene the canvas belongs to; what
-        // it might have hit is in the layer drawn over it. The apertures too:
-        // a press the drag will claim must not read as a press in the scene.
-        const meshes = new Set<BABYLON.AbstractMesh>();
-        this.handles.forEach(handle => {
-            meshes.add(handle);
-            handle.getChildMeshes().forEach(child => meshes.add(child));
-        });
         const pick = this.layer.utilityLayerScene.pick(
-            scene.pointerX, scene.pointerY, (mesh) => meshes.has(mesh));
+            scene.pointerX, scene.pointerY, (mesh) => this.hitTargets.has(mesh));
 
-        return !!pick?.hit;
+        return pick?.hit ? this.hitTargets.get(pick.pickedMesh) : null;
     }
 
     /**
@@ -317,6 +354,7 @@ export class GizmoService implements SceneScoped {
 
         this.snapService.showMarker(snapped.hit);
         this.pickService.previewMove(this.resolvedDelta(gesture));
+        this.placeMoveHandles();
         this.publish();
     }
 
@@ -332,12 +370,15 @@ export class GizmoService implements SceneScoped {
         // ten-metre wall is five metres from anything it could catch on.
         const dragged = this.snapService.snapFace(
             base, face, coordinate, new Set(gesture.uuids));
-        const box = dragFace(base, face, dragged.coordinate);
+        const box = dragFace(base, face, dragged.coordinate, this.minimumThickness(base, face));
 
-        gesture.hit = dragged.hit ? dragged.hit.mode : null;
+        // A snap the clamp overruled is no snap: its marker would stand on a
+        // point the face was not allowed to reach.
+        const clamped = box[face] !== dragged.coordinate;
+        gesture.hit = !clamped && dragged.hit ? dragged.hit.mode : null;
         gesture.input.setLive({ [face]: box[face] });
 
-        this.snapService.showMarker(dragged.hit);
+        this.snapService.showMarker(clamped ? null : dragged.hit);
         this.pickService.previewBox(gesture.uuids[0], box);
         this.updateHandles(box);
         this.publish();
@@ -453,13 +494,36 @@ export class GizmoService implements SceneScoped {
         // The face's own key is always among the resolved values - it is the
         // only one a face gesture has - but the map is partial by type
         return dragFace(
-            base, gesture.face, gesture.input.resolved[gesture.face] ?? base[gesture.face]);
+            base, gesture.face, gesture.input.resolved[gesture.face] ?? base[gesture.face],
+            this.minimumThickness(base, gesture.face));
+    }
+
+    /**
+     * The thinnest a resize may leave the element along the dragged axis: one
+     * cell of the grid in force, so `x1` stops a cell short of `x2` and never
+     * reaches it - an &OBST pressed flat is one FDS only warns about.
+     *
+     * An element already thinner than a cell keeps its own thickness as the
+     * floor instead - a flat &VENT is the ordinary case, and a minimum that
+     * *grew* the box would have the first inch of a drag jump it a whole cell
+     * open. With no &MESH there is no cell, and flat is where the clamp stops.
+     */
+    private minimumThickness(base: SceneXb, face: SceneFace): number {
+        const grid = this.snapService.gridAt(faceCentre(base, face));
+        if (!grid) { return 0; }
+
+        const axis = faceAxis(face);
+        const step = axis === 'x' ? grid.cell.i : axis === 'y' ? grid.cell.j : grid.cell.k;
+        const thickness = base[`${axis}2`] - base[`${axis}1`];
+
+        return Math.max(0, Math.min(step, thickness));
     }
 
     /** Redraw the preview after the keyboard has changed a number. */
     private redrawPreview(gesture: Gesture): void {
         if (gesture.kind === 'move') {
             this.pickService.previewMove(this.resolvedDelta(gesture));
+            this.placeMoveHandles();
             return;
         }
 
@@ -542,14 +606,14 @@ export class GizmoService implements SceneScoped {
         try {
             this.ensureLayer(scene);
             if (this.mode === 'move') {
-                this.showPositionGizmo();
+                this.showMoveHandles();
                 this.clearHandles();
             } else if (this.canResize) {
                 this.showHandles();
-                this.hidePositionGizmo();
+                this.clearMoveHandles();
             } else {
                 this.clearHandles();
-                this.hidePositionGizmo();
+                this.clearMoveHandles();
             }
         } catch (e) {
             if (isDevMode()) { try { console.error('[GizmoService] Could not build the manipulator', e); } catch { } }
@@ -570,67 +634,196 @@ export class GizmoService implements SceneScoped {
         // *behind*, which comes out as a negative scale, flips the winding of
         // every triangle and hands the whole manipulator to backface culling.
         this.layer.setRenderCamera(this.babylonService.camera);
+
+        // Placed and sized every frame, as PositionGizmo did with its arrows:
+        // how many metres a pixel covers changes with every turn of the wheel,
+        // and the hover has to follow a pointer that moves between redraws.
+        // Registered once per layer; it dies with the utility scene.
+        this.layer.utilityLayerScene.onBeforeRenderObservable.add(() => {
+            this.placeHandles();
+            this.placeMoveHandles();
+            this.updateHover();
+        });
     }
 
-    /** The three arrows and the three plane handles, over the selection. */
-    private showPositionGizmo(): void {
-        const centre = this.selectionCentre();
+    /** The plan square and the two axis arrows, on the base of the selection. */
+    private showMoveHandles(): void {
+        const boxes = this.selection
+            .map(element => this.sceneRegistry.entryFor(element.uuid))
+            .filter(entry => !!entry)
+            .map(entry => entry.xb);
+        if (boxes.length === 0) { this.clearMoveHandles(); return; }
 
-        if (!this.positionGizmo) {
-            this.anchor = new BABYLON.TransformNode('gizmoAnchor', this.layer.originalScene);
-
-            const gizmo = new BABYLON.PositionGizmo(this.layer, ARROW_THICKNESS);
-            gizmo.planarGizmoEnabled = true;
-            gizmo.scaleRatio = GIZMO_SCALE;
-            gizmo.updateGizmoRotationToMatchAttachedMesh = false;
-
-            gizmo.onDragStartObservable.add(() => this.onGizmoDragStart());
-            gizmo.onDragObservable.add(() => this.onGizmoDrag());
-            gizmo.onDragEndObservable.add(() => this.onGizmoDragEnd());
-
-            this.positionGizmo = gizmo;
-        }
-
-        this.anchor.position = centre;
-        this.positionGizmo.attachedNode = this.anchor;
+        if (this.moveHandles.size === 0) { this.buildMoveHandles(); }
+        this.moveBase = moveAnchorOf(boxes);
+        this.placeMoveHandles();
     }
 
-    private hidePositionGizmo(): void {
-        if (this.positionGizmo) { this.positionGizmo.attachedNode = null; }
+    private buildMoveHandles(): void {
+        const utility = this.layer.utilityLayerScene;
+        const material = this.handleMaterialFor(utility);
+
+        MOVE_HANDLES.forEach(kind => {
+            const handle = kind === 'plan'
+                ? this.squareHandle(utility)
+                : this.arrowHandle(kind, utility);
+            handle.material = material;
+
+            // The same aperture trick as the face handles: what the pointer
+            // catches is an invisible volume around the drawing, so a hairline
+            // is grabbed with no more care than the old fat arrows were.
+            const aperture = kind === 'plan'
+                ? BABYLON.MeshBuilder.CreateSphere(
+                    'moveHandleHit_plan',
+                    { diameter: SQUARE_HIT_DIAMETER, segments: 6 }, utility)
+                : BABYLON.MeshBuilder.CreateBox(`moveHandleHit_${kind}`, {
+                    width: kind === 'x' ? ARROW_HIT_LENGTH : ARROW_HIT_GIRTH,
+                    height: kind === 'y' ? ARROW_HIT_LENGTH : ARROW_HIT_GIRTH,
+                    depth: ARROW_HIT_GIRTH
+                }, utility);
+            if (kind !== 'plan') {
+                // Centred on the arrow's own middle, which its mesh is not -
+                // the mesh runs 0..1 from the anchor out
+                aperture.position.set(
+                    kind === 'x' ? ARROW_HIT_LENGTH / 2 : 0,
+                    kind === 'y' ? ARROW_HIT_LENGTH / 2 : 0, 0);
+            }
+            aperture.parent = handle;
+            aperture.visibility = 0;
+
+            const behavior = new BABYLON.PointerDragBehavior(kind === 'plan'
+                ? { dragPlaneNormal: new BABYLON.Vector3(0, 0, 1) }
+                : {
+                    dragAxis: new BABYLON.Vector3(
+                        kind === 'x' ? 1 : 0, kind === 'y' ? 1 : 0, 0)
+                });
+
+            // The same contract as the face handles: where the handles stand is
+            // this service's answer, and the axes are WORLD axes (#124)
+            behavior.moveAttached = false;
+            behavior.useObjectOrientationForDragging = false;
+
+            behavior.onDragStartObservable.add(() => this.onMoveDragStart());
+            behavior.onDragObservable.add(event => this.onMoveDrag(kind, event.delta));
+            behavior.onDragEndObservable.add(() => this.onMoveDragEnd());
+
+            handle.addBehavior(behavior);
+            this.moveHandles.set(kind, handle);
+        });
+
+        this.rebuildHitTargets();
     }
 
-    private onGizmoDragStart(): void {
-        this.anchorAtStart = this.anchor.position.clone();
+    /**
+     * The plan grip: a unit square lying flat on the base, centred on the
+     * anchor - AutoCAD's base grip, which is also how PyroSim marks the point
+     * an object is taken hold of by.
+     */
+    private squareHandle(utility: BABYLON.Scene): BABYLON.Mesh {
+        const handle = new BABYLON.Mesh('moveHandle_plan', utility);
+
+        const shape = new BABYLON.VertexData();
+        shape.positions = [
+            -0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0
+        ];
+        shape.indices = [0, 1, 2, 0, 2, 3];
+        shape.normals = [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1];
+        shape.applyToMesh(handle);
+
+        return handle;
+    }
+
+    /**
+     * One axis arrow: a hairline shaft and a small head, a unit long from the
+     * anchor outward, lying flat in the plane of the base like the square it
+     * belongs to.
+     *
+     * Built along its own axis by swapping coordinates rather than rotating,
+     * for the same reason the stretch grips never turn (see gripOrientation):
+     * these are things of the model, and they hold still.
+     */
+    private arrowHandle(axis: 'x' | 'y', utility: BABYLON.Scene): BABYLON.Mesh {
+        const handle = new BABYLON.Mesh(`moveHandle_${axis}`, utility);
+
+        const at = (along: number, across: number): number[] =>
+            axis === 'x' ? [along, across, 0] : [across, along, 0];
+
+        const shape = new BABYLON.VertexData();
+        shape.positions = [
+            ...at(0, -ARROW_LINE_HALF), ...at(ARROW_HEAD_AT, -ARROW_LINE_HALF),
+            ...at(ARROW_HEAD_AT, ARROW_LINE_HALF), ...at(0, ARROW_LINE_HALF),
+            ...at(ARROW_HEAD_AT, -ARROW_HEAD_HALF), ...at(ARROW_HEAD_AT, ARROW_HEAD_HALF),
+            ...at(1, 0)
+        ];
+        shape.indices = [0, 1, 2, 0, 2, 3, 4, 5, 6];
+        shape.normals = Array(7).fill([0, 0, 1]).flat();
+        shape.applyToMesh(handle);
+
+        return handle;
+    }
+
+    /**
+     * Hold the move handles at the same size on screen, on the union's base -
+     * shifted by however far the running gesture has got, so they travel with
+     * the preview rather than staying on the box the selection is leaving.
+     */
+    private placeMoveHandles(): void {
+        const base = this.moveBase;
+        if (this.moveHandles.size === 0 || !base) { return; }
+
+        const gesture = this.current;
+        const delta = gesture && gesture.kind === 'move'
+            ? this.resolvedDelta(gesture)
+            : { dx: 0, dy: 0, dz: 0 };
+        const anchor = {
+            x: base.x + delta.dx, y: base.y + delta.dy, z: base.z + delta.dz
+        };
+
+        const metresPerPixel = this.snapService.metresPerPixelAt(anchor);
+        const square = Math.max(MOVE_SQUARE_PIXELS * metresPerPixel, 1e-4);
+        const arrow = Math.max(MOVE_ARROW_PIXELS * metresPerPixel, 1e-4);
+        const offset = (MOVE_SQUARE_PIXELS / 2 + MOVE_GAP_PIXELS) * metresPerPixel;
+
+        this.moveHandles.forEach((handle, kind) => {
+            const size = kind === 'plan' ? square : arrow;
+            handle.scaling.set(size, size, size);
+            handle.position.set(
+                anchor.x + (kind === 'x' ? offset : 0),
+                anchor.y + (kind === 'y' ? offset : 0),
+                anchor.z);
+        });
+    }
+
+    private onMoveDragStart(): void {
         this.rawDragDelta.setAll(0);
-        this.lastSnappedDelta.setAll(0);
         this.beginMove();
     }
 
-    private onGizmoDrag(): void {
-        if (!this.current || !this.anchorAtStart) { return; }
+    private onMoveDrag(handle: MoveHandle, delta: BABYLON.Vector3): void {
+        if (!this.current) { return; }
 
-        // This frame's increment of the hand: what Babylon added on top of
-        // wherever the snap left the anchor. Accumulated raw - see rawDragDelta.
-        const fresh = this.anchor.position
-            .subtract(this.anchorAtStart)
-            .subtract(this.lastSnappedDelta);
-        this.rawDragDelta.addInPlace(fresh);
+        this.rawDragDelta.addInPlace(delta);
 
-        this.trackMove(
-            { dx: this.rawDragDelta.x, dy: this.rawDragDelta.y, dz: this.rawDragDelta.z },
-            axesMoved(this.positionGizmo));
-
-        // Put the arrows where the snap decided the gesture is, not where the
-        // pointer would have had it - otherwise the gizmo and the outline part
-        // company as soon as anything catches.
-        const delta = this.resolvedDelta(this.current);
-        this.lastSnappedDelta.set(delta.dx, delta.dy, delta.dz);
-        this.anchor.position = this.anchorAtStart.add(this.lastSnappedDelta);
+        // Masked to the handle's own axes: whatever component the pointer ray
+        // produced off them is not the gesture's to spend. The height in
+        // particular only ever moves by being typed.
+        const axes = MOVE_AXES[handle];
+        this.trackMove({
+            dx: axes.includes('x') ? this.rawDragDelta.x : 0,
+            dy: axes.includes('y') ? this.rawDragDelta.y : 0,
+            dz: 0
+        }, axes);
     }
 
-    private onGizmoDragEnd(): void {
-        this.anchorAtStart = null;
+    private onMoveDragEnd(): void {
         this.commit();
+    }
+
+    private clearMoveHandles(): void {
+        this.moveHandles.forEach(handle => handle.dispose());
+        this.moveHandles.clear();
+        this.moveBase = null;
+        this.rebuildHitTargets();
     }
 
     /** The six face handles, on the one selected element. */
@@ -644,13 +837,7 @@ export class GizmoService implements SceneScoped {
 
     private buildHandles(): void {
         const utility = this.layer.utilityLayerScene;
-
-        const material = new BABYLON.StandardMaterial('faceHandle', utility);
-        material.emissiveColor = ACCENT_COLOR;
-        material.disableLighting = true;
-        // A flat triangle has a back, and the camera can be on either side of a
-        // face - the grip has to read from both
-        material.backFaceCulling = false;
+        const material = this.handleMaterialFor(utility);
 
         RESIZE_FACES.forEach(face => {
             const handle = this.triangleHandle(`faceHandle_${face}`, utility);
@@ -704,24 +891,34 @@ export class GizmoService implements SceneScoped {
             this.handles.set(face, handle);
         });
 
-        // Resized every frame, as PositionGizmo does with its arrows: how many
-        // metres a pixel covers changes with every turn of the wheel, and a
-        // handle that does not follow stops being clickable at one end of the
-        // zoom and hides the wall at the other.
-        this.handleSizing = utility.onBeforeRenderObservable.add(() => this.resizeHandles());
+        this.rebuildHitTargets();
     }
 
     /**
-     * Hold the handles at the same size on screen, wherever the camera is.
+     * Hold the handles at the same size on screen, each one's base standing
+     * GRIP_CLEARANCE off the face it drags.
      *
-     * Size only - the orientation is fixed at build and never turns (see
-     * gripOrientation).
+     * Size and position together, because they are one sum: the centre stands
+     * at the clearance plus half the triangle's length, and that length is in
+     * screen pixels - it changes with every turn of the wheel. Orientation
+     * alone is fixed at build and never turns (see gripOrientation).
      */
-    private resizeHandles(): void {
-        this.handles.forEach(handle => {
+    private placeHandles(): void {
+        const xb = this.handleBox;
+        if (!xb) { return; }
+
+        this.handles.forEach((handle, face) => {
+            const centre = faceCentre(xb, face);
             const size = Math.max(
-                HANDLE_PIXELS * this.snapService.metresPerPixelAt(handle.position), 1e-4);
+                HANDLE_PIXELS * this.snapService.metresPerPixelAt(centre), 1e-4);
+            const reach = GRIP_CLEARANCE + GRIP_HALF * size;
+            const outward = faceOutward(face);
+
             handle.scaling.set(size, size, size);
+            handle.position.set(
+                centre.x + outward.x * reach,
+                centre.y + outward.y * reach,
+                centre.z + outward.z * reach);
         });
     }
 
@@ -734,9 +931,9 @@ export class GizmoService implements SceneScoped {
 
         const shape = new BABYLON.VertexData();
         shape.positions = [
-            0.65, 0, 0,        // the tip - what points the way
-            -0.65, 0.5, 0,
-            -0.65, -0.5, 0
+            GRIP_HALF, 0, 0,        // the tip - what points the way
+            -GRIP_HALF, 0.5, 0,
+            -GRIP_HALF, -0.5, 0
         ];
         shape.indices = [0, 1, 2];
         shape.normals = [0, 0, 1, 0, 0, 1, 0, 0, 1];
@@ -765,38 +962,70 @@ export class GizmoService implements SceneScoped {
     private updateHandles(xb: SceneXb): void {
         if (this.handles.size === 0) { return; }
 
-        this.handles.forEach((handle, face) => {
-            const centre = faceCentre(xb, face);
-            handle.position.set(centre.x, centre.y, centre.z);
-        });
-        this.resizeHandles();
+        this.handleBox = xb;
+        this.placeHandles();
     }
 
     private clearHandles(): void {
-        if (this.handleSizing && this.layer) {
-            this.layer.utilityLayerScene.onBeforeRenderObservable.remove(this.handleSizing);
-        }
-        this.handleSizing = null;
-
         this.handles.forEach(handle => handle.dispose());
         this.handles.clear();
+        this.handleBox = null;
+        this.rebuildHitTargets();
     }
 
-    /** The middle of everything selected, which is where the arrows stand. */
-    private selectionCentre(): BABYLON.Vector3 {
-        const boxes = this.selection
-            .map(element => this.sceneRegistry.entryFor(element.uuid))
-            .filter(entry => !!entry)
-            .map(entry => entry.xb);
+    // ==========================================
+    // What every handle shares
+    // ==========================================
 
-        const union = unionOf(boxes.length > 0 ? boxes : [this.selection[0].xb]);
-        return new BABYLON.Vector3(
-            (union.x1 + union.x2) / 2, (union.y1 + union.y2) / 2, (union.z1 + union.z2) / 2);
+    /** The pointer's map of the manipulators: every mesh, to its handle. */
+    private rebuildHitTargets(): void {
+        this.hitTargets.clear();
+
+        const collect = (handle: BABYLON.Mesh) => {
+            this.hitTargets.set(handle, handle);
+            handle.getChildMeshes().forEach(child => this.hitTargets.set(child, handle));
+        };
+        this.handles.forEach(collect);
+        this.moveHandles.forEach(collect);
+    }
+
+    /**
+     * Brighten the handle under the pointer, and only that one.
+     *
+     * The confirmation a small grip owes the hand: you will hit what you are
+     * about to press. PyroSim answers with a colour change too, and it is what
+     * lets the drawing stay a hairline (docs/research/move-gizmo-design.md).
+     * Not while a gesture runs - the hand is already committed.
+     */
+    private updateHover(): void {
+        if (this.current || this.hitTargets.size === 0 || !this.layer) { return; }
+
+        const utility = this.layer.utilityLayerScene;
+        const hovered = this.pickedHandle();
+
+        const normal = this.handleMaterialFor(utility);
+        const hover = this.hoverMaterialFor(utility);
+        this.hitTargets.forEach(handle => {
+            handle.material = handle === hovered ? hover : normal;
+        });
+    }
+
+    /** Azure, flat and unlit - the colour this product does its editing in. */
+    private handleMaterialFor(utility: BABYLON.Scene): BABYLON.StandardMaterial {
+        this.handleMaterial ??= gripMaterial('gizmoHandle', ACCENT_COLOR, utility);
+        return this.handleMaterial;
+    }
+
+    /** The same azure, brightened - the one handle the pointer is over. */
+    private hoverMaterialFor(utility: BABYLON.Scene): BABYLON.StandardMaterial {
+        this.hoverMaterial ??= gripMaterial('gizmoHandleHover',
+            BABYLON.Color3.Lerp(ACCENT_COLOR, BABYLON.Color3.White(), 0.35), utility);
+        return this.hoverMaterial;
     }
 
     private teardown(): void {
         this.clearHandles();
-        this.hidePositionGizmo();
+        this.clearMoveHandles();
     }
 
     /** Nothing here may outlive the scene it was drawn in. */
@@ -804,9 +1033,12 @@ export class GizmoService implements SceneScoped {
         this.current = null;
         this.selection = [];
         this.handles.clear();
-        this.positionGizmo = null;
-        this.anchor = null;
-        this.anchorAtStart = null;
+        this.moveHandles.clear();
+        this.hitTargets.clear();
+        this.handleBox = null;
+        this.moveBase = null;
+        this.handleMaterial = null;
+        this.hoverMaterial = null;
         this.layer = null;
         this.publish();
     }
@@ -870,6 +1102,19 @@ function unionOf(boxes: readonly SceneXb[]): SceneXb {
     };
 }
 
+/** Flat, unlit, double-sided - what every grip is drawn with. */
+function gripMaterial(
+    name: string, color: BABYLON.Color3, utility: BABYLON.Scene
+): BABYLON.StandardMaterial {
+    const material = new BABYLON.StandardMaterial(name, utility);
+    material.emissiveColor = color;
+    material.disableLighting = true;
+    // A flat grip has a back, and the camera can be on either side of it - the
+    // drawing has to read from both
+    material.backFaceCulling = false;
+    return material;
+}
+
 /** Whether two boxes are the same to the millimetre a coordinate is shown at. */
 function sameBox(one: SceneXb, other: SceneXb): boolean {
     return (Object.keys(one) as (keyof SceneXb)[])
@@ -877,22 +1122,32 @@ function sameBox(one: SceneXb, other: SceneXb): boolean {
 }
 
 /**
- * Which axes the handle the user grabbed leaves free.
+ * The move handles: the plan square, and one arrow per horizontal axis.
  *
- * An arrow is one, a plane handle is the two its plane spans, and a plane
- * gizmo is named after the axis it is *normal* to - `xPlaneGizmo` is the yz
- * plane. Nothing dragging at all answers with all three, which is what a
- * gesture driven from the keyboard alone is.
+ * No z handle. The height of an FDS element comes from the storey, not from
+ * the eye, and the dynamic input's dz field is where it goes in - a vertical
+ * arrow would only ever stand over the element it belongs to.
  */
-function axesMoved(gizmo: BABYLON.PositionGizmo | null): readonly SceneAxis[] {
-    if (!gizmo) { return ['x', 'y', 'z']; }
+export type MoveHandle = 'plan' | 'x' | 'y';
 
-    if (gizmo.xGizmo?.dragBehavior?.dragging) { return ['x']; }
-    if (gizmo.yGizmo?.dragBehavior?.dragging) { return ['y']; }
-    if (gizmo.zGizmo?.dragBehavior?.dragging) { return ['z']; }
-    if (gizmo.xPlaneGizmo?.dragBehavior?.dragging) { return ['y', 'z']; }
-    if (gizmo.yPlaneGizmo?.dragBehavior?.dragging) { return ['x', 'z']; }
-    if (gizmo.zPlaneGizmo?.dragBehavior?.dragging) { return ['x', 'y']; }
+const MOVE_HANDLES: readonly MoveHandle[] = ['plan', 'x', 'y'];
 
-    return ['x', 'y', 'z'];
+/**
+ * Which axes each move handle frees - what the snap is confined to, and what
+ * the pointer's delta is allowed to spend.
+ */
+export const MOVE_AXES: Record<MoveHandle, readonly SceneAxis[]> = {
+    plan: ['x', 'y'], x: ['x'], y: ['y']
+};
+
+/**
+ * Where the move handles stand: the middle of the union's base.
+ *
+ * The base and not the centre, because a plan move is the footprint sliding
+ * over the floor - and the centre is the one point of the selection the user
+ * is most likely to be looking at (docs/research/move-gizmo-design.md).
+ */
+export function moveAnchorOf(boxes: readonly SceneXb[]): ScenePoint {
+    const union = unionOf(boxes);
+    return { x: (union.x1 + union.x2) / 2, y: (union.y1 + union.y2) / 2, z: union.z1 };
 }

@@ -1,7 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import * as BABYLON from 'babylonjs';
 
-import { faceOutward, GizmoService, gripOrientation, RESIZE_FACES } from './gizmo.service';
+import {
+  faceOutward, GizmoService, gripOrientation, MOVE_AXES, moveAnchorOf, RESIZE_FACES
+} from './gizmo.service';
 import { SnapService } from './snap.service';
 import { EditStreamService } from './edit-stream.service';
 import { SceneEditCommand } from './edit-command';
@@ -187,14 +189,11 @@ describe('GizmoService', () => {
     });
 
     it('escapes a snap catch by accumulating the pointer, not the snapped result', () => {
-      // The wall shares its corners with the column, so any small lift is
-      // caught and corrected back to zero. Babylon feeds the drag as per-frame
-      // increments on top of wherever the anchor was left - and the anchor is
-      // left at the SNAPPED position. If each frame's increment lands on the
-      // snapped-back anchor, the catch consumes the pointer's progress and a
-      // slow drag is pinned within one tolerance of the catch for good: the
-      // user could lift a slab by exactly the snap aperture and no further,
-      // however far the mouse went (#124).
+      // The wall shares its corners with the column, so any small push is
+      // caught and corrected back to zero. The drag arrives as per-frame
+      // pointer increments; if each increment were measured from wherever the
+      // snap left the preview, the catch would consume the pointer's progress
+      // and a slow drag could never build up the distance to escape (#124).
       snapping.setScene({
         ...emptyScene(),
         obsts: [{
@@ -205,16 +204,15 @@ describe('GizmoService', () => {
       });
 
       const adapter: any = gizmo;
-      adapter.onGizmoDragStart();
-      // A slow, steady lift: 12 frames of 5 cm, far past the ~28 cm tolerance
+      adapter.onMoveDragStart('x');
+      // A slow, steady push: 12 frames of 5 cm, far past the ~28 cm tolerance
       for (let frame = 0; frame < 12; frame++) {
-        adapter.anchor.position.z += 0.05;
-        adapter.onGizmoDrag();
+        adapter.onMoveDrag('x', new BABYLON.Vector3(0.05, 0, 0));
       }
-      adapter.onGizmoDragEnd();
+      adapter.onMoveDragEnd();
 
       expect(commands.length).toBe(1);
-      expect((commands[0] as any).delta.dz).toBeGreaterThan(0.5);
+      expect((commands[0] as any).delta.dx).toBeGreaterThan(0.5);
     });
 
     it('shows what the gesture is doing while it runs, and nothing after', () => {
@@ -378,6 +376,92 @@ describe('GizmoService', () => {
       expect(apertures.length).toBe(1);
       expect(apertures[0].visibility).toBe(0);
       expect(apertures[0].isPickable).toBe(true);
+    });
+  });
+
+  /**
+   * The move manipulator is a family of the same grips as resize: a square on
+   * the base that slides the selection in plan, and two arrows for one world
+   * axis each. No z handle - the height goes in through the keyboard, which is
+   * where it comes from anyway (#124).
+   */
+  describe('the move handles', () => {
+
+    beforeEach(() => {
+      draw('west', WEST);
+      select('west');
+    });
+
+    it('finds its anchor at the middle of the union base', () => {
+      expect(moveAnchorOf([WEST])).toEqual({ x: 0.1, y: 3, z: 0 });
+      expect(moveAnchorOf([WEST, EAST])).toEqual({ x: 5.1, y: 3, z: 0 });
+    });
+
+    it('frees the plane for the square and one axis for each arrow', () => {
+      expect(MOVE_AXES.plan).toEqual(['x', 'y']);
+      expect(MOVE_AXES.x).toEqual(['x']);
+      expect(MOVE_AXES.y).toEqual(['y']);
+    });
+
+    it('offers a square and two arrows, standing on the base of the selection', () => {
+      const handles = (gizmo as any).moveHandles as Map<string, BABYLON.Mesh>;
+      expect(Array.from(handles.keys()).sort()).toEqual(['plan', 'x', 'y']);
+
+      const square = handles.get('plan');
+      expect(square.position.x).toBeCloseTo(0.1, 6);
+      expect(square.position.y).toBeCloseTo(3, 6);
+      expect(square.position.z).toBeCloseTo(0, 6);
+
+      // Each arrow stands off the square along the one axis it drags
+      expect(handles.get('x').position.x).toBeGreaterThan(0.1);
+      expect(handles.get('x').position.y).toBeCloseTo(3, 6);
+      expect(handles.get('y').position.y).toBeGreaterThan(3);
+      expect(handles.get('y').position.x).toBeCloseTo(0.1, 6);
+    });
+
+    it('anchors on the union of a multiple selection', () => {
+      draw('east', EAST);
+      select('west', 'east');
+
+      const square = ((gizmo as any).moveHandles as Map<string, BABYLON.Mesh>).get('plan');
+      expect(square.position.x).toBeCloseTo(5.1, 6);
+      expect(square.position.y).toBeCloseTo(3, 6);
+      expect(square.position.z).toBeCloseTo(0, 6);
+    });
+
+    it('gives every handle an invisible aperture wider than its drawing', () => {
+      const handles = (gizmo as any).moveHandles as Map<string, BABYLON.Mesh>;
+
+      handles.forEach(handle => {
+        const apertures = handle.getChildMeshes();
+        expect(apertures.length).toBe(1);
+        expect(apertures[0].visibility).toBe(0);
+        expect(apertures[0].isPickable).toBe(true);
+      });
+    });
+
+    it('keeps one manipulator on screen at a time', () => {
+      gizmo.setMode('resize');
+      expect(((gizmo as any).moveHandles as Map<string, unknown>).size).toBe(0);
+      expect(((gizmo as any).handles as Map<string, unknown>).size).toBe(5);
+
+      gizmo.setMode('move');
+      expect(((gizmo as any).moveHandles as Map<string, unknown>).size).toBe(3);
+      expect(((gizmo as any).handles as Map<string, unknown>).size).toBe(0);
+    });
+
+    it('moves the plan and nothing else when the square is dragged', () => {
+      // The square slides the selection over the floor; whatever vertical
+      // component the pointer ray produces is not the gesture's to spend. The
+      // height is typed, and typing is the one way it moves.
+      const adapter: any = gizmo;
+      adapter.onMoveDragStart('plan');
+      adapter.onMoveDrag('plan', new BABYLON.Vector3(0.3, 0.2, 0.7));
+      adapter.onMoveDragEnd();
+
+      expect(commands).toEqual([
+        { kind: 'move', uuids: ['west'], delta: { dx: 0.3, dy: 0.2, dz: 0 } }
+      ]);
     });
   });
 
