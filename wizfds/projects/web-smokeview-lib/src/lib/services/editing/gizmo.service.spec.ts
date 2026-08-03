@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import * as BABYLON from 'babylonjs';
 
-import { faceOutward, GizmoService, handleBasis } from './gizmo.service';
+import { faceOutward, GizmoService, gripOrientation, RESIZE_FACES } from './gizmo.service';
 import { SnapService } from './snap.service';
 import { EditStreamService } from './edit-stream.service';
 import { SceneEditCommand } from './edit-command';
@@ -305,11 +305,12 @@ describe('GizmoService', () => {
 
   /**
    * The face handles are AutoCAD's stretch grips: flat triangles, tip pointing
-   * the way the face goes (#124).
+   * the way the face goes, and they do not turn (#124).
    *
-   * A triangle only reads if it faces the viewer, so each handle turns to the
-   * camera every frame - with its tip pinned to where the face's axis falls on
-   * the screen. The two functions here are that arithmetic, kept pure.
+   * The x and y grips lie flat on the floor; the one z grip stands
+   * perpendicular to it, pointing up. A fixed orientation over a
+   * camera-following one: a grip that turns reads as a thing of the screen,
+   * and these are things of the model.
    */
   describe('the triangle handles', () => {
 
@@ -319,52 +320,64 @@ describe('GizmoService', () => {
       expect(faceOutward('z2').asArray()).toEqual([0, 0, 1]);
     });
 
-    it('lies in the plane of its axis, turned to the camera', () => {
-      // Camera looking along -y at the model; an x2 handle: the tip is +x and
-      // the triangle's plane faces the camera.
-      const basis = handleBasis(new BABYLON.Vector3(0, -1, 0), new BABYLON.Vector3(1, 0, 0));
+    it('lays the x and y grips flat on the floor', () => {
+      // The triangle's plane normal is straight up: the grip lies in the
+      // horizontal plane, tip along its own axis.
+      const x2 = gripOrientation('x2');
+      expect(x2.right.asArray()).toEqual([1, 0, 0]);
+      expect(x2.forward.asArray()).toEqual([0, 0, 1]);
 
-      expect(basis.right.asArray()).toEqual([1, 0, 0]);
-      expect(basis.forward.asArray()).toEqual([0, -1, 0]);
+      const y1 = gripOrientation('y1');
+      expect(y1.right.asArray()).toEqual([0, -1, 0]);
+      expect(y1.forward.asArray()).toEqual([0, 0, 1]);
       // Orthonormal - the up axis is what makes it a rotation and not a shear
-      expect(BABYLON.Vector3.Dot(basis.up, basis.right)).toBeCloseTo(0, 6);
-      expect(BABYLON.Vector3.Dot(basis.up, basis.forward)).toBeCloseTo(0, 6);
-      expect(basis.up.length()).toBeCloseTo(1, 6);
+      expect(BABYLON.Vector3.Dot(y1.up, y1.right)).toBeCloseTo(0, 6);
+      expect(y1.up.length()).toBeCloseTo(1, 6);
     });
 
-    it('holds the tip on the axis itself, however the camera leans', () => {
-      // The direction the grip promises is the direction the drag will take -
-      // never a screen approximation of it. Only the roll about that axis
-      // follows the camera.
-      const toCamera = new BABYLON.Vector3(0, -1, 0);
-      const leaning = new BABYLON.Vector3(0.7, -0.7, 0).normalize();
+    it('stands the z grip perpendicular to the floor, tip up', () => {
+      const z2 = gripOrientation('z2');
 
-      const basis = handleBasis(toCamera, leaning);
-
-      expect(basis.right.x).toBeCloseTo(leaning.x, 6);
-      expect(basis.right.y).toBeCloseTo(leaning.y, 6);
-      // The plane still faces the viewer as much as the axis allows
-      expect(BABYLON.Vector3.Dot(basis.forward, basis.right)).toBeCloseTo(0, 6);
-      expect(BABYLON.Vector3.Dot(basis.forward, toCamera)).toBeGreaterThan(0);
+      expect(z2.right.asArray()).toEqual([0, 0, 1]);
+      // A vertical plane - the normal is horizontal
+      expect(z2.forward.z).toBe(0);
+      expect(z2.forward.length()).toBeCloseTo(1, 6);
+      expect(BABYLON.Vector3.Dot(z2.forward, z2.right)).toBeCloseTo(0, 6);
     });
 
-    it('still answers with a full basis when the axis points at the camera', () => {
-      // Looking straight down the axis being dragged: there is no direction on
-      // screen for the tip, and an all-zero basis would collapse the triangle.
-      const along = handleBasis(new BABYLON.Vector3(1, 0, 0), new BABYLON.Vector3(1, 0, 0));
+    it('offers one z grip, not two - the up one', () => {
+      // The floor of an element is where it stands; what gets pulled is the
+      // top. The bottom stays reachable through the palette.
+      expect(RESIZE_FACES).not.toContain('z1');
+      expect(RESIZE_FACES).toContain('z2');
 
-      expect(along.right.length()).toBeCloseTo(1, 6);
-      expect(BABYLON.Vector3.Dot(along.right, along.forward)).toBeCloseTo(0, 6);
+      draw('west', WEST);
+      select('west');
+      gizmo.setMode('resize');
+
+      const handles = (gizmo as any).handles;
+      expect(handles.size).toBe(5);
+      expect(handles.get('z1')).toBeUndefined();
+
+      const handle = handles.get('x2') as BABYLON.Mesh;
+      expect(handle.getTotalVertices()).toBe(3);
+      expect(handle.rotationQuaternion).not.toBeNull();
     });
 
-    it('builds the handles as triangles that are turned each frame', () => {
+    it('gives each grip an invisible aperture wider than its drawing', () => {
+      // A flat grip seen at an angle foreshortens to a few pixels - honest to
+      // look at, hopeless to click. The sphere takes the hit from any
+      // direction; being a child, a press on it starts the same drag.
       draw('west', WEST);
       select('west');
       gizmo.setMode('resize');
 
       const handle = (gizmo as any).handles.get('x2') as BABYLON.Mesh;
-      expect(handle.getTotalVertices()).toBe(3);
-      expect(handle.rotationQuaternion).not.toBeNull();
+      const apertures = handle.getChildMeshes();
+
+      expect(apertures.length).toBe(1);
+      expect(apertures[0].visibility).toBe(0);
+      expect(apertures[0].isPickable).toBe(true);
     });
   });
 

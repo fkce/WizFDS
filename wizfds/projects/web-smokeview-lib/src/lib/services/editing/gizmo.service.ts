@@ -252,8 +252,13 @@ export class GizmoService implements SceneScoped {
         if (this.handles.size === 0 || !this.layer || !scene) { return false; }
 
         // Where the pointer is comes from the scene the canvas belongs to; what
-        // it might have hit is in the layer drawn over it.
-        const meshes = new Set<BABYLON.AbstractMesh>(this.handles.values());
+        // it might have hit is in the layer drawn over it. The apertures too:
+        // a press the drag will claim must not read as a press in the scene.
+        const meshes = new Set<BABYLON.AbstractMesh>();
+        this.handles.forEach(handle => {
+            meshes.add(handle);
+            handle.getChildMeshes().forEach(child => meshes.add(child));
+        });
         const pick = this.layer.utilityLayerScene.pick(
             scene.pointerX, scene.pointerY, (mesh) => meshes.has(mesh));
 
@@ -647,9 +652,26 @@ export class GizmoService implements SceneScoped {
         // face - the grip has to read from both
         material.backFaceCulling = false;
 
-        SCENE_FACES.forEach(face => {
+        RESIZE_FACES.forEach(face => {
             const handle = this.triangleHandle(`faceHandle_${face}`, utility);
             handle.material = material;
+
+            // Set once and never turned - see gripOrientation
+            const basis = gripOrientation(face);
+            handle.rotationQuaternion = BABYLON.Quaternion.RotationQuaternionFromAxis(
+                basis.right, basis.up, basis.forward);
+
+            // What the pointer actually catches. A flat grip seen at an angle
+            // foreshortens to a few pixels - honest to look at, hopeless to
+            // click - so an invisible sphere around it takes the hit from any
+            // direction, the way AutoCAD's grip aperture is wider than the
+            // grip. A child of the handle: it inherits the position and the
+            // screen-size scaling, and PointerDragBehavior accepts a press on
+            // any descendant of the node it drives.
+            const aperture = BABYLON.MeshBuilder.CreateSphere(
+                `faceHandleHit_${face}`, { diameter: 1.6, segments: 6 }, utility);
+            aperture.parent = handle;
+            aperture.visibility = 0;
 
             const axis = faceAxis(face);
             const behavior = new BABYLON.PointerDragBehavior({
@@ -690,28 +712,16 @@ export class GizmoService implements SceneScoped {
     }
 
     /**
-     * Hold the handles at the same size on screen, lying in their own plane
-     * of movement.
+     * Hold the handles at the same size on screen, wherever the camera is.
      *
-     * Each grip lies in a plane containing the axis it drags - the tip IS
-     * that axis, exactly, as AutoCAD orients a stretch grip in the plane it
-     * stretches in. The only freedom a flat shape has left, the roll about
-     * that axis, is turned towards the camera every frame so the triangle
-     * never goes edge-on while its direction stays true - see `handleBasis`.
+     * Size only - the orientation is fixed at build and never turns (see
+     * gripOrientation).
      */
     private resizeHandles(): void {
-        const camera = this.babylonService.camera;
-
-        this.handles.forEach((handle, face) => {
+        this.handles.forEach(handle => {
             const size = Math.max(
                 HANDLE_PIXELS * this.snapService.metresPerPixelAt(handle.position), 1e-4);
             handle.scaling.set(size, size, size);
-
-            if (!camera) { return; }
-            const toCamera = camera.position.subtract(handle.position).normalize();
-            const basis = handleBasis(toCamera, faceOutward(face));
-            handle.rotationQuaternion = BABYLON.Quaternion.RotationQuaternionFromAxis(
-                basis.right, basis.up, basis.forward);
         });
     }
 
@@ -803,6 +813,17 @@ export class GizmoService implements SceneScoped {
 }
 
 /**
+ * The faces that get a stretch grip: every one but the bottom.
+ *
+ * One z grip, pointing up. The floor of an element is where it stands - what
+ * gets pulled is the top - and a second triangle at the base of a thin slab
+ * only collided with the first. The bottom stays reachable through the
+ * properties palette.
+ */
+export const RESIZE_FACES: readonly SceneFace[] =
+    SCENE_FACES.filter(face => face !== 'z1');
+
+/**
  * Which way a face's stretch grip points: out of the box, along its own axis.
  *
  * The direction a user pulls to grow the element - the promise the triangle's
@@ -816,31 +837,26 @@ export function faceOutward(face: SceneFace): BABYLON.Vector3 {
 }
 
 /**
- * The orientation of one grip: in the plane of its movement, turned to the
- * viewer.
+ * The fixed orientation of one grip. It never turns.
  *
- * `right` - the tip - is the face's outward axis itself, exactly: the grip
- * lies in a plane containing the direction it drags, and its tip never leaves
- * that axis however the camera stands. The one freedom left is the roll about
- * that axis, and it is spent on the viewer: `forward`, the triangle's plane
- * normal, is the towards-the-camera direction with its along-axis component
- * removed. Looking straight down the axis leaves no roll to prefer - and no
- * way to drag along it either - so a constant fallback keeps the grip from
- * spinning as the camera crosses the degeneracy.
+ * `right` is the tip - the face's outward axis. `forward` is the triangle's
+ * plane normal: straight up for the x and y grips, which lie flat on the
+ * floor, and horizontal for the z grip, which stands perpendicular to it. A
+ * fixed orientation over a camera-following one, because a grip that turns
+ * reads as a thing of the screen, and these are things of the model - the
+ * same reason AutoCAD's stretch grips lie in the plane of the drawing.
+ *
+ * The z grip's own plane has to face some way; the XZ plane is as arbitrary
+ * as any, and constant.
  */
-export function handleBasis(
-    toCamera: BABYLON.Vector3, outward: BABYLON.Vector3
+export function gripOrientation(
+    face: SceneFace
 ): { right: BABYLON.Vector3, up: BABYLON.Vector3, forward: BABYLON.Vector3 } {
-    const right = outward.normalizeToNew();
+    const right = faceOutward(face);
 
-    let forward = toCamera.subtract(right.scale(BABYLON.Vector3.Dot(toCamera, right)));
-    if (forward.lengthSquared() < 1e-6) {
-        forward = BABYLON.Vector3.Cross(right, BABYLON.Vector3.Up());
-        if (forward.lengthSquared() < 1e-6) {
-            forward = BABYLON.Vector3.Cross(right, BABYLON.Vector3.Right());
-        }
-    }
-    forward.normalize();
+    const forward = faceAxis(face) === 'z'
+        ? new BABYLON.Vector3(0, -1, 0)
+        : new BABYLON.Vector3(0, 0, 1);
 
     return { right: right, up: BABYLON.Vector3.Cross(forward, right), forward: forward };
 }
