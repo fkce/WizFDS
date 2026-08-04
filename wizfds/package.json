@@ -1,12 +1,13 @@
 {
   "name": "wizfds",
-  "version": "0.7.1",
+  "version": "1.0.0-beta.1",
   "license": "GNU GPL v3.0",
   "scripts": {
     "wizFds:start": "ng serve wizfds --open",
     "wizWel:start": "ng serve wizWelcome --open",
     "webSmv:start": "ng serve webSmokeview --open",
     "wizFds:build-prod": "ng build wizfds --configuration production --base-href=/view/",
+    "wizFds:build-prod-app": "ng build wizfds --configuration production --base-href=/",
     "webSmv:build-prod": "ng build --configuration production --project=webSmokeview",
     "webSmvLib:build-prod": "ng build --project=webSmokeviewLib",
     "wizWel:build-prod": "ng build --configuration production --project=wizWelcome",
