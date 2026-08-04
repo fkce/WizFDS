@@ -7,7 +7,12 @@ RewriteBase /
 
 RewriteCond %{HTTPS} off
 
-RewriteRule (.*) https://%{SERVER_NAME}/$1 [R,L] 
+RewriteRule (.*) https://%{SERVER_NAME}/$1 [R,L]
+
+# Nothing in the docroot root is a public data file. Belt-and-braces after the
+# results.json leak: JSON there is never part of the app (assets/ still serves
+# its own), so refuse it outright rather than trusting the directory to stay clean.
+RewriteRule ^[^/]+\.json$ - [F,L]
 
 # Do not rewrite static asset requests (Angular assets, including shaders)
 # This prevents returning index.php (and thus index.html) for shader fetches

@@ -45,10 +45,6 @@ function getProjects() {
 			);
 		}
 
-		$fp = fopen('results.json', 'w');
-		fwrite($fp, json_encode($res->createResponse("success", array("Projects loaded"), $data)));
-		fclose($fp);
-
 		echo json_encode($res->createResponse("success", array("Projects loaded"), $data));
 
 	} catch(Exception $e) {
