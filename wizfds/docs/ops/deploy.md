@@ -165,14 +165,37 @@ Archiwalna procedura deployu na tę instancję (snapshot → rsync do `view/` z 
 
 ---
 
+## Migracje bazy
+
+Schemat zmienia się wyłącznie przez ponumerowane pliki SQL w `projects/wizfds/backend/db/migrations/` (konwencja: `backend/db/README.md`). Kolejność przy wdrożeniu: `git pull` w klonie backendu → migracje → smoke testy.
+
+```bash
+ssh wizfds
+cd /home/dkubera/domains/wizfds.com/public_html/app          # tu leży prawdziwy config.php
+BE=/home/dkubera/git/WizFDS/wizfds/projects/wizfds/backend
+php $BE/db/migrate.php --dry-run                              # co by weszło
+php $BE/db/migrate.php                                        # wykonanie
+```
+
+Runner woła `psql` (nie `pg_*`), bo rozszerzenie `pgsql` jest na tym hostingu tylko w PHP 7.4. Zastosowane migracje śledzi tabela `schema_migrations`. **Baza jest wspólna dla obu instancji** — dopóki wizfds.com żyje, migracje muszą być wsteczne (dodawanie kolumn/tabel tak, usuwanie i zmiany nazw nie).
+
+---
+
 ## Known issues / do weryfikacji
 
-1. **reCAPTCHA na app.wizfds.com** — klucz w `config.php` jest przypisany do domeny wizfds.com; rejestracja nowych kont na subdomenie może odrzucać captchę, dopóki `app.wizfds.com` nie zostanie dopisana w konsoli Google reCAPTCHA. Do tego czasu rejestracja pozostaje na wizfds.com.
-2. **Wspólna baza obu instancji** — zmiany w projektach zrobione na app.wizfds.com widzi też wizfds.com (i odwrotnie). Zamierzone; pamiętaj przy testach na żywych danych.
-3. **Backend legacy na wizfds.com jest przestarzały** (klon na `905121f`, era Angular 13) względem frontendu `view/` (0.7.1 z mastera 2026-02). Świadomie zamrożone — nie „naprawiać" pullem, bo nowszy backend zmienia zachowanie (`logout`, layout-agnostyczne `getIndex`).
-4. **Mylące nazewnictwo `svn/`.** `/home/dkubera/svn/WizFDS/` to git, nie svn (legacy nazwa katalogu). `/home/dkubera/svn/wizfds/` (mała litera) i `public_html/v5/` to prawdziwe, stare SVN — nie ruszać.
-5. **Uprawnienia z `/mnt/c`.** Źródło na dysku Windows nie niesie sensownych uprawnień — dlatego `--chmod=D755,F644` w `rsync`. Bez tego pliki wylądują z 0777.
-6. **Jeden cert TLS na domenę** — patrz „Certyfikat TLS" w prerekwizytach; przy odnowieniach zawsze wszystkie nazwy naraz.
+1. ⚠️ **PHP 8.2 zablokowane brakiem rozszerzenia `pgsql`.** Warstwa web stoi na 7.4.33 (koniec wsparcia: listopad 2022), bo handler `application/x-httpd-php82` działa (sonda: `8.2.31`), ale **nie ma załadowanego `pgsql`** — po przełączeniu każde `pg_connect()` padłoby i backend przestałby działać w całości. Moduły `/opt/alt/php82/usr/lib64/php/modules/pgsql.so` i `pdo_pgsql.so` **są zainstalowane**, brakuje tylko wpisu w `/opt/alt/php82/etc/php.d/`. **Do zrobienia:** w panelu cyber-folks (wybór wersji PHP → rozszerzenia) włączyć `pgsql` dla PHP 8.2 na tym koncie, albo poprosić o to support. Potem: zmienić pierwszą linię `public_html/app/.htaccess` na `AddHandler application/x-httpd-php82 php`, uruchomić `backend/tests/smoke.sh` i przy jakimkolwiek błędzie wrócić do `php74` (rollback = jedna linia).
+   Weryfikacja przed przełączeniem — sonda w izolowanym katalogu (usuń ją zaraz po):
+   ```bash
+   mkdir -p app/zz-probe && printf 'AddHandler application/x-httpd-php82 php\n' > app/zz-probe/.htaccess
+   printf '<?php echo PHP_VERSION, " pgsql=", extension_loaded("pgsql") ? "tak" : "NIE";' > app/zz-probe/probe.php
+   curl -s https://app.wizfds.com/zz-probe/probe.php; rm -rf app/zz-probe
+   ```
+2. **reCAPTCHA na app.wizfds.com** — klucz w `config.php` jest przypisany do domeny wizfds.com; rejestracja nowych kont na subdomenie może odrzucać captchę, dopóki `app.wizfds.com` nie zostanie dopisana w konsoli Google reCAPTCHA. Do tego czasu rejestracja pozostaje na wizfds.com.
+3. **Wspólna baza obu instancji** — zmiany w projektach zrobione na app.wizfds.com widzi też wizfds.com (i odwrotnie). Zamierzone; pamiętaj przy testach na żywych danych.
+4. **Backend legacy na wizfds.com jest przestarzały** (klon na `905121f`, era Angular 13) względem frontendu `view/` (0.7.1 z mastera 2026-02). Świadomie zamrożone — nie „naprawiać" pullem, bo nowszy backend zmienia zachowanie (`logout`, layout-agnostyczne `getIndex`).
+5. **Mylące nazewnictwo `svn/`.** `/home/dkubera/svn/WizFDS/` to git, nie svn (legacy nazwa katalogu). `/home/dkubera/svn/wizfds/` (mała litera) i `public_html/v5/` to prawdziwe, stare SVN — nie ruszać.
+6. **Uprawnienia z `/mnt/c`.** Źródło na dysku Windows nie niesie sensownych uprawnień — dlatego `--chmod=D755,F644` w `rsync`. Bez tego pliki wylądują z 0777.
+7. **Jeden cert TLS na domenę** — patrz „Certyfikat TLS" w prerekwizytach; przy odnowieniach zawsze wszystkie nazwy naraz.
 
 ---
 

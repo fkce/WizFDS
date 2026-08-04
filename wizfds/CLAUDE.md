@@ -99,7 +99,7 @@ Rules that hold for every change in `backend/` (see `docs/adr/0013-*`, `docs/adr
 - **`config.php` on the server is the real file, the one in the repository is a template** — includes resolve against the docroot (`require_once('./config.php')`), so never switch them to `__DIR__`.
 - Verify a deploy with `backend/tests/smoke.sh <base-url>`.
 
-The backend is still stuck on PHP 7.4 in the web tier while the CLI is 8.2 (`AddHandler` in `.htaccess`).
+The web tier is stuck on PHP 7.4 because the host's PHP 8.2 build has no `pgsql` extension loaded — switching the `AddHandler` would break every database call. See `docs/ops/deploy.md` → Known issues.
 
 ### Dev Proxy
 
