@@ -20,11 +20,19 @@ function loginForm() {
 	echo "
 	<form method='post' action=".$_SERVER['REQUEST_URI'].">
 	<div class='login'>
-		<div><label>Log into WizFDS</label></div>
-		<div><input type='email' name='email' placeholder='E-mail address'></div>
-		<div><input type='password' name='password' placeholder='Password'></div>
-		<div><input type='submit' name='check' value='Login'></div>
-		<div><input type='submit' name='addUserShowForm' value='Register'></div>
+		<div class='brand'>
+			<span class='brand-name'>Wiz<span class='brand-accent'>FDS</span></span>
+			<span class='beta-chip'>beta</span>
+			<div class='brand-sub'>GUI for Fire Dynamics Simulator</div>
+		</div>
+		<div class='fields'>
+			<input type='email' name='email' placeholder='E-mail address'>
+			<input type='password' name='password' placeholder='Password'>
+		</div>
+		<div class='actions'>
+			<input class='btn btn-primary' type='submit' name='check' value='Login'>
+			<input class='btn btn-ghost' type='submit' name='addUserShowForm' value='Register'>
+		</div>
 	</div>
 	</form>
 	";
@@ -35,14 +43,22 @@ function registerForm() {
 	echo "
 	<form method='post' action=".$_SERVER['REQUEST_URI'].">
 		<div class='register'>
-			<div><label>Register new user</label></div>
-			<div><input type='text' name='userName' required placeholder='Name'></div>
-			<div><input type='email' name='email' required placeholder='E-mail address'></div>
-			<div><input onkeyup='checkPasswordMatch();' id='txtNewPassword' type='password' name='password' placeholder='Password'></div>
-			<div><input onkeyup='checkPasswordMatch();' id='txtConfirmPassword' type='password' name='password2' placeholder='Repeat password'></div>
-			<div class='g-recaptcha' data-sitekey='". $config->recaptchaPublic ."'></div>
-			<input type='hidden' name='makeRegister' value=1/> 
-			<div><input id='registerButton' type='submit' value='Register'></div>
+			<div class='brand'>
+				<span class='brand-name'>Wiz<span class='brand-accent'>FDS</span></span>
+				<span class='beta-chip'>beta</span>
+			</div>
+			<div class='form-title'>Register new user</div>
+			<div class='fields'>
+				<input type='text' name='userName' required placeholder='Name'>
+				<input type='email' name='email' required placeholder='E-mail address'>
+				<input onkeyup='checkPasswordMatch();' id='txtNewPassword' type='password' name='password' placeholder='Password'>
+				<input onkeyup='checkPasswordMatch();' id='txtConfirmPassword' type='password' name='password2' placeholder='Repeat password'>
+			</div>
+			<div class='g-recaptcha' data-sitekey='". $config->recaptchaPublic ."' data-theme='dark'></div>
+			<input type='hidden' name='makeRegister' value=1/>
+			<div class='actions'>
+				<input id='registerButton' class='btn btn-primary' type='submit' value='Register'>
+			</div>
 			<div id='divCheckPasswordMatch'></div>
 		</div>
 	</form>
@@ -273,20 +289,22 @@ if(!isset($_SESSION['email'])) {
 	demoUser();
 
 	echo "
-	<html>
+	<html lang='en'>
 	<head>
 	<title>
 		WizFDS - GUI for FDS
 	</title>
 	<meta charset='utf-8'/>
+	<meta name='viewport' content='width=device-width, initial-scale=1'>
+	<link rel='icon' type='image/png' href='/favicon.png'>
 	<link href='/login.css' rel='stylesheet' />
-	<link href='https://fonts.googleapis.com/css?family=Play' rel='stylesheet'>
-	<link href='https://fonts.googleapis.com/icon?family=Material+Icons' rel='stylesheet'>
+	<link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+	<link href='https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap' rel='stylesheet'>
 	<script type='text/javascript' src='https://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js'></script>
 	<script src='https://www.google.com/recaptcha/api.js'></script>
 	</head>
 	<body>
-	<div ng-app='loginapp'>
+	<div class='auth-shell'>
 	";
 	if(isset($_REQUEST['check'])) { check(); } 
 	if(isset($_REQUEST['makeRegister'])) { makeRegister(); check(); } 
@@ -294,20 +312,20 @@ if(!isset($_SESSION['email'])) {
 	else { loginForm(); }
 	echo "
 	<div class='login-support'>Support: mateusz.fliszkiewicz @ fkce.pl</div>
-	<!--login app-->
+	</div>
 	<script type='text/javascript'>
-	function checkPasswordMatch() { 
-		var password = $('#txtNewPassword').val(); 
-		var confirmPassword = $('#txtConfirmPassword').val(); 
+	function checkPasswordMatch() {
+		var password = $('#txtNewPassword').val();
+		var confirmPassword = $('#txtConfirmPassword').val();
 		if (password != confirmPassword) {
 			$('#registerButton').prop('disabled', true);
-			$('#divCheckPasswordMatch').html('Passwords not matching...'); 
+			$('#divCheckPasswordMatch').html('Passwords not matching...');
 		}
 		else {
 			$('#registerButton').prop('disabled', false);
-			$('#divCheckPasswordMatch').html(''); 
+			$('#divCheckPasswordMatch').html('');
 		}
-	} 
+	}
 	</script>
 	</body>
 	</html>
