@@ -1,8 +1,11 @@
 <?php
-session_name("wizfds");
-
 require_once("config.php");
 require_once("db.php");
+require_once("lib/session.php");
+require_once("lib/logger.php");
+require_once("rest/utils.php");
+
+wizfds_session_start();
 
 $db = new Database();  
 
@@ -69,7 +72,7 @@ function check() {
 	global $db;
 	$config = new Config();
 
-	if(!empty($_POST['email']) and !empty($_POST['password'])) {
+	if(!empty($_POST['email']) and !empty($_POST['password']) and wizfds_valid_email($_POST['email'])) {
 
 		// Select user data from db
 		$result = $db->pg_read("SELECT * from users where email = $1", array($_POST['email']));
@@ -156,15 +159,22 @@ function makeRegister() {
 		// Check if send data are not empty
 		if(!empty($_POST['email']) and !empty($_POST['password'])) {
 
+			// The address becomes a directory name under usersPath, so it has to be
+			// a real address and nothing that could climb out of that directory.
+			if(!wizfds_valid_email($_POST['email'])) {
+				echo "<div class='login-error'>Invalid e-mail address.</div>";
+				return;
+			}
+
 			// Check if user e-mail already exists
 			$result = $db->pg_read("SELECT * from users where email=$1", array($_POST['email']));
-			if(!empty($result)) { 
-				echo $_POST['email']." already exists.<br>"; 
-				exit(); 
+			if(!empty($result)) {
+				echo $_POST['email']." already exists.<br>";
+				exit();
 			}
 
 			// Create user home folder
-			system("mkdir -p ". $config->usersPath . $_POST['email']);
+			wizfds_ensure_dir(wizfds_user_dir($config, $_POST['email']));
 
 			// Salt and hash user password
 			// Generate user secret code
@@ -199,93 +209,25 @@ function makeRegister() {
 	}
 }
 
-# get country info
-function ip_info($ip = NULL, $purpose = "location", $deep_detect = TRUE) {
-    $output = NULL;
-    if (filter_var($ip, FILTER_VALIDATE_IP) === FALSE) {
-        $ip = $_SERVER["REMOTE_ADDR"];
-        if ($deep_detect) {
-            if (filter_var(@$_SERVER['HTTP_X_FORWARDED_FOR'], FILTER_VALIDATE_IP))
-                $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
-            if (filter_var(@$_SERVER['HTTP_CLIENT_IP'], FILTER_VALIDATE_IP))
-                $ip = $_SERVER['HTTP_CLIENT_IP'];
-        }
-    }
-    $purpose    = str_replace(array("name", "\n", "\t", " ", "-", "_"), NULL, strtolower(trim($purpose)));
-    $support    = array("country", "countrycode", "state", "region", "city", "location", "address");
-    $continents = array(
-        "AF" => "Africa",
-        "AN" => "Antarctica",
-        "AS" => "Asia",
-        "EU" => "Europe",
-        "OC" => "Australia (Oceania)",
-        "NA" => "North America",
-        "SA" => "South America"
-    );
-    if (filter_var($ip, FILTER_VALIDATE_IP) && in_array($purpose, $support)) {
-        $ipdat = @json_decode(file_get_contents("http://www.geoplugin.net/json.gp?ip=" . $ip));
-        if (@strlen(trim($ipdat->geoplugin_countryCode)) == 2) {
-            switch ($purpose) {
-                case "location":
-                    $output = array(
-                        "city"           => @$ipdat->geoplugin_city,
-                        "state"          => @$ipdat->geoplugin_regionName,
-                        "country"        => @$ipdat->geoplugin_countryName,
-                        "country_code"   => @$ipdat->geoplugin_countryCode,
-                        "continent"      => @$continents[strtoupper($ipdat->geoplugin_continentCode)],
-                        "continent_code" => @$ipdat->geoplugin_continentCode
-                    );
-                    break;
-                case "address":
-                    $address = array($ipdat->geoplugin_countryName);
-                    if (@strlen($ipdat->geoplugin_regionName) >= 1)
-                        $address[] = $ipdat->geoplugin_regionName;
-                    if (@strlen($ipdat->geoplugin_city) >= 1)
-                        $address[] = $ipdat->geoplugin_city;
-                    $output = implode(", ", array_reverse($address));
-                    break;
-                case "city":
-                    $output = @$ipdat->geoplugin_city;
-                    break;
-                case "state":
-                    $output = @$ipdat->geoplugin_regionName;
-                    break;
-                case "region":
-                    $output = @$ipdat->geoplugin_regionName;
-                    break;
-                case "country":
-                    $output = @$ipdat->geoplugin_countryName;
-                    break;
-                case "countrycode":
-                    $output = @$ipdat->geoplugin_countryCode;
-                    break;
-            }
-        }
-    }
-    return $output;
-}
-
 # signin demo user
 function demoUser() {
 	$config = new Config();
-	if($_GET['demo'] == 'true') {
+	if(isset($_GET['demo']) && $_GET['demo'] == 'true' && $config->demoUserId !== '') {
 		session_regenerate_id(True);
 		$_SESSION['user_id'] = $config->demoUserId;
 		$_SESSION['email'] = $config->demoUserEmail;
 
-		$headers = "From: wizfds@wizfds.com\r\nReply-To: wizfds@wizfds.com";
-		mail("mateusz.fliszkiewicz@fkce.pl", "WizFDS demo user in use", "Someone from ". ip_info('Visitor', 'Address') ." is using WizFDS!", $headers);
-		
+		# Previously this mailed the author on every demo sign-in, after resolving
+		# the visitor's IP through an unencrypted third-party geolocation API.
+		wizfds_log('info', 'demo session started');
 
 		header("Location: https://". $_SERVER['SERVER_NAME']);
 		return;
 	}
 }
 
-# init 
-if(!isset($_SESSION['email'])) { 
-	echo $test;
-
+# init
+if(!isset($_SESSION['email'])) {
 	demoUser();
 
 	echo "

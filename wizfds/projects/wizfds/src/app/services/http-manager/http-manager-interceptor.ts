@@ -10,8 +10,15 @@ export class HttpManagerInterceptor implements HttpInterceptor {
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     const started = Date.now();
+
+    // The backend rejects writes that arrive without this header: a browser will
+    // not attach it to a cross-site request without a CORS preflight, which the
+    // server never approves, so a forged request cannot reach the API even with
+    // the session cookie along for the ride.
+    const request = req.clone({ setHeaders: { 'X-Requested-With': 'XMLHttpRequest' } });
+
     return next
-      .handle(req).pipe(
+      .handle(request).pipe(
         tap(event => {
           if (event instanceof HttpResponse) {
             const elapsed = Date.now() - started;

@@ -47,8 +47,8 @@ function getProjects() {
 
 		echo json_encode($res->createResponse("success", array("Projects loaded"), $data));
 
-	} catch(Exception $e) {
-		echo json_encode($res->createResponse("error", array("Server error! Projects not loaded"), $data));
+	} catch(Throwable $e) {
+		handlerFailed($res, $e, "Server error! Projects not loaded", $data);
 	}
 
 	$db->pg_stop();
@@ -78,16 +78,18 @@ function createProject() {
 			$data['id'] = $id;
 
 			# Create project directory
-			$path="~/wizfds_users/". $_SESSION['email'] ."/$id";
-			system("mkdir -p $path");
+			$path = wizfds_user_dir(new Config(), $_SESSION['email'], array($id));
+			if (!wizfds_ensure_dir($path)) {
+				wizfds_log('warning', 'project directory not created', array('project_id' => $id));
+			}
 
-			echo json_encode($res->createResponse("success", array($data['name'] ." created", $path), $data));
+			echo json_encode($res->createResponse("success", array($data['name'] ." created"), $data));
 		}
 		else {
 			echo json_encode($res->createResponse("error", array("Server error! Project not created"), $data));
 		}
-	} catch(Exception $e) {
-		echo json_encode($res->createResponse("error", array("Server error! Project not created"), $data));
+	} catch(Throwable $e) {
+		handlerFailed($res, $e, "Server error! Project not created", $data);
 	}
 }
 
@@ -115,8 +117,8 @@ function deleteProject($args) {
 		else {
 			echo json_encode($res->createResponse("error", array("Server error! Project not deleted"), $data));
 		}
-	} catch(Exception $e) {
-		echo json_encode($res->createResponse("error", array("Server error! Project not deleted"), $data));
+	} catch(Throwable $e) {
+		handlerFailed($res, $e, "Server error! Project not deleted", $data);
 	}
 }
 
@@ -143,8 +145,8 @@ function updateProject($args) {
 		else {
 			echo json_encode($res->createResponse("error", array("Server error! Project not updated"), $data));
 		}
-	} catch(Exception $e) {
-		echo json_encode($res->createResponse("error", array("Server error! Project not updated"), $data));
+	} catch(Throwable $e) {
+		handlerFailed($res, $e, "Server error! Project not updated", $data);
 	}
 }
 
@@ -163,8 +165,8 @@ function getCategories($args) {
 		else {
 			echo json_encode($res->createResponse("error", array("Server error! Categories not loaded"), $data));
 		}
-	} catch(Exception $e) {
-		echo json_encode($res->createResponse("error", array("Server error! Project not updated"), $data));
+	} catch(Throwable $e) {
+		handlerFailed($res, $e, "Server error! Project not updated", $data);
 	}
 }
 
@@ -190,8 +192,8 @@ function createCategory() {
 		else {
 			echo json_encode($res->createResponse("error", array("Server error! Category not created"), $data));
 		}
-	} catch(Exception $e) {
-		echo json_encode($res->createResponse("error", array("Server error! Category not created"), $data));
+	} catch(Throwable $e) {
+		handlerFailed($res, $e, "Server error! Category not created", $data);
 	}
 }
 
@@ -214,8 +216,8 @@ function deleteCategory($args) {
 		else {
 			echo json_encode($res->createResponse("error", array("Server error! Category not deleted"), $data));
 		}
-	} catch(Exception $e) {
-		echo json_encode($res->createResponse("error", array("Server error! Category not deleted"), $data));
+	} catch(Throwable $e) {
+		handlerFailed($res, $e, "Server error! Category not deleted", $data);
 	}
 }
 
@@ -242,8 +244,8 @@ function updateCategory($args) {
 		else {
 			echo json_encode($res->createResponse("error", array("Server error! Category not updated"), $data));
 		}
-	} catch(Exception $e) {
-		echo json_encode($res->createResponse("error", array("Server error! Category not updated"), $data));
+	} catch(Throwable $e) {
+		handlerFailed($res, $e, "Server error! Category not updated", $data);
 	}
 }
 

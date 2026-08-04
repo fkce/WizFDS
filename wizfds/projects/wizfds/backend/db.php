@@ -1,5 +1,6 @@
 <?php
 require_once('./config.php');
+require_once('./lib/logger.php');
 
 class Database {
 
@@ -9,68 +10,100 @@ class Database {
 
 	function __construct() {
 		$this->config = new Config();
-		$this->user_id = $_SESSION['user_id'];
+		$this->user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
 		$this->connect = "";
 	}
 
 	public function pg_start() {
-		$this->connect=pg_connect("host=". $this->config->host ." port=". $this->config->port ." dbname=". $this->config->db ." user=". $this->config->dbUser ." password=". $this->config->dbPass);
+		$this->connect = $this->open();
 	}
 
 	public function pg_stop() {
-		pg_close();
-	}
-
-	public function pg_read_mult($qq,$arr=[]) { 
-		
-		($result=pg_query_params($this->connect, $qq, $arr)) || $this->reportBug(array("$qq", $arr, pg_last_error($this->connect)));
-		$k=pg_fetch_all($result);
-		return($k);
-	}
-
-	public function pg_read($qq,$arr=[]) { 
-		
-		$connect=pg_connect("host=". $this->config->host ." port=". $this->config->port ." dbname=". $this->config->db ." user=". $this->config->dbUser ." password=". $this->config->dbPass);
-		($result=pg_query_params($connect, $qq, $arr)) || $this->reportBug(array("$qq", $arr, pg_last_error($connect)));
-		$k=pg_fetch_all($result);
-		pg_close();
-		return($k);
-	}
-	
-	public function pg_change($qq,$arr=[]) { 
-		
-		$connect=pg_connect("host=". $this->config->host ." port=". $this->config->port ." dbname=". $this->config->db ." user=". $this->config->dbUser ." password=". $this->config->dbPass);
-		if($this->user_id != 5) {
-			($result=pg_query_params($connect, $qq, $arr)) || $this->reportBug(array("$qq", $arr, pg_last_error($connect))); 
-			$rows=pg_affected_rows($result);
-			pg_close();
-			return($rows);
+		if ($this->connect) {
+			pg_close($this->connect);
+			$this->connect = "";
 		}
-		pg_close();
-		return;
 	}
 
-	public function pg_create($qq,$arr=[]) { 
-		
-		$connect=pg_connect("host=". $this->config->host ." port=". $this->config->port ." dbname=". $this->config->db ." user=". $this->config->dbUser ." password=". $this->config->dbPass);
-		if($this->user_id != 5) {
-			($result=pg_query_params($connect, $qq, $arr)) || $this->reportBug(array("$qq", $arr, pg_last_error($connect))); 
-			$rows=pg_affected_rows($result);
-			$k=pg_fetch_all($result);
-			pg_close();
-			return($k);
+	# A failed query used to return false and mail the query to the author, while
+	# the caller carried on and reported success. It now throws, so the handler's
+	# catch decides what the client is told.
+	private function open() {
+		$connect = @pg_connect(
+			"host=". $this->config->host ." port=". $this->config->port .
+			" dbname=". $this->config->db ." user=". $this->config->dbUser .
+			" password=". $this->config->dbPass
+		);
+
+		if ($connect === false) {
+			wizfds_log('error', 'database connection failed');
+			throw new RuntimeException('Database connection failed');
 		}
-		pg_close();
-		return;
+
+		return $connect;
 	}
 
-	public function reportBug($arr) {
+	private function run($connect, $query, $params) {
+		$result = @pg_query_params($connect, $query, $params);
 
-		$current_time=date("Y-m-d G:i:s");
-		$params=print_r($arr[1],1);
-		$reportQuery=join("\n" , array('--------' ,  $current_time."/".$_SERVER['REMOTE_ADDR'] , $_SERVER['REQUEST_URI'], $arr[0] , $params, $arr[2] , "\n\n"));
-		mail('mateusz.fliszkiewicz@gmail.com', 'Wizfds bug?', "$reportQuery", "From: wizfds@wizfds.com"); 
+		if ($result === false) {
+			# The query text and its parameters carry user data - log the database's
+			# own message only, and only its first line: a constraint violation
+			# quotes the offending value on the DETAIL line below it. The request URI
+			# in the log entry says which endpoint.
+			wizfds_log('error', 'database query failed', array('db_error' => strtok(pg_last_error($connect), "\n")));
+			throw new RuntimeException('Database query failed');
+		}
+
+		return $result;
+	}
+
+	# Reads over the connection opened by pg_start(), for handlers that issue
+	# several queries in a row.
+	public function pg_read_mult($qq, $arr = []) {
+		if (!$this->connect) {
+			$this->pg_start();
+		}
+		return pg_fetch_all($this->run($this->connect, $qq, $arr));
+	}
+
+	public function pg_read($qq, $arr = []) {
+		$connect = $this->open();
+		try {
+			return pg_fetch_all($this->run($connect, $qq, $arr));
+		} finally {
+			pg_close($connect);
+		}
+	}
+
+	public function pg_change($qq, $arr = []) {
+		if ($this->isReadOnly()) {
+			return null;
+		}
+
+		$connect = $this->open();
+		try {
+			return pg_affected_rows($this->run($connect, $qq, $arr));
+		} finally {
+			pg_close($connect);
+		}
+	}
+
+	public function pg_create($qq, $arr = []) {
+		if ($this->isReadOnly()) {
+			return null;
+		}
+
+		$connect = $this->open();
+		try {
+			return pg_fetch_all($this->run($connect, $qq, $arr));
+		} finally {
+			pg_close($connect);
+		}
+	}
+
+	# The shared demo account may look but not touch.
+	private function isReadOnly() {
+		return $this->user_id !== null && (string) $this->user_id === (string) $this->config->demoUserId;
 	}
 }
-
-?>

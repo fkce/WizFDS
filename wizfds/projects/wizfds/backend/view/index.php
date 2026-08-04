@@ -1,6 +1,8 @@
 <?php
-session_name('wizfds');
-session_start();
+# Gate for the /view/ layout. Goes through the shared bootstrap so a session
+# cookie is never issued here without the hardened flags.
+require_once(__DIR__ . "/../lib/session.php");
+wizfds_session_start();
 
 if (isset($_SESSION['user_id']) and $_SESSION['user_id'] != '') {
 	include('index.html');

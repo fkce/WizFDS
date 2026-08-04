@@ -25,16 +25,18 @@ function createScenario($args) {
 			$data['id'] = $id;
 
 			# Create directory with scenario
-			$path = "~/wizfds_users/". $_SESSION['email'] ."/". $args['project_id'] ."/fds/$id";
-			system("mkdir -p $path");
+			$path = wizfds_user_dir(new Config(), $_SESSION['email'], array($args['project_id'], 'fds', $id));
+			if (!wizfds_ensure_dir($path)) {
+				wizfds_log('warning', 'scenario directory not created', array('scenario_id' => $id));
+			}
 
 			echo json_encode($res->createResponse("success", array($data['name'] ." created"), $data));
 		}
 		else {
 			echo json_encode($res->createResponse("error", array("Server error! Scenario not created"), $data));
 		}
-	} catch(Exception $e) {
-		echo json_encode($res->createResponse("error", array("Server error! Scenario not created"), $data));
+	} catch(Throwable $e) {
+		handlerFailed($res, $e, "Server error! Scenario not created", $data);
 	}
 }
 
@@ -87,8 +89,8 @@ function updateScenario($args) {
 		else {
 			echo json_encode($res->createResponse("error", array("Server error! Scenario not updated"), $data));
 		}
-	} catch(Exception $e) {
-			echo json_encode($res->createResponse("error", array("Server error! Scenario not updated"), $data));
+	} catch(Throwable $e) {
+		handlerFailed($res, $e, "Server error! Scenario not updated", $data);
 	}
 }
 
@@ -116,8 +118,8 @@ function deleteScenario($args) {
 		else {
 			echo json_encode($res->createResponse("error", array("Server error! Scenario not deleted"), $data));
 		}
-	} catch(Exception $e) {
-		echo json_encode($res->createResponse("error", array("Server error! Scenario not deleted"), $data));
+	} catch(Throwable $e) {
+		handlerFailed($res, $e, "Server error! Scenario not deleted", $data);
 	}
 }
 
@@ -152,8 +154,8 @@ function getScenario($args) {
 		else {
 			echo json_encode($res->createResponse("error", array("Server error! Scenario not loaded"), $data));
 		}
-	} catch(Exception $e) {
-		echo json_encode($res->createResponse("error", array("Server error! Scenario not loaded"), $data));
+	} catch(Throwable $e) {
+		handlerFailed($res, $e, "Server error! Scenario not loaded", $data);
 	}
 }
 
@@ -188,8 +190,8 @@ function getLibrary($args) {
 		else {
 			echo json_encode($res->createResponse("error", array("Server error! Library not loaded"), $data));
 		}
-	} catch(Exception $e) {
-		echo json_encode($res->createResponse("error", array("Server error! Library not loaded"), $data));
+	} catch(Throwable $e) {
+		handlerFailed($res, $e, "Server error! Library not loaded", $data);
 	}
 }
 
@@ -222,8 +224,8 @@ function updateLibrary($args) {
 		else {
 			echo json_encode($res->createResponse("error", array("Server error! Library not updated"), $data));
 		}
-	} catch(Exception $e) {
-		echo json_encode($res->createResponse("error", array("Server error! Library not updated"), $data));
+	} catch(Throwable $e) {
+		handlerFailed($res, $e, "Server error! Library not updated", $data);
 	}
 }
 
