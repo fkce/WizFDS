@@ -52,6 +52,12 @@ function refreshSessionActivity($db) {
 		return;
 	}
 
+	# The demo account is shared and read-only; there is no point recording one
+	# visitor's activity over another's, and the write would be refused anyway.
+	if ($db->isReadOnly()) {
+		return;
+	}
+
 	$result = $db->pg_read("SELECT session_id, access_time, access_ip FROM users where id = $1;", array($_SESSION['user_id']));
 	if (empty($result)) {
 		return;
@@ -155,6 +161,9 @@ function main() {
 # report the failure, log it, and keep the response shape the client expects.
 try {
 	main();
+} catch (DemoModeException $e) {
+	$res = new Message("index");
+	echo json_encode($res->createResponse("info", array("Demo mode - changes are not saved"), array()));
 } catch (Throwable $e) {
 	wizfds_log('error', 'unhandled error', array('error' => $e->getMessage(), 'file' => basename($e->getFile()), 'line' => $e->getLine()));
 

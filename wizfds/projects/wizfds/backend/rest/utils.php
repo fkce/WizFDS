@@ -53,6 +53,30 @@ function wizfds_user_dir($config, $email, $segments = array()) {
 	return $path;
 }
 
+# Delete a user's project or scenario directory. Refuses to touch anything that
+# does not resolve to a real path inside usersPath, because this is the one call
+# in the backend that removes files recursively.
+function wizfds_remove_dir($config, $email, $segments = array()) {
+	$path = wizfds_user_dir($config, $email, $segments);
+	if ($path === null || $segments === array()) {
+		return false;
+	}
+
+	$root = realpath(rtrim(wizfds_expand_home($config->usersPath), '/'));
+	$target = realpath($path);
+	if ($root === false || $target === false) {
+		return false;
+	}
+
+	if (strpos($target, $root . '/') !== 0) {
+		wizfds_log('warning', 'refused to delete outside the user directory');
+		return false;
+	}
+
+	rrmdir($target);
+	return true;
+}
+
 function wizfds_ensure_dir($path) {
 	if ($path === null) {
 		return false;
@@ -67,6 +91,13 @@ function wizfds_ensure_dir($path) {
 # than an "error" wrapped in HTTP 200, and keep the response shape the client
 # parses.
 function handlerFailed($res, $e, $details, $data = array()) {
+	# A write attempted from the demo account is not a failure - say so, instead
+	# of telling the visitor the save broke.
+	if ($e instanceof DemoModeException) {
+		echo json_encode($res->createResponse("info", array("Demo mode - changes are not saved"), $data));
+		return;
+	}
+
 	wizfds_log('error', 'handler failed', array('error' => $e->getMessage()));
 
 	if (!headers_sent()) {

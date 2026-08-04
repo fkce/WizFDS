@@ -1,34 +1,28 @@
 <?php
 require_once('./config.php');
 require_once('./lib/logger.php');
+require_once('./lib/exceptions.php');
 
 class Database {
 
+	# One connection per request, shared by every handler that asks for one.
+	# Each query used to open and tear down its own, which cost a round trip to
+	# the database server for every single statement.
+	private static $connection = null;
+
 	private $config;
 	private $user_id;
-	private $connect;
 
 	function __construct() {
 		$this->config = new Config();
 		$this->user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
-		$this->connect = "";
 	}
 
-	public function pg_start() {
-		$this->connect = $this->open();
-	}
-
-	public function pg_stop() {
-		if ($this->connect) {
-			pg_close($this->connect);
-			$this->connect = "";
+	private function connection() {
+		if (self::$connection !== null && pg_connection_status(self::$connection) === PGSQL_CONNECTION_OK) {
+			return self::$connection;
 		}
-	}
 
-	# A failed query used to return false and mail the query to the author, while
-	# the caller carried on and reported success. It now throws, so the handler's
-	# catch decides what the client is told.
-	private function open() {
 		$connect = @pg_connect(
 			"host=". $this->config->host ." port=". $this->config->port .
 			" dbname=". $this->config->db ." user=". $this->config->dbUser .
@@ -40,10 +34,15 @@ class Database {
 			throw new RuntimeException('Database connection failed');
 		}
 
-		return $connect;
+		self::$connection = $connect;
+		return self::$connection;
 	}
 
-	private function run($connect, $query, $params) {
+	# A failed query used to return false and mail the query to the author, while
+	# the caller carried on and reported success. It now throws, so the handler's
+	# catch decides what the client is told.
+	private function run($query, $params) {
+		$connect = $this->connection();
 		$result = @pg_query_params($connect, $query, $params);
 
 		if ($result === false) {
@@ -58,52 +57,50 @@ class Database {
 		return $result;
 	}
 
-	# Reads over the connection opened by pg_start(), for handlers that issue
-	# several queries in a row.
 	public function pg_read_mult($qq, $arr = []) {
-		if (!$this->connect) {
-			$this->pg_start();
-		}
-		return pg_fetch_all($this->run($this->connect, $qq, $arr));
+		return pg_fetch_all($this->run($qq, $arr));
 	}
 
 	public function pg_read($qq, $arr = []) {
-		$connect = $this->open();
-		try {
-			return pg_fetch_all($this->run($connect, $qq, $arr));
-		} finally {
-			pg_close($connect);
-		}
+		return pg_fetch_all($this->run($qq, $arr));
 	}
 
 	public function pg_change($qq, $arr = []) {
-		if ($this->isReadOnly()) {
-			return null;
-		}
-
-		$connect = $this->open();
-		try {
-			return pg_affected_rows($this->run($connect, $qq, $arr));
-		} finally {
-			pg_close($connect);
-		}
+		$this->refuseWriteInDemo();
+		return pg_affected_rows($this->run($qq, $arr));
 	}
 
 	public function pg_create($qq, $arr = []) {
-		if ($this->isReadOnly()) {
-			return null;
-		}
-
-		$connect = $this->open();
-		try {
-			return pg_fetch_all($this->run($connect, $qq, $arr));
-		} finally {
-			pg_close($connect);
-		}
+		$this->refuseWriteInDemo();
+		return pg_fetch_all($this->run($qq, $arr));
 	}
 
-	# The shared demo account may look but not touch.
-	private function isReadOnly() {
-		return $this->user_id !== null && (string) $this->user_id === (string) $this->config->demoUserId;
+	# Run $work inside a transaction: either every statement lands or none does.
+	# Deleting a project deletes its scenarios first, and a failure between the
+	# two used to leave the scenarios orphaned.
+	public function transaction($work) {
+		$this->run('BEGIN', array());
+
+		try {
+			$result = $work();
+		} catch (Throwable $e) {
+			$this->run('ROLLBACK', array());
+			throw $e;
+		}
+
+		$this->run('COMMIT', array());
+		return $result;
+	}
+
+	public function isReadOnly() {
+		return $this->user_id !== null
+			&& $this->config->demoUserId !== ''
+			&& (string) $this->user_id === (string) $this->config->demoUserId;
+	}
+
+	private function refuseWriteInDemo() {
+		if ($this->isReadOnly()) {
+			throw new DemoModeException('Demo account is read-only');
+		}
 	}
 }

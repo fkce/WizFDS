@@ -109,9 +109,9 @@ function deleteScenario($args) {
 		$result = $db->pg_change("delete from scenarios where id=$1 and user_id=$2;", $data);
 
 		if(!empty($result)) {
-			# Remove scenario directory
-			$path = "~/wizfds_users/". $_SESSION['email'] ."/". $result_project[0]['project_id'] ."/fds/". $args['id'];
-			rrmdir($path);
+			# Remove scenario directory. The path used to be spelled
+			# "~/wizfds_users/…", which PHP does not expand, so nothing was deleted.
+			wizfds_remove_dir(new Config(), $_SESSION['email'], array($result_project[0]['project_id'], 'fds', $args['id']));
 
 			echo json_encode($res->createResponse("success", array("Scenario deleted"), $data));
 		}
