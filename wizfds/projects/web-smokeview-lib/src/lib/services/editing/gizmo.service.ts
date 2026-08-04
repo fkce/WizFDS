@@ -544,6 +544,13 @@ export class GizmoService implements SceneScoped {
         this.snapService.hideMarker();
         this.snapService.suspended = false;
         this.pickService.endPreview();
+
+        // The hover outline was drawn over where the element STOOD, and
+        // hover() holds its answer while the pointer stays on the same uuid -
+        // a gesture that relocated the selection takes the stale outline with
+        // it, and the next pointer move draws an honest one.
+        this.pickService.clearHover();
+
         this.rebuild();
         this.publish();
     }

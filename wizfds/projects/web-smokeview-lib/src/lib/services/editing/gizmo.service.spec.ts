@@ -215,6 +215,19 @@ describe('GizmoService', () => {
       expect((commands[0] as any).delta.dx).toBeGreaterThan(0.5);
     });
 
+    it('takes the stale hover outline with it when the gesture ends', () => {
+      // The outline was drawn over where the element stood, and hover() keeps
+      // its early return while the pointer stays on the same uuid - so after
+      // a move it would go on marking the place the element left.
+      picking.hovered = { uuid: 'west', xb: WEST } as any;
+
+      gizmo.beginMove();
+      gizmo.trackMove({ dx: 2, dy: 0, dz: 0 }, ['x']);
+      gizmo.commit();
+
+      expect(picking.hovered).toBeUndefined();
+    });
+
     it('shows what the gesture is doing while it runs, and nothing after', () => {
       gizmo.beginMove();
       gizmo.trackMove({ dx: 2, dy: 0, dz: 0 }, ['x']);
