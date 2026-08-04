@@ -1,0 +1,6 @@
+# core.autocrlf=true on this machine rewrites checkouts to CRLF, which the shell
+# on the production server cannot run and PHP would carry into its output.
+# Everything that lands on the Linux host stays LF.
+*.sh text eol=lf
+*.php text eol=lf
+projects/wizfds/backend/.htaccess text eol=lf
