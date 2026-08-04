@@ -115,6 +115,12 @@
             [title]="deleteTitle" (click)="deleteSelection()">
             <mat-icon svgIcon="delete-outline" aria-hidden="true"></mat-icon><span>Delete</span>
           </button>
+          <!-- Armed for the next gesture rather than a mode: the ctrl shortcut
+               at an axis arrow says the same thing at the grab (ADR-0011). -->
+          <button type="button" class="cmd big" [class.on]="gizmo.isCopyArmed"
+            [disabled]="!canModify" [title]="copyTitle" (click)="gizmo.armCopy()">
+            <mat-icon svgIcon="content-copy" aria-hidden="true"></mat-icon><span>Copy</span>
+          </button>
         </div>
         <div class="panel-title">Modify</div>
       </section>

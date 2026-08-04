@@ -90,6 +90,28 @@ describe('RibbonComponent', () => {
       .map(tab => tab.textContent.trim());
   }
 
+  /** The command button carrying this label. */
+  function cmd(label: string): HTMLButtonElement {
+    return Array.from<HTMLButtonElement>(fixture.nativeElement.querySelectorAll('button.cmd'))
+      .find(button => button.textContent.trim() === label);
+  }
+
+  describe('the Modify panel (#126)', () => {
+    it('arms the gizmo to copy on the next gesture', () => {
+      const gizmo = TestBed.inject(GizmoService);
+      selection.select({ uuid: 'wall-uuid', type: 'obst' });
+      fixture.detectChanges();
+
+      cmd('Copy').click();
+
+      expect(gizmo.isCopyArmed).toBe(true);
+    });
+
+    it('offers Copy only over a selection', () => {
+      expect(cmd('Copy').disabled).toBe(true);
+    });
+  });
+
   it('opens on Home, where AutoCAD opens', () => {
     // Since #125 the Draw panel works, so the tab a user reaches first is the
     // one that creates geometry.

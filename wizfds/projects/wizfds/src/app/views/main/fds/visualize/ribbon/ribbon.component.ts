@@ -353,6 +353,12 @@ export class RibbonComponent implements OnInit, OnDestroy {
       : 'Nothing selected';
   }
 
+  get copyTitle(): string {
+    return this.canModify
+      ? 'Copy the selection: arm and drag a handle, or hold ctrl and drag an axis arrow'
+      : 'Nothing selected';
+  }
+
   // ==========================================
   // Contextual tab
   // ==========================================
