@@ -118,6 +118,18 @@ describe('VisualizeComponent', () => {
     expect(updates[0].changed[0].element.uuid).toBe('wall-uuid');
   });
 
+  it('selects what a create command just made (#125)', () => {
+    // The same behaviour as the form's add(): the drawn element is what the
+    // user works with next, so the palette and the contextual tab show it
+    editStream.emit({
+      kind: 'create', type: 'obst',
+      xb: { x1: 6, x2: 7, y1: 6, y2: 7, z1: 0, z2: 2 }
+    });
+
+    const created: any = mainService.main.currentFdsScenario.fdsObject.geometry.obsts[1];
+    expect(selection.selected).toEqual([{ uuid: created.uuid, type: 'obst' }]);
+  });
+
   it('drops a deleted element from the selection', () => {
     // It would otherwise name something the scenario no longer holds, and the
     // palette would go on offering to edit it

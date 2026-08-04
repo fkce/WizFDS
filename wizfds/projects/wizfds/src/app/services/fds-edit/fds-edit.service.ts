@@ -342,10 +342,12 @@ export class FdsEditService {
  *
  * An &OBST carries a `surf` object saying which of the three FDS forms it uses;
  * a &VENT and a &GEOM name one directly. The two shapes are the same ones
- * SceneInputService reads back through.
+ * SceneInputService reads back through. A &HOLE is not here: it is an opening
+ * and its class has no surface field at all - the draw tool never names one
+ * for it (#125).
  */
 function applySurf(created: any, type: FdsElementType, surfId: string): void {
-  if (type === 'obst' || type === 'hole') {
+  if (type === 'obst') {
     created.surf = { type: 'surf_id', surf_id: surfId };
     return;
   }

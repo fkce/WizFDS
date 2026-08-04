@@ -14,6 +14,7 @@ import { SceneBoundsService } from '../../services/scene-bounds/scene-bounds.ser
 import {
   GestureView, GizmoService, NUDGE_KEYS, NudgeKey, nudgeDirection
 } from '../../services/editing/gizmo.service';
+import { DrawToolService } from '../../services/editing/draw-tool.service';
 import { GestureKey } from '../../services/editing/gesture';
 
 /**
@@ -62,9 +63,15 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
    *
    * One of the overlays that belong to a gesture, which is why it is here and
    * not in the host's ribbon (ADR-0010): it stands at the cursor, over the
-   * canvas, and only exists while the pointer is down.
+   * canvas, and only exists while a gesture does. Fed by whichever tool owns
+   * the gesture - the gizmo, or the draw tool (#125); only one of the two can
+   * hold one at a time, because there is one pointer.
    */
   gesture: GestureView | null = null;
+
+  /** What each producer last published - the panel shows whichever is running. */
+  private gizmoView: GestureView | null = null;
+  private drawView: GestureView | null = null;
 
   /** What is in each field, as text - the user's, not the model's. */
   values: Partial<Record<GestureKey, string>> = {};
@@ -114,6 +121,15 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     const side = this.viewCubeService.pickSide();
     if (side) {
       this.viewCubeService.zoomToSide(side);
+      return;
+    }
+
+    // While the draw tool runs, the left button is its (#125): a click is a
+    // step of the gesture, not a pick. Ctrl held at the press latches the
+    // snap suspension for the rest of the operation (ADR-0011).
+    if (this.drawTool.active) {
+      this.drawTool.setSnapSuspended(event.ctrlKey);
+      this.pointerDownAt = { x: event.clientX, y: event.clientY };
       return;
     }
 
@@ -170,6 +186,12 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!downAt || !this.babylonService.scene) return;
     if (Math.hypot(event.clientX - downAt.x, event.clientY - downAt.y) > CLICK_SLOP) return;
 
+    // The draw tool takes the click as one step of its gesture (#125)
+    if (this.drawTool.active) {
+      this.drawTool.click(this.pickingRay());
+      return;
+    }
+
     // A drag that stayed within the slop is still a drag, not a click
     if (this.gizmo.isDragging) return;
 
@@ -199,6 +221,15 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
       this.hoverQueued = false;
       // The pointer can have left, or the view been torn down, since the move
       if (this.destroyed || !this.babylonService.scene) { return; }
+
+      // The draw tool follows the pointer instead of the hover: a highlight
+      // chasing the cursor under a gesture would be noise, and what the cursor
+      // means now is where the next corner lands (#125)
+      if (this.drawTool.active) {
+        this.drawTool.track(this.pickingRay());
+        return;
+      }
+
       this.picking.hover(this.pickingRay());
       // The cube lights its own part from here - its ActionManager hover died
       // with tuneForStaticScene(), which stopped Babylon picking on every move
@@ -243,21 +274,32 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     // keydown, and every other key pressed while ctrl is down carries
     // ctrlKey too - neither is the fresh press ADR-0011 means. What a held
     // ctrl does to the NEXT gesture is decided at the grab, in
-    // GizmoService.begin().
-    if (event.key === 'Control' && !event.repeat) { this.gizmo.setSnapSuspended(true); }
+    // GizmoService.begin(). The latch belongs to whichever tool owns the
+    // gesture - the draw tool while it is on, the gizmo otherwise (#125).
+    if (event.key === 'Control' && !event.repeat) { this.gestureOwner.setSnapSuspended(true); }
 
     // Layered as AutoCAD layers it (CONTEXT.md, "Escape (warstwowo)"): a
-    // running gesture goes first; with none running, the selection is dropped
-    // wherever it is owned (ADR-0004) - exactly like a click on empty space.
-    // Not while typing in a host form field, where Escape means the field.
+    // running gesture goes first - the draw tool's covers all of its steps -
+    // and with none running, the selection is dropped wherever it is owned
+    // (ADR-0004), exactly like a click on empty space. Not while typing in a
+    // host form field, where Escape means the field.
     if (event.key === 'Escape') {
-      if (this.gizmo.isDragging) { this.gizmo.cancel(); }
+      if (this.drawTool.active) { this.drawTool.cancel(); }
+      else if (this.gizmo.isDragging) { this.gizmo.cancel(); }
       else if (!SmokeviewComponent.isFormField(event.target)) { this.picking.dropSelection(); }
       return;
     }
 
     if (this.handleNudgeKey(event)) { return; }
     if (this.gesture) { this.routeGestureKey(event); }
+  }
+
+  /**
+   * Who the keyboard is talking to: the draw tool while it is on, the gizmo
+   * otherwise. One pointer, so never both at once.
+   */
+  private get gestureOwner(): GizmoService | DrawToolService {
+    return this.drawTool.active ? this.drawTool : this.gizmo;
   }
 
   /**
@@ -316,7 +358,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (event.key === 'Enter') {
       event.preventDefault();
-      this.gizmo.commit();
+      this.gestureOwner.commit();
       return;
     }
 
@@ -324,7 +366,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
       // The panel floats over a canvas; the next thing in the document order
       // is not the next field
       event.preventDefault();
-      this.gizmo.nextField();
+      this.gestureOwner.nextField();
       return;
     }
 
@@ -353,7 +395,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
       this.editing.add(key);
     }
     this.values[key] = text;
-    this.gizmo.type(key, text);
+    this.gestureOwner.type(key, text);
   }
 
   /** Releasing ctrl asks for snapping back; a nudge burst settles here too. */
@@ -361,7 +403,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   onKeyUp(event: KeyboardEvent): void {
     this.gizmo.setCtrlHeld(event.ctrlKey);
     // Mid-gesture the latch says no (ADR-0011)
-    if (event.key === 'Control') { this.gizmo.setSnapSuspended(false); }
+    if (event.key === 'Control') { this.gestureOwner.setSnapSuspended(false); }
 
     // The nudge burst settles when the last of its keys comes up
     if (this.nudgeKeys.delete(event.key) && this.nudgeKeys.size === 0) {
@@ -377,7 +419,9 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /** Show what the gesture is doing, without stepping on what is being typed. */
-  private onGesture(view: GestureView | null): void {
+  private onGesture(): void {
+    // Two producers, one panel: whichever holds a gesture is the one showing
+    const view = this.drawView ?? this.gizmoView;
     this.gesture = view;
 
     if (!view) {
@@ -413,6 +457,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private sceneSub: Subscription;
   private gestureSub: Subscription;
+  private drawGestureSub: Subscription;
 
   /** Set in ngOnDestroy - createScene() is awaited and can outlive the view. */
   private destroyed = false;
@@ -441,6 +486,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     public viewCubeService: ViewCubeService,
     private sceneBounds: SceneBoundsService,
     private gizmo: GizmoService,
+    private drawTool: DrawToolService,
     private zone: NgZone
   ) { }
 
@@ -461,7 +507,9 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     // runs outside the zone (see BabylonService.animate) - so the panel is
     // brought back into it rather than trusting the frame to do it.
     this.gestureSub = this.gizmo.gesture$.subscribe(view =>
-      this.zone.run(() => this.onGesture(view)));
+      this.zone.run(() => { this.gizmoView = view; this.onGesture(); }));
+    this.drawGestureSub = this.drawTool.gesture$.subscribe(view =>
+      this.zone.run(() => { this.drawView = view; this.onGesture(); }));
   }
 
   async ngAfterViewInit() {
@@ -502,6 +550,9 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     if (this.gestureSub) {
       this.gestureSub.unsubscribe();
+    }
+    if (this.drawGestureSub) {
+      this.drawGestureSub.unsubscribe();
     }
     // Tears down scene and engine, and resets every scene-scoped service
     this.babylonService.disposeScene();

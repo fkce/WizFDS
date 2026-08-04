@@ -89,6 +89,44 @@ describe('GestureInput - a move', () => {
   });
 });
 
+/** The panel the draw gesture's first step shows - a corner, absolutely (#125). */
+describe('GestureInput - a point', () => {
+
+  it('offers the three coordinates, as absolute positions', () => {
+    const input = GestureInput.forPoint();
+
+    expect(input.fields.map(field => field.key)).toEqual(['x', 'y', 'z']);
+    expect(input.fields.map(field => field.label)).toEqual(['X', 'Y', 'Z']);
+  });
+
+  it('lets a typed coordinate take over from the mouse', () => {
+    const input = GestureInput.forPoint();
+
+    input.type('z', '1.4');
+    input.setLive({ x: 2, y: 3, z: 0 });
+
+    expect(input.resolved).toEqual({ x: 2, y: 3, z: 1.4 });
+  });
+});
+
+/** The same panel, confined to the axes a draw step is free on (#125). */
+describe('GestureInput - chosen axes', () => {
+
+  it('offers a delta per given axis, in the given order', () => {
+    // A base drawn on a wall is free on y and z; the wall's own axis is not a field
+    const input = GestureInput.forAxes(['y', 'z']);
+
+    expect(input.fields.map(field => field.key)).toEqual(['dy', 'dz']);
+    expect(input.fields.map(field => field.label)).toEqual(['dY', 'dZ']);
+  });
+
+  it('is the move panel when given all three', () => {
+    const input = GestureInput.forAxes(['x', 'y', 'z']);
+
+    expect(input.fields.map(field => field.key)).toEqual(['dx', 'dy', 'dz']);
+  });
+});
+
 /** The same panel, for the one coordinate a face handle drags. */
 describe('GestureInput - a face drag', () => {
 
