@@ -18,6 +18,8 @@
 | **webSmokeview** (viewer 3D) | — | **nie deployowany osobno** | wbudowany w `wizfds` przez `web-smokeview-lib` (import ze źródeł) |
 | **backend PHP** | — (nie budowany) | symlinki → `git/WizFDS/wizfds/projects/wizfds/backend/` | **`git pull`** w `/home/dkubera/git/WizFDS/` |
 
+**Wersja PHP:** app.wizfds.com działa na **PHP 8.2** (od 2026-08-04; pierwsza linia `public_html/app/.htaccess` → `AddHandler application/x-httpd-php82 php`). Rollback to ta jedna linia — kopia sprzed przełączenia leży obok jako `.htaccess.php74-<data>`. Rozszerzenia `pgsql` i `pdo_pgsql` są włączone dla 8.2 w panelu (sterowniki PDO: mysql, pgsql, sqlite); backend mimo to zostaje na `pg_*` — patrz ADR-0014. Instancja legacy zostaje na 7.4.
+
 **Instancja legacy: `https://wizfds.com`** — zamrożona (frontend `0.7.1` w `public_html/view/`, backend-klon `/home/dkubera/svn/WizFDS/` na `905121f`, landing `welcome/` z 2019). **Nie ruszamy jej** — ani plików, ani klonu; procedura archiwalna w Części C.
 
 **Serwer:** `s156.cyber-folks.pl:222` · user `dkubera` · alias SSH **`wizfds`** (w `~/.ssh/config` w WSL) · logowanie kluczem.
@@ -135,7 +137,7 @@ Asercje przed pull: gałąź `master`, working tree czysty (`git status -sb` bez
 
 **Jeśli zmienił się `wizfds/projects/wizfds/backend/.htaccess`** — zregeneruj plik w docroot (jest kopią, nie symlinkiem, bo dokleja serwerowy `AddHandler`):
 ```bash
-ssh wizfds 'BE=/home/dkubera/git/WizFDS/wizfds/projects/wizfds/backend; { echo "AddHandler application/x-httpd-php74 php"; cat "$BE/.htaccess"; } > /home/dkubera/domains/wizfds.com/public_html/app/.htaccess'
+ssh wizfds 'BE=/home/dkubera/git/WizFDS/wizfds/projects/wizfds/backend; { echo "AddHandler application/x-httpd-php82 php"; cat "$BE/.htaccess"; } > /home/dkubera/domains/wizfds.com/public_html/app/.htaccess'
 ```
 
 ### B3. Rollback
@@ -177,19 +179,13 @@ php $BE/db/migrate.php --dry-run                              # co by weszło
 php $BE/db/migrate.php                                        # wykonanie
 ```
 
-Runner woła `psql` (nie `pg_*`), bo rozszerzenie `pgsql` jest na tym hostingu tylko w PHP 7.4. Zastosowane migracje śledzi tabela `schema_migrations`. **Baza jest wspólna dla obu instancji** — dopóki wizfds.com żyje, migracje muszą być wsteczne (dodawanie kolumn/tabel tak, usuwanie i zmiany nazw nie).
+Runner woła `psql` (nie `pg_*`), żeby nie zależeć od tego, które PHP rozwiąże powłoka i jakie ma rozszerzenia. Zastosowane migracje śledzi tabela `schema_migrations`. **Baza jest wspólna dla obu instancji** — dopóki wizfds.com żyje, migracje muszą być wsteczne (dodawanie kolumn/tabel tak, usuwanie i zmiany nazw nie).
 
 ---
 
 ## Known issues / do weryfikacji
 
-1. ⚠️ **PHP 8.2 zablokowane brakiem rozszerzenia `pgsql`.** Warstwa web stoi na 7.4.33 (koniec wsparcia: listopad 2022), bo handler `application/x-httpd-php82` działa (sonda: `8.2.31`), ale **nie ma załadowanego `pgsql`** — po przełączeniu każde `pg_connect()` padłoby i backend przestałby działać w całości. Moduły `/opt/alt/php82/usr/lib64/php/modules/pgsql.so` i `pdo_pgsql.so` **są zainstalowane**, brakuje tylko wpisu w `/opt/alt/php82/etc/php.d/`. **Do zrobienia:** w panelu cyber-folks (wybór wersji PHP → rozszerzenia) włączyć `pgsql` dla PHP 8.2 na tym koncie, albo poprosić o to support. Potem: zmienić pierwszą linię `public_html/app/.htaccess` na `AddHandler application/x-httpd-php82 php`, uruchomić `backend/tests/smoke.sh` i przy jakimkolwiek błędzie wrócić do `php74` (rollback = jedna linia).
-   Weryfikacja przed przełączeniem — sonda w izolowanym katalogu (usuń ją zaraz po):
-   ```bash
-   mkdir -p app/zz-probe && printf 'AddHandler application/x-httpd-php82 php\n' > app/zz-probe/.htaccess
-   printf '<?php echo PHP_VERSION, " pgsql=", extension_loaded("pgsql") ? "tak" : "NIE";' > app/zz-probe/probe.php
-   curl -s https://app.wizfds.com/zz-probe/probe.php; rm -rf app/zz-probe
-   ```
+1. **POST bez ciała żądania dostaje 406 od WAF hostingu**, zanim dotrze do PHP — z komunikatem „Połączenie zablokowane". Dotyczy obu instancji i nie ma związku z naszym kodem (aplikacja zawsze wysyła `{}`). Przy diagnostyce `curl`-em zawsze dodawaj `-d '{}'` do POST-ów, inaczej zdiagnozujesz cudzą regułę.
 2. **reCAPTCHA na app.wizfds.com** — klucz w `config.php` jest przypisany do domeny wizfds.com; rejestracja nowych kont na subdomenie może odrzucać captchę, dopóki `app.wizfds.com` nie zostanie dopisana w konsoli Google reCAPTCHA. Do tego czasu rejestracja pozostaje na wizfds.com.
 3. **Wspólna baza obu instancji** — zmiany w projektach zrobione na app.wizfds.com widzi też wizfds.com (i odwrotnie). Zamierzone; pamiętaj przy testach na żywych danych.
 4. **Backend legacy na wizfds.com jest przestarzały** (klon na `905121f`, era Angular 13) względem frontendu `view/` (0.7.1 z mastera 2026-02). Świadomie zamrożone — nie „naprawiać" pullem, bo nowszy backend zmienia zachowanie (`logout`, layout-agnostyczne `getIndex`).

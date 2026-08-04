@@ -15,6 +15,7 @@ define('WIZFDS_MIN_PASSWORD_LENGTH', 10);
 define('WIZFDS_ATTEMPT_WINDOW_MINUTES', 15);
 define('WIZFDS_MAX_FAILURES_PER_EMAIL', 5);
 define('WIZFDS_MAX_FAILURES_PER_IP', 30);
+define('WIZFDS_THROTTLE_STEP_SECONDS', 1);
 
 define('WIZFDS_RESET_TTL_MINUTES', 60);
 define('WIZFDS_MAX_RESETS_PER_EMAIL', 3);
@@ -32,7 +33,7 @@ function wizfds_client_ip() {
 # with bcrypt.
 #
 # $email must be the address AS STORED, because it selects the secret's file.
-function wizfds_password_hash($config, $email, $password, $salt) {
+function wizfds_password_material($config, $email, $password, $salt) {
 	$stringToHash = $config->getAppSecret($email) . $password . $salt;
 	$intermediate = hash('sha512', $stringToHash);
 
@@ -46,11 +47,11 @@ function wizfds_password_hash($config, $email, $password, $salt) {
 }
 
 function wizfds_password_verify($config, $email, $password, $salt, $storedHash) {
-	return password_verify(wizfds_password_hash($config, $email, $password, $salt), $storedHash);
+	return password_verify(wizfds_password_material($config, $email, $password, $salt), $storedHash);
 }
 
 function wizfds_password_make($config, $email, $password, $salt) {
-	return password_hash(wizfds_password_hash($config, $email, $password, $salt), PASSWORD_BCRYPT);
+	return password_hash(wizfds_password_material($config, $email, $password, $salt), PASSWORD_BCRYPT);
 }
 
 function wizfds_new_salt() {
@@ -83,12 +84,23 @@ function wizfds_record_attempt($db, $kind, $identifier, $successful) {
 	}
 }
 
-function wizfds_failures($db, $kind, $column, $value) {
+function wizfds_failures_for_email($db, $email) {
 	$result = $db->pg_read(
 		"select count(*) as n from auth_attempts
-		  where kind = $1 and successful = false and $column = $2
-		    and created > current_timestamp - (" . (int) WIZFDS_ATTEMPT_WINDOW_MINUTES . " || ' minutes')::interval",
-		array($kind, $value)
+		  where kind = 'login' and successful = false and identifier = $1
+		    and created > current_timestamp - ($2 || ' minutes')::interval",
+		array(strtolower(trim($email)), WIZFDS_ATTEMPT_WINDOW_MINUTES)
+	);
+
+	return empty($result) ? 0 : (int) $result[0]['n'];
+}
+
+function wizfds_failures_for_ip($db) {
+	$result = $db->pg_read(
+		"select count(*) as n from auth_attempts
+		  where kind = 'login' and successful = false and ip = $1
+		    and created > current_timestamp - ($2 || ' minutes')::interval",
+		array(wizfds_client_ip(), WIZFDS_ATTEMPT_WINDOW_MINUTES)
 	);
 
 	return empty($result) ? 0 : (int) $result[0]['n'];
@@ -96,12 +108,23 @@ function wizfds_failures($db, $kind, $column, $value) {
 
 # True when this address (or this host) has spent its guessing budget.
 function wizfds_login_blocked($db, $email) {
-	$byEmail = wizfds_failures($db, 'login', 'identifier', strtolower(trim($email)));
-	if ($byEmail >= WIZFDS_MAX_FAILURES_PER_EMAIL) {
+	if (wizfds_failures_for_email($db, $email) >= WIZFDS_MAX_FAILURES_PER_EMAIL) {
 		return true;
 	}
 
-	return wizfds_failures($db, 'login', 'ip', wizfds_client_ip()) >= WIZFDS_MAX_FAILURES_PER_IP;
+	return wizfds_failures_for_ip($db) >= WIZFDS_MAX_FAILURES_PER_IP;
+}
+
+# Each failure makes the next attempt slower, so the five allowed guesses are not
+# five *fast* guesses - the cliff alone would let a script spend the whole budget
+# in a few milliseconds, and concurrent requests could all read the counter
+# before any of them recorded a failure.
+function wizfds_throttle_delay($failures) {
+	if ($failures <= 0) {
+		return 0;
+	}
+
+	return min($failures, WIZFDS_MAX_FAILURES_PER_EMAIL) * WIZFDS_THROTTLE_STEP_SECONDS;
 }
 
 # A password that turned out to be right clears the budget, so a user who
@@ -139,9 +162,9 @@ function wizfds_create_reset_token($db, $userId) {
 
 	$db->pg_create(
 		"insert into password_resets (user_id, token_hash, expires_at)
-		 values ($1, $2, current_timestamp + (" . (int) WIZFDS_RESET_TTL_MINUTES . " || ' minutes')::interval)
+		 values ($1, $2, current_timestamp + ($3 || ' minutes')::interval)
 		 returning id",
-		array($userId, hash('sha256', $token))
+		array($userId, hash('sha256', $token), WIZFDS_RESET_TTL_MINUTES)
 	);
 
 	return $token;
@@ -165,6 +188,22 @@ function wizfds_reset_token_user($db, $token) {
 	return empty($result) ? null : $result[0];
 }
 
-function wizfds_burn_reset_token($db, $resetId) {
+# Burning the token and invalidating older sessions belong together: the point of
+# a reset is that whoever knew the old password stops having access. Sessions
+# carry the moment they were issued and are dropped when they predate this stamp.
+function wizfds_burn_reset_token($db, $resetId, $userId) {
 	$db->pg_change("update password_resets set used_at = current_timestamp where id = $1", array($resetId));
+	$db->pg_change("update users set sessions_valid_from = current_timestamp where id = $1", array($userId));
+}
+
+# True when the session in hand was issued before the account's sessions were
+# invalidated (password reset). Called on every request that carries a session.
+function wizfds_session_outdated($validFrom) {
+	if ($validFrom === null || $validFrom === '') {
+		return false;
+	}
+
+	$issuedAt = isset($_SESSION['issued_at']) ? (int) $_SESSION['issued_at'] : 0;
+
+	return $issuedAt < strtotime($validFrom);
 }

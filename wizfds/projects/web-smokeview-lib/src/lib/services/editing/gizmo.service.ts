@@ -25,9 +25,12 @@ export type GizmoMode = 'move' | 'resize';
  *
  * A snapshot rather than the machinery: the overlay reads numbers and a
  * position and knows nothing about drag behaviours or snap candidates.
+ *
+ * Shared with the draw tool (#125), which is the other producer of gestures -
+ * the overlay is one panel however many tools feed it.
  */
 export interface GestureView {
-    readonly kind: GizmoMode,
+    readonly kind: GizmoMode | 'draw',
     readonly fields: readonly GestureField[],
     /** Which field the keyboard is in - what the panel focuses. */
     readonly activeKey: GestureKey,

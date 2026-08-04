@@ -38,7 +38,7 @@ function brandHeader($subtitle = '') {
 
 function loginForm() {
 	echo "
-	<form method='post' action=".$_SERVER['REQUEST_URI'].">
+	<form method='post' action='" . htmlspecialchars($_SERVER['REQUEST_URI'], ENT_QUOTES) . "'>
 	<div class='login'>
 		". brandHeader('GUI for Fire Dynamics Simulator') ."
 		<div class='fields'>
@@ -58,7 +58,7 @@ function loginForm() {
 function registerForm() {
 	$config = new Config();
 	echo "
-	<form method='post' action=".$_SERVER['REQUEST_URI'].">
+	<form method='post' action='" . htmlspecialchars($_SERVER['REQUEST_URI'], ENT_QUOTES) . "'>
 		<div class='register'>
 			". brandHeader() ."
 			<div class='form-title'>Register new user</div>
@@ -136,12 +136,18 @@ function check() {
 		return;
 	}
 
-	# Guessing budget spent: refuse before touching the password at all, so the
-	# answer costs an attacker the same whether or not the account exists.
+	# Guessing budget spent: refuse before touching the password at all.
 	if (wizfds_login_blocked($db, $email)) {
 		wizfds_log('warning', 'login blocked by rate limit', array('identifier' => strtolower($email)));
 		loginError('Too many attempts. Please wait ' . WIZFDS_ATTEMPT_WINDOW_MINUTES . ' minutes and try again.');
 		return;
+	}
+
+	# Still inside the budget, but each previous failure makes this attempt
+	# slower - five allowed guesses should not be five instant ones.
+	$delay = wizfds_throttle_delay(wizfds_failures_for_email($db, $email));
+	if ($delay > 0) {
+		sleep($delay);
 	}
 
 	# Addresses are unique regardless of case (migration 004), so match the same
@@ -166,6 +172,9 @@ function check() {
 			$_SESSION['user_id'] = $user['id'];
 			$_SESSION['email'] = $user['email'];
 			$_SESSION['editor'] = $user['editor'];
+			# Stamped so a later password reset can tell this session apart from
+			# one issued after it (lib/auth.php: wizfds_session_outdated).
+			$_SESSION['issued_at'] = time();
 
 			wizfds_log('info', 'login succeeded', array('login_user_id' => $user['id']));
 
@@ -211,6 +220,7 @@ function makeRegister() {
 	$password2 = isset($_POST['password2']) ? $_POST['password2'] : '';
 
 	if ($email === '' || $password === '') {
+		loginError('E-mail and password are required.');
 		return false;
 	}
 
@@ -344,12 +354,21 @@ function makeResetPassword() {
 		return;
 	}
 
+	# The application secret lives in the account's directory; registration
+	# creates it, but an account whose directory went missing would otherwise get
+	# a secret-less hash written here without a word.
+	if (!wizfds_ensure_dir(wizfds_user_dir($config, $user['email']))) {
+		wizfds_log('error', 'user directory unavailable during password reset', array('login_user_id' => $user['id']));
+		loginError('Something went wrong. Please try again later.');
+		return;
+	}
+
 	# A fresh salt, so the new password shares nothing with the old one.
 	$salt = wizfds_new_salt();
 	$hash = wizfds_password_make($config, $user['email'], $password, $salt);
 
-	$db->pg_change("update users set password = $1, salt = $2, session_id = '' where id = $3", array($hash, $salt, $user['id']));
-	wizfds_burn_reset_token($db, $user['reset_id']);
+	$db->pg_change("update users set password = $1, salt = $2 where id = $3", array($hash, $salt, $user['id']));
+	wizfds_burn_reset_token($db, $user['reset_id'], $user['id']);
 	wizfds_clear_failures($db, $user['email']);
 
 	wizfds_log('info', 'password reset completed', array('login_user_id' => $user['id']));
@@ -404,11 +423,16 @@ if(!isset($_SESSION['email'])) {
 	else if(isset($_REQUEST['wizfdsReset'])) { resetRequestForm(); }
 	else {
 		if(isset($_REQUEST['check'])) { check(); }
-		# Signing the new account straight in, as before - but only when the
-		# registration actually went through, so a rejected sign-up no longer
-		# collects an "invalid e-mail or password" on top of its own message.
-		if(isset($_REQUEST['makeRegister']) && makeRegister()) { check(); }
-		if(isset($_REQUEST['addUserShowForm'])) { registerForm(); }
+
+		if(isset($_REQUEST['makeRegister'])) {
+			# Sign the new account straight in, as before - but only when the
+			# registration went through. A rejected sign-up stays on its own form
+			# with its own message, instead of dropping the visitor onto the login
+			# box with everything they typed gone.
+			if(makeRegister()) { check(); loginForm(); }
+			else { registerForm(); }
+		}
+		else if(isset($_REQUEST['addUserShowForm'])) { registerForm(); }
 		else { loginForm(); }
 	}
 
