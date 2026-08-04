@@ -543,6 +543,10 @@ export class ObstService implements SceneScoped, ObstScene {
         // Only the caps cull: they draw the inward-facing triangles a clipping
         // plane exposes, and the solid materials have to show both sides.
         const isCap = material === instancedCap || material === ownCap;
+        // The obst fragment multiplies by fillAlpha for the region layers'
+        // edges state; an unwritten uniform reads as zero, which would draw no
+        // obst at all. The caps carry a fragment of their own without it.
+        if (!isCap) { material.setFloat('fillAlpha', 1.0); }
         material.backFaceCulling = isCap;
         // A cap sits on exactly the same triangles as the surface it fills, so
         // without this the two z-fight and the cap's red bleeds through the

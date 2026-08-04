@@ -3,6 +3,7 @@ import * as BABYLON from 'babylonjs';
 import { BabylonService } from '../babylon/babylon.service';
 import { SceneAxis, SceneBoundsService } from '../scene-bounds/scene-bounds.service';
 import { ClippedMaterial } from './clipped-material';
+import { SceneLayerState } from './layer-visibility.service';
 
 /** A mesh drawn through a layer, and the colour it is outlined in. */
 export interface OutlinedMesh {
@@ -77,6 +78,12 @@ export class ClippedPlaneLayer {
   /** The material every batch of this layer shares. */
   public get material(): BABYLON.ShaderMaterial {
     return this.clipped.material;
+  }
+
+  /** The state, in the three words the rest of the system speaks. */
+  public state(): SceneLayerState {
+    if (this.visibility === EDGES_ONLY) { return 'edges'; }
+    return this.visibility === EDGES_AND_FILL ? 'filled' : 'hidden';
   }
 
   /** Where a clipping plane currently stands, in FDS metres. */

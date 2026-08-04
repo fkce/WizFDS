@@ -151,6 +151,43 @@ describe('RegionLayer', () => {
 
       expect(layer.mesh.isEnabled()).toBeFalse();
     });
+
+    it('turns the wheel every three-state layer turns: filled → hidden → edges', async () => {
+      // Started filled, so the scene looks as it always has when a scenario
+      // loads; the button then walks the same cycle as the plane layers.
+      await layer.render([region('A', { x1: 0, x2: 1, y1: 0, y2: 1, z1: 0, z2: 1 })]);
+      expect(layer.state()).toBe('filled');
+
+      layer.toggleVisibility();
+      expect(layer.state()).toBe('hidden');
+
+      layer.toggleVisibility();
+      expect(layer.state()).toBe('edges');
+
+      layer.toggleVisibility();
+      expect(layer.state()).toBe('filled');
+    });
+
+    it('keeps the boxes on screen in the edges state - only the fill goes', async () => {
+      await layer.render([region('A', { x1: 0, x2: 1, y1: 0, y2: 1, z1: 0, z2: 1 })]);
+
+      layer.toggleVisibility();
+      layer.toggleVisibility();
+
+      expect(layer.state()).toBe('edges');
+      expect(layer.visible).toBeTrue();
+      expect(layer.mesh.isEnabled()).toBeTrue();
+      expect(layer.mesh.edgesWidth).toBe(bounds.edgeWidth);
+    });
+
+    it('starts the next scene filled again', async () => {
+      await layer.render([region('A', { x1: 0, x2: 1, y1: 0, y2: 1, z1: 0, z2: 1 })]);
+      layer.toggleVisibility();
+
+      layer.resetSceneState();
+
+      expect(layer.state()).toBe('filled');
+    });
   });
 
   describe('clipping', () => {

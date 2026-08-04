@@ -65,6 +65,15 @@ function rayOverhead(): BABYLON.Ray {
   return new BABYLON.Ray(new BABYLON.Vector3(-5, 3, 50), new BABYLON.Vector3(1, 0, 0), 100);
 }
 
+/**
+ * A ray skimming the domain's floor, so it meets the near face of the DOMAIN
+ * box within the edge-pick tolerance of its bottom edge. The scene under test
+ * has no camera, so the tolerance is the fixed fallback of a few centimetres.
+ */
+function rayNearMeshEdge(): BABYLON.Ray {
+  return new BABYLON.Ray(new BABYLON.Vector3(-5, 3, 0.03), new BABYLON.Vector3(1, 0, 0), 100);
+}
+
 describe('PickService', () => {
   let picking: PickService;
   let obsts: ObstService;
@@ -199,10 +208,13 @@ describe('PickService', () => {
     });
 
     it('picks a &MESH - what was obst-only before #121', () => {
+      // At its edge: a &MESH starts in the edges state, and an edges-only
+      // layer answers the cursor only at its outline (CONTEXT.md, "Reguła
+      // wskazywania").
       meshes.meshes = [makeMesh('MESH1', DOMAIN)];
       meshes.renderMeshes();
 
-      picking.pick(rayAlongX());
+      picking.pick(rayNearMeshEdge());
 
       expect(picking.lastSelected.type).toBe('mesh');
       expect(picking.lastSelected.id).toBe('MESH1');
@@ -266,6 +278,106 @@ describe('PickService', () => {
       picking.pick(rayBackAlongX());
 
       expect(picking.lastSelected.type).toBe('init');
+    });
+  });
+
+  describe('what the layer buttons hide', () => {
+    // The cursor only sees what the user can (CONTEXT.md, "Reguła
+    // wskazywania"): hidden answers nothing, edges answers at the outline.
+
+    it('ignores the middle of a layer drawn as edges', () => {
+      // The &MESH starts as edges, and this ray crosses its face over a metre
+      // from any edge - what a click there means is whatever is behind
+      meshes.meshes = [makeMesh('MESH1', DOMAIN)];
+      meshes.renderMeshes();
+
+      picking.pick(rayAlongX());
+
+      expect(picking.lastSelected).toBeUndefined();
+    });
+
+    it('picks a filled layer anywhere on its face', () => {
+      meshes.meshes = [makeMesh('MESH1', DOMAIN)];
+      meshes.renderMeshes();
+      meshes.visibility = 2;
+
+      picking.pick(rayAlongX());
+
+      expect(picking.lastSelected.id).toBe('MESH1');
+    });
+
+    it('refuses a hidden layer even at its edge', () => {
+      meshes.meshes = [makeMesh('MESH1', DOMAIN)];
+      meshes.renderMeshes();
+      meshes.visibility = 0;
+
+      picking.pick(rayNearMeshEdge());
+
+      expect(picking.lastSelected).toBeUndefined();
+    });
+
+    it('refuses a hidden region, which yielding alone would still have picked', async () => {
+      // Nothing solid behind it, so before the layer rule this pick was the
+      // region's - see "still picks the region where nothing solid is behind it"
+      inits.inits = [makeInit('HOT', { x1: 2, x2: 4, y1: 2, y2: 4, z1: 1, z2: 2 })];
+      await inits.renderInits();
+      inits.toggleVisibility();
+
+      picking.pick(rayAlongX());
+
+      expect(picking.lastSelected).toBeUndefined();
+    });
+
+    it('answers an edges-only region at its outline', async () => {
+      inits.inits = [makeInit('HOT', { x1: 2, x2: 4, y1: 2, y2: 4, z1: 1, z2: 2 })];
+      await inits.renderInits();
+      // filled → hidden → edges
+      inits.toggleVisibility();
+      inits.toggleVisibility();
+
+      // Meets the region's near face 3 cm above its bottom edge at z = 1
+      picking.pick(new BABYLON.Ray(
+        new BABYLON.Vector3(-5, 3, 1.03), new BABYLON.Vector3(1, 0, 0), 100));
+
+      expect(picking.lastSelected.type).toBe('init');
+    });
+
+    it('reads the pointer coordinate off what is actually seen', () => {
+      // Over a hidden layer the pointer is over nothing: no element, no
+      // coordinate - the status bar goes quiet rather than naming a ghost
+      meshes.meshes = [makeMesh('MESH1', DOMAIN)];
+      meshes.renderMeshes();
+      meshes.visibility = 0;
+
+      picking.hover(rayAlongX());
+
+      let at: unknown = 'unset';
+      picking.pointerAt$.subscribe(point => at = point).unsubscribe();
+      expect(picking.hovered).toBeUndefined();
+      expect(at).toBeNull();
+    });
+  });
+
+  describe('dropping the selection outright - the Escape route', () => {
+    it('clears what is selected and says so, like a click on empty space', () => {
+      render([makeObst('W', WEST)]);
+      picking.pick(rayAlongX());
+      const seen: ScenePicked[] = [];
+      picking.picked$.subscribe(pick => seen.push(pick));
+
+      picking.dropSelection();
+
+      expect(picking.selected).toEqual([]);
+      expect(seen).toEqual([{ element: undefined, add: false }]);
+    });
+
+    it('takes the hover outline with it', () => {
+      render([makeObst('W', WEST)]);
+      picking.hover(rayAlongX());
+
+      picking.dropSelection();
+
+      expect(picking.hovered).toBeUndefined();
     });
   });
 

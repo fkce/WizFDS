@@ -8,6 +8,7 @@ import { SceneRegistryService } from '../../babylon/scene-registry.service';
 import { SceneAxis, SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 import { SceneInit } from '../scene-input';
 import { RegionLayer } from '../region-layer';
+import { LayerVisibilityService } from '../layer-visibility.service';
 
 /**
  * Draws the &INITs of a scenario - the regions that start in a state other than
@@ -32,12 +33,14 @@ export class InitService implements SceneScoped {
     helpersService: HelpersService,
     sceneBounds: SceneBoundsService,
     sceneRegistry: SceneRegistryService,
-    sceneLifecycle: SceneLifecycleService
+    sceneLifecycle: SceneLifecycleService,
+    layerVisibility: LayerVisibilityService
   ) {
     sceneLifecycle.register(this);
     this.layer = new RegionLayer(
       { poolName: 'inits', materialName: 'initShader', type: 'init' },
       babylonService, helpersService, sceneBounds, sceneRegistry, 'InitService');
+    layerVisibility.bind('init', () => this.layer.state());
   }
 
   /** The base box the &INITs are drawn from, once any have been. */

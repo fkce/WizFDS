@@ -18,7 +18,16 @@ export interface ClippedMaterialStyle {
    * A plane sits on the face of the body it belongs to, so at equal depth the
    * two z-fight. How far depends on what it sits on, hence per style.
    */
-  readonly zOffset?: number
+  readonly zOffset?: number,
+  /**
+   * Uniforms the shader must never see unset.
+   *
+   * A WGSL uniform nobody writes reads as zero, and zero is the wrong default
+   * for a multiplier like `fillAlpha` - it would draw nothing. Applied on
+   * construction and again after a scene reset, which is the moment the
+   * remembered uniforms are dropped.
+   */
+  readonly defaults?: Readonly<Record<string, number>>
 }
 
 /**
@@ -62,6 +71,7 @@ export class ClippedMaterial {
     private readonly owner: string
   ) {
     this.resetClipping();
+    this.applyDefaults();
   }
 
   /**
@@ -144,6 +154,12 @@ export class ClippedMaterial {
     this.meshes = [];
     this.uniforms.clear();
     this.resetClipping();
+    this.applyDefaults();
+  }
+
+  private applyDefaults(): void {
+    Object.entries(this.style.defaults ?? {})
+      .forEach(([name, value]) => this.setUniform(name, value));
   }
 
   private applyToMeshes(): void {

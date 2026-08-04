@@ -53,6 +53,42 @@ Panel liczb jadący z kursorem podczas gestu; cyfry przejmują pole od myszy,
 Tab przechodzi między polami, Enter zatwierdza.
 _Avoid_: panel współrzędnych, HUD
 
+### Widoczność warstw i wskazywanie
+
+**Warstwa**:
+Typ elementów sceny pokazywany i ukrywany w całości z panelu Visibility
+(MESH, OPEN, HOLE, VENT, FIRE, DEVC, GEOM, INIT, ZONE).
+_Avoid_: grupa, kategoria elementów
+
+**Stany warstwy (edges / filled / hidden)**:
+Cykl przycisku widoczności: sam obrys → obrys z wypełnieniem → nic;
+w tej kolejności. MESH, OPEN, HOLE, VENT, FIRE, INIT i ZONE są trójstanowe;
+DEVC i GEOM mają tylko filled/hidden. Warstwy regionów (HOLE, INIT, ZONE)
+startują w filled, pozostałe trójstanowe w edges.
+_Avoid_: włączona/wyłączona (gubi stan pośredni)
+
+**Reguła wskazywania**:
+Kursor widzi tylko to, co widać. Warstwa hidden nie odpowiada na hover ani
+klik — promień leci dalej. W stanie edges element łapie się wyłącznie przy
+krawędzi obrysu (tolerancja ekranowa, niezależna od zoomu); w filled — całą
+powierzchnią. Współrzędna paska stanu pochodzi z faktycznie trafionego
+elementu. Ukrycie warstwy nie rusza istniejącego zaznaczenia ani jego
+podświetlenia.
+_Avoid_: pickowalność ukrytych elementów
+
+**Reguła ustępowania**:
+Typy obejmujące (MESH, INIT, ZONE) oddają pick temu, co solidne stoi za nimi
+na linii promienia — klik w ścianę przez domenę trafia ścianę. Obowiązuje
+także przy trafieniu w krawędź: krawędź MESH nie bije ściany, która na niej
+leży.
+_Avoid_: priorytet picku (opisowo)
+
+**Escape (warstwowo)**:
+Trwa gest → przerywa gest. Gestu nie ma → czyści zaznaczenie w aplikacji,
+tak jak klik w pustkę. Przy okazji zdejmuje obrys hovera — do następnego
+ruchu myszy.
+_Avoid_: anulowanie (bez wskazania, czego)
+
 ### Nawigacja kamerą
 
 **Pan**:

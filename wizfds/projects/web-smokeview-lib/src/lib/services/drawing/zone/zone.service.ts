@@ -8,6 +8,7 @@ import { SceneRegistryService } from '../../babylon/scene-registry.service';
 import { SceneAxis, SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 import { SceneZone } from '../scene-input';
 import { RegionLayer } from '../region-layer';
+import { LayerVisibilityService } from '../layer-visibility.service';
 
 /**
  * Draws the &ZONEs of a scenario - the sealed pressure zones.
@@ -30,12 +31,14 @@ export class ZoneService implements SceneScoped {
     helpersService: HelpersService,
     sceneBounds: SceneBoundsService,
     sceneRegistry: SceneRegistryService,
-    sceneLifecycle: SceneLifecycleService
+    sceneLifecycle: SceneLifecycleService,
+    layerVisibility: LayerVisibilityService
   ) {
     sceneLifecycle.register(this);
     this.layer = new RegionLayer(
       { poolName: 'zones', materialName: 'zoneShader', type: 'zone' },
       babylonService, helpersService, sceneBounds, sceneRegistry, 'ZoneService');
+    layerVisibility.bind('zone', () => this.layer.state());
   }
 
   /** The base box the &ZONEs are drawn from, once any have been. */

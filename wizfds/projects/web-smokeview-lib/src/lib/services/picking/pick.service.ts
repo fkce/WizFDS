@@ -7,6 +7,7 @@ import { SceneLifecycleService, SceneScoped } from '../babylon/scene-lifecycle.s
 import { ScenePick, SceneRegistryService } from '../babylon/scene-registry.service';
 import { SceneBoundsService, ScenePoint } from '../scene-bounds/scene-bounds.service';
 import { SceneElementType, SceneXb } from '../drawing/scene-input';
+import { LayerVisibilityService } from '../drawing/layer-visibility.service';
 import { SceneDelta } from '../editing/edit-command';
 
 /**
@@ -39,6 +40,20 @@ const HOVERED_COLOR = new BABYLON.Color4(0.55, 0.72, 1, 1);
 /** How solid the box over a selected element is, and over a hovered one. */
 const SELECTED_ALPHA = 0.4;
 const HOVERED_ALPHA = 0.15;
+
+/**
+ * How close to an outline a ray has to land to pick an edges-only element.
+ *
+ * In screen pixels, because the outline itself is drawn at a screen-constant
+ * width: what looks grabbable has to be grabbable at any zoom.
+ */
+const EDGE_PICK_TOLERANCE_PX = 5;
+
+/**
+ * The tolerance in metres when there is no camera to measure pixels against -
+ * which is the test suite, not the app.
+ */
+const EDGE_PICK_FALLBACK_M = 0.05;
 
 /**
  * The types drawn as a volume around other geometry rather than as matter.
@@ -167,6 +182,7 @@ export class PickService implements SceneScoped {
     private babylonService: BabylonService,
     private sceneBounds: SceneBoundsService,
     private sceneRegistry: SceneRegistryService,
+    private layerVisibility: LayerVisibilityService,
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
@@ -371,6 +387,20 @@ export class PickService implements SceneScoped {
     this.setSelected([]);
   }
 
+  /**
+   * Drop the selection outright - what Escape means when no gesture is running.
+   *
+   * Announced exactly like a click on empty space, because that is the other
+   * way a user drops a selection: whoever owns it (ADR-0004) hears one miss and
+   * clears, so the forms and the 3D view let go together. The hover outline
+   * goes too, though only until the pointer moves again.
+   */
+  public dropSelection(): void {
+    this.dropHoverOutline();
+    if (this.applyOwnPicks) { this.clearSelection(); }
+    this.pickedSubject.next({ element: undefined, add: false });
+  }
+
   /** Drop the hover highlight - the pointer left the canvas. */
   public clearHover(): void {
     this.dropHoverOutline();
@@ -443,7 +473,7 @@ export class PickService implements SceneScoped {
     for (const hit of visible) {
       const pick = this.sceneRegistry.pickAt(
         hit.pickedMesh, hit.faceId, hit.thinInstanceIndex ?? -1);
-      if (pick) {
+      if (pick && this.layerShows(pick, hit.pickedPoint)) {
         const point = hit.pickedPoint;
         picks.push({ element: pick, point: { x: point.x, y: point.y, z: point.z } });
       }
@@ -462,6 +492,41 @@ export class PickService implements SceneScoped {
    */
   private isVisible(point: BABYLON.Vector3): boolean {
     return this.obstScene ? this.obstScene.isVisible(point) : true;
+  }
+
+  /**
+   * Whether the layer's state lets this hit stand.
+   *
+   * The cursor only sees what the user can (CONTEXT.md, "Reguła wskazywania"):
+   * a hidden layer answers nothing - its geometry is still in the scene, only
+   * not drawn - and an edges-only layer answers just at its outline, the way a
+   * CAD wireframe is grabbed by its lines. Filled is the whole face, as ever.
+   */
+  private layerShows(pick: ScenePick, at: BABYLON.Vector3): boolean {
+    const state = this.layerVisibility.stateOf(pick.type);
+    if (state === 'hidden') { return false; }
+    if (state !== 'edges') { return true; }
+    return distanceToOutline(pick.xb, at) <= this.edgeTolerance(at);
+  }
+
+  /**
+   * How far, in metres, "at the outline" reaches at this depth.
+   *
+   * The outline is drawn at a screen-constant width, so the tolerance is a few
+   * pixels converted to metres where the hit landed - what looks grabbable has
+   * to be grabbable at any zoom.
+   */
+  private edgeTolerance(at: BABYLON.Vector3): number {
+    const scene = this.babylonService.scene;
+    const camera = scene ? scene.activeCamera : null;
+    if (!camera) { return EDGE_PICK_FALLBACK_M; }
+
+    const height = scene.getEngine().getRenderHeight();
+    if (!height) { return EDGE_PICK_FALLBACK_M; }
+
+    const depth = BABYLON.Vector3.Distance(camera.globalPosition, at);
+    const metresPerPixel = 2 * depth * Math.tan(camera.fov / 2) / height;
+    return EDGE_PICK_TOLERANCE_PX * metresPerPixel;
   }
 
   /** Draw the highlight over one element, singling an obst out of its pool. */
@@ -529,4 +594,38 @@ export class PickService implements SceneScoped {
     if (selected) { this.selectionMaterial = material; } else { this.hoverMaterial = material; }
     return material;
   }
+}
+
+/**
+ * How far a point is from the outline of a box - the nearest of its 12 edges.
+ *
+ * The hit already lies on the box's surface, so this is the distance the eye
+ * judges between the cursor and the drawn outline. A plane element is a box
+ * with no thickness and its degenerate edges collapse onto the real ones, so
+ * one formula serves every element type.
+ */
+function distanceToOutline(xb: SceneXb, at: BABYLON.Vector3): number {
+  let nearest = Infinity;
+  const edge = (a: BABYLON.Vector3, b: BABYLON.Vector3) => {
+    nearest = Math.min(nearest, distanceToSegment(at, a, b));
+  };
+
+  [xb.y1, xb.y2].forEach(y => [xb.z1, xb.z2].forEach(z =>
+    edge(new BABYLON.Vector3(xb.x1, y, z), new BABYLON.Vector3(xb.x2, y, z))));
+  [xb.x1, xb.x2].forEach(x => [xb.z1, xb.z2].forEach(z =>
+    edge(new BABYLON.Vector3(x, xb.y1, z), new BABYLON.Vector3(x, xb.y2, z))));
+  [xb.x1, xb.x2].forEach(x => [xb.y1, xb.y2].forEach(y =>
+    edge(new BABYLON.Vector3(x, y, xb.z1), new BABYLON.Vector3(x, y, xb.z2))));
+
+  return nearest;
+}
+
+/** Distance from a point to a segment, clamped to the segment's ends. */
+function distanceToSegment(at: BABYLON.Vector3, a: BABYLON.Vector3, b: BABYLON.Vector3): number {
+  const along = b.subtract(a);
+  const length = along.lengthSquared();
+  if (length === 0) { return BABYLON.Vector3.Distance(at, a); }
+
+  const t = Math.max(0, Math.min(1, BABYLON.Vector3.Dot(at.subtract(a), along) / length));
+  return BABYLON.Vector3.Distance(at, a.add(along.scale(t)));
 }

@@ -15,21 +15,13 @@ import { BabylonService } from '../babylon/babylon.service';
 import { ViewCubeService } from '../babylon/viewCube/view-cube.service';
 import { SceneAxis, SceneBoundsService } from '../scene-bounds/scene-bounds.service';
 import { SceneXb } from '../drawing/scene-input';
-import { EDGES_AND_FILL, EDGES_ONLY } from '../drawing/clipped-plane-layer';
+import { LayerVisibilityService, SceneLayerState } from '../drawing/layer-visibility.service';
+
+export type { SceneLayerState } from '../drawing/layer-visibility.service';
 
 /** A layer of the scene that is shown and hidden as a whole. */
 export type SceneLayerId =
   'mesh' | 'open' | 'hole' | 'vent' | 'fire' | 'devc' | 'geom' | 'init' | 'zone';
-
-/**
- * How much of a layer is drawn.
- *
- * Three states because that is what the plane layers offer: an outline alone
- * says where something is without hiding what is behind it, which is the point
- * of drawing a &VENT at all. A layer that is only ever drawn or not answers with
- * two of the three.
- */
-export type SceneLayerState = 'edges' | 'filled' | 'hidden';
 
 /** A switch that changes how the model is drawn rather than what is drawn. */
 export type SceneDisplayId = 'wireframe' | 'obstOutline' | 'jetfanOutline';
@@ -131,53 +123,58 @@ export class SceneViewService {
     private holeRegionService: HoleRegionService,
     private babylonService: BabylonService,
     private sceneBounds: SceneBoundsService,
-    private viewCube: ViewCubeService
+    private viewCube: ViewCubeService,
+    layerVisibility: LayerVisibilityService
   ) {
+    // The states are read off LayerVisibilityService, where each drawing
+    // service has bound its own translation - the same register a pick refuses
+    // hidden layers by, so a button and the cursor can never disagree.
+    const stateOf = (id: SceneLayerId) => () => layerVisibility.stateOf(id);
+
     this.layerBindings = [
-      // A &MESH keeps its own numbering - see meshState()
       {
         id: 'mesh', label: 'MESH',
-        state: () => this.meshState(),
+        state: stateOf('mesh'),
         toggle: () => this.meshService.toogleVisibility()
       },
       {
         id: 'open', label: 'OPEN',
-        state: () => planeState(this.openService.visibility),
+        state: stateOf('open'),
         toggle: () => this.openService.toogleVisibility()
       },
       {
         id: 'hole', label: 'HOLE',
-        state: () => drawnState(this.holeRegionService.visible),
+        state: stateOf('hole'),
         toggle: () => this.holeRegionService.toggleVisibility()
       },
       {
         id: 'vent', label: 'VENT',
-        state: () => planeState(this.ventService.basicVisibility),
+        state: stateOf('vent'),
         toggle: () => this.ventService.toogleBasicVisibility()
       },
       {
         id: 'fire', label: 'FIRE',
-        state: () => planeState(this.fireService.visibility),
+        state: stateOf('fire'),
         toggle: () => this.fireService.toogleVisibility()
       },
       {
         id: 'devc', label: 'DEVC',
-        state: () => drawnState(this.devcService.visible),
+        state: stateOf('devc'),
         toggle: () => this.devcService.toggleVisibility()
       },
       {
         id: 'geom', label: 'GEOM',
-        state: () => drawnState(this.geomService.visible),
+        state: stateOf('geom'),
         toggle: () => this.geomService.toggleVisibility()
       },
       {
         id: 'init', label: 'INIT',
-        state: () => drawnState(this.initService.visible),
+        state: stateOf('init'),
         toggle: () => this.initService.toggleVisibility()
       },
       {
         id: 'zone', label: 'ZONE',
-        state: () => drawnState(this.zoneService.visible),
+        state: stateOf('zone'),
         toggle: () => this.zoneService.toggleVisibility()
       }
     ];
@@ -349,28 +346,4 @@ export class SceneViewService {
   private displayBinding(id: SceneDisplayId): DisplayBinding {
     return this.displayBindings.find(display => display.id === id);
   }
-
-  /**
-   * A &MESH's state, in its own numbering.
-   *
-   * MeshService stores the state it has just moved *to* rather than the one it
-   * came from, so its 1 is the plane layers' 0 and its 0 is their 2. Translating
-   * here is what keeps that off the ribbon.
-   */
-  private meshState(): SceneLayerState {
-    const visibility = this.meshService.visibility;
-    if (visibility === 1) { return 'edges'; }
-    return visibility === 2 ? 'filled' : 'hidden';
-  }
-}
-
-/** A plane layer's state, in the numbering ClippedPlaneLayer counts in. */
-function planeState(visibility: number): SceneLayerState {
-  if (visibility === EDGES_ONLY) { return 'edges'; }
-  return visibility === EDGES_AND_FILL ? 'filled' : 'hidden';
-}
-
-/** A layer that is either drawn or not has two of the three states. */
-function drawnState(visible: boolean): SceneLayerState {
-  return visible ? 'filled' : 'hidden';
 }

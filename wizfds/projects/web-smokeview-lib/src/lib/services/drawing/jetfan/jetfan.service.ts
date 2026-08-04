@@ -353,6 +353,9 @@ export class JetfanService implements SceneScoped {
       [material, materialTransparent].forEach(m => {
         if (!m) { return; }
         m.backFaceCulling = false;
+        // The obst fragment multiplies by fillAlpha for the region layers'
+        // edges state; unwritten it reads as zero and would draw no jetfan
+        m.setFloat('fillAlpha', 1.0);
         m.freeze();
       });
       this.pushClipToMaterials();

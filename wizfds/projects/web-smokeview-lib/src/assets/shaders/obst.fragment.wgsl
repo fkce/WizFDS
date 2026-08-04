@@ -5,6 +5,10 @@ varying vNormal : vec3<f32>;
 uniform clipX: f32;
 uniform clipY: f32;
 uniform clipZ: f32;
+// Multiplies the per-vertex alpha: 1.0 draws the fill as coloured, 0.0 takes it
+// away entirely - the edges-only state of the region layers. A multiplier so
+// that each element keeps the alpha of its own colour in the filled state.
+uniform fillAlpha: f32;
 
 @fragment
 fn main(input : FragmentInputs) -> FragmentOutputs {
@@ -25,6 +29,10 @@ fn main(input : FragmentInputs) -> FragmentOutputs {
     let ambient = 0.5;
     let lightIntensity = ambient + diffuse * 0.5;
     
+    let alpha = input.vColor.a * uniforms.fillAlpha;
+    if (alpha <= 0.0) {
+        discard;
+    }
     let finalColor = input.vColor.rgb * lightIntensity;
-    return FragmentOutputs(vec4<f32>(finalColor, input.vColor.a));
+    return FragmentOutputs(vec4<f32>(finalColor, alpha));
 }

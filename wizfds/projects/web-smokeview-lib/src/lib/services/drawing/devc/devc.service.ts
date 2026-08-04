@@ -11,6 +11,7 @@ import { BoxInstancePool, PooledBox } from '../box-instance-pool';
 import { PlaneBatch } from '../plane-batch';
 import { ClippedPlaneLayer, EDGES_AND_FILL } from '../clipped-plane-layer';
 import { ClippedMaterial } from '../clipped-material';
+import { LayerVisibilityService } from '../layer-visibility.service';
 import { DEVC_MARKER_SHAPES } from './devc-markers';
 import { SOLID_EDGE_COLOR } from '../../../consts/drawing';
 
@@ -67,11 +68,17 @@ export class DevcService implements SceneScoped {
     private helpersService: HelpersService,
     private sceneBounds: SceneBoundsService,
     private sceneRegistry: SceneRegistryService,
-    sceneLifecycle: SceneLifecycleService
+    sceneLifecycle: SceneLifecycleService,
+    layerVisibility: LayerVisibilityService
   ) {
     sceneLifecycle.register(this);
+    // Two states, not three: the outline of a few-pixel marker would read as
+    // nothing, so an edges state would be indistinguishable from either of them
+    layerVisibility.bind('devc', () => this.visible ? 'filled' : 'hidden');
     this.solid = new ClippedMaterial({
-      materialName: 'devcShader', shader: 'obstInstanced', fragmentShader: 'obst'
+      materialName: 'devcShader', shader: 'obstInstanced', fragmentShader: 'obst',
+      // The fragment multiplies by fillAlpha now; a &DEVC always draws in full
+      defaults: { fillAlpha: 1.0 }
     }, babylonService, sceneBounds, 'DevcService');
     this.planeLayer = new ClippedPlaneLayer(
       { materialName: 'devcPlaneShader', zOffset: -0.03, fillAlpha: 0.4 },

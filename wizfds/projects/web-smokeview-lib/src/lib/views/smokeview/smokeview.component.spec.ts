@@ -190,6 +190,50 @@ describe('SmokeviewComponent', () => {
   });
 
   /**
+   * Escape, layered the way AutoCAD layers it (CONTEXT.md, "Escape
+   * (warstwowo)"): a running gesture is abandoned first; with none running,
+   * the selection is dropped - in the app that owns it, exactly like a click
+   * on empty space.
+   */
+  describe('Escape', () => {
+    it('abandons a running gesture and leaves the selection alone', async () => {
+      await configure(true);
+      const gizmo = TestBed.inject(GizmoService);
+      spyOnProperty(gizmo, 'isDragging', 'get').and.returnValue(true);
+      const cancelled = spyOn(gizmo, 'cancel');
+      const dropped = spyOn(TestBed.inject(PickService), 'dropSelection');
+
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+
+      expect(cancelled).toHaveBeenCalled();
+      expect(dropped).not.toHaveBeenCalled();
+    });
+
+    it('drops the selection when no gesture is running', async () => {
+      await configure(true);
+      const dropped = spyOn(TestBed.inject(PickService), 'dropSelection');
+
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+
+      expect(dropped).toHaveBeenCalled();
+    });
+
+    it('leaves the selection alone while the user is typing in a form field', async () => {
+      // Escape in a host form means "leave this field", not "drop what the
+      // 3D view has selected" - same guard the nudge keys already carry
+      await configure(true);
+      const dropped = spyOn(TestBed.inject(PickService), 'dropSelection');
+      const field = document.createElement('input');
+      document.body.appendChild(field);
+
+      field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+      expect(dropped).not.toHaveBeenCalled();
+      field.remove();
+    });
+  });
+
+  /**
    * The pointer gestures: what selects, what belongs to the camera, and what the
    * chrome layered over the canvas must never do.
    *

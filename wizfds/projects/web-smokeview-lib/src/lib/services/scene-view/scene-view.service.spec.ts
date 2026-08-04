@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 
 import { displaySwitchIcon, layerStateIcon, SceneViewService } from './scene-view.service';
+import { LayerVisibilityService, SceneLayerState } from '../drawing/layer-visibility.service';
 import { ObstService } from '../drawing/obst/obst.service';
 import { MeshService } from '../drawing/mesh/mesh.service';
 import { OpenService } from '../drawing/open/open.service';
@@ -126,34 +127,23 @@ describe('SceneViewService', () => {
   });
 
   describe('layer visibility', () => {
-    it('reads a three-state layer off the layer that draws it', () => {
-      const open = TestBed.inject(OpenService) as any;
+    // The states come off LayerVisibilityService, where each drawing service
+    // binds its own translation - the same register a pick refuses hidden
+    // layers by. The translations themselves are each layer's own business and
+    // are tested with the layer (see e.g. RegionLayer.state()).
+
+    it('reads a layer state off the register the drawing services bind', () => {
+      const layers = TestBed.inject(LayerVisibilityService);
+      let state: SceneLayerState = 'edges';
+      layers.bind('open', () => state);
 
       expect(service.layerState('open')).toBe('edges');
-      open.visibility = 1;
-      expect(service.layerState('open')).toBe('filled');
-      open.visibility = 2;
+      state = 'hidden';
       expect(service.layerState('open')).toBe('hidden');
     });
 
-    it('reads a &MESH through its own numbering', () => {
-      // MeshService counts its three states differently from every plane layer -
-      // it stores the state it has just moved *to*, so 1 is where it starts.
-      const mesh = TestBed.inject(MeshService) as any;
-
-      expect(service.layerState('mesh')).toBe('edges');
-      mesh.visibility = 2;
-      expect(service.layerState('mesh')).toBe('filled');
-      mesh.visibility = 0;
-      expect(service.layerState('mesh')).toBe('hidden');
-    });
-
-    it('reads a two-state layer as drawn or not', () => {
-      const geom = TestBed.inject(GeomService) as any;
-
+    it('treats a layer nothing has bound as filled', () => {
       expect(service.layerState('geom')).toBe('filled');
-      geom.visible = false;
-      expect(service.layerState('geom')).toBe('hidden');
     });
 
     it('toggling a layer asks the service that draws it', () => {
