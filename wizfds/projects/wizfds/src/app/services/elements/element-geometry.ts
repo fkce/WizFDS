@@ -71,3 +71,12 @@ export function withBox(type: FdsElementType, json: any, xb: ElementBox): any {
     }
     return { ...json, xb: { ...xb } };
 }
+
+/** The same box, shifted. */
+export function shiftedBox(xb: ElementBox, dx: number, dy: number, dz: number): ElementBox {
+    return {
+        x1: xb.x1 + dx, x2: xb.x2 + dx,
+        y1: xb.y1 + dy, y2: xb.y2 + dy,
+        z1: xb.z1 + dz, z2: xb.z2 + dz
+    };
+}

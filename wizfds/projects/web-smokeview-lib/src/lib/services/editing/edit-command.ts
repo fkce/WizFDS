@@ -75,6 +75,20 @@ export interface SceneDeleteCommand {
 }
 
 /**
+ * Create a copy of each element: the source's whole state at a shifted box.
+ *
+ * A delta over uuids, exactly as a move - the gizmo's copy-drag IS a move whose
+ * original stays put (#126). Identity is the app's to hand out, copy by copy,
+ * and a copy must not inherit the source's CAD link, or the next import would
+ * treat two objects as one.
+ */
+export interface SceneCopyCommand {
+    readonly kind: 'copy',
+    readonly uuids: readonly string[],
+    readonly delta: SceneDelta
+}
+
+/**
  * One edit, as the user meant it.
  *
  * A closed union rather than an open message: the app has to answer every kind
@@ -82,4 +96,5 @@ export interface SceneDeleteCommand {
  * say so when a new one is added.
  */
 export type SceneEditCommand =
-    SceneMoveCommand | SceneSetXbCommand | SceneCreateCommand | SceneDeleteCommand;
+    SceneMoveCommand | SceneSetXbCommand | SceneCreateCommand | SceneDeleteCommand |
+    SceneCopyCommand;
