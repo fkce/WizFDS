@@ -9,16 +9,18 @@
  */
 
 import { SceneFace } from './face-drag';
+import { SceneAxis } from '../scene-bounds/scene-bounds.service';
 
 /**
  * The names a gesture knows its numbers by.
  *
- * A closed set rather than a bare string: a translate has three deltas and a
- * face drag has the one coordinate it drags, and both the panel and the gizmo
- * index by these - a typo in either would read as `undefined` at run time
- * rather than fail to compile.
+ * A closed set rather than a bare string: a translate has three deltas, a face
+ * drag has the one coordinate it drags, a draw step has a corner's absolute
+ * coordinates (#125) - and both the panel and the tools index by these, so a
+ * typo in either would read as `undefined` at run time rather than fail to
+ * compile.
  */
-export type GestureKey = 'dx' | 'dy' | 'dz' | SceneFace;
+export type GestureKey = 'x' | 'y' | 'z' | 'dx' | 'dy' | 'dz' | SceneFace;
 
 /** The numbers a gesture holds, by the names it knows them by. */
 export type GestureValues = Partial<Record<GestureKey, number>>;
@@ -61,6 +63,30 @@ export class GestureInput {
         return new GestureInput(['dx', 'dy', 'dz'], new Map([
             ['dx', 'dX'], ['dy', 'dY'], ['dz', 'dZ']
         ]));
+    }
+
+    /**
+     * The panel the draw gesture's first step shows: a corner, in absolute
+     * coordinates - the numbers that will open the `XB` in the `.fds` file
+     * (#125).
+     */
+    public static forPoint(): GestureInput {
+        return new GestureInput(['x', 'y', 'z'], new Map([
+            ['x', 'X'], ['y', 'Y'], ['z', 'Z']
+        ]));
+    }
+
+    /**
+     * The move panel, confined to the axes a gesture is free on: two for a base
+     * rectangle drawn in a plane, one for a height being pulled (#125). Deltas
+     * from the previous corner, which is what AutoCAD's dynamic input shows for
+     * the same steps of `BOX`.
+     */
+    public static forAxes(axes: readonly SceneAxis[]): GestureInput {
+        const keys = axes.map(axis => `d${axis}` as GestureKey);
+        const labels = new Map(axes.map(axis =>
+            [`d${axis}` as GestureKey, `d${axis.toUpperCase()}`] as const));
+        return new GestureInput(keys, labels);
     }
 
     /**

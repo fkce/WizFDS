@@ -53,6 +53,28 @@ Panel liczb jadący z kursorem podczas gestu; cyfry przejmują pole od myszy,
 Tab przechodzi między polami, Enter zatwierdza.
 _Avoid_: panel współrzędnych, HUD
 
+**Gest rysowania**:
+Trzykrokowe klikanie nowego elementu (gest `BOX` z AutoCAD-a): narożnik →
+przeciwległy narożnik podstawy → wysokość. Płaski element (VENT) kończy się
+na kroku drugim. Jeden gest to jedna komenda `create`; Escape porzuca całość,
+narzędzie wyłącza się samo po zakończeniu.
+_Avoid_: tryb rysowania (to gest, nie tryb)
+
+**Lądowanie narożnika**:
+Pierwszy narożnik gestu rysowania siada na powierzchni pod kursorem —
+ścianie istniejącego obsta albo podłodze — a w pustce na podłodze
+najbliższego MESH-a. Trafiona powierzchnia wyznacza płaszczyznę roboczą:
+dla VENT-a płaszczyznę prostokąta, dla brył tylko wysokość podstawy
+(podstawa bryły jest zawsze pozioma).
+_Avoid_: projekcja kursora, raycast na podłogę (opisowo)
+
+**Bieżący SURF**:
+Selektor w panelu Draw — odpowiednik warstwy bieżącej AutoCAD-a. Nowy
+element dostaje wskazany &SURF w chwili zatwierdzenia; pozycja INERT nie
+nazywa żadnej powierzchni (domyślne zachowanie FDS). OBST czerpie z listy
+geometrii, VENT z listy wentylacji, HOLE nie ma SURF-a wcale.
+_Avoid_: domyślny SURF (bieżący jest wyborem, nie domyślnością)
+
 ### Widoczność warstw i wskazywanie
 
 **Warstwa**:

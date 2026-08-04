@@ -220,6 +220,47 @@ describe('FdsEditService', () => {
       expect(change.added.length).toBe(1);
       expect(change.added[0].element.uuid).toBe((fds.geometry.obsts[2] as any).uuid);
     });
+
+    it('gives it no idAC - it was never in a drawing (ADR-0005)', () => {
+      // Zero is how the domain classes spell "not in the drawing": a CAD import
+      // must carry a browser-drawn element across untouched (#120), and
+      // ElementsService.byIdAC treats zero as absent.
+      service.apply({
+        kind: 'create', type: 'obst',
+        xb: { x1: 7, x2: 8, y1: 7, y2: 8, z1: 0, z2: 3 }
+      });
+
+      const created: any = fds.geometry.obsts[2];
+      expect(Number(created.idAC ?? 0)).toBe(0);
+    });
+
+    it('gives a created &VENT its &SURF from the ventilation list', () => {
+      // Two lists of surfaces exist: geometry.surfs for an &OBST and
+      // ventilation.surfs for a &VENT. The command names an id; which list it
+      // resolves against is decided by what is being built.
+      service.apply({
+        kind: 'create', type: 'vent', surfId: 'SUPPLY',
+        xb: { x1: 3, x2: 4, y1: 5, y2: 6, z1: 0, z2: 0 }
+      });
+
+      // "VENT1", because the existing vent is named V1 by hand and the highest
+      // taken *number* in the list is none - the same continuation the form makes
+      const created: any = fds.ventilation.vents[1];
+      expect(created.id).toBe('VENT1');
+      expect(created.surf).toBe(fds.ventilation.surfs[0] as any);
+      expect(created.xb.z1).toBe(0);
+      expect(created.xb.z2).toBe(0);
+    });
+
+    it('creates a &HOLE, which carries no &SURF at all', () => {
+      service.apply({
+        kind: 'create', type: 'hole',
+        xb: { x1: 5.2, x2: 5.8, y1: 0.9, y2: 2.1, z1: 0, z2: 2 }
+      });
+
+      expect(fds.geometry.holes.length).toBe(2);
+      expect((fds.geometry.holes[1] as any).id).toBe('HOLE1');
+    });
   });
 
   describe('delete', () => {

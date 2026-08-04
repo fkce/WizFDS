@@ -4,7 +4,7 @@ import { MainService } from '@services/main/main.service';
 import { Main } from '@services/main/main';
 import { SceneInputService } from '@services/scene-input/scene-input.service';
 import { SelectionService } from '@services/selection/selection.service';
-import { ElementsService } from '@services/elements/elements.service';
+import { ElementsService, FdsElementType } from '@services/elements/elements.service';
 import { ViewportStatusService } from '@services/viewport-status/viewport-status.service';
 import { FdsEditService } from '@services/fds-edit/fds-edit.service';
 import { FdsValidationService } from '@services/fds-validation/fds-validation.service';
@@ -78,8 +78,14 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // The other half of the boundary: state goes in through render(), intent
     // comes back out here. The library asks, the app decides (ADR-0004).
+    // A drawn element is selected as soon as it exists (#125), the same way
+    // the form's add() activates what it just added - the palette shows it and
+    // the contextual tab is named after it.
     this.commandSub = this.editStream.commands$
-      .subscribe(command => this.fdsEdit.apply(command));
+      .subscribe(command => {
+        const change = this.fdsEdit.apply(command);
+        if (command.kind === 'create') { this.selectCreated(change); }
+      });
 
     // Every producer of edits arrives on this one stream - the command stream
     // above, the properties palette, the ribbon, undo and redo - so this is the
@@ -120,6 +126,23 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.selectionService.select(
       { uuid: found.element.uuid, type: found.type }, { add: picked.add });
+  }
+
+  /**
+   * Select what a create command just made.
+   *
+   * From the change the edit answered with rather than from a second lookup:
+   * the change already names the element and its kind, and it is the one place
+   * that knows which element the command produced.
+   */
+  private selectCreated(change: SceneChange | null): void {
+    const created = change?.added?.[0];
+    if (!created) { return; }
+
+    this.selectionService.select({
+      uuid: created.element.uuid,
+      type: created.type as FdsElementType
+    });
   }
 
   /**

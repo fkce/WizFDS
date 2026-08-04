@@ -89,7 +89,7 @@ export interface ScenePicked {
 }
 
 /** An element a ray reached, and the point on it where it did. */
-interface PickedAt {
+export interface PickedAt {
   readonly element: ScenePick;
   /** In FDS metres - the scene is drawn in them (ADR-0002). */
   readonly point: ScenePoint;
@@ -399,6 +399,18 @@ export class PickService implements SceneScoped {
     this.dropHoverOutline();
     if (this.applyOwnPicks) { this.clearSelection(); }
     this.pickedSubject.next({ element: undefined, add: false });
+  }
+
+  /**
+   * The surface a ray lands on, and where - what the draw tool starts a new
+   * element from (#125).
+   *
+   * The same answer a click gets: layer visibility, the yielding of enclosing
+   * volumes and the clipping planes all apply, because the first corner has to
+   * land on what the user can see themselves aiming at.
+   */
+  public surfaceUnder(ray: BABYLON.Ray): PickedAt | undefined {
+    return this.pickAlong(ray);
   }
 
   /** Drop the hover highlight - the pointer left the canvas. */

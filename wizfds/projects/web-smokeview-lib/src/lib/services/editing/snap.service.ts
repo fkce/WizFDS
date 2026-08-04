@@ -4,7 +4,7 @@ import * as BABYLON from 'babylonjs';
 import { BabylonService } from '../babylon/babylon.service';
 import { SceneLifecycleService, SceneScoped } from '../babylon/scene-lifecycle.service';
 import { SceneAxis, ScenePoint } from '../scene-bounds/scene-bounds.service';
-import { SceneElement, SceneInput, SceneXb } from '../drawing/scene-input';
+import { SceneElement, SceneInput, SceneMesh, SceneXb } from '../drawing/scene-input';
 import { ACCENT_COLOR, ACCENT_EDGE_COLOR } from '../../consts/drawing';
 import { SceneDelta } from './edit-command';
 import { faceAxis, SceneFace } from './face-drag';
@@ -110,6 +110,18 @@ export class SnapService implements SceneScoped {
   public setScene(scene: SceneInput): void {
     this.scene = scene;
     this.boxes = collectBoxes(scene);
+  }
+
+  /**
+   * The &MESHes as they were last drawn - what the draw tool's floor fall-back
+   * lands on when nothing is under the cursor (#125).
+   *
+   * Answered here rather than by a scene feed of the tool's own: this service
+   * already receives every render and every update, and two copies of "the
+   * scene as drawn" would eventually disagree.
+   */
+  public get meshes(): readonly SceneMesh[] {
+    return this.scene ? this.scene.meshes : [];
   }
 
   /**

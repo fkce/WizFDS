@@ -17,6 +17,8 @@ import { SceneAxis } from '../../../../../../../../web-smokeview-lib/src/lib/ser
 import { GizmoService } from '../../../../../../../../web-smokeview-lib/src/lib/services/editing/gizmo.service';
 import { SnapService } from '../../../../../../../../web-smokeview-lib/src/lib/services/editing/snap.service';
 import { SnapMode } from '../../../../../../../../web-smokeview-lib/src/lib/services/editing/snap';
+import { DrawToolService } from '../../../../../../../../web-smokeview-lib/src/lib/services/editing/draw-tool.service';
+import { DrawKind } from '../../../../../../../../web-smokeview-lib/src/lib/services/editing/draw';
 
 /** Which tab of the ribbon is open. */
 export type RibbonTabId = 'home' | 'view' | 'measure' | 'context';
@@ -42,8 +44,29 @@ const FIXED_TABS: ReadonlyArray<{ id: RibbonTabId, label: string }> = [
  * does with a command that does not apply, and it beats a panel that is empty
  * or a button that is missing.
  */
-const AWAITING_GEOMETRY_TOOLS = 'Available once the geometry editing tools land';
 const AWAITING_MEASURE = 'Available once the measuring tools land';
+
+/**
+ * The three Draw commands, in the order the panel lists them.
+ *
+ * The titles narrate the gesture, because it is AutoCAD's `BOX` and a user who
+ * knows that needs only the reminder: corner, corner, height - and a &VENT,
+ * being flat, finishes at the second (#125).
+ */
+const DRAW_TOOLS: ReadonlyArray<{ id: DrawKind, label: string, icon: string, title: string }> = [
+  {
+    id: 'obst', label: 'OBST', icon: 'cube-outline',
+    title: 'Draw an OBST: a corner, the opposite corner of the base, a height. Esc cancels.'
+  },
+  {
+    id: 'hole', label: 'HOLE', icon: 'vector-difference-ab',
+    title: 'Draw a HOLE: a corner, the opposite corner of the base, a height. Esc cancels.'
+  },
+  {
+    id: 'vent', label: 'VENT', icon: 'shape-rectangle-plus',
+    title: 'Draw a VENT: two corners, flat on the surface the first one lands on. Esc cancels.'
+  }
+];
 
 /**
  * The three snap modes, in the order they take priority.
@@ -77,18 +100,15 @@ export class RibbonComponent implements OnInit, OnDestroy {
   readonly tabs = FIXED_TABS;
   readonly axes: readonly SceneAxis[] = ['x', 'y', 'z'];
   readonly snapModes = SNAP_MODES;
+  readonly drawTools = DRAW_TOOLS;
 
-  readonly awaitingGeometryTools = AWAITING_GEOMETRY_TOOLS;
   readonly awaitingMeasure = AWAITING_MEASURE;
 
   /**
-   * View rather than Home, which is where AutoCAD opens.
-   *
-   * Home's Modify and Snap panels work as of #124, but its Draw panel is still
-   * empty (#125) - so View remains the tab that drives the most. To be moved
-   * once there is something to draw with.
+   * Home, which is where AutoCAD opens - since #125 there is something to draw
+   * with, so the tab a user reaches first is the one that creates geometry.
    */
-  active: RibbonTabId = 'view';
+  active: RibbonTabId = 'home';
 
   /** Minimised to the tab strip, which is what AutoCAD offers a short screen. */
   collapsed = false;
@@ -106,6 +126,7 @@ export class RibbonComponent implements OnInit, OnDestroy {
     public view: SceneViewService,
     public gizmo: GizmoService,
     public snap: SnapService,
+    public draw: DrawToolService,
     private selection: SelectionService,
     private elements: ElementsService,
     private history: HistoryService,
@@ -122,7 +143,7 @@ export class RibbonComponent implements OnInit, OnDestroy {
     this.subs.push(this.selection.selected$.subscribe(selected => {
       this.selected = selected;
       // The contextual tab goes with the selection it was named after
-      if (selected.length === 0 && this.active === 'context') { this.active = 'view'; }
+      if (selected.length === 0 && this.active === 'context') { this.active = 'home'; }
     }));
   }
 
@@ -215,18 +236,70 @@ export class RibbonComponent implements OnInit, OnDestroy {
   }
 
   // ==========================================
-  // Home tab
+  // Home tab - the Draw panel (#125)
   // ==========================================
 
   /**
-   * The &SURFs a new obst could be given.
+   * The current &SURF for a drawn OBST, and separately for a drawn &VENT.
    *
-   * Read from the scenario even though the selector is inactive: an empty
-   * dropdown would say the scenario has no surfaces, which is a different
-   * statement from "this tool is not here yet".
+   * Two, because they are two different lists in the scenario: an &OBST names
+   * a surface from `geometry.surfs`, a &VENT one from `ventilation.surfs`, and
+   * an id handed across the pair would resolve to nothing. `''` is the INERT
+   * pseudo-entry - no surface named, which is exactly what the form's add()
+   * produces and what FDS defaults to.
+   */
+  drawSurfId = '';
+  drawVentSurfId = '';
+
+  /**
+   * The &SURFs a new obst could be given - the current layer's list (#125).
    */
   get surfs(): any[] {
     return this.elements.listOf('surf');
+  }
+
+  /** The &SURFs a new &VENT could be given - the ventilation's own list. */
+  get ventSurfs(): any[] {
+    return this.main?.currentFdsScenario?.fdsObject?.ventilation?.surfs ?? [];
+  }
+
+  /**
+   * What the selector offers now: the list the active tool draws from. The
+   * pointer's default is the OBST list - the one the next OBST will use.
+   */
+  get drawSurfs(): any[] {
+    return this.draw.active === 'vent' ? this.ventSurfs : this.surfs;
+  }
+
+  /** A &HOLE is an absence and names no surface - the selector says so. */
+  get surfSelectorDisabled(): boolean {
+    return this.draw.active === 'hole';
+  }
+
+  get currentDrawSurfId(): string {
+    return this.draw.active === 'vent' ? this.drawVentSurfId : this.drawSurfId;
+  }
+
+  /**
+   * Change the current &SURF - AutoCAD's current layer. A gesture already in
+   * flight takes the new one: the element gets the surface in force when it is
+   * committed.
+   */
+  setDrawSurf(surfId: string): void {
+    if (this.draw.active === 'vent') { this.drawVentSurfId = surfId; }
+    else { this.drawSurfId = surfId; }
+
+    if (this.draw.active && this.draw.active !== 'hole') {
+      this.draw.setSurf(surfId || undefined);
+    }
+  }
+
+  /** Begin drawing one element, with the current &SURF along (#125). */
+  startDraw(kind: DrawKind): void {
+    const surfId = kind === 'obst' ? this.drawSurfId
+      : kind === 'vent' ? this.drawVentSurfId
+        : '';
+    this.draw.start(kind, surfId || undefined);
   }
 
   // ==========================================

@@ -45,6 +45,7 @@
       <tr><td>Select</td><td>left click</td></tr>
       <tr><td>Add to selection</td><td>ctrl or shift + left click</td></tr>
       <tr><td>Move / resize</td><td>drag an arrow or a face handle</td></tr>
+      <tr><td>Draw OBST / HOLE / VENT</td><td>click corner, corner, height; a VENT ends flat</td></tr>
       <tr><td>Type an exact value</td><td>while dragging: tab, enter, esc</td></tr>
       <tr><td>Suspend snapping</td><td>hold ctrl during the drag</td></tr>
       <tr><td>Delete</td><td>delete key</td></tr>
@@ -71,19 +72,24 @@
     <ng-container *ngSwitchCase="'home'">
       <section class="panel">
         <div class="panel-body">
-          <button type="button" class="cmd big" disabled [title]="awaitingGeometryTools">
-            <mat-icon svgIcon="cube-outline" aria-hidden="true"></mat-icon><span>OBST</span>
+          <!-- AutoCAD's BOX, in three steps: corner, corner, height - a &VENT,
+               being flat, finishes at the second. The tool switches itself off
+               after finishing or on Esc (ADR-0010): a gesture, not a mode. -->
+          <button type="button" class="cmd big" *ngFor="let tool of drawTools"
+            [class.on]="draw.active === tool.id" [title]="tool.title"
+            (click)="startDraw(tool.id)">
+            <mat-icon [svgIcon]="tool.icon" aria-hidden="true"></mat-icon>
+            <span>{{ tool.label }}</span>
           </button>
-          <button type="button" class="cmd big" disabled [title]="awaitingGeometryTools">
-            <mat-icon svgIcon="vector-difference-ab" aria-hidden="true"></mat-icon><span>HOLE</span>
-          </button>
-          <button type="button" class="cmd big" disabled [title]="awaitingGeometryTools">
-            <mat-icon svgIcon="shape-rectangle-plus" aria-hidden="true"></mat-icon><span>VENT</span>
-          </button>
-          <div class="field" [title]="awaitingGeometryTools">
+          <!-- The current SURF is the current layer: what the next element is
+               drawn with. INERT names no surface, which is FDS's own default. -->
+          <div class="field"
+            [title]="surfSelectorDisabled ? 'A HOLE is an opening and has no SURF' : 'The SURF a drawn element gets'">
             <label>SURF</label>
-            <select disabled>
-              <option *ngFor="let surf of surfs">{{ surf.id }}</option>
+            <select [disabled]="surfSelectorDisabled" [ngModel]="currentDrawSurfId"
+              (ngModelChange)="setDrawSurf($event)" aria-label="Current SURF">
+              <option value="">INERT</option>
+              <option *ngFor="let surf of drawSurfs" [value]="surf.id">{{ surf.id }}</option>
             </select>
           </div>
         </div>

@@ -114,3 +114,31 @@ Panel Modify i panel Snap są żywe, a dynamic input istnieje.
 - **Status bar nazywa siatkę, której edycja usłucha.** `ViewportStatusService` przestał jej szukać sam — dostaje ją gotową stamtąd, gdzie liczy się snap (ADR-0004).
 
 Wyszarzone do czasu #125–#127 zostają: panel Draw wraz z selektorem SURF-a i oba pomiary.
+
+## Uzupełnienie (2026-08-04) — co odblokowało #125
+
+Panel Draw jest żywy, a Home stało się zakładką startową — tak jak w AutoCAD.
+
+- **Rysowanie to gest, nie tryb.** Przycisk OBST/HOLE/VENT uruchamia
+  `DrawToolService` w bibliotece; trzy kliknięcia (narożnik → przeciwległy
+  narożnik podstawy → wysokość) emitują jedną komendę `create`, po czym
+  narzędzie wyłącza się samo — zgodnie z regułą „narzędzia wyłączają się po
+  zakończeniu albo Esc". VENT, będąc płaski, kończy się na kroku drugim,
+  w płaszczyźnie powierzchni, na której wylądował pierwszy narożnik.
+- **Selektor bieżącego SURF-a przełącza listę wraz z narzędziem**: OBST czerpie
+  z `geometry.surfs`, VENT z `ventilation.surfs` (to dwie różne listy w modelu
+  i id z jednej nie rozwiązuje się na drugiej), a przy HOLE jest wyszarzony —
+  otwór nie ma powierzchni. Pierwsza pozycja INERT nie nazywa żadnego SURF-a,
+  czyli daje dokładnie ten sam domyślny stan co `add()` w formularzu.
+- **Dynamic input obsługuje każdy krok**: współrzędne bezwzględne pierwszego
+  narożnika (`X/Y/Z`), delty podstawy w osiach płaszczyzny roboczej, wysokość.
+  Panel jest ten sam co przy gizmo — dwie strumienie gestów zlewają się
+  w komponencie kanwy, bo wskaźnik jest jeden.
+- **Start rysowania porzuca zaznaczenie**, jak start komendy w AutoCAD —
+  uchwyty gizmo to drag behaviours Babylona i narożnik celowany obok uchwytu
+  zaczynałby przesunięcie zamiast lądować.
+- **Świeżo narysowany element jest od razu zaznaczony** — aplikacja bierze
+  `uuid` z odpowiedzi `apply()`, więc paleta właściwości i zakładka kontekstowa
+  natychmiast go pokazują, tak jak `add()` w formularzu aktywuje nowy wiersz.
+
+Wyszarzone do czasu #127 zostają oba pomiary.

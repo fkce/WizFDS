@@ -37,6 +37,7 @@ describe('RibbonComponent', () => {
           surfs: [{ id: 'CONCRETE', uuid: 'surf-uuid' }]
         },
         ventilation: {
+          surfs: [{ id: 'SUPPLY', uuid: 'vsurf-uuid' }],
           jetfans: [{
             id: 'JF1', uuid: 'jetfan-uuid',
             xb: { x1: 8, x2: 10, y1: 1, y2: 2, z1: 2, z2: 3 }
@@ -89,10 +90,10 @@ describe('RibbonComponent', () => {
       .map(tab => tab.textContent.trim());
   }
 
-  it('opens on the tab whose commands exist', () => {
-    // Home is where AutoCAD opens, but its drawing and modifying tools are still
-    // to come (#125, #126) - View drives everything that works today.
-    expect(component.active).toBe('view');
+  it('opens on Home, where AutoCAD opens', () => {
+    // Since #125 the Draw panel works, so the tab a user reaches first is the
+    // one that creates geometry.
+    expect(component.active).toBe('home');
   });
 
   describe('the contextual tab', () => {
@@ -136,7 +137,7 @@ describe('RibbonComponent', () => {
       selection.clear();
       fixture.detectChanges();
 
-      expect(component.active).toBe('view');
+      expect(component.active).toBe('home');
       expect(tabLabels()).toEqual(['Home', 'View', 'Measure']);
     });
 
@@ -170,6 +171,11 @@ describe('RibbonComponent', () => {
   });
 
   describe('the View tab', () => {
+    beforeEach(() => {
+      component.select('view');
+      fixture.detectChanges();
+    });
+
     it('drives the scene through the library API', () => {
       // Not by reaching into the drawing services: which of them draws a &VENT
       // is the library's business and stops at SceneViewService.
@@ -191,9 +197,80 @@ describe('RibbonComponent', () => {
     });
   });
 
+  /**
+   * The Draw panel (#125).
+   *
+   * The ribbon does not draw: it starts the library's tool and names the
+   * current &SURF, the way the current layer works in AutoCAD (ADR-0010).
+   */
+  describe('the Draw panel', () => {
+
+    it('starts the tool with the current SURF along', () => {
+      const start = spyOn(component.draw, 'start');
+      component.drawSurfId = 'CONCRETE';
+
+      component.startDraw('obst');
+
+      expect(start).toHaveBeenCalledWith('obst', 'CONCRETE');
+    });
+
+    it('names no SURF for the INERT pseudo-entry', () => {
+      // The element then gets exactly the default the form's add() produces -
+      // no surface, which FDS reads as INERT.
+      const start = spyOn(component.draw, 'start');
+
+      component.startDraw('obst');
+
+      expect(start).toHaveBeenCalledWith('obst', undefined);
+    });
+
+    it('offers the geometry surfaces to an OBST', () => {
+      expect(component.drawSurfs.map(surf => surf.id)).toEqual(['CONCRETE']);
+    });
+
+    it('offers the ventilation surfaces to a VENT', () => {
+      // Two different lists in the scenario: an id handed across the pair
+      // would resolve to nothing (see Vent's constructor).
+      component.draw.start('vent');
+
+      expect(component.drawSurfs.map(surf => surf.id)).toEqual(['SUPPLY']);
+
+      component.draw.cancel();
+    });
+
+    it('keeps a current SURF per list, not one shared', () => {
+      component.setDrawSurf('CONCRETE');
+      component.draw.start('vent');
+      component.setDrawSurf('SUPPLY');
+      component.draw.cancel();
+
+      expect(component.drawSurfId).toBe('CONCRETE');
+      expect(component.drawVentSurfId).toBe('SUPPLY');
+    });
+
+    it('greys the selector out for a HOLE, which has no SURF', () => {
+      component.draw.start('hole');
+
+      expect(component.surfSelectorDisabled).toBe(true);
+
+      component.draw.cancel();
+    });
+
+    it('hands a SURF changed mid-gesture to the tool', () => {
+      const setSurf = spyOn(component.draw, 'setSurf');
+      component.draw.start('obst');
+
+      component.setDrawSurf('CONCRETE');
+
+      expect(setSurf).toHaveBeenCalledWith('CONCRETE');
+      component.draw.cancel();
+    });
+  });
+
   describe('minimising', () => {
     it('hides the panels but keeps the tabs, as AutoCAD does', () => {
-      component.select('view');
+      // Pressing the tab that is already open is what minimises
+      component.select('home');
 
       expect(component.collapsed).toBe(true);
       fixture.detectChanges();
@@ -202,7 +279,7 @@ describe('RibbonComponent', () => {
     });
 
     it('opens again when another tab is chosen', () => {
-      component.select('view');
+      component.select('home');
 
       component.select('measure');
 
