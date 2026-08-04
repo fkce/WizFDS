@@ -111,6 +111,53 @@ describe('ViewCubeService', () => {
     });
   });
 
+  describe('lighting what a click would take', () => {
+    // The azure half-glass over the part under the pointer. It used to ride
+    // Babylon's ActionManager hover triggers, which need the scene picked on
+    // every pointer move - exactly what tuneForStaticScene() turned off. The
+    // cube lights itself now, from the same pick the component already makes.
+
+    beforeEach(() => {
+      scene.performancePriority = BABYLON.ScenePerformancePriority.Intermediate;
+      service.init();
+      scene.pointerX = engine.getRenderWidth() * 0.95;
+      scene.pointerY = engine.getRenderHeight() * 0.1;
+    });
+
+    it('lights the part under the pointer', () => {
+      const side = service.pickSide();
+
+      service.highlight(side);
+
+      expect(scene.getMeshByName(side).material.alpha).toBe(0.5);
+    });
+
+    it('puts the light out when the pointer moves on', () => {
+      const side = service.pickSide();
+      service.highlight(side);
+
+      service.highlight(null);
+
+      expect(scene.getMeshByName(side).material.alpha).toBe(0);
+    });
+
+    it('moves the light, never doubles it', () => {
+      const side = service.pickSide();
+      const other = side === 'front' ? 'back' : 'front';
+      service.highlight(side);
+
+      service.highlight(other);
+
+      expect(scene.getMeshByName(side).material.alpha).toBe(0);
+      expect(scene.getMeshByName(other).material.alpha).toBe(0.5);
+    });
+
+    it('ignores what is not a part of the cube', () => {
+      expect(() => service.highlight('viewBox')).not.toThrow();
+      expect(() => service.highlight('no-such-mesh')).not.toThrow();
+    });
+  });
+
   describe('following the model camera', () => {
 
     it('mirrors the model camera\'s angles every frame', () => {

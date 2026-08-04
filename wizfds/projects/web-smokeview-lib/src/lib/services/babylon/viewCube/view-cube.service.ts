@@ -388,6 +388,38 @@ export class ViewCubeService implements SceneScoped {
   }
 
   /**
+   * Light the part of the cube a click would take, azure and half-glass.
+   *
+   * Driven by the component's pointer-move pick, not by Babylon's
+   * ActionManager hover triggers: those need the whole scene picked on every
+   * pointer move, which tuneForStaticScene() deliberately turned off. The
+   * cube lights itself from the pick it already makes - see pickSide().
+   *
+   * @param side what pickSide() answered, or null for nothing under the
+   *             pointer. The cube body and the ground are not parts - a name
+   *             that is not a part just puts the light out.
+   */
+  public highlight(side: string | null): void {
+    const scene = this.babylonService.scene;
+    if (!scene) { return; }
+
+    const mesh = side ? scene.getMeshByName(side) : null;
+    const part = mesh
+      && mesh !== this.viewCube && mesh !== this.viewCubeGround
+      && (mesh.layerMask & VIEW_CUBE_LAYER) !== 0
+      ? mesh : null;
+
+    if (this.litPart === part) { return; }
+
+    if (this.litPart && this.litPart.material) { this.litPart.material.alpha = 0.0; }
+    if (part && part.material) { part.material.alpha = 0.5; }
+    this.litPart = part;
+  }
+
+  /** The part currently lit, so the light moves instead of doubling. */
+  private litPart: BABYLON.AbstractMesh | null = null;
+
+  /**
    * Zoom to side
    */
   public zoomToSide(side: string) {
@@ -1115,10 +1147,6 @@ export class ViewCubeService implements SceneScoped {
     this.frontPlane.material = materialFrontPlane;
     this.frontPlane.position.y = -0.51;
     this.frontPlane.rotation = new BABYLON.Vector3(-Math.PI / 2, 0, 0);
-    this.frontPlane.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.frontPlane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.frontPlane.material, "alpha", 0.5));
-    this.frontPlane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.frontPlane.material, "alpha", 0.0));
-    this.frontPlane.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createBackPlane() {
     // Material
@@ -1130,10 +1158,6 @@ export class ViewCubeService implements SceneScoped {
     this.backPlane.material = materialBackPlane;
     this.backPlane.position.y = 0.51;
     this.backPlane.rotation = new BABYLON.Vector3(Math.PI / 2, 0, 0);
-    this.backPlane.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.backPlane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.backPlane.material, "alpha", 0.5));
-    this.backPlane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.backPlane.material, "alpha", 0.0));
-    this.backPlane.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createRightPlane() {
     // Material
@@ -1146,10 +1170,6 @@ export class ViewCubeService implements SceneScoped {
     this.rightPlane.position.y = 0;
     this.rightPlane.position.x = 0.51;
     this.rightPlane.rotation = new BABYLON.Vector3(0, -Math.PI / 2, 0);
-    this.rightPlane.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.rightPlane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.rightPlane.material, "alpha", 0.5));
-    this.rightPlane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.rightPlane.material, "alpha", 0.0));
-    this.rightPlane.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createLeftPlane() {
     // Material
@@ -1162,10 +1182,6 @@ export class ViewCubeService implements SceneScoped {
     this.leftPlane.position.y = 0;
     this.leftPlane.position.x = -0.51;
     this.leftPlane.rotation = new BABYLON.Vector3(0, Math.PI / 2, 0);
-    this.leftPlane.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.leftPlane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.leftPlane.material, "alpha", 0.5));
-    this.leftPlane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.leftPlane.material, "alpha", 0.0));
-    this.leftPlane.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createTopPlane() {
     // Material
@@ -1178,10 +1194,6 @@ export class ViewCubeService implements SceneScoped {
     this.topPlane.position.y = 0;
     this.topPlane.position.z = 0.51;
     this.topPlane.rotation = new BABYLON.Vector3(0, Math.PI, Math.PI);
-    this.topPlane.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.topPlane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.topPlane.material, "alpha", 0.5));
-    this.topPlane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.topPlane.material, "alpha", 0.0));
-    this.topPlane.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createBottomPlane() {
     // Material
@@ -1194,10 +1206,6 @@ export class ViewCubeService implements SceneScoped {
     this.bottomPlane.position.y = 0;
     this.bottomPlane.position.z = -0.51;
     this.bottomPlane.rotation = new BABYLON.Vector3(0, 0, -Math.PI / 2);
-    this.bottomPlane.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.bottomPlane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.bottomPlane.material, "alpha", 0.5));
-    this.bottomPlane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.bottomPlane.material, "alpha", 0.0));
-    this.bottomPlane.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createRightTopFrontBox() {
 
@@ -1210,10 +1218,6 @@ export class ViewCubeService implements SceneScoped {
     this.rightTopFrontBox.position.x = 0.5;
     this.rightTopFrontBox.position.y = -0.5;
     this.rightTopFrontBox.position.z = 0.5;
-    this.rightTopFrontBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.rightTopFrontBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.rightTopFrontBox.material, "alpha", 0.5));
-    this.rightTopFrontBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.rightTopFrontBox.material, "alpha", 0.0));
-    this.rightTopFrontBox.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createLeftTopFrontBox() {
 
@@ -1226,10 +1230,6 @@ export class ViewCubeService implements SceneScoped {
     this.leftTopFrontBox.position.x = -0.5;
     this.leftTopFrontBox.position.y = -0.5;
     this.leftTopFrontBox.position.z = 0.5;
-    this.leftTopFrontBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.leftTopFrontBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.leftTopFrontBox.material, "alpha", 0.5));
-    this.leftTopFrontBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.leftTopFrontBox.material, "alpha", 0.0));
-    this.leftTopFrontBox.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createRightTopBackBox() {
 
@@ -1242,10 +1242,6 @@ export class ViewCubeService implements SceneScoped {
     this.rightTopBackBox.position.x = 0.5;
     this.rightTopBackBox.position.y = 0.5;
     this.rightTopBackBox.position.z = 0.5;
-    this.rightTopBackBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.rightTopBackBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.rightTopBackBox.material, "alpha", 0.5));
-    this.rightTopBackBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.rightTopBackBox.material, "alpha", 0.0));
-    this.rightTopBackBox.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createLeftTopBackBox() {
 
@@ -1258,10 +1254,6 @@ export class ViewCubeService implements SceneScoped {
     this.leftTopBackBox.position.x = -0.5;
     this.leftTopBackBox.position.y = 0.5;
     this.leftTopBackBox.position.z = 0.5;
-    this.leftTopBackBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.leftTopBackBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.leftTopBackBox.material, "alpha", 0.5));
-    this.leftTopBackBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.leftTopBackBox.material, "alpha", 0.0));
-    this.leftTopBackBox.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createRightBottomFrontBox() {
 
@@ -1274,10 +1266,6 @@ export class ViewCubeService implements SceneScoped {
     this.rightBottomFrontBox.position.x = 0.5;
     this.rightBottomFrontBox.position.y = -0.5;
     this.rightBottomFrontBox.position.z = -0.5;
-    this.rightBottomFrontBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.rightBottomFrontBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.rightBottomFrontBox.material, "alpha", 0.5));
-    this.rightBottomFrontBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.rightBottomFrontBox.material, "alpha", 0.0));
-    this.rightBottomFrontBox.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createLeftBottomFrontBox() {
 
@@ -1290,10 +1278,6 @@ export class ViewCubeService implements SceneScoped {
     this.leftBottomFrontBox.position.x = -0.5;
     this.leftBottomFrontBox.position.y = -0.5;
     this.leftBottomFrontBox.position.z = -0.5;
-    this.leftBottomFrontBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.leftBottomFrontBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.leftBottomFrontBox.material, "alpha", 0.5));
-    this.leftBottomFrontBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.leftBottomFrontBox.material, "alpha", 0.0));
-    this.leftBottomFrontBox.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createRightBottomBackBox() {
 
@@ -1306,10 +1290,6 @@ export class ViewCubeService implements SceneScoped {
     this.rightBottomBackBox.position.x = 0.5;
     this.rightBottomBackBox.position.y = 0.5;
     this.rightBottomBackBox.position.z = -0.5;
-    this.rightBottomBackBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.rightBottomBackBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.rightBottomBackBox.material, "alpha", 0.5));
-    this.rightBottomBackBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.rightBottomBackBox.material, "alpha", 0.0));
-    this.rightBottomBackBox.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createLeftBottomBackBox() {
 
@@ -1322,10 +1302,6 @@ export class ViewCubeService implements SceneScoped {
     this.leftBottomBackBox.position.x = -0.5;
     this.leftBottomBackBox.position.y = 0.5;
     this.leftBottomBackBox.position.z = -0.5;
-    this.leftBottomBackBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.leftBottomBackBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.leftBottomBackBox.material, "alpha", 0.5));
-    this.leftBottomBackBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.leftBottomBackBox.material, "alpha", 0.0));
-    this.leftBottomBackBox.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createTopFrontBox() {
 
@@ -1338,10 +1314,6 @@ export class ViewCubeService implements SceneScoped {
     this.topFrontBox.position.x = 0;
     this.topFrontBox.position.y = -0.5;
     this.topFrontBox.position.z = 0.5;
-    this.topFrontBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.topFrontBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.topFrontBox.material, "alpha", 0.5));
-    this.topFrontBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.topFrontBox.material, "alpha", 0.0));
-    this.topFrontBox.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createTopBackBox() {
 
@@ -1354,10 +1326,6 @@ export class ViewCubeService implements SceneScoped {
     this.topBackBox.position.x = 0;
     this.topBackBox.position.y = 0.5;
     this.topBackBox.position.z = 0.5;
-    this.topBackBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.topBackBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.topBackBox.material, "alpha", 0.5));
-    this.topBackBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.topBackBox.material, "alpha", 0.0));
-    this.topBackBox.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createTopRightBox() {
 
@@ -1370,10 +1338,6 @@ export class ViewCubeService implements SceneScoped {
     this.topRightBox.position.x = 0.5;
     this.topRightBox.position.y = 0;
     this.topRightBox.position.z = 0.5;
-    this.topRightBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.topRightBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.topRightBox.material, "alpha", 0.5));
-    this.topRightBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.topRightBox.material, "alpha", 0.0));
-    this.topRightBox.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createTopLeftBox() {
 
@@ -1386,10 +1350,6 @@ export class ViewCubeService implements SceneScoped {
     this.topLeftBox.position.x = -0.5;
     this.topLeftBox.position.y = 0;
     this.topLeftBox.position.z = 0.5;
-    this.topLeftBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.topLeftBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.topLeftBox.material, "alpha", 0.5));
-    this.topLeftBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.topLeftBox.material, "alpha", 0.0));
-    this.topLeftBox.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createBottomFrontBox() {
 
@@ -1402,10 +1362,6 @@ export class ViewCubeService implements SceneScoped {
     this.bottomFrontBox.position.x = 0;
     this.bottomFrontBox.position.y = -0.5;
     this.bottomFrontBox.position.z = -0.5;
-    this.bottomFrontBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.bottomFrontBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.bottomFrontBox.material, "alpha", 0.5));
-    this.bottomFrontBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.bottomFrontBox.material, "alpha", 0.0));
-    this.bottomFrontBox.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createBottomBackBox() {
 
@@ -1418,10 +1374,6 @@ export class ViewCubeService implements SceneScoped {
     this.bottomBackBox.position.x = 0;
     this.bottomBackBox.position.y = 0.5;
     this.bottomBackBox.position.z = -0.5;
-    this.bottomBackBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.bottomBackBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.bottomBackBox.material, "alpha", 0.5));
-    this.bottomBackBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.bottomBackBox.material, "alpha", 0.0));
-    this.bottomBackBox.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createBottomRightBox() {
 
@@ -1434,10 +1386,6 @@ export class ViewCubeService implements SceneScoped {
     this.bottomRightBox.position.x = 0.5;
     this.bottomRightBox.position.y = 0;
     this.bottomRightBox.position.z = -0.5;
-    this.bottomRightBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.bottomRightBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.bottomRightBox.material, "alpha", 0.5));
-    this.bottomRightBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.bottomRightBox.material, "alpha", 0.0));
-    this.bottomRightBox.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createBottomLeftBox() {
 
@@ -1450,10 +1398,6 @@ export class ViewCubeService implements SceneScoped {
     this.bottomLeftBox.position.x = -0.5;
     this.bottomLeftBox.position.y = 0;
     this.bottomLeftBox.position.z = -0.5;
-    this.bottomLeftBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.bottomLeftBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.bottomLeftBox.material, "alpha", 0.5));
-    this.bottomLeftBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.bottomLeftBox.material, "alpha", 0.0));
-    this.bottomLeftBox.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createFrontRightBox() {
 
@@ -1466,10 +1410,6 @@ export class ViewCubeService implements SceneScoped {
     this.frontRightBox.position.x = 0.5;
     this.frontRightBox.position.y = -0.5;
     this.frontRightBox.position.z = 0;
-    this.frontRightBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.frontRightBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.frontRightBox.material, "alpha", 0.5));
-    this.frontRightBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.frontRightBox.material, "alpha", 0.0));
-    this.frontRightBox.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createFrontLeftBox() {
 
@@ -1482,10 +1422,6 @@ export class ViewCubeService implements SceneScoped {
     this.frontLeftBox.position.x = -0.5;
     this.frontLeftBox.position.y = -0.5;
     this.frontLeftBox.position.z = 0;
-    this.frontLeftBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.frontLeftBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.frontLeftBox.material, "alpha", 0.5));
-    this.frontLeftBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.frontLeftBox.material, "alpha", 0.0));
-    this.frontLeftBox.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createBackRightBox() {
 
@@ -1498,10 +1434,6 @@ export class ViewCubeService implements SceneScoped {
     this.backRightBox.position.x = 0.5;
     this.backRightBox.position.y = 0.5;
     this.backRightBox.position.z = 0;
-    this.backRightBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.backRightBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.backRightBox.material, "alpha", 0.5));
-    this.backRightBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.backRightBox.material, "alpha", 0.0));
-    this.backRightBox.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
   private createBackLeftBox() {
 
@@ -1514,9 +1446,5 @@ export class ViewCubeService implements SceneScoped {
     this.backLeftBox.position.x = -0.5;
     this.backLeftBox.position.y = 0.5;
     this.backLeftBox.position.z = 0;
-    this.backLeftBox.actionManager = new BABYLON.ActionManager(this.babylonService.scene);
-    this.backLeftBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.backLeftBox.material, "alpha", 0.5));
-    this.backLeftBox.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.backLeftBox.material, "alpha", 0.0));
-    this.backLeftBox.actionManager.registerAction(new BABYLON.Action(BABYLON.ActionManager.OnPickDownTrigger));
   }
 }

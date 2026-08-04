@@ -200,6 +200,9 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
       // The pointer can have left, or the view been torn down, since the move
       if (this.destroyed || !this.babylonService.scene) { return; }
       this.picking.hover(this.pickingRay());
+      // The cube lights its own part from here - its ActionManager hover died
+      // with tuneForStaticScene(), which stopped Babylon picking on every move
+      this.viewCubeService.highlight(this.viewCubeService.pickSide());
     });
   }
 
@@ -208,6 +211,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     this.hoverQueued = false;
     this.pointerDownAt = null;
     this.picking.clearHover();
+    this.viewCubeService.highlight(null);
   }
 
   // ==========================================

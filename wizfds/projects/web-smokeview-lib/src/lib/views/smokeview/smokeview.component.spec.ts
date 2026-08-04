@@ -203,6 +203,8 @@ describe('SmokeviewComponent', () => {
     let scene: BABYLON.Scene;
     /** Counts the zoom extents the double middle press asked for (ADR-0012). */
     let zoomExtents: jasmine.Spy;
+    /** The cube, as the component drives it: picked and lit on hover. */
+    let viewCube: { pickSide: jasmine.Spy, highlight: jasmine.Spy, init: () => void };
 
     /** The canvas the scene is drawn on - the only surface a pick may come from. */
     const canvas = (): HTMLCanvasElement =>
@@ -222,6 +224,11 @@ describe('SmokeviewComponent', () => {
       Object.defineProperty(navigator, 'gpu', { value: {}, configurable: true });
 
       zoomExtents = jasmine.createSpy('zoomExtents');
+      viewCube = {
+        pickSide: jasmine.createSpy('pickSide').and.returnValue(null),
+        highlight: jasmine.createSpy('highlight'),
+        init: () => { }
+      };
       engine = new BABYLON.NullEngine();
       scene = new BABYLON.Scene(engine);
       // A real camera: the ray is built through scene.createPickingRay()
@@ -252,7 +259,7 @@ describe('SmokeviewComponent', () => {
               zoomExtents
             }
           },
-          { provide: ViewCubeService, useValue: { pickSide: () => undefined, init: () => { } } },
+          { provide: ViewCubeService, useValue: viewCube },
           { provide: PickService, useValue: picking }
         ]
       }).compileComponents();
@@ -346,6 +353,24 @@ describe('SmokeviewComponent', () => {
       canvas().dispatchEvent(new PointerEvent('pointerleave', { bubbles: true }));
 
       expect(picking.clearHover).toHaveBeenCalled();
+    });
+
+    it('lights the cube part under the pointer as it moves', async () => {
+      // The cube's own hover died with tuneForStaticScene() - Babylon no
+      // longer picks the scene on pointer moves, so the ActionManager
+      // triggers never fired. The component's throttled hover drives it now.
+      viewCube.pickSide.and.returnValue('top');
+
+      canvas().dispatchEvent(new PointerEvent('pointermove', { bubbles: true }));
+      await new Promise(resolve => requestAnimationFrame(resolve));
+
+      expect(viewCube.highlight).toHaveBeenCalledWith('top');
+    });
+
+    it('puts the cube light out when the pointer leaves the canvas', () => {
+      canvas().dispatchEvent(new PointerEvent('pointerleave', { bubbles: true }));
+
+      expect(viewCube.highlight).toHaveBeenCalledWith(null);
     });
   });
 
