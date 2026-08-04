@@ -8,7 +8,7 @@ import { ScenePick } from '../babylon/scene-registry.service';
 import { SceneRegistryService } from '../babylon/scene-registry.service';
 import { SceneAxis, ScenePoint } from '../scene-bounds/scene-bounds.service';
 import { PickService } from '../picking/pick.service';
-import { SceneXb } from '../drawing/scene-input';
+import { SceneCell, SceneXb } from '../drawing/scene-input';
 import { EditStreamService } from './edit-stream.service';
 import { SceneDelta, SceneEditCommand } from './edit-command';
 import { dragFace, faceAxis, faceCentre, SCENE_FACES, SceneFace } from './face-drag';
@@ -230,6 +230,9 @@ export class GizmoService implements SceneScoped {
     /** Where the move handles stand while no gesture shifts them - the union base. */
     private moveBase: ScenePoint | null = null;
 
+    /** Whether the running gesture belongs to the keyboard - see nudge(). */
+    private nudging = false;
+
     constructor(
         private babylonService: BabylonService,
         private pickService: PickService,
@@ -273,6 +276,11 @@ export class GizmoService implements SceneScoped {
     /** Whether a drag is in progress, so a click is not also a selection. */
     public get isDragging(): boolean {
         return !!this.current;
+    }
+
+    /** Whether the running gesture belongs to the keyboard - see nudge(). */
+    public get isNudging(): boolean {
+        return this.nudging;
     }
 
     /**
@@ -382,6 +390,43 @@ export class GizmoService implements SceneScoped {
         this.pickService.previewBox(gesture.uuids[0], box);
         this.updateHandles(box);
         this.publish();
+    }
+
+    /**
+     * One press of a nudge key: the selection moves one cell of the active
+     * grid along a world axis (#124).
+     *
+     * A burst of presses is ONE gesture - the first press opens it, each
+     * press adds a cell, and endNudge() settles the lot as a single command
+     * (ADR-0009). Snapping stands aside for the burst: a nudge moves BY a
+     * cell, exactly, from wherever the element happens to stand - it does not
+     * pull to the grid. That is AutoCAD's nudge contract, and it is what
+     * keeps ten presses meaning ten cells.
+     */
+    public nudge(axis: SceneAxis, direction: 1 | -1): void {
+        if (this.mode !== 'move') { return; }
+        if (this.current && !this.nudging) { return; }
+
+        const cell = this.cellAlong(axis);
+        if (!cell) { return; }
+
+        if (!this.current) {
+            this.beginMove();
+            if (!this.current) { return; }
+            this.nudging = true;
+            this.rawDragDelta.setAll(0);
+            this.snapService.suspended = true;
+        }
+
+        this.rawDragDelta[axis] += direction * cell;
+        this.trackMove(
+            { dx: this.rawDragDelta.x, dy: this.rawDragDelta.y, dz: this.rawDragDelta.z },
+            ['x', 'y', 'z']);
+    }
+
+    /** The burst is over - the last nudge key came up. */
+    public endNudge(): void {
+        if (this.nudging) { this.commit(); }
     }
 
     /**
@@ -513,10 +558,33 @@ export class GizmoService implements SceneScoped {
         if (!grid) { return 0; }
 
         const axis = faceAxis(face);
-        const step = axis === 'x' ? grid.cell.i : axis === 'y' ? grid.cell.j : grid.cell.k;
+        const step = cellAlongAxis(grid.cell, axis);
         const thickness = base[`${axis}2`] - base[`${axis}1`];
 
         return Math.max(0, Math.min(step, thickness));
+    }
+
+    /**
+     * One cell of the grid in force at the selection, along one axis - what a
+     * nudge moves by. Null in a scenario with no &MESH: a nudge is defined in
+     * cells and has no distance to offer without one.
+     */
+    private cellAlong(axis: SceneAxis): number | null {
+        const boxes = this.selectionBoxes();
+        if (boxes.length === 0) { return null; }
+
+        const grid = this.snapService.gridAt(moveAnchorOf(boxes));
+        if (!grid) { return null; }
+
+        return cellAlongAxis(grid.cell, axis);
+    }
+
+    /** The boxes of everything selected, as the registry last drew them. */
+    private selectionBoxes(): SceneXb[] {
+        return this.selection
+            .map(element => this.sceneRegistry.entryFor(element.uuid))
+            .filter(entry => !!entry)
+            .map(entry => entry.xb);
     }
 
     /** Redraw the preview after the keyboard has changed a number. */
@@ -541,6 +609,7 @@ export class GizmoService implements SceneScoped {
      */
     private end(): void {
         this.current = null;
+        this.nudging = false;
         this.snapService.hideMarker();
         this.snapService.suspended = false;
         this.pickService.endPreview();
@@ -655,10 +724,7 @@ export class GizmoService implements SceneScoped {
 
     /** The plan square and the two axis arrows, on the base of the selection. */
     private showMoveHandles(): void {
-        const boxes = this.selection
-            .map(element => this.sceneRegistry.entryFor(element.uuid))
-            .filter(entry => !!entry)
-            .map(entry => entry.xb);
+        const boxes = this.selectionBoxes();
         if (boxes.length === 0) { this.clearMoveHandles(); return; }
 
         if (this.moveHandles.size === 0) { this.buildMoveHandles(); }
@@ -1100,6 +1166,11 @@ export function gripOrientation(
     return { right: right, up: BABYLON.Vector3.Cross(forward, right), forward: forward };
 }
 
+/** The grid's cell size along one axis - `i` spans x, `j` y, `k` z. */
+function cellAlongAxis(cell: SceneCell, axis: SceneAxis): number {
+    return axis === 'x' ? cell.i : axis === 'y' ? cell.j : cell.k;
+}
+
 /** The box that encloses all of them. */
 function unionOf(boxes: readonly SceneXb[]): SceneXb {
     return {
@@ -1157,4 +1228,47 @@ export const MOVE_AXES: Record<MoveHandle, readonly SceneAxis[]> = {
 export function moveAnchorOf(boxes: readonly SceneXb[]): ScenePoint {
     const union = unionOf(boxes);
     return { x: (union.x1 + union.x2) / 2, y: (union.y1 + union.y2) / 2, z: union.z1 };
+}
+
+/** The keys a nudge listens to - one list, and the type is its shadow. */
+export const NUDGE_KEYS = [
+    'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown'
+] as const;
+
+export type NudgeKey = (typeof NUDGE_KEYS)[number];
+
+/**
+ * Which world axis an arrow key means, with the camera where it is.
+ *
+ * The arrows speak the camera's language and are snapped to a world axis: a
+ * fixed mapping reads inverted the moment the camera comes around the model,
+ * and an element only ever moves axis-aligned (#124). PageUp and PageDown are
+ * z, which no arrow touches.
+ *
+ * @param right the camera's screen-right, projected on the floor
+ * @param ahead where the camera looks, projected on the floor
+ * @param up    the camera's own up taken into world space - NOT the world's
+ *              z, whose floor projection is nothing. It is what "up the
+ *              screen" means in a plan view, where the gaze projects away
+ * @returns the axis and the way along it, or null from a degenerate view
+ */
+export function nudgeDirection(
+    key: NudgeKey,
+    right: { x: number, y: number },
+    ahead: { x: number, y: number },
+    up: { x: number, y: number }
+): { axis: SceneAxis, direction: 1 | -1 } | null {
+    if (key === 'PageUp') { return { axis: 'z', direction: 1 }; }
+    if (key === 'PageDown') { return { axis: 'z', direction: -1 }; }
+
+    const vertical = key === 'ArrowUp' || key === 'ArrowDown';
+    const gaze = Math.hypot(ahead.x, ahead.y) > 1e-3 ? ahead : up;
+    const along = vertical ? gaze : right;
+    if (Math.hypot(along.x, along.y) < 1e-6) { return null; }
+
+    const axis: SceneAxis = Math.abs(along.x) >= Math.abs(along.y) ? 'x' : 'y';
+    const sign = (key === 'ArrowLeft' || key === 'ArrowDown') ? -1 : 1;
+    const direction = (axis === 'x' ? along.x : along.y) >= 0 ? sign : -sign;
+
+    return { axis: axis, direction: direction as 1 | -1 };
 }

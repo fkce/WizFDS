@@ -2,7 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import * as BABYLON from 'babylonjs';
 
 import {
-  faceOutward, GizmoService, gripOrientation, MOVE_AXES, moveAnchorOf, RESIZE_FACES
+  faceOutward, GizmoService, gripOrientation, MOVE_AXES, moveAnchorOf, nudgeDirection,
+  RESIZE_FACES
 } from './gizmo.service';
 import { SnapService } from './snap.service';
 import { EditStreamService } from './edit-stream.service';
@@ -389,6 +390,134 @@ describe('GizmoService', () => {
       expect(apertures.length).toBe(1);
       expect(apertures[0].visibility).toBe(0);
       expect(apertures[0].isPickable).toBe(true);
+    });
+  });
+
+  /**
+   * A nudge is the keyboard's move: one press, one cell of the active grid,
+   * and a burst of presses is one gesture with one command at the end
+   * (ADR-0009). It moves BY a cell rather than pulling to the grid - the
+   * AutoCAD contract - so snapping stands aside for the burst.
+   */
+  describe('a nudge from the keyboard', () => {
+
+    const MESH = {
+      uuid: 'mesh', id: 'MESH1',
+      xb: { x1: -1, x2: 11, y1: -1, y2: 7, z1: 0, z2: 4 },
+      cell: { i: 0.3, j: 0.5, k: 0.2 }
+    };
+
+    beforeEach(() => {
+      draw('west', WEST);
+      select('west');
+      snapping.setScene({ ...emptyScene(), meshes: [MESH] });
+    });
+
+    it('moves by whole cells of the active grid, one command per burst', () => {
+      gizmo.nudge('x', 1);
+      gizmo.nudge('x', 1);
+      gizmo.nudge('y', -1);
+      gizmo.endNudge();
+
+      expect(commands).toEqual([
+        { kind: 'move', uuids: ['west'], delta: { dx: 0.6, dy: -0.5, dz: 0 } }
+      ]);
+    });
+
+    it('nudges the height along z, with the cell z owns', () => {
+      gizmo.nudge('z', 1);
+      gizmo.endNudge();
+
+      expect(commands).toEqual([
+        { kind: 'move', uuids: ['west'], delta: { dx: 0, dy: 0, dz: 0.2 } }
+      ]);
+    });
+
+    it('moves by the cell exactly, never pulling to the grid', () => {
+      // The mesh starts at -1 with a 0.3 m cell, so its nodes near the wall
+      // are at -0.1 and 0.2 - the wall at x1 = 0 stands off the grid. One
+      // nudge lands at 0.3, within snapping distance of the node at 0.2; a
+      // nudge that consulted the snap would come back 0.2 instead.
+      gizmo.nudge('x', 1);
+      gizmo.endNudge();
+
+      expect((commands[0] as any).delta).toEqual({ dx: 0.3, dy: 0, dz: 0 });
+    });
+
+    it('yields to a drag the mouse already owns', () => {
+      gizmo.beginMove();
+      gizmo.nudge('x', 1);
+      gizmo.commit();
+
+      expect(commands).toEqual([]);
+    });
+
+    it('does nothing at all in a scenario with no mesh', () => {
+      // No mesh, no cell - a nudge is defined in cells and has no distance
+      // to offer without one.
+      snapping.setScene(emptyScene());
+
+      gizmo.nudge('x', 1);
+      gizmo.endNudge();
+
+      expect(gizmo.gesture).toBeNull();
+      expect(commands).toEqual([]);
+    });
+
+    it('abandons the burst on Escape like any other gesture', () => {
+      gizmo.nudge('x', 1);
+
+      gizmo.cancel();
+      gizmo.endNudge();
+
+      expect(gizmo.gesture).toBeNull();
+      expect(commands).toEqual([]);
+    });
+  });
+
+  /**
+   * The arrows speak the camera's language and are snapped to a world axis:
+   * a fixed mapping reads inverted the moment the camera comes around the
+   * model, and an element only ever moves axis-aligned (#124).
+   */
+  describe('the arrow-to-axis mapping', () => {
+
+    const RIGHT = { x: 1, y: 0 };
+    const AHEAD = { x: 0, y: 1 };
+    const UP = { x: 0, y: 0.2 };
+
+    it('reads the arrows in the camera frame, snapped to world axes', () => {
+      expect(nudgeDirection('ArrowRight', RIGHT, AHEAD, UP)).toEqual({ axis: 'x', direction: 1 });
+      expect(nudgeDirection('ArrowLeft', RIGHT, AHEAD, UP)).toEqual({ axis: 'x', direction: -1 });
+      expect(nudgeDirection('ArrowUp', RIGHT, AHEAD, UP)).toEqual({ axis: 'y', direction: 1 });
+      expect(nudgeDirection('ArrowDown', RIGHT, AHEAD, UP)).toEqual({ axis: 'y', direction: -1 });
+    });
+
+    it('turns with the camera - an about-face flips the answers', () => {
+      const right = { x: -1, y: 0 };
+      const ahead = { x: 0, y: -1 };
+
+      expect(nudgeDirection('ArrowRight', right, ahead, UP)).toEqual({ axis: 'x', direction: -1 });
+      expect(nudgeDirection('ArrowUp', right, ahead, UP)).toEqual({ axis: 'y', direction: -1 });
+    });
+
+    it('picks the dominant axis on a diagonal view', () => {
+      expect(nudgeDirection('ArrowRight', { x: 0.9, y: 0.4 }, AHEAD, UP))
+        .toEqual({ axis: 'x', direction: 1 });
+      expect(nudgeDirection('ArrowRight', { x: -0.4, y: -0.9 }, AHEAD, UP))
+        .toEqual({ axis: 'y', direction: -1 });
+    });
+
+    it('falls back to the camera up when looking straight down', () => {
+      // A plan view: the gaze projects to nothing on the floor, and "up the
+      // screen" is the camera's own up vector.
+      expect(nudgeDirection('ArrowUp', RIGHT, { x: 0, y: 0 }, { x: 0, y: 1 }))
+        .toEqual({ axis: 'y', direction: 1 });
+    });
+
+    it('sends PageUp and PageDown along z, whatever the camera does', () => {
+      expect(nudgeDirection('PageUp', RIGHT, AHEAD, UP)).toEqual({ axis: 'z', direction: 1 });
+      expect(nudgeDirection('PageDown', RIGHT, AHEAD, UP)).toEqual({ axis: 'z', direction: -1 });
     });
   });
 

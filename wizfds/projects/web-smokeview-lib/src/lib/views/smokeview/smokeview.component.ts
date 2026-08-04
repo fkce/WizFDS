@@ -11,7 +11,9 @@ import { PlayerService } from '../../services/player/player.service';
 import { ViewCubeService } from '../../services/babylon/viewCube/view-cube.service';
 import * as BABYLON from 'babylonjs';
 import { SceneBoundsService } from '../../services/scene-bounds/scene-bounds.service';
-import { GestureView, GizmoService } from '../../services/editing/gizmo.service';
+import {
+  GestureView, GizmoService, NUDGE_KEYS, NudgeKey, nudgeDirection
+} from '../../services/editing/gizmo.service';
 import { GestureKey } from '../../services/editing/gesture';
 
 /**
@@ -195,7 +197,50 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     this.babylonService.setCameraControl(!event.shiftKey);
     if (event.key === 'Escape') { this.gizmo.cancel(); return; }
 
+    if (this.handleNudgeKey(event)) { return; }
     if (this.gesture) { this.routeGestureKey(event); }
+  }
+
+  /**
+   * One press of a nudge key - the selection moves by one grid cell (#124).
+   *
+   * The arrows speak the camera's language, snapped to a world axis by
+   * nudgeDirection(); the camera itself lost the arrow keys to this (see
+   * BabylonService), so a stray press can never turn a set view. A burst of
+   * presses is one gesture: it settles when the last key comes up (onKeyUp),
+   * and Escape abandons it like any other. Nothing here fires while the user
+   * types in a form field of the host, or while the mouse owns the gesture.
+   */
+  private handleNudgeKey(event: KeyboardEvent): boolean {
+    if (!(NUDGE_KEYS as readonly string[]).includes(event.key)) { return false; }
+    if (this.gizmo.mode !== 'move') { return false; }
+    if (SmokeviewComponent.isFormField(event.target)) { return false; }
+    if (this.gesture && !this.gizmo.isNudging) { return false; }
+
+    // A repeat continues a burst - it never starts one. That is what lets
+    // Escape abandon a burst under a held key: the element stays put until
+    // the key is pressed afresh.
+    if (event.repeat && !this.gizmo.isNudging) {
+      event.preventDefault();
+      return true;
+    }
+
+    const camera = this.babylonService.camera;
+    if (!camera) { return false; }
+
+    // The camera's OWN up, taken into world space - not upVector, which this
+    // scene pins to the world's z and whose floor projection is nothing.
+    const move = nudgeDirection(
+      event.key as NudgeKey,
+      camera.getDirection(BABYLON.Vector3.Right()),
+      camera.getTarget().subtract(camera.position),
+      camera.getDirection(BABYLON.Vector3.Up()));
+    if (!move) { return false; }
+
+    event.preventDefault();
+    this.nudgeKeys.add(event.key);
+    this.gizmo.nudge(move.axis, move.direction);
+    return true;
   }
 
   /**
@@ -257,6 +302,18 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   onKeyUp(event: KeyboardEvent): void {
     this.gizmo.setSnapSuspended(event.ctrlKey);
     this.babylonService.setCameraControl(!event.shiftKey);
+
+    // The nudge burst settles when the last of its keys comes up
+    if (this.nudgeKeys.delete(event.key) && this.nudgeKeys.size === 0) {
+      this.gizmo.endNudge();
+    }
+  }
+
+  /** Alt-tab mid-burst: the keyup never arrives, so the burst settles here. */
+  @HostListener('window:blur')
+  onWindowBlur(): void {
+    this.nudgeKeys.clear();
+    this.gizmo.endNudge();
   }
 
   /** Show what the gesture is doing, without stepping on what is being typed. */
@@ -310,6 +367,9 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   private pointerDownAt: { x: number, y: number } | null = null;
 
+  /** The nudge keys currently held - the burst commits when the last comes up. */
+  private readonly nudgeKeys = new Set<string>();
+
   constructor(
     public picking: PickService,
     private babylonService: BabylonService,
@@ -320,6 +380,14 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     private gizmo: GizmoService,
     private zone: NgZone
   ) { }
+
+  /** Whether a keystroke belongs to a form field rather than the scene. */
+  private static isFormField(target: EventTarget | null): boolean {
+    const element = target as HTMLElement | null;
+    if (!element || !element.tagName) { return false; }
+    return element.tagName === 'INPUT' || element.tagName === 'TEXTAREA'
+      || element.isContentEditable === true;
+  }
 
   ngOnInit() {
     // Decided on first paint, so an unsupported browser sees the message

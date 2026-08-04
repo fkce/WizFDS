@@ -274,6 +274,12 @@ export class BabylonService {
     // Right-handed with Z up, as in FDS - see docs/adr/0002-wspolrzedne-w-metrach.md
     this.camera.upVector = new BABYLON.Vector3(0, 0, 1);
 
+    // The arrow keys belong to the keyboard nudge (#124); the camera keeps
+    // the mouse, as it does in PyroSim. Removed rather than re-bound - nobody
+    // orbits by keyboard here, and a stray arrow must not turn a set view.
+    const keyboard = this.camera.inputs.attached['keyboard'];
+    if (keyboard) { this.camera.inputs.remove(keyboard); }
+
     // Everything else about the camera, and the world axes, follows from how big
     // the model is. Nothing has been measured yet, so this frames the default
     // box; SmokeviewApiService calls it again once it knows the scenario.
