@@ -32,6 +32,13 @@ function register() {
 	include("login.php");
 }
 
+# The password-reset flow lives in login.php with the other account forms; the
+# flag tells it which one to render.
+function resetPassword() {
+	$_REQUEST['wizfdsReset'] = 1;
+	include("login.php");
+}
+
 function logout() {
 	wizfds_session_reset();
 	header("Location: /");

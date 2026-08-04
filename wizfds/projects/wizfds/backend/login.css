@@ -242,6 +242,41 @@ div.g-recaptcha {
 
 /* --- Status messages ---------------------------------------------------------- */
 
+div.form-hint {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--grey-400);
+}
+
+div.form-links {
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+div.form-links a {
+  color: var(--grey-400);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+div.form-links a:hover {
+  color: var(--accent-hover);
+  border-bottom-color: var(--accent-hover);
+}
+
+div.login-notice {
+  width: min(24rem, 100%);
+  padding: 0.7rem 0.9rem;
+  text-align: center;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--grey-50);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-glow);
+  border-radius: var(--radius-sm);
+}
+
 div.login-error {
   width: min(24rem, 100%);
   padding: 0.6rem 0.9rem;
