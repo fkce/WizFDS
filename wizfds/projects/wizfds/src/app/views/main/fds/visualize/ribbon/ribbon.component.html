@@ -63,6 +63,15 @@
     <button type="button" class="tab contextual" role="tab" *ngIf="contextLabel"
       [class.active]="active === 'context'" [attr.aria-selected]="active === 'context'"
       (click)="select('context')">{{ contextLabel }}</button>
+
+    <!-- The builders live in tabs of their own, the way ARRAYRECT opens its
+         contextual ribbon tab in AutoCAD (#126). -->
+    <button type="button" class="tab contextual" role="tab" *ngIf="arrayForm"
+      [class.active]="active === 'array'" [attr.aria-selected]="active === 'array'"
+      (click)="select('array')">ARRAY</button>
+    <button type="button" class="tab contextual" role="tab" *ngIf="mirrorForm"
+      [class.active]="active === 'mirror'" [attr.aria-selected]="active === 'mirror'"
+      (click)="select('mirror')">MIRROR</button>
   </div>
 
   <!-- ===== Panels ========================================================= -->
@@ -120,6 +129,19 @@
           <button type="button" class="cmd big" [class.on]="gizmo.isCopyArmed"
             [disabled]="!canModify" [title]="copyTitle" (click)="gizmo.armCopy()">
             <mat-icon svgIcon="content-copy" aria-hidden="true"></mat-icon><span>Copy</span>
+          </button>
+          <!-- Both open a contextual builder tab; the numbers are typed there
+               and the ghosts show the result before OK commits it as one
+               command - one entry in the history (ADR-0009). -->
+          <button type="button" class="cmd big" [class.on]="!!arrayForm" [disabled]="!canModify"
+            [title]="canModify ? 'Lay copies of the selection out on a grid' : 'Nothing selected'"
+            (click)="startArray()">
+            <mat-icon svgIcon="dots-grid" aria-hidden="true"></mat-icon><span>Array</span>
+          </button>
+          <button type="button" class="cmd big" [class.on]="!!mirrorForm" [disabled]="!canModify"
+            [title]="canModify ? 'Mirror the selection about an axis-aligned plane' : 'Nothing selected'"
+            (click)="startMirror()">
+            <mat-icon svgIcon="flip-horizontal" aria-hidden="true"></mat-icon><span>Mirror</span>
           </button>
         </div>
         <div class="panel-title">Modify</div>
@@ -219,6 +241,98 @@
           </button>
         </div>
         <div class="panel-title">Measure</div>
+      </section>
+    </ng-container>
+
+    <!-- ---------- Array builder (#126) ------------------------------------- -->
+    <ng-container *ngSwitchCase="'array'">
+      <section class="panel">
+        <div class="panel-body column tight">
+          <div class="field" *ngFor="let axis of axes"
+            title="How many stand along this axis, the original included">
+            <label>N{{ axis }}</label>
+            <input type="number" min="1" step="1" [ngModel]="arrayForm.counts[axis]"
+              (ngModelChange)="setArrayCount(axis, $event)"
+              [attr.aria-label]="'Count along ' + axis" />
+          </div>
+        </div>
+        <div class="panel-title">Counts</div>
+      </section>
+      <section class="panel">
+        <div class="panel-body column tight">
+          <div class="field" *ngFor="let axis of axes"
+            title="The step between neighbours, in metres">
+            <label>d{{ axis }}</label>
+            <input type="number" step="0.1" [ngModel]="arrayForm.spacing[axis]"
+              (ngModelChange)="setArraySpacing(axis, $event)"
+              [attr.aria-label]="'Spacing along ' + axis" />
+          </div>
+        </div>
+        <div class="panel-title">Spacing [m]</div>
+      </section>
+      <section class="panel">
+        <div class="panel-body">
+          <button type="button" class="cmd big" [disabled]="!arrayHasCopies"
+            title="Create the array - one entry in the history" (click)="commitArray()">
+            <mat-icon svgIcon="check" aria-hidden="true"></mat-icon><span>OK</span>
+          </button>
+          <button type="button" class="cmd big" title="Abandon the array"
+            (click)="closeBuilder()">
+            <mat-icon svgIcon="close" aria-hidden="true"></mat-icon><span>Cancel</span>
+          </button>
+        </div>
+        <div class="panel-title">Array</div>
+      </section>
+    </ng-container>
+
+    <!-- ---------- Mirror builder (#126) ------------------------------------ -->
+    <ng-container *ngSwitchCase="'mirror'">
+      <section class="panel">
+        <div class="panel-body column tight">
+          <div class="field" title="The plane is perpendicular to this axis">
+            <label>Axis</label>
+            <select [ngModel]="mirrorForm.axis" (ngModelChange)="setMirrorAxis($event)"
+              aria-label="Mirror plane axis">
+              <option value="x">x</option>
+              <option value="y">y</option>
+              <option value="z">z</option>
+            </select>
+          </div>
+          <div class="field" title="Where the plane stands, in metres">
+            <label>{{ mirrorForm.axis }} =</label>
+            <input type="number" step="0.1" [ngModel]="mirrorForm.coordinate"
+              (ngModelChange)="setMirrorCoordinate($event)"
+              aria-label="Mirror plane coordinate" />
+          </div>
+          <div class="panel-body tight">
+            <button type="button" class="cmd" (click)="setMirrorPlaneAt('1')"
+              title="The selection's near face">Min</button>
+            <button type="button" class="cmd" (click)="setMirrorPlaneAt('mid')"
+              title="Through the selection's centre">Centre</button>
+            <button type="button" class="cmd" (click)="setMirrorPlaneAt('2')"
+              title="The selection's far face">Max</button>
+          </div>
+        </div>
+        <div class="panel-title">Plane</div>
+      </section>
+      <section class="panel">
+        <div class="panel-body">
+          <button type="button" class="cmd wide" [class.on]="mirrorForm.keepOriginal"
+            (click)="toggleMirrorKeep()" title="Keep the original as well as the mirror">
+            <mat-icon [svgIcon]="mirrorForm.keepOriginal
+              ? 'checkbox-marked-outline' : 'checkbox-blank-outline'" aria-hidden="true"></mat-icon>
+            <span>Keep original</span>
+          </button>
+          <button type="button" class="cmd big"
+            title="Create the mirror - one entry in the history" (click)="commitMirror()">
+            <mat-icon svgIcon="check" aria-hidden="true"></mat-icon><span>OK</span>
+          </button>
+          <button type="button" class="cmd big" title="Abandon the mirror"
+            (click)="closeBuilder()">
+            <mat-icon svgIcon="close" aria-hidden="true"></mat-icon><span>Cancel</span>
+          </button>
+        </div>
+        <div class="panel-title">Mirror</div>
       </section>
     </ng-container>
 

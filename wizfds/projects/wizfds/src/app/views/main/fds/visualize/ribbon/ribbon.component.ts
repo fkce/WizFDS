@@ -4,7 +4,10 @@ import { Subscription } from 'rxjs';
 
 import { Main } from '@services/main/main';
 import { MainService } from '@services/main/main.service';
-import { ElementsService } from '@services/elements/elements.service';
+import { ElementsService, FdsElementType } from '@services/elements/elements.service';
+import {
+  arraySlots, boxOf, ElementBox, mirroredBox, shiftedBox
+} from '@services/elements/element-geometry';
 import { formRouteFor } from '@services/elements/form-routes';
 import { SaveState, saveStateOf } from '@services/main/save-state';
 import { SelectedElement, SelectionService } from '@services/selection/selection.service';
@@ -19,9 +22,11 @@ import { SnapService } from '../../../../../../../../web-smokeview-lib/src/lib/s
 import { SnapMode } from '../../../../../../../../web-smokeview-lib/src/lib/services/editing/snap';
 import { DrawToolService } from '../../../../../../../../web-smokeview-lib/src/lib/services/editing/draw-tool.service';
 import { DrawKind } from '../../../../../../../../web-smokeview-lib/src/lib/services/editing/draw';
+import { PickService } from '../../../../../../../../web-smokeview-lib/src/lib/services/picking/pick.service';
+import { SceneChange } from '../../../../../../../../web-smokeview-lib/src/lib/services/drawing/scene-change';
 
 /** Which tab of the ribbon is open. */
-export type RibbonTabId = 'home' | 'view' | 'measure' | 'context';
+export type RibbonTabId = 'home' | 'view' | 'measure' | 'context' | 'array' | 'mirror';
 
 /**
  * The tabs that are always there, in the order the strip lists them.
@@ -127,6 +132,7 @@ export class RibbonComponent implements OnInit, OnDestroy {
     public gizmo: GizmoService,
     public snap: SnapService,
     public draw: DrawToolService,
+    private picking: PickService,
     private selection: SelectionService,
     private elements: ElementsService,
     private history: HistoryService,
@@ -142,6 +148,8 @@ export class RibbonComponent implements OnInit, OnDestroy {
 
     this.subs.push(this.selection.selected$.subscribe(selected => {
       this.selected = selected;
+      // A builder is a proposal over the selection it was opened on (#126)
+      this.closeBuilder();
       // The contextual tab goes with the selection it was named after
       if (selected.length === 0 && this.active === 'context') { this.active = 'home'; }
     }));
@@ -360,6 +368,182 @@ export class RibbonComponent implements OnInit, OnDestroy {
   }
 
   // ==========================================
+  // Array and Mirror builders (#126)
+  // ==========================================
+
+  /** The rectangular array being built, while its tab is open. */
+  arrayForm: {
+    counts: { x: number, y: number, z: number },
+    spacing: { x: number, y: number, z: number }
+  } | null = null;
+
+  /** The mirror being built, while its tab is open. */
+  mirrorForm: { axis: SceneAxis, coordinate: number, keepOriginal: boolean } | null = null;
+
+  /** Whether the counts describe anything beyond the original. */
+  get arrayHasCopies(): boolean {
+    const form = this.arrayForm;
+    return !!form && arraySlots(form.counts).length > 0 && this.selected.length > 0;
+  }
+
+  startArray(): void {
+    if (!this.canModify) { return; }
+
+    const bounds = this.selectionBounds();
+    this.arrayForm = {
+      counts: { x: 2, y: 1, z: 1 },
+      // The selection's own size: the copies stand shoulder to shoulder
+      // until told otherwise
+      spacing: {
+        x: round3(bounds.x2 - bounds.x1),
+        y: round3(bounds.y2 - bounds.y1),
+        z: round3(bounds.z2 - bounds.z1)
+      }
+    };
+    this.mirrorForm = null;
+    this.active = 'array';
+    this.previewBuilder();
+  }
+
+  setArrayCount(axis: SceneAxis, value: number): void {
+    if (!this.arrayForm) { return; }
+    this.arrayForm.counts[axis] = Number(value) || 1;
+    this.previewBuilder();
+  }
+
+  setArraySpacing(axis: SceneAxis, value: number): void {
+    if (!this.arrayForm) { return; }
+    this.arrayForm.spacing[axis] = Number(value) || 0;
+    this.previewBuilder();
+  }
+
+  commitArray(): void {
+    const form = this.arrayForm;
+    if (!form || !this.arrayHasCopies) { return; }
+
+    const change = this.fdsEdit.apply({
+      kind: 'array', uuids: this.selected.map(element => element.uuid),
+      counts: { ...form.counts }, spacing: { ...form.spacing }
+    });
+    this.closeBuilder();
+    this.selectAdded(change);
+  }
+
+  startMirror(): void {
+    if (!this.canModify) { return; }
+
+    const bounds = this.selectionBounds();
+    this.mirrorForm = {
+      axis: 'x',
+      coordinate: round3((bounds.x1 + bounds.x2) / 2),
+      keepOriginal: true
+    };
+    this.arrayForm = null;
+    this.active = 'mirror';
+    this.previewBuilder();
+  }
+
+  setMirrorAxis(axis: SceneAxis): void {
+    if (!this.mirrorForm) { return; }
+    const bounds = this.selectionBounds();
+    this.mirrorForm.axis = axis;
+    // The centre on the new axis: the plane the user most often means
+    this.mirrorForm.coordinate = round3((bounds[`${axis}1`] + bounds[`${axis}2`]) / 2);
+    this.previewBuilder();
+  }
+
+  setMirrorCoordinate(value: number): void {
+    if (!this.mirrorForm) { return; }
+    this.mirrorForm.coordinate = Number(value) || 0;
+    this.previewBuilder();
+  }
+
+  /** Put the plane at the selection's near face, centre or far face. */
+  setMirrorPlaneAt(where: '1' | 'mid' | '2'): void {
+    if (!this.mirrorForm) { return; }
+    const axis = this.mirrorForm.axis;
+    const bounds = this.selectionBounds();
+    this.mirrorForm.coordinate = where === 'mid'
+      ? round3((bounds[`${axis}1`] + bounds[`${axis}2`]) / 2)
+      : bounds[`${axis}${where}`];
+    this.previewBuilder();
+  }
+
+  toggleMirrorKeep(): void {
+    if (!this.mirrorForm) { return; }
+    this.mirrorForm.keepOriginal = !this.mirrorForm.keepOriginal;
+  }
+
+  commitMirror(): void {
+    const form = this.mirrorForm;
+    if (!form || this.selected.length === 0) { return; }
+
+    const change = this.fdsEdit.apply({
+      kind: 'mirror', uuids: this.selected.map(element => element.uuid),
+      axis: form.axis, coordinate: form.coordinate, keepOriginal: form.keepOriginal
+    });
+    const keep = form.keepOriginal;
+    this.closeBuilder();
+    if (keep) { this.selectAdded(change); }
+  }
+
+  /** Close whichever builder is open, ghosts and all. */
+  closeBuilder(): void {
+    if (!this.arrayForm && !this.mirrorForm) { return; }
+
+    this.arrayForm = null;
+    this.mirrorForm = null;
+    this.picking.clearGhosts();
+    if (this.active === 'array' || this.active === 'mirror') { this.active = 'home'; }
+  }
+
+  /** The ghosts: where the open builder would put its copies. */
+  private previewBuilder(): void {
+    if (this.arrayForm) {
+      const form = this.arrayForm;
+      const ghosts: ElementBox[] = [];
+      this.selectionBoxes().forEach(xb =>
+        arraySlots(form.counts).forEach(slot => ghosts.push(shiftedBox(xb,
+          slot.ix * form.spacing.x, slot.iy * form.spacing.y, slot.iz * form.spacing.z))));
+      this.picking.previewGhosts(ghosts);
+      return;
+    }
+    if (this.mirrorForm) {
+      const form = this.mirrorForm;
+      this.picking.previewGhosts(this.selectionBoxes()
+        .map(xb => mirroredBox(xb, form.axis, form.coordinate)));
+    }
+  }
+
+  /** What a committed builder leaves selected: what it made. */
+  private selectAdded(change: SceneChange | null): void {
+    const added = (change?.added ?? []).map(drawn => ({
+      uuid: drawn.element.uuid as string,
+      type: drawn.type as FdsElementType
+    }));
+    if (added.length > 0) { this.selection.setSelection(added); }
+  }
+
+  /** The boxes of everything selected, as the scenario holds them. */
+  private selectionBoxes(): ElementBox[] {
+    return this.selected
+      .map(element => this.elements.byUuid(element.uuid))
+      .filter(found => !!found)
+      .map(found => boxOf(found.type, found.element))
+      .filter((xb): xb is ElementBox => !!xb);
+  }
+
+  /** The box the whole selection occupies. */
+  private selectionBounds(): ElementBox {
+    const boxes = this.selectionBoxes();
+    return {
+      x1: Math.min(...boxes.map(xb => xb.x1)), x2: Math.max(...boxes.map(xb => xb.x2)),
+      y1: Math.min(...boxes.map(xb => xb.y1)), y2: Math.max(...boxes.map(xb => xb.y2)),
+      z1: Math.min(...boxes.map(xb => xb.z1)), z2: Math.max(...boxes.map(xb => xb.z2))
+    };
+  }
+
+  // ==========================================
   // Contextual tab
   // ==========================================
 
@@ -409,17 +593,12 @@ export class RibbonComponent implements OnInit, OnDestroy {
    * they asked for.
    */
   zoomToSelection(): void {
-    const boxes = this.selected
-      .map(element => this.elements.byUuid(element.uuid))
-      .filter(found => !!found && !!found.element.xb)
-      .map(found => found.element.xb);
-
-    if (boxes.length === 0) { return; }
-
-    this.view.zoomTo({
-      x1: Math.min(...boxes.map(xb => xb.x1)), x2: Math.max(...boxes.map(xb => xb.x2)),
-      y1: Math.min(...boxes.map(xb => xb.y1)), y2: Math.max(...boxes.map(xb => xb.y2)),
-      z1: Math.min(...boxes.map(xb => xb.z1)), z2: Math.max(...boxes.map(xb => xb.z2))
-    });
+    if (this.selectionBoxes().length === 0) { return; }
+    this.view.zoomTo(this.selectionBounds());
   }
+}
+
+/** Millimetre-rounded, so a derived default reads like a number a user typed. */
+function round3(value: number): number {
+  return Math.round(value * 1000) / 1000;
 }
