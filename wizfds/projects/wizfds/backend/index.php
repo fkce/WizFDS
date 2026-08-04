@@ -4,6 +4,7 @@
 
 require_once("lib/session.php");
 require_once("lib/logger.php");
+require_once("lib/auth.php");
 
 wizfds_session_start();
 
@@ -58,11 +59,21 @@ function refreshSessionActivity($db) {
 		return;
 	}
 
-	$result = $db->pg_read("SELECT session_id, access_time, access_ip FROM users where id = $1;", array($_SESSION['user_id']));
+	$result = $db->pg_read("SELECT session_id, access_time, access_ip, sessions_valid_from FROM users where id = $1;", array($_SESSION['user_id']));
 	if (empty($result)) {
 		return;
 	}
 	extract($result[0]);
+
+	# Someone reset this account's password after this session was issued: the
+	# session belongs to whoever knew the old one, which is exactly who the reset
+	# was meant to lock out.
+	if (wizfds_session_outdated($sessions_valid_from)) {
+		wizfds_log('warning', 'session dropped after a password reset', array('login_user_id' => $_SESSION['user_id']));
+		wizfds_session_reset();
+		header('Location: /login');
+		exit;
+	}
 
 	if ($session_id == "") {
 		$db->pg_change(
