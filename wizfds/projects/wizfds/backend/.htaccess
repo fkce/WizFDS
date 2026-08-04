@@ -1,3 +1,7 @@
+# The router (index.php) must win over a real index.html in the same docroot -
+# it performs the session check before including the Angular index.html
+DirectoryIndex index.php index.html
+
 RewriteEngine On
 RewriteBase /
 

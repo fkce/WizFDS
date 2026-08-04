@@ -3,11 +3,23 @@ require_once("config.php");
 require_once("db.php");
 
 function getFrontPage() {
-	include("welcome/index.html");
+	# wizfds.com serves the landing page; docroots without welcome/ (app.wizfds.com)
+	# send anonymous visitors straight to the login form
+	if (file_exists("welcome/index.html")) {
+		include("welcome/index.html");
+	} else {
+		header("Location: /login");
+	}
 }
 
 function getIndex() {
-	include("view/index.php");
+	# app.wizfds.com keeps the Angular build in the docroot itself (base-href /);
+	# wizfds.com keeps it in view/ behind the session gate (base-href /view/)
+	if (file_exists("index.html")) {
+		include("index.html");
+	} else {
+		include("view/index.php");
+	}
 }
 
 function login() {
@@ -21,8 +33,8 @@ function register() {
 }
 
 function logout() {
-	session_destroy(); $_SESSION=''; session_start();  
-	header("Location: https://wizfds.com");
+	session_destroy(); $_SESSION=''; session_start();
+	header("Location: /");
 }
 
 function refreshSession() {
