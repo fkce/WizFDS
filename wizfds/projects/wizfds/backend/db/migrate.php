@@ -30,32 +30,51 @@ $config = new Config();
 putenv('PGPASSWORD=' . $config->dbPass);
 
 function psql_base($config) {
-	return 'psql -X -q -v ON_ERROR_STOP=1 -A -t'
+	# -w: never prompt for a password. Without it an empty dbPass (the template
+	# config) leaves psql waiting on a terminal that nobody is watching.
+	return 'psql -X -q -w -v ON_ERROR_STOP=1 -A -t'
 		. ' -h ' . escapeshellarg($config->host)
 		. ' -p ' . escapeshellarg($config->port)
 		. ' -U ' . escapeshellarg($config->dbUser)
 		. ' -d ' . escapeshellarg($config->db);
 }
 
-# Returns the command's stdout; dies with the error if psql reported one.
+# Returns the command's stdout; dies if psql reported an error. stderr is left
+# alone so a NOTICE cannot end up parsed as a result row.
 function psql_query($config, $sql) {
-	$command = psql_base($config) . ' -c ' . escapeshellarg($sql) . ' 2>&1';
+	$command = psql_base($config) . ' -c ' . escapeshellarg($sql);
 	exec($command, $output, $status);
 
 	if ($status !== 0) {
-		fwrite(STDERR, "psql nie powiodl sie:\n" . implode("\n", $output) . "\n");
+		fwrite(STDERR, "psql nie powiodl sie (patrz komunikat powyzej).\n");
 		exit(1);
 	}
 
 	return $output;
 }
 
-function psql_file($config, $file) {
-	# -1 wraps the whole file in a single transaction, so a migration either lands
-	# completely or not at all.
-	$command = psql_base($config) . ' -1 -f ' . escapeshellarg($file) . ' 2>&1';
-	exec($command, $output, $status);
-	return array($status, $output);
+# Applies a migration and records it in the SAME transaction: a crash between the
+# two would otherwise leave the migration applied but unrecorded, and it would
+# run again on the next pass.
+function psql_apply($config, $file, $name) {
+	$sql = file_get_contents($file)
+		. "\ninsert into schema_migrations (name) values (" . wizfds_quote_literal($name) . ");\n";
+
+	$command = psql_base($config) . ' -1 -f -';
+
+	$process = proc_open($command, array(0 => array('pipe', 'r')), $pipes);
+	if (!is_resource($process)) {
+		return 1;
+	}
+
+	fwrite($pipes[0], $sql);
+	fclose($pipes[0]);
+
+	return proc_close($process);
+}
+
+function wizfds_quote_literal($value) {
+	return "'" . str_replace("'", "''", $value) . "'";
 }
 
 psql_query($config, "create table if not exists schema_migrations (
@@ -90,23 +109,14 @@ foreach ($files as $file) {
 		continue;
 	}
 
-	echo "  stosuje: $name ... ";
+	echo "  stosuje: $name ...\n";
 
-	list($status, $output) = psql_file($config, $file);
-	if ($status !== 0) {
-		fwrite(STDERR, "BLAD\n" . implode("\n", $output) . "\n");
+	if (psql_apply($config, $file, $name) !== 0) {
+		fwrite(STDERR, "BLAD: migracja $name nie przeszla, baza jest nietknieta.\n");
 		exit(1);
 	}
 
-	psql_query($config, "insert into schema_migrations (name) values (" . pg_quote_literal($name) . ")");
-
-	echo "ok\n";
+	echo "  ok: $name\n";
 }
 
 echo $pending === 0 ? "Baza jest aktualna.\n" : "Gotowe: $pending migracji.\n";
-
-# Migration names are filenames we control, but quote them properly anyway -
-# pg_escape_literal lives in the extension this runner deliberately avoids.
-function pg_quote_literal($value) {
-	return "'" . str_replace("'", "''", $value) . "'";
-}

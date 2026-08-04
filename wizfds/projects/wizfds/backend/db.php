@@ -57,10 +57,6 @@ class Database {
 		return $result;
 	}
 
-	public function pg_read_mult($qq, $arr = []) {
-		return pg_fetch_all($this->run($qq, $arr));
-	}
-
 	public function pg_read($qq, $arr = []) {
 		return pg_fetch_all($this->run($qq, $arr));
 	}

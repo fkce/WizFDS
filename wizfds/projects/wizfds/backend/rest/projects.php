@@ -11,7 +11,7 @@ function getProjects() {
 		# One query for the whole tree. This used to be a query per project, so an
 		# account with 500 projects paid 501 round trips to open its project list.
 		# Only the two booleans the client needs are computed, not the file bodies.
-		$result = $db->pg_read_mult(
+		$result = $db->pg_read(
 			"select p.id, p.name, p.description, p.category_id,
 			        s.id as scenario_id, s.name as scenario_name,
 			        coalesce(s.fds_file, '') <> '' as has_fds,
@@ -196,7 +196,9 @@ function createCategory() {
 			"visible"=>json_encode(nullToEmpty($postData->visible)),
 		);
 		
-		$result = $db->pg_create("insert into categories (user_id, label, uuid, active, visible) values ($1, $2, $3, $4, $5)", $data);
+		# "returning id" is what makes pg_fetch_all give a row back; without it the
+		# insert succeeded but the client was told the category had not been created.
+		$result = $db->pg_create("insert into categories (user_id, label, uuid, active, visible) values ($1, $2, $3, $4, $5) returning id", $data);
 
 		if(!empty($result)) {
 			echo json_encode($res->createResponse("success", array("Category created"), $data));

@@ -163,7 +163,7 @@ try {
 	main();
 } catch (DemoModeException $e) {
 	$res = new Message("index");
-	echo json_encode($res->createResponse("info", array("Demo mode - changes are not saved"), array()));
+	echo json_encode($res->createResponse("warning", array(WIZFDS_DEMO_MESSAGE), array()));
 } catch (Throwable $e) {
 	wizfds_log('error', 'unhandled error', array('error' => $e->getMessage(), 'file' => basename($e->getFile()), 'line' => $e->getLine()));
 

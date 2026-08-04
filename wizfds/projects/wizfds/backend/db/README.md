@@ -26,6 +26,10 @@ php /home/dkubera/git/WizFDS/wizfds/projects/wizfds/backend/db/migrate.php
 
 Kolejność przy wdrożeniu: `git pull` w klonie backendu → migracje → smoke testy (`backend/tests/smoke.sh`).
 
+## Czego nie robić
+
+**Nie podpinaj `db/` symlinkiem do docroota.** Reszta backendu (`rest/`, `router/`, `lib/`) jest tam widoczna przez symlinki, bo router musi ją dołączać. `db/` nie jest dołączane przez nic — a przez symlink pliki `migrations/*.sql` stałyby się publicznie czytelne (reguła `.htaccess` blokuje tylko `*.json` w korzeniu). Runner uruchamiasz ścieżką do klonu, nie przez docroot.
+
 ## Uwaga o dwóch instancjach
 
 `wizfds.com` (zamrożona) i `app.wizfds.com` korzystają z **tej samej bazy**. Migracja dotyka więc obu — zmiana musi być wsteczna, dopóki stara instancja działa: dodawanie kolumn i tabel jest bezpieczne, usuwanie i zmiana nazw nie.

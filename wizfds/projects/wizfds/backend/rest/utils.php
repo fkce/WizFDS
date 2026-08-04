@@ -36,12 +36,16 @@ function wizfds_valid_email($email) {
 # Absolute directory for a user, optionally below it (project / scenario ids).
 # Returns null when the e-mail or any segment is not something we are willing to
 # put in a path.
+function wizfds_users_root($config) {
+	return rtrim(wizfds_expand_home($config->usersPath), '/');
+}
+
 function wizfds_user_dir($config, $email, $segments = array()) {
 	if (!wizfds_valid_email($email)) {
 		return null;
 	}
 
-	$path = rtrim(wizfds_expand_home($config->usersPath), '/') . '/' . $email;
+	$path = wizfds_users_root($config) . '/' . $email;
 
 	foreach ($segments as $segment) {
 		if (!preg_match('/^[A-Za-z0-9_-]+$/', (string) $segment)) {
@@ -62,14 +66,14 @@ function wizfds_remove_dir($config, $email, $segments = array()) {
 		return false;
 	}
 
-	$root = realpath(rtrim(wizfds_expand_home($config->usersPath), '/'));
+	$root = realpath(wizfds_users_root($config));
 	$target = realpath($path);
 	if ($root === false || $target === false) {
 		return false;
 	}
 
 	if (strpos($target, $root . '/') !== 0) {
-		wizfds_log('warning', 'refused to delete outside the user directory');
+		wizfds_log('warning', 'refused to delete outside the user directory', array('segments' => implode('/', $segments)));
 		return false;
 	}
 
@@ -93,8 +97,11 @@ function wizfds_ensure_dir($path) {
 function handlerFailed($res, $e, $details, $data = array()) {
 	# A write attempted from the demo account is not a failure - say so, instead
 	# of telling the visitor the save broke.
+	# "warning", not "info": this backend already uses "info" for successful
+	# reads, and the client resolves it exactly like "success" - a refused write
+	# would have been indistinguishable from a saved one.
 	if ($e instanceof DemoModeException) {
-		echo json_encode($res->createResponse("info", array("Demo mode - changes are not saved"), $data));
+		echo json_encode($res->createResponse("warning", array(WIZFDS_DEMO_MESSAGE), $data));
 		return;
 	}
 
@@ -116,19 +123,22 @@ function nullToEmpty($arg) {
 	}
 }
 
-function rrmdir($dir) { 
-	if (is_dir($dir)) { 
-		$objects = scandir($dir); 
-		foreach ($objects as $object) { 
-			if ($object != "." && $object != "..") { 
-				if (is_dir($dir."/".$object))
+function rrmdir($dir) {
+	if (is_dir($dir)) {
+		$objects = scandir($dir);
+		foreach ($objects as $object) {
+			if ($object != "." && $object != "..") {
+				# A symlink to a directory answers is_dir(), and following it would
+				# walk the recursion straight out of the tree wizfds_remove_dir()
+				# just validated. Unlink the link itself.
+				if (is_dir($dir."/".$object) && !is_link($dir."/".$object))
 					rrmdir($dir."/".$object);
 				else
-					unlink($dir."/".$object); 
-			} 
+					unlink($dir."/".$object);
+			}
 		}
-		rmdir($dir); 
-	} 
+		rmdir($dir);
+	}
 }
 
 function my_shell_exec($cmd, &$stdout=null, &$stderr=null) {

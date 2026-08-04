@@ -107,6 +107,12 @@ assert_body_contains 'zapis w trybie demo melduje sie jako demo' 'Demo mode' \
   -b "$JAR" -X PUT -H 'Content-Type: application/json' -H 'X-Requested-With: XMLHttpRequest' \
   -d '{}' "$BASE/api/settings/5"
 
+# ... i nie jako sukces: klient traktuje "info" tak samo jak "success", wiec
+# odmowa zapisu musi przyjsc ze statusem, ktory zostanie odrzucony.
+assert_body_contains 'odmowa zapisu nie udaje sukcesu' '"status":"warning"' \
+  -b "$JAR" -X PUT -H 'Content-Type: application/json' -H 'X-Requested-With: XMLHttpRequest' \
+  -d '{}' "$BASE/api/settings/5"
+
 head1 'Zasoby aplikacji'
 
 assert_status 'index.html jest serwowany zalogowanemu' 200 -b "$JAR" "$BASE/"
