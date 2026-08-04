@@ -11,6 +11,9 @@ class Config {
 	public $recaptchaSecret = '';
 	// Directory can not be public
 	public $usersPath = '~/wizfds_users/';
+	// Application log directory. Empty falls back to <usersPath>/../wizfds-logs,
+	// which is outside the docroot. Must never be web-readable.
+	public $logPath = '';
 	public $demoUserId = '';
 	public $demoUserEmail = '';
 

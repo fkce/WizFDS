@@ -1,35 +1,11 @@
 <?php
-# Temporary /*{{{*/
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Max-Age: 1000");
-
-if($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-	header("Access-Control-Allow-Origin: *");
-	header("Access-Control-Allow-Methods:GET,POST,PUT,DELETE,OPTIONS");
-	header("Access-Control-Allow-Headers: Authorization, Content-Type,Accept, Origin");
-	exit;
-}
-
- // Access-Control headers are received during OPTIONS requests
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-	// return only the headers and not the content
-	// only allow CORS if we're doing a GET - i.e. no saving for now.
-	if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD']) && $_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'] == 'GET') {
-		header('Access-Control-Allow-Origin: *');
-		header('Access-Control-Allow-Headers: X-Requested-With');
-	}
-	exit;
-}
-/*}}}*/
 # Router manual:
 # https://github.com/nikic/FastRoute
 
-# Start session
-session_name('wizfds');
-if (session_status() == PHP_SESSION_NONE) {
-	session_start();
-}
+require_once("lib/session.php");
+require_once("lib/logger.php");
+
+wizfds_session_start();
 
 # Only for developing purpose
 #$_SESSION['user_id'] = 1;
@@ -37,33 +13,6 @@ if (session_status() == PHP_SESSION_NONE) {
 
 # Include db connection
 require_once("db.php");
-$db=new Database();
-
-# Keep alive session while rest requests
-if(isset($_SESSION['user_id']) and $_SESSION['user_id'] != "") {
-	$result = $db->pg_read("SELECT session_id, access_time, access_ip FROM users where id = ". $_SESSION['user_id'] .";");
-	extract($result[0]);
-
-	if($session_id == ""){
-		$update=$db->pg_change("UPDATE users SET session_id = '". session_id('wizfds') ."', access_time = current_timestamp, access_ip = '". $_SERVER['REMOTE_ADDR'] ."' where id = ". $_SESSION['user_id'] .";");
-	} else {
-		$check=$db->pg_read("SELECT access_time from users where current_timestamp - access_time < INTERVAL '60 minutes' and id = ". $_SESSION['user_id'] .";");
-		if(count($check) > 0){
-			$update=$db->pg_change("UPDATE users SET access_time = current_timestamp where id = ". $_SESSION['user_id'] .";");
-		}
-	}
-
-	$now = time();
-	if (isset($_SESSION['discard_after']) && $now > $_SESSION['discard_after']) {
-		# This session has worn out its welcome; kill it and start a brand new one
-		session_unset();
-		session_destroy();
-		session_name('wizfds');
-		session_start();
-	}
-	# Either new or old, it should live at most for another hour
-	$_SESSION['discard_after'] = $now + 3600;
-}
 
 require_once("router/vendor/autoload.php");
 
@@ -73,7 +22,72 @@ require_once("rest/utils.php");
 require_once("rest/projects.php");
 require_once("rest/fds.php");
 
+# A browser will not attach a custom header to a cross-site request without a
+# CORS preflight, which this server never approves - so requiring one on writes
+# is what stands between a session cookie and a forged request. The login form
+# posts to /login, outside /api, and is unaffected.
+function requireSameSiteRequest($httpMethod, $uri) {
+	if (!in_array($httpMethod, array('POST', 'PUT', 'DELETE'), true)) {
+		return;
+	}
+	if (strpos($uri, '/api/') !== 0) {
+		return;
+	}
+	if (isset($_SERVER['HTTP_X_REQUESTED_WITH'])) {
+		return;
+	}
+
+	wizfds_log('warning', 'request without X-Requested-With rejected');
+
+	http_response_code(403);
+	header('Content-Type: application/json');
+	$res = new Message("csrf");
+	echo json_encode($res->createResponse("error", array("Request rejected"), array()));
+	exit;
+}
+
+# Keep alive session while rest requests
+function refreshSessionActivity($db) {
+	if (!isset($_SESSION['user_id']) or $_SESSION['user_id'] == "") {
+		return;
+	}
+
+	$result = $db->pg_read("SELECT session_id, access_time, access_ip FROM users where id = $1;", array($_SESSION['user_id']));
+	if (empty($result)) {
+		return;
+	}
+	extract($result[0]);
+
+	if ($session_id == "") {
+		$db->pg_change(
+			"UPDATE users SET session_id = $1, access_time = current_timestamp, access_ip = $2 where id = $3;",
+			array(session_id(), $_SERVER['REMOTE_ADDR'], $_SESSION['user_id'])
+		);
+	} else {
+		$check = $db->pg_read("SELECT access_time from users where current_timestamp - access_time < INTERVAL '60 minutes' and id = $1;", array($_SESSION['user_id']));
+		if (!empty($check)) {
+			$db->pg_change("UPDATE users SET access_time = current_timestamp where id = $1;", array($_SESSION['user_id']));
+		}
+	}
+
+	$now = time();
+	if (isset($_SESSION['discard_after']) && $now > $_SESSION['discard_after']) {
+		# This session has worn out its welcome; kill it and start a brand new one
+		wizfds_session_reset();
+	}
+	# Either new or old, it should live at most for another hour
+	$_SESSION['discard_after'] = $now + 3600;
+}
+
 function main() {
+
+	$httpMethod = $_SERVER['REQUEST_METHOD'];
+	$uri = rawurldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+
+	requireSameSiteRequest($httpMethod, $uri);
+
+	$db = new Database();
+	refreshSessionActivity($db);
 
 	if(isset($_SESSION['user_id'])){
 		$dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) {
@@ -119,28 +133,35 @@ function main() {
 		});
  	}
 
-	// Fetch method and URI from somewhere
-	$httpMethod = $_SERVER['REQUEST_METHOD'];
-	$uri = rawurldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
-
 	$routeInfo = $dispatcher->dispatch($httpMethod, $uri);
 
 	switch ($routeInfo[0]) {
 	    case FastRoute\Dispatcher::NOT_FOUND:
-			header("HTTP/1.0 404 Not Found");		
+			header("HTTP/1.0 404 Not Found");
 			break;
 	    case FastRoute\Dispatcher::METHOD_NOT_ALLOWED:
 			$allowedMethods = $routeInfo[1];
-			header("HTTP/1.0 405 Method Not Allowed");		
+			header("HTTP/1.0 405 Method Not Allowed");
 			break;
 	    case FastRoute\Dispatcher::FOUND:
 			$handler = $routeInfo[1];
-			$vars = $routeInfo[2]; 
+			$vars = $routeInfo[2];
 			call_user_func($handler, $vars);
 			break;
 	}
 }
 
-main();
+# Nothing below the handlers is allowed to surface a stack trace to the client:
+# report the failure, log it, and keep the response shape the client expects.
+try {
+	main();
+} catch (Throwable $e) {
+	wizfds_log('error', 'unhandled error', array('error' => $e->getMessage(), 'file' => basename($e->getFile()), 'line' => $e->getLine()));
 
-?>
+	if (!headers_sent()) {
+		http_response_code(500);
+		header('Content-Type: application/json');
+	}
+	$res = new Message("index");
+	echo json_encode($res->createResponse("error", array("Server error"), array()));
+}
