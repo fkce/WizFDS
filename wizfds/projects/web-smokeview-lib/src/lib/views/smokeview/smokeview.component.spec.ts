@@ -223,13 +223,15 @@ describe('SmokeviewComponent', () => {
       // 3D view has selected" - same guard the nudge keys already carry
       await configure(true);
       const dropped = spyOn(TestBed.inject(PickService), 'dropSelection');
-      const field = document.createElement('input');
-      document.body.appendChild(field);
 
-      field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      ['input', 'select', 'textarea'].forEach(tag => {
+        const field = document.createElement(tag);
+        document.body.appendChild(field);
+        field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        field.remove();
+      });
 
       expect(dropped).not.toHaveBeenCalled();
-      field.remove();
     });
   });
 

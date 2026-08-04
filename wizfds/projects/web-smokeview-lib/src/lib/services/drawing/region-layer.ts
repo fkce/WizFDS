@@ -7,7 +7,7 @@ import { SceneAxis, SceneBoundsService } from '../scene-bounds/scene-bounds.serv
 import { SceneElementType, SceneRegion } from './scene-input';
 import { BoxInstancePool, PooledBox } from './box-instance-pool';
 import { ClippedMaterial } from './clipped-material';
-import { EDGES_AND_FILL, EDGES_ONLY, HIDDEN } from './clipped-plane-layer';
+import { EDGES_AND_FILL, EDGES_ONLY, HIDDEN, stateFromVisibility } from './clipped-plane-layer';
 import { SceneLayerState } from './layer-visibility.service';
 import { SOLID_EDGE_COLOR } from '../../consts/drawing';
 
@@ -81,8 +81,7 @@ export class RegionLayer {
 
   /** The state, in the three words the rest of the system speaks. */
   public state(): SceneLayerState {
-    if (this.visibility === EDGES_ONLY) { return 'edges'; }
-    return this.visibility === EDGES_AND_FILL ? 'filled' : 'hidden';
+    return stateFromVisibility(this.visibility);
   }
 
   /** The base box the regions are drawn from, once any have been. */

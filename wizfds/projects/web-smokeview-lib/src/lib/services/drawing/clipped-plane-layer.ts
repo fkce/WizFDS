@@ -34,6 +34,12 @@ export const EDGES_AND_FILL = 1;
 /** Nothing at all. */
 export const HIDDEN = 2;
 
+/** The numbering above, in the three words the rest of the system speaks. */
+export function stateFromVisibility(visibility: number): SceneLayerState {
+  if (visibility === EDGES_ONLY) { return 'edges'; }
+  return visibility === EDGES_AND_FILL ? 'filled' : 'hidden';
+}
+
 /**
  * A set of plane batches drawn through one clipped material.
  *
@@ -82,8 +88,7 @@ export class ClippedPlaneLayer {
 
   /** The state, in the three words the rest of the system speaks. */
   public state(): SceneLayerState {
-    if (this.visibility === EDGES_ONLY) { return 'edges'; }
-    return this.visibility === EDGES_AND_FILL ? 'filled' : 'hidden';
+    return stateFromVisibility(this.visibility);
   }
 
   /** Where a clipping plane currently stands, in FDS metres. */

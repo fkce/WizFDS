@@ -86,7 +86,8 @@ _Avoid_: priorytet picku (opisowo)
 **Escape (warstwowo)**:
 Trwa gest → przerywa gest. Gestu nie ma → czyści zaznaczenie w aplikacji,
 tak jak klik w pustkę. Przy okazji zdejmuje obrys hovera — do następnego
-ruchu myszy.
+ruchu myszy. Nie działa podczas pisania w polu formularza — tam Escape
+należy do pola.
 _Avoid_: anulowanie (bez wskazania, czego)
 
 ### Nawigacja kamerą

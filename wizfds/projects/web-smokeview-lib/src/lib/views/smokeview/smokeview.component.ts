@@ -449,7 +449,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     const element = target as HTMLElement | null;
     if (!element || !element.tagName) { return false; }
     return element.tagName === 'INPUT' || element.tagName === 'TEXTAREA'
-      || element.isContentEditable === true;
+      || element.tagName === 'SELECT' || element.isContentEditable === true;
   }
 
   ngOnInit() {
