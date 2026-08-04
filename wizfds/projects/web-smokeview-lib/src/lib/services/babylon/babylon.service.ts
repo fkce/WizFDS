@@ -95,12 +95,12 @@ const FRAMING_DIRECTION = new BABYLON.Vector3(0.7, -0.8, 0.55);
  * interface and this table is the single place to follow it.
  */
 const SHADER_INTERFACES: Record<string, { attributes: string[]; uniforms: string[] }> = {
-  obst: { attributes: ['position', 'normal', 'color'], uniforms: ['clipX', 'clipY', 'clipZ'] },
+  obst: { attributes: ['position', 'normal', 'color'], uniforms: ['clipX', 'clipY', 'clipZ', 'fillAlpha'] },
   obstBackCap: { attributes: ['position', 'normal', 'color'], uniforms: ['clipX', 'clipY', 'clipZ'] },
   // The instanced pair asks for neither `color` nor the world matrix: Babylon
   // adds world0..world3 and instanceColor itself once the mesh has thin
   // instances, and listing them here would bind them a second time.
-  obstInstanced: { attributes: ['position', 'normal'], uniforms: ['clipX', 'clipY', 'clipZ'] },
+  obstInstanced: { attributes: ['position', 'normal'], uniforms: ['clipX', 'clipY', 'clipZ', 'fillAlpha'] },
   obstBackCapInstanced: { attributes: ['position'], uniforms: ['clipX', 'clipY', 'clipZ'] },
   vent: { attributes: ['position', 'normal', 'color'], uniforms: ['clipX', 'clipY', 'clipZ'] },
   fire: { attributes: ['position', 'normal', 'color'], uniforms: ['clipX', 'clipY', 'clipZ', 'transparent'] },

@@ -8,6 +8,7 @@ import { SceneRegistryService } from '../../babylon/scene-registry.service';
 import { SceneAxis, SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 import { SceneHole } from '../scene-input';
 import { RegionLayer } from '../region-layer';
+import { LayerVisibilityService } from '../layer-visibility.service';
 
 /**
  * Draws the &HOLEs of a scenario as translucent outlined boxes.
@@ -40,12 +41,14 @@ export class HoleRegionService implements SceneScoped {
     helpersService: HelpersService,
     sceneBounds: SceneBoundsService,
     sceneRegistry: SceneRegistryService,
-    sceneLifecycle: SceneLifecycleService
+    sceneLifecycle: SceneLifecycleService,
+    layerVisibility: LayerVisibilityService
   ) {
     sceneLifecycle.register(this);
     this.layer = new RegionLayer(
       { poolName: 'holes', materialName: 'holeShader', type: 'hole' },
       babylonService, helpersService, sceneBounds, sceneRegistry, 'HoleRegionService');
+    layerVisibility.bind('hole', () => this.layer.state());
   }
 
   /** The base box the &HOLEs are drawn from, once any have been. */

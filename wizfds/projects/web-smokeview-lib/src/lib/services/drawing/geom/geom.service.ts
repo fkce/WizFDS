@@ -3,6 +3,7 @@ import * as BABYLON from 'babylonjs';
 
 import { BabylonService } from '../../babylon/babylon.service';
 import { ClippedMaterial } from '../clipped-material';
+import { LayerVisibilityService } from '../layer-visibility.service';
 import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycle.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
 import { SceneAxis, SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
@@ -47,11 +48,17 @@ export class GeomService implements SceneScoped {
     private helpersService: HelpersService,
     private sceneBounds: SceneBoundsService,
     private sceneRegistry: SceneRegistryService,
-    sceneLifecycle: SceneLifecycleService
+    sceneLifecycle: SceneLifecycleService,
+    layerVisibility: LayerVisibilityService
   ) {
     sceneLifecycle.register(this);
+    // Two states, not three: an outline of an arbitrary triangle mesh is a walk
+    // over every edge it has - seconds of work that reads as noise, not contour
+    layerVisibility.bind('geom', () => this.visible ? 'filled' : 'hidden');
     this.surface = new ClippedMaterial({
-      materialName: 'geomShader', shader: 'obst', fragmentShader: 'obst'
+      materialName: 'geomShader', shader: 'obst', fragmentShader: 'obst',
+      // The fragment multiplies by fillAlpha now; a &GEOM always draws in full
+      defaults: { fillAlpha: 1.0 }
     }, babylonService, sceneBounds, 'GeomService');
   }
 

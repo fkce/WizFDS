@@ -7,6 +7,8 @@ import { SceneAxis, SceneBoundsService } from '../scene-bounds/scene-bounds.serv
 import { SceneElementType, SceneRegion } from './scene-input';
 import { BoxInstancePool, PooledBox } from './box-instance-pool';
 import { ClippedMaterial } from './clipped-material';
+import { EDGES_AND_FILL, EDGES_ONLY, HIDDEN, stateFromVisibility } from './clipped-plane-layer';
+import { SceneLayerState } from './layer-visibility.service';
 import { SOLID_EDGE_COLOR } from '../../consts/drawing';
 
 /** What tells one layer of regions apart from another in the scene. */
@@ -33,8 +35,14 @@ export interface RegionLayerStyle {
  */
 export class RegionLayer {
 
-  /** Whether the regions of this layer are drawn at all. */
-  public visible = true;
+  /**
+   * 3-state visibility, in the plane layers' numbering.
+   *
+   * Filled first rather than edges first: a region has always been drawn in
+   * full when a scenario loads, and staying that way is what keeps the scene
+   * looking unchanged. The button then walks the same wheel as everything else.
+   */
+  public visibility: number = EDGES_AND_FILL;
 
   /** The pool they are instanced from, built the first time one is drawn. */
   private pool: BoxInstancePool;
@@ -63,6 +71,17 @@ export class RegionLayer {
       // layers take, and for the same reason.
       zOffset: -0.03
     }, babylonService, sceneBounds, owner);
+    this.applyFill();
+  }
+
+  /** Whether the regions of this layer are drawn at all. */
+  public get visible(): boolean {
+    return this.visibility !== HIDDEN;
+  }
+
+  /** The state, in the three words the rest of the system speaks. */
+  public state(): SceneLayerState {
+    return stateFromVisibility(this.visibility);
   }
 
   /** The base box the regions are drawn from, once any have been. */
@@ -92,8 +111,11 @@ export class RegionLayer {
   /** Release everything tied to the scene that has just been disposed. */
   public resetSceneState(): void {
     this.pool = null;
-    this.visible = true;
+    this.visibility = EDGES_AND_FILL;
     this.translucent.resetSceneState();
+    // The material's remembered uniforms went with the scene; the next one has
+    // to start with the fill this state draws
+    this.applyFill();
   }
 
   /**
@@ -114,9 +136,11 @@ export class RegionLayer {
     this.applyVisibility();
   }
 
-  /** Show or hide every region of this layer at once. */
+  /** Cycle the button: edges only → edges and fill → hidden → edges only. */
   public toggleVisibility(): void {
-    this.visible = !this.visible;
+    this.visibility = this.visibility === EDGES_ONLY ? EDGES_AND_FILL
+      : this.visibility === EDGES_AND_FILL ? HIDDEN : EDGES_ONLY;
+    this.applyFill();
     this.applyVisibility();
   }
 
@@ -153,5 +177,16 @@ export class RegionLayer {
   private applyVisibility(): void {
     if (!this.pool) { return; }
     this.pool.mesh.setEnabled(this.visible && this.pool.count > 0);
+  }
+
+  /**
+   * Push the current state's fill onto the material.
+   *
+   * A multiplier over the per-region alpha rather than an alpha of its own,
+   * because each region keeps a colour the app chose - the edges state has to
+   * take the fill away without forgetting it.
+   */
+  private applyFill(): void {
+    this.translucent.setUniform('fillAlpha', this.visibility === EDGES_AND_FILL ? 1.0 : 0.0);
   }
 }

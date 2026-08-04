@@ -7,6 +7,7 @@ import { SceneLifecycleService, SceneScoped } from '../../babylon/scene-lifecycl
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
 import { SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 import { BoxInstancePool } from '../box-instance-pool';
+import { LayerVisibilityService } from '../layer-visibility.service';
 
 /**
  * Meshes are drawn as yellow outlines. The colour is the library's own choice -
@@ -42,9 +43,14 @@ export class MeshService implements SceneScoped {
     private helperService: HelpersService,
     private sceneBounds: SceneBoundsService,
     private sceneRegistry: SceneRegistryService,
-    sceneLifecycle: SceneLifecycleService
+    sceneLifecycle: SceneLifecycleService,
+    layerVisibility: LayerVisibilityService
   ) {
     sceneLifecycle.register(this);
+    // This service stores the state it has just moved *to*, so its 1 is the
+    // plane layers' 0 and its 0 is their 2 - the translation stays in here
+    layerVisibility.bind('mesh', () => this.visibility === 1 ? 'edges'
+      : this.visibility === 2 ? 'filled' : 'hidden');
   }
 
   /** The base box every &MESH outline is drawn from. */

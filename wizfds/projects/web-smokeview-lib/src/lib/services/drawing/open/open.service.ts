@@ -9,6 +9,7 @@ import { SceneRegistryService } from '../../babylon/scene-registry.service';
 import { SceneAxis, SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 import { PlaneBatch } from '../plane-batch';
 import { ClippedPlaneLayer } from '../clipped-plane-layer';
+import { LayerVisibilityService } from '../layer-visibility.service';
 
 /**
  * Openings are drawn green. The colour is the library's own choice - an `OPEN`
@@ -41,13 +42,15 @@ export class OpenService implements SceneScoped {
     private helperService: HelpersService,
     sceneBounds: SceneBoundsService,
     private sceneRegistry: SceneRegistryService,
-    sceneLifecycle: SceneLifecycleService
+    sceneLifecycle: SceneLifecycleService,
+    layerVisibility: LayerVisibilityService
   ) {
     sceneLifecycle.register(this);
     this.layer = new ClippedPlaneLayer(
       // In front of the walls the openings are cut into
       { materialName: 'openShader', zOffset: -0.06, fillAlpha: 0.3 },
       babylonService, sceneBounds, 'OpenService');
+    layerVisibility.bind('open', () => this.layer.state());
   }
 
   /** The mesh every opening is drawn on, once there is a scene to draw into. */

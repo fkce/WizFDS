@@ -245,7 +245,16 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     // ctrl does to the NEXT gesture is decided at the grab, in
     // GizmoService.begin().
     if (event.key === 'Control' && !event.repeat) { this.gizmo.setSnapSuspended(true); }
-    if (event.key === 'Escape') { this.gizmo.cancel(); return; }
+
+    // Layered as AutoCAD layers it (CONTEXT.md, "Escape (warstwowo)"): a
+    // running gesture goes first; with none running, the selection is dropped
+    // wherever it is owned (ADR-0004) - exactly like a click on empty space.
+    // Not while typing in a host form field, where Escape means the field.
+    if (event.key === 'Escape') {
+      if (this.gizmo.isDragging) { this.gizmo.cancel(); }
+      else if (!SmokeviewComponent.isFormField(event.target)) { this.picking.dropSelection(); }
+      return;
+    }
 
     if (this.handleNudgeKey(event)) { return; }
     if (this.gesture) { this.routeGestureKey(event); }
@@ -440,7 +449,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     const element = target as HTMLElement | null;
     if (!element || !element.tagName) { return false; }
     return element.tagName === 'INPUT' || element.tagName === 'TEXTAREA'
-      || element.isContentEditable === true;
+      || element.tagName === 'SELECT' || element.isContentEditable === true;
   }
 
   ngOnInit() {

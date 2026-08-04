@@ -4,6 +4,7 @@ import * as BABYLON from 'babylonjs';
 import { MeshService } from './mesh.service';
 import { BabylonService } from '../../babylon/babylon.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
+import { LayerVisibilityService } from '../layer-visibility.service';
 import { SceneMesh, SceneXb } from '../scene-input';
 
 /** A quarter-metre grid - nothing here is drawn from it, but a mesh has one. */
@@ -51,6 +52,18 @@ describe('MeshService', () => {
     // The control is live from the first frame, while the shader material is
     // still being fetched - FireService already guards this way.
     expect(() => service.toogleVisibility()).not.toThrow();
+  });
+
+  it('binds its own numbering into the register in the three shared words', () => {
+    // This service stores the state it has just moved *to*: 1 is edges only,
+    // 2 is edges and fill, 0 is hidden. Everyone else reads the translation.
+    const layers = TestBed.inject(LayerVisibilityService);
+
+    expect(layers.stateOf('mesh')).toBe('edges');
+    service.visibility = 2;
+    expect(layers.stateOf('mesh')).toBe('filled');
+    service.visibility = 0;
+    expect(layers.stateOf('mesh')).toBe('hidden');
   });
 
   describe('drawing', () => {

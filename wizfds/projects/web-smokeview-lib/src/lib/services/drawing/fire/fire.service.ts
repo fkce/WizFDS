@@ -9,6 +9,7 @@ import { SceneFire } from '../scene-input';
 import { SceneAxis, SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 import { PlaneBatch } from '../plane-batch';
 import { ClippedPlaneLayer } from '../clipped-plane-layer';
+import { LayerVisibilityService } from '../layer-visibility.service';
 
 /** Fires are outlined in red - the library's own choice, not the &SURF's. */
 const FIRE_EDGE_COLOR = new BABYLON.Color4(1, 0, 0, 1);
@@ -34,13 +35,15 @@ export class FireService implements SceneScoped {
     private helpersService: HelpersService,
     sceneBounds: SceneBoundsService,
     private sceneRegistry: SceneRegistryService,
-    sceneLifecycle: SceneLifecycleService
+    sceneLifecycle: SceneLifecycleService,
+    layerVisibility: LayerVisibilityService
   ) {
     sceneLifecycle.register(this);
     this.layer = new ClippedPlaneLayer(
       // In front of the floor the fire stands on
       { materialName: 'fireShader', zOffset: -0.02, fillAlpha: 0.6 },
       babylonService, sceneBounds, 'FireService');
+    layerVisibility.bind('fire', () => this.layer.state());
   }
 
   /** The mesh every fire is drawn on, once there is a scene to draw into. */

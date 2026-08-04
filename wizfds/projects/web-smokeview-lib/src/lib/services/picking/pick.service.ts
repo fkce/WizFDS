@@ -7,6 +7,7 @@ import { SceneLifecycleService, SceneScoped } from '../babylon/scene-lifecycle.s
 import { ScenePick, SceneRegistryService } from '../babylon/scene-registry.service';
 import { SceneBoundsService, ScenePoint } from '../scene-bounds/scene-bounds.service';
 import { SceneElementType, SceneXb } from '../drawing/scene-input';
+import { LayerVisibilityService } from '../drawing/layer-visibility.service';
 import { SceneDelta } from '../editing/edit-command';
 
 /**
@@ -39,6 +40,20 @@ const HOVERED_COLOR = new BABYLON.Color4(0.55, 0.72, 1, 1);
 /** How solid the box over a selected element is, and over a hovered one. */
 const SELECTED_ALPHA = 0.4;
 const HOVERED_ALPHA = 0.15;
+
+/**
+ * How close to an outline a ray has to land to pick an edges-only element.
+ *
+ * In screen pixels, because the outline itself is drawn at a screen-constant
+ * width: what looks grabbable has to be grabbable at any zoom.
+ */
+const EDGE_PICK_TOLERANCE_PX = 5;
+
+/**
+ * The tolerance in metres when there is no camera to measure pixels against -
+ * which is the test suite, not the app.
+ */
+const EDGE_PICK_FALLBACK_M = 0.05;
 
 /**
  * The types drawn as a volume around other geometry rather than as matter.
@@ -167,6 +182,7 @@ export class PickService implements SceneScoped {
     private babylonService: BabylonService,
     private sceneBounds: SceneBoundsService,
     private sceneRegistry: SceneRegistryService,
+    private layerVisibility: LayerVisibilityService,
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
@@ -371,6 +387,20 @@ export class PickService implements SceneScoped {
     this.setSelected([]);
   }
 
+  /**
+   * Drop the selection outright - what Escape means when no gesture is running.
+   *
+   * Announced exactly like a click on empty space, because that is the other
+   * way a user drops a selection: whoever owns it (ADR-0004) hears one miss and
+   * clears, so the forms and the 3D view let go together. The hover outline
+   * goes too, though only until the pointer moves again.
+   */
+  public dropSelection(): void {
+    this.dropHoverOutline();
+    if (this.applyOwnPicks) { this.clearSelection(); }
+    this.pickedSubject.next({ element: undefined, add: false });
+  }
+
   /** Drop the hover highlight - the pointer left the canvas. */
   public clearHover(): void {
     this.dropHoverOutline();
@@ -439,18 +469,69 @@ export class PickService implements SceneScoped {
       .filter(hit => hit.pickedPoint && this.isVisible(hit.pickedPoint))
       .sort((a, b) => a.distance - b.distance);
 
-    const picks: PickedAt[] = [];
+    // The cursor only sees what the user can (CONTEXT.md, "Reguła
+    // wskazywania"): a hidden layer answers nothing - its geometry is still in
+    // the scene, only not drawn - a filled layer answers with its surface, and
+    // an edges-only layer answers just at its outline, the way a CAD wireframe
+    // is grabbed by its lines. The outline is asked separately below rather
+    // than through the surface hits: a ray aimed at a box's edge slides along
+    // the very triangles it would have to hit, and floating point decides
+    // whether such a hit exists at all.
+    const candidates: { distance: number, picked: PickedAt }[] = [];
     for (const hit of visible) {
       const pick = this.sceneRegistry.pickAt(
         hit.pickedMesh, hit.faceId, hit.thinInstanceIndex ?? -1);
-      if (pick) {
-        const point = hit.pickedPoint;
-        picks.push({ element: pick, point: { x: point.x, y: point.y, z: point.z } });
-      }
+      if (!pick) { continue; }
+      if (this.layerVisibility.stateOf(pick.type) !== 'filled') { continue; }
+
+      const point = hit.pickedPoint;
+      candidates.push({
+        distance: hit.distance,
+        picked: { element: pick, point: { x: point.x, y: point.y, z: point.z } }
+      });
     }
+
+    this.outlinePicks(ray).forEach(candidate => candidates.push(candidate));
+
+    const picks = candidates
+      .sort((a, b) => a.distance - b.distance)
+      .map(candidate => candidate.picked);
 
     // A volume drawn around other geometry yields to what is inside it
     return picks.find(({ element }) => ENCLOSING_TYPES.indexOf(element.type) === -1) ?? picks[0];
+  }
+
+  /**
+   * Every edges-only element whose outline the ray passes within tolerance.
+   *
+   * Walked off the registry rather than read out of the surface hits, because
+   * the outline is where such an element answers and its surface is not even
+   * reliably hit there - see pickAlong(). The point handed back lies on the
+   * outline, which is also the coordinate the user is visually aiming at.
+   */
+  private outlinePicks(ray: BABYLON.Ray): { distance: number, picked: PickedAt }[] {
+    const found: { distance: number, picked: PickedAt }[] = [];
+
+    this.sceneRegistry.eachEntry((uuid, entry) => {
+      if (this.layerVisibility.stateOf(entry.type) !== 'edges') { return; }
+
+      const touch = this.outlineTouch(entry.xb, ray);
+      if (!touch) { return; }
+
+      // The clipping planes take outlines off the screen like everything else
+      const point = new BABYLON.Vector3(touch.x, touch.y, touch.z);
+      if (!this.isVisible(point)) { return; }
+
+      found.push({
+        distance: BABYLON.Vector3.Distance(ray.origin, point),
+        picked: {
+          element: { uuid: uuid, type: entry.type, id: entry.id, xb: entry.xb },
+          point: touch
+        }
+      });
+    });
+
+    return found;
   }
 
   /**
@@ -462,6 +543,46 @@ export class PickService implements SceneScoped {
    */
   private isVisible(point: BABYLON.Vector3): boolean {
     return this.obstScene ? this.obstScene.isVisible(point) : true;
+  }
+
+  /**
+   * Where the ray touches the element's outline, if it passes close enough.
+   *
+   * Against the RAY, not against the point where the surface was first met: a
+   * camera above the model enters a box through its roof, metres from any
+   * edge, and leaves through the bottom edge the user is pointing at - the
+   * outline answers wherever the ray grazes it. The point handed back lies on
+   * the outline itself, which is also the coordinate the user is aiming at.
+   */
+  private outlineTouch(xb: SceneXb, ray: BABYLON.Ray): ScenePoint | null {
+    let best: { distance: number; point: BABYLON.Vector3 } | null = null;
+    eachOutlineEdge(xb, (a, b) => {
+      const near = closestOnSegmentToRay(a, b, ray);
+      if (!best || near.distance < best.distance) { best = near; }
+    });
+
+    if (!best || best.distance > this.edgeTolerance(best.point)) { return null; }
+    return { x: best.point.x, y: best.point.y, z: best.point.z };
+  }
+
+  /**
+   * How far, in metres, "at the outline" reaches at this depth.
+   *
+   * The outline is drawn at a screen-constant width, so the tolerance is a few
+   * pixels converted to metres where the hit landed - what looks grabbable has
+   * to be grabbable at any zoom.
+   */
+  private edgeTolerance(at: BABYLON.Vector3): number {
+    const scene = this.babylonService.scene;
+    const camera = scene ? scene.activeCamera : null;
+    if (!camera) { return EDGE_PICK_FALLBACK_M; }
+
+    const height = scene.getEngine().getRenderHeight();
+    if (!height) { return EDGE_PICK_FALLBACK_M; }
+
+    const depth = BABYLON.Vector3.Distance(camera.globalPosition, at);
+    const metresPerPixel = 2 * depth * Math.tan(camera.fov / 2) / height;
+    return EDGE_PICK_TOLERANCE_PX * metresPerPixel;
   }
 
   /** Draw the highlight over one element, singling an obst out of its pool. */
@@ -529,4 +650,59 @@ export class PickService implements SceneScoped {
     if (selected) { this.selectionMaterial = material; } else { this.hoverMaterial = material; }
     return material;
   }
+}
+
+/**
+ * Walk the 12 edges of a box's outline.
+ *
+ * A plane element is a box with no thickness and its degenerate edges collapse
+ * onto the real ones, so one walk serves every element type.
+ */
+function eachOutlineEdge(
+  xb: SceneXb, edge: (a: BABYLON.Vector3, b: BABYLON.Vector3) => void
+): void {
+  [xb.y1, xb.y2].forEach(y => [xb.z1, xb.z2].forEach(z =>
+    edge(new BABYLON.Vector3(xb.x1, y, z), new BABYLON.Vector3(xb.x2, y, z))));
+  [xb.x1, xb.x2].forEach(x => [xb.z1, xb.z2].forEach(z =>
+    edge(new BABYLON.Vector3(x, xb.y1, z), new BABYLON.Vector3(x, xb.y2, z))));
+  [xb.x1, xb.x2].forEach(x => [xb.y1, xb.y2].forEach(y =>
+    edge(new BABYLON.Vector3(x, y, xb.z1), new BABYLON.Vector3(x, y, xb.z2))));
+}
+
+/**
+ * The point on a segment nearest to a ray, and how far apart the two pass.
+ *
+ * The closest-points-of-two-segments algorithm (Ericson, Real-Time Collision
+ * Detection, 5.1.9), with the ray treated as a segment of its own length.
+ */
+function closestOnSegmentToRay(
+  a: BABYLON.Vector3, b: BABYLON.Vector3, ray: BABYLON.Ray
+): { distance: number; point: BABYLON.Vector3 } {
+  const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
+
+  const u = b.subtract(a);
+  const v = ray.direction.scale(ray.length);
+  const offset = a.subtract(ray.origin);
+
+  const uu = BABYLON.Vector3.Dot(u, u);
+  const uv = BABYLON.Vector3.Dot(u, v);
+  const vv = BABYLON.Vector3.Dot(v, v);
+  const uo = BABYLON.Vector3.Dot(u, offset);
+  const vo = BABYLON.Vector3.Dot(v, offset);
+
+  const denominator = uu * vv - uv * uv;
+  let s = denominator > 0 ? clamp01((uv * vo - uo * vv) / denominator) : 0;
+  let t = vv > 0 ? (uv * s + vo) / vv : 0;
+
+  if (t < 0) {
+    t = 0;
+    s = uu > 0 ? clamp01(-uo / uu) : 0;
+  } else if (t > 1) {
+    t = 1;
+    s = uu > 0 ? clamp01((uv - uo) / uu) : 0;
+  }
+
+  const onSegment = a.add(u.scale(s));
+  const onRay = ray.origin.add(v.scale(t));
+  return { distance: BABYLON.Vector3.Distance(onSegment, onRay), point: onSegment };
 }

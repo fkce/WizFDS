@@ -9,6 +9,7 @@ import { SceneVent, SceneXb } from '../scene-input';
 import { SceneAxis, SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 import { BatchedPlane, PlaneBatch } from '../plane-batch';
 import { ClippedPlaneLayer, OutlinedMesh } from '../clipped-plane-layer';
+import { LayerVisibilityService } from '../layer-visibility.service';
 import { isTranslucent } from '../box-instance-pool';
 
 /**
@@ -74,13 +75,15 @@ export class VentService implements SceneScoped {
     private helpersService: HelpersService,
     sceneBounds: SceneBoundsService,
     private sceneRegistry: SceneRegistryService,
-    sceneLifecycle: SceneLifecycleService
+    sceneLifecycle: SceneLifecycleService,
+    layerVisibility: LayerVisibilityService
   ) {
     sceneLifecycle.register(this);
     this.basicLayer = new ClippedPlaneLayer(
       // In front of the obst faces the vents sit on
       { materialName: 'basicVentShader', zOffset: -0.015, fillAlpha: 0.6 },
       babylonService, sceneBounds, 'VentService');
+    layerVisibility.bind('vent', () => this.basicLayer.state());
     this.resetClipping();
   }
 
