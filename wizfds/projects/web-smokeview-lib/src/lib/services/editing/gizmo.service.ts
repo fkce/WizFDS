@@ -119,6 +119,8 @@ interface Gesture {
     readonly union: SceneXb,
     /** The face being dragged, for a resize. */
     readonly face?: SceneFace,
+    /** Whether the gesture leaves the original put and asks for copies (#126). */
+    readonly copy: boolean,
     readonly input: GestureInput,
     /** What has caught it, as of the last frame. */
     hit: SnapMode | null,
@@ -242,6 +244,9 @@ export class GizmoService implements SceneScoped {
     /** Whether the running gesture drags along z - decided at the grab. */
     private vertical = false;
 
+    /** Whether the ribbon armed the next gesture as a copy - one-shot (#126). */
+    private copyPending = false;
+
     /** The plan grip's drag behavior, retuned between grabs by ctrl. */
     private planBehavior: BABYLON.PointerDragBehavior | null = null;
 
@@ -286,6 +291,21 @@ export class GizmoService implements SceneScoped {
         this.cancel();
         this.mode = mode;
         this.rebuild();
+    }
+
+    /**
+     * Arm the next move gesture as a copy - the ribbon's Copy button (#126).
+     *
+     * One-shot and toggleable: spent by the gesture it arms, put down by a
+     * second press. The ctrl shortcut at an axis arrow does not come through
+     * here - it is read at the grab (ADR-0011).
+     */
+    public armCopy(): void {
+        this.copyPending = !this.copyPending;
+    }
+
+    public get isCopyArmed(): boolean {
+        return this.copyPending;
     }
 
     /** Whether a drag is in progress, so a click is not also a selection. */
@@ -375,8 +395,8 @@ export class GizmoService implements SceneScoped {
     // ==========================================
 
     /** Start a translate of everything selected. */
-    public beginMove(): void {
-        this.begin('move');
+    public beginMove(copy = false): void {
+        this.begin('move', undefined, copy);
     }
 
     /** Start a drag of one face of the one selected element. */
@@ -523,7 +543,7 @@ export class GizmoService implements SceneScoped {
     // Building a gesture, and finishing one
     // ==========================================
 
-    private begin(kind: GizmoMode, face?: SceneFace): void {
+    private begin(kind: GizmoMode, face?: SceneFace, copy = false): void {
         this.cancel();
         if (!this.editable) { return; }
 
@@ -544,12 +564,14 @@ export class GizmoService implements SceneScoped {
             boxes: boxes,
             union: unionOf(Array.from(boxes.values())),
             face: face,
+            copy: kind === 'move' && (copy || this.copyPending),
             input: kind === 'move'
                 ? GestureInput.forMove()
                 : GestureInput.forFace(face, boxes.get(uuids[0])[face]),
             hit: null,
             finished: false
         };
+        this.copyPending = false;
 
         // Ctrl held at the grab starts the gesture with snapping suspended -
         // the standing contract for every handle (ADR-0010). The vertical
@@ -565,7 +587,9 @@ export class GizmoService implements SceneScoped {
         if (gesture.kind === 'move') {
             const delta = this.resolvedDelta(gesture);
             if (delta.dx === 0 && delta.dy === 0 && delta.dz === 0) { return null; }
-            return { kind: 'move' as const, uuids: gesture.uuids, delta: delta };
+            return gesture.copy
+                ? { kind: 'copy' as const, uuids: gesture.uuids, delta: delta }
+                : { kind: 'move' as const, uuids: gesture.uuids, delta: delta };
         }
 
         const uuid = gesture.uuids[0];
@@ -713,6 +737,9 @@ export class GizmoService implements SceneScoped {
 
     private onSelectionChanged(selected: readonly ScenePick[]): void {
         this.selection = selected;
+
+        // An armed copy has nothing left to copy
+        if (selected.length === 0) { this.copyPending = false; }
 
         // A gesture whose elements have gone - deleted, or a scenario switched
         // under it - has nothing left to be about
@@ -934,17 +961,20 @@ export class GizmoService implements SceneScoped {
 
     private onMoveDragStart(handle: MoveHandle): void {
         this.vertical = handle === 'plan' && this.ctrlHeld;
+        // Ctrl at an axis arrow is spent on the copy, as at the plan square it
+        // is spent on the vertical gesture (ADR-0011, amendment for #126)
+        const copy = handle !== 'plan' && this.ctrlHeld;
         this.rawDragDelta.setAll(0);
-        this.beginMove();
+        this.beginMove(copy);
         if (!this.current) { this.vertical = false; return; }
 
-        if (this.vertical) {
+        if (this.vertical || this.current.copy) {
             // The ctrl that chose the mode is spent: its keydown suspended
-            // snapping the way it does at every other handle, and a vertical
-            // gesture snaps like any other until ctrl is pressed afresh.
+            // snapping the way it does at a resize grip, and the gesture
+            // snaps like any other until ctrl is pressed afresh.
             this.snapService.suspended = false;
-            this.showGuide();
         }
+        if (this.vertical) { this.showGuide(); }
     }
 
     private onMoveDrag(handle: MoveHandle, delta: BABYLON.Vector3): void {

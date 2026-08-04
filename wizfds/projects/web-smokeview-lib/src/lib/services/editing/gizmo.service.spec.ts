@@ -98,6 +98,87 @@ describe('GizmoService', () => {
     picking.setSelected(uuids);
   }
 
+  describe('a copy-drag (#126)', () => {
+
+    beforeEach(() => {
+      draw('west', WEST);
+      select('west');
+    });
+
+    it('emits one copy when ctrl was held at the grab of an axis arrow', () => {
+      const adapter: any = gizmo;
+      gizmo.setCtrlHeld(true);
+
+      adapter.onMoveDragStart('x');
+      adapter.onMoveDrag('x', new BABYLON.Vector3(2, 0, 0));
+      adapter.onMoveDragEnd();
+
+      expect(commands).toEqual([
+        { kind: 'copy', uuids: ['west'], delta: { dx: 2, dy: 0, dz: 0 } }
+      ]);
+    });
+
+    it('does not suspend snapping - the ctrl was spent on the copy', () => {
+      gizmo.setCtrlHeld(true);
+
+      (gizmo as any).onMoveDragStart('x');
+
+      expect(snapping.suspended).toBe(false);
+    });
+
+    it('leaves the plan square to the vertical gesture (ADR-0011)', () => {
+      const adapter: any = gizmo;
+      gizmo.setCtrlHeld(true);
+
+      adapter.onMoveDragStart('plan');
+      adapter.onMoveDrag('plan', new BABYLON.Vector3(0, 0, 1));
+      adapter.onMoveDragEnd();
+
+      expect(commands.length).toBe(1);
+      expect(commands[0].kind).toBe('move');
+    });
+
+    it('arms a copy from the ribbon for the next gesture, whatever the handle', () => {
+      gizmo.armCopy();
+      const adapter: any = gizmo;
+
+      adapter.onMoveDragStart('plan');
+      adapter.onMoveDrag('plan', new BABYLON.Vector3(1, 1, 0));
+      adapter.onMoveDragEnd();
+
+      expect(commands[0].kind).toBe('copy');
+      expect(gizmo.isCopyArmed).toBe(false);
+    });
+
+    it('puts the armed copy down when pressed again', () => {
+      gizmo.armCopy();
+      gizmo.armCopy();
+
+      expect(gizmo.isCopyArmed).toBe(false);
+    });
+
+    it('emits nothing for a copy put back where it started', () => {
+      const adapter: any = gizmo;
+      gizmo.setCtrlHeld(true);
+
+      adapter.onMoveDragStart('x');
+      adapter.onMoveDrag('x', new BABYLON.Vector3(0, 0, 0));
+      adapter.onMoveDragEnd();
+
+      expect(commands).toEqual([]);
+    });
+
+    it('is spent by the gesture it armed, even an abandoned one', () => {
+      gizmo.armCopy();
+
+      gizmo.beginMove();
+      gizmo.cancel();
+
+      expect(gizmo.isCopyArmed).toBe(false);
+      expect(commands).toEqual([]);
+    });
+  });
+
   describe('a translate', () => {
 
     beforeEach(() => {
