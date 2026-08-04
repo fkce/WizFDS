@@ -93,5 +93,58 @@ describe('ViewCubeService', () => {
         .withContext('the cube camera must not draw the model')
         .toBe(0);
     });
+
+    it('stays clickable in a scene tuned for static drawing', () => {
+      // tuneForStaticScene() runs before the cube is built, and the
+      // Intermediate performance priority it sets means every mesh created
+      // after it is born with isPickable = false. The cube used to rely on
+      // the old default - and every click on it fell straight through.
+      scene.performancePriority = BABYLON.ScenePerformancePriority.Intermediate;
+
+      service.init();
+      scene.pointerX = engine.getRenderWidth() * 0.95;
+      scene.pointerY = engine.getRenderHeight() * 0.1;
+
+      expect(service.pickSide())
+        .withContext('a face or corner of the cube under the pointer')
+        .toBeTruthy();
+    });
+  });
+
+  describe('following the model camera', () => {
+
+    it('mirrors the model camera\'s angles every frame', () => {
+      // The cube used to integrate the same pointer events as the model
+      // camera - and the two drifted apart the moment one of them hit a beta
+      // limit the other did not. A mirror cannot drift.
+      service.init();
+
+      camera.alpha = 2.31;
+      camera.beta = 0.77;
+      scene.render();
+
+      expect(service.cameraViewCube.alpha).toBeCloseTo(2.31, 10);
+      expect(service.cameraViewCube.beta).toBeCloseTo(0.77, 10);
+    });
+
+    it('keeps mirroring at the beta limit, where the lockstep used to break', () => {
+      // A CAD user lives in the top view: the model camera rides its
+      // lowerBetaLimit clamp there, and an independently-integrating cube
+      // kept turning past it - desynchronised for good.
+      service.init();
+
+      camera.beta = camera.lowerBetaLimit;
+      scene.render();
+
+      expect(service.cameraViewCube.beta).toBeCloseTo(camera.lowerBetaLimit, 10);
+    });
+
+    it('does not listen to the pointer itself', () => {
+      // Two integrations of one event stream is the drift bug; the cube's
+      // camera follows the mirror and nothing else.
+      service.init();
+
+      expect(service.cameraViewCube.inputs.attachedToElement).toBeFalse();
+    });
   });
 });

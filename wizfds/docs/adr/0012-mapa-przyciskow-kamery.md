@@ -40,6 +40,11 @@ skaluje near/far i limity promienia).
 - Maszyneria kontestu lewego przycisku znika: kamera nigdy nie konkuruje
   o wskaźnik, `setCameraControl()` i shift-jako-asekuracja są zbędne.
   Wiersz shift w ADR-0011 traci znaczenie „zabiera kamerze wskaźnik".
+- Kamera view cube'a przestaje słuchać wskaźnika. Dotąd kręciła się
+  „w zestrojeniu", całkując te same zdarzenia co kamera modelu — a klamra
+  bety (widok z góry) rozjeżdżała obie na stałe. Zamiast tego kostka
+  lustrzanie kopiuje kąty kamery modelu co klatkę; lustro nie umie się
+  rozjechać.
 - Ctrl+lewy przestaje panoramować — ctrl należy w całości do zaznaczania
   i modyfikatorów gestu (ADR-0011); znika dwuznaczność ctrl+klik
   (rozszerz zaznaczenie) kontra ctrl+drag (pan).

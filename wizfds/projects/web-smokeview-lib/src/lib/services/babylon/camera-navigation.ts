@@ -42,17 +42,11 @@ export function panningSensibilityFor(radius: number, fov: number, canvasHeightP
  * ADR-0012's button table is these three lines. A button with no entry simply
  * does not move the camera, which is what frees the left and right buttons.
  *
- * Applied to the view cube's corner camera as well as the model's: the cube
- * follows the orbit only because both cameras hear the same canvas, so they
- * must agree on what a drag means and how fast it turns - see ViewCubeService.
- * The cube gets only this much, and without the pan entry: its camera has
- * nothing to pan, and a pan would carry its target away from the mesh it
- * frames in the corner.
+ * The view cube's corner camera is deliberately NOT given this map: it does
+ * not listen to the pointer at all, it mirrors the model camera's angles
+ * every frame - see ViewCubeService.
  */
-export function applyCadPointerMap(
-  camera: BABYLON.ArcRotateCamera,
-  options: { panning: boolean } = { panning: true }
-): void {
+export function applyCadPointerMap(camera: BABYLON.ArcRotateCamera): void {
   // Every attachControl() - including the reattach PointerDragBehavior ends a
   // grip drag with - writes these two back into the map. Left at Babylon's
   // defaults (true, 2) the first grip drag would bring ctrl+left panning back,
@@ -62,9 +56,7 @@ export function applyCadPointerMap(
 
   camera.movement.input.inputMap = [
     { source: 'pointer', button: 1, modifiers: { shift: true }, interaction: 'rotate' },
-    ...(options.panning
-      ? [{ source: 'pointer', button: 1, interaction: 'pan' } as const]
-      : []),
+    { source: 'pointer', button: 1, interaction: 'pan' },
     { source: 'wheel', interaction: 'zoom' }
   ];
 

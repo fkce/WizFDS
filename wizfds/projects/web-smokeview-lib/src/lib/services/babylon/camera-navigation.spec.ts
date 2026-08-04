@@ -1,7 +1,7 @@
 import * as BABYLON from 'babylonjs';
 
 import {
-  applyCadNavigation, applyCadPointerMap, panningSensibilityFor, CAD_ZOOM_STEP
+  applyCadNavigation, panningSensibilityFor, CAD_ZOOM_STEP
 } from './camera-navigation';
 
 /**
@@ -110,28 +110,6 @@ describe('camera navigation (ADR-0012)', () => {
       // double LEFT click is two selections - neither may teleport the camera
       // to wherever storeState() last stood.
       expect(camera.useInputToRestoreState).toBeFalse();
-    });
-  });
-
-  describe('the view cube\'s share of the map', () => {
-
-    it('agrees on the orbit, but leaves the wheel and the target alone', () => {
-      // The cube follows the orbit only because both cameras hear the same
-      // canvas, so they must agree on what a drag means. But the cube's camera
-      // only has the cube to keep framed: a pan would carry its target away
-      // from the mesh, and the cursor-anchored zoom would do the same - so it
-      // gets the orbit and the stilled inertia, nothing more.
-      const cube = new BABYLON.ArcRotateCamera('cameraView', 0, 0, 3, BABYLON.Vector3.Zero(), scene);
-
-      applyCadPointerMap(cube, { panning: false });
-
-      const orbit = cube.movement.input.resolveInteraction('pointer',
-        { button: 1, modifiers: { ctrl: false, alt: false, shift: true } });
-      expect(orbit && orbit.interaction).toBe('rotate');
-      expect(cube.movement.input.resolveInteraction('pointer',
-        { button: 1, modifiers: { ctrl: false, alt: false, shift: false } })).toBeNull();
-      expect(cube.inertia).toBe(0);
-      expect(cube.zoomToMouseLocation).toBeFalse();
     });
   });
 

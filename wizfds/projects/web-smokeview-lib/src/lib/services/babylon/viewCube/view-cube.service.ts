@@ -1,10 +1,9 @@
 import { Injectable, isDevMode } from '@angular/core';
 import { BabylonService } from '../babylon.service';
 import * as BABYLON from 'babylonjs';
-import { cloneDeep, toNumber } from 'lodash';
+import { toNumber } from 'lodash';
 import { SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 import { SceneLifecycleService, SceneScoped } from '../scene-lifecycle.service';
-import { applyCadPointerMap } from '../camera-navigation';
 
 /**
  * The layer the cube and its hit boxes live on.
@@ -231,18 +230,27 @@ export class ViewCubeService implements SceneScoped {
   }
 
   /**
-   * Put everything this service built on its own rendering layer.
+   * Put everything this service built on its own rendering layer, and make it
+   * answer to picks.
    *
    * Assigned by type rather than by name, for the same reason resetSceneState()
    * is: naming thirty-odd meshes would be a list the next added face or box
    * silently drops out of - and one missing entry is a box floating in the middle
    * of the model.
+   *
+   * Pickability is said outright because the scene no longer defaults to it:
+   * tuneForStaticScene() runs before the cube is built, and the Intermediate
+   * performance priority means every mesh created after it is born with
+   * isPickable = false. The cube relied on the old default, and every click
+   * on it fell straight through.
    */
   private isolateOnOwnLayer(): void {
     Object.keys(this).forEach(key => {
       const value = (this as any)[key];
       if (value instanceof BABYLON.AbstractMesh) {
         value.layerMask = VIEW_CUBE_LAYER;
+        // The ground opted out in createViewCube() and stays out
+        if (value !== this.viewCubeGround) { value.isPickable = true; }
       }
     });
     this.cameraViewCube.layerMask = VIEW_CUBE_LAYER;
@@ -337,16 +345,22 @@ export class ViewCubeService implements SceneScoped {
     this.cameraViewCube.setPosition(new BABYLON.Vector3(0, 0, 2));
     // @ts-ignore
     this.cameraViewCube.target = this.viewCube;
-    this.cameraViewCube.attachControl(this.babylonService.canvas, true);
-    // The cube follows the model camera's orbit only because both cameras hear
-    // the same canvas - so they must agree on what a drag means and how fast
-    // it turns (ADR-0012). The map only, and without panning: this camera has
-    // nothing to pan, only the cube to keep framed.
-    applyCadPointerMap(this.cameraViewCube, { panning: false });
     this.cameraViewCube.viewport = new BABYLON.Viewport(.85, .8, .2, .2);
     this.cameraViewCube.upVector = new BABYLON.Vector3(0, 0, 1);
     this.cameraViewCube.lowerRadiusLimit = 3;
     this.cameraViewCube.upperRadiusLimit = 3;
+
+    // The cube's camera never hears the pointer. It used to, and turned in
+    // lockstep with the model camera off the same canvas events - until one
+    // of them hit a beta limit the other did not, and the two integrations
+    // drifted apart for good. A mirror cannot drift: same up vector, same
+    // angles, and the cube shows exactly the orientation the model is seen
+    // from. Radius and target stay its own - it only frames the cube.
+    this.babylonService.scene.onBeforeRenderObservable.add(() => {
+      if (!this.cameraViewCube || !this.babylonService.camera) { return; }
+      this.cameraViewCube.alpha = this.babylonService.camera.alpha;
+      this.cameraViewCube.beta = this.babylonService.camera.beta;
+    });
 
     this.babylonService.scene.activeCameras.push(this.cameraViewCube);
   }
@@ -470,21 +484,16 @@ export class ViewCubeService implements SceneScoped {
     // camera flies to, and it is drawn but deliberately not measured (ADR-0002).
     const modelCenter = this.sceneBounds.center;
     const center = new BABYLON.Vector3(modelCenter.x, modelCenter.y, modelCenter.z);
-    let boundingViewBox = cloneDeep(this.viewCube.getBoundingInfo().boundingSphere);
 
     // The direction is a unit-ish vector, so how far along it the camera stands
     // has to come from the model
     const reach = this.babylonService.radiusToFit();
     let vector = new BABYLON.Vector3(center.x + cameraVector.x * reach, center.y + cameraVector.y * reach, center.z + cameraVector.z * reach);
-    let vectorViewCube = new BABYLON.Vector3(boundingViewBox.centerWorld.x + cameraVector.x, boundingViewBox.centerWorld.y + cameraVector.y, boundingViewBox.centerWorld.z + cameraVector.z);
 
     var cameraPosition = new BABYLON.Animation("animCameraPostion", "position", 30, BABYLON.Animation.ANIMATIONTYPE_VECTOR3, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
     var cameraRadius = new BABYLON.Animation("animCameraRadius", "radius", 30, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
     var cameraAlpha = new BABYLON.Animation("animCameraAlpha", "alpha", 30, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
     var cameraTarget = new BABYLON.Animation("animCameraTarget", "target", 30, BABYLON.Animation.ANIMATIONTYPE_VECTOR3, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
-    var cameraViewCubePosition = new BABYLON.Animation("animCameraViewCubePosition", "position", 30, BABYLON.Animation.ANIMATIONTYPE_VECTOR3, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
-    var cameraViewCubeAlpha = new BABYLON.Animation("animCameraViewCubeAlpha", "alpha", 30, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
-    var cameraViewCubeTarget = new BABYLON.Animation("animCameraViewCubeTarget", "target", 30, BABYLON.Animation.ANIMATIONTYPE_VECTOR3, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
 
     var cameraPositionKeys = [];
     var cameraRadiusKeys = [];
@@ -495,33 +504,21 @@ export class ViewCubeService implements SceneScoped {
     cameraAlphaKeys = [{ frame: 0, value: this.babylonService.camera.alpha }, { frame: 15, value: this.getAlpha(this.babylonService.camera.alpha, cameraVector) }];
     cameraTargetKeys.push({ frame: 0, value: this.babylonService.camera.target.clone() }, { frame: 15, value: center });
 
-    var cameraViewCubeKeys = [];
-    var cameraViewCubeAlphaKeys = [];
-    var cameraViewCubeTargetKeys = [];
-    cameraViewCubeKeys.push({ frame: 0, value: this.cameraViewCube.position.clone() }, { frame: 15, value: vectorViewCube });
-    cameraViewCubeAlphaKeys = [{ frame: 0, value: this.cameraViewCube.alpha }, { frame: 15, value: this.getAlpha(this.cameraViewCube.alpha, cameraVector) }];
-    cameraViewCubeTargetKeys.push({ frame: 0, value: this.cameraViewCube.target.clone() }, { frame: 15, value: boundingViewBox.centerWorld });
-
     cameraPosition.setKeys(cameraPositionKeys);
     cameraRadius.setKeys(cameraRadiusKeys);
     cameraAlpha.setKeys(cameraAlphaKeys);
     cameraTarget.setKeys(cameraTargetKeys);
-    cameraViewCubePosition.setKeys(cameraViewCubeKeys);
-    cameraViewCubeAlpha.setKeys(cameraViewCubeAlphaKeys);
-    cameraViewCubeTarget.setKeys(cameraViewCubeTargetKeys);
 
+    // Only the model camera flies; the cube's camera mirrors its angles every
+    // frame (see createViewCube), so animating it separately would just fight
+    // the mirror - it used to, and each flight was a chance to drift.
     this.babylonService.camera.animations = [];
-    this.cameraViewCube.animations = [];
     this.babylonService.camera.animations.push(cameraPosition);
     this.babylonService.camera.animations.push(cameraRadius);
     this.babylonService.camera.animations.push(cameraAlpha);
     this.babylonService.camera.animations.push(cameraTarget);
-    this.cameraViewCube.animations.push(cameraViewCubePosition);
-    this.cameraViewCube.animations.push(cameraViewCubeAlpha);
-    this.cameraViewCube.animations.push(cameraViewCubeTarget);
 
     this.babylonService.scene.beginAnimation(this.babylonService.camera, 0, 15, false, 1);
-    this.babylonService.scene.beginAnimation(this.cameraViewCube, 0, 15, false, 1);
   }
 
   /**
