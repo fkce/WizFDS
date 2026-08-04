@@ -91,7 +91,7 @@ Uwagi:
 > REPO=/mnt/c/Users/mateu/Documents/GitHub/WizFDS/wizfds
 > ```
 
-**Układ docroota `public_html/app/`:** korzeń = build Angulara (`index.html`, `main-*.js`, `assets/`, `media/`) + pliki serwerowe: symlinki backendu (`index.php`, `db.php`, `login.php`, `login.css`, `rest`, `router` → `/home/dkubera/git/WizFDS/wizfds/projects/wizfds/backend/`), kopia `config.php`, `.htaccess`, `results.json` (zapisywany przez backend). Router FastRoute pełni rolę bramki: żądanie `/` przechodzi przez `index.php` (kontrola sesji — `DirectoryIndex index.php` w `.htaccess`), zalogowanym `getIndex()` serwuje `index.html` z korzenia, niezalogowanych `getFrontPage()` przekierowuje na `/login`.
+**Układ docroota `public_html/app/`:** korzeń = build Angulara (`index.html`, `main-*.js`, `assets/`, `media/`) + pliki serwerowe: symlinki backendu (`index.php`, `db.php`, `login.php`, `login.css`, `lib`, `rest`, `router` → `/home/dkubera/git/WizFDS/wizfds/projects/wizfds/backend/`), kopia `config.php` i `.htaccess`. Nowy plik lub katalog dołączany w korzeniu backendu wymaga **własnego symlinku** — inaczej `require_once` go nie znajdzie. Router FastRoute pełni rolę bramki: żądanie `/` przechodzi przez `index.php` (kontrola sesji — `DirectoryIndex index.php` w `.htaccess`), zalogowanym `getIndex()` serwuje `index.html` z korzenia, niezalogowanych `getFrontPage()` przekierowuje na `/login`.
 
 ### B0. Przygotowanie release
 
@@ -107,7 +107,7 @@ Uwagi:
 rsync -rtvz --delete --dry-run --chmod=D755,F644 \
   --exclude='index.php' --exclude='.htaccess' --exclude='config.php' \
   --exclude='db.php' --exclude='login.php' --exclude='login.css' \
-  --exclude='rest' --exclude='router' --exclude='cgi-bin' --exclude='results.json' \
+  --exclude='lib' --exclude='rest' --exclude='router' --exclude='cgi-bin' \
   "$REPO/dist/wizfds/browser/" \
   wizfds:/home/dkubera/domains/wizfds.com/public_html/app/
 ```
@@ -115,13 +115,16 @@ Przejrzyj listę: usuwane powinny być tylko **stare hashowane pliki** (`main-<s
 
 **Krok 2 — właściwy upload** (ta sama komenda bez `--dry-run`).
 
-**Krok 3 — weryfikacja:**
+**Krok 3 — weryfikacja:** uruchom smoke testy — muszą przejść w całości (0 błędów):
 ```bash
-curl -s -o /dev/null -w "%{http_code} -> %{redirect_url}\n" https://app.wizfds.com/          # 302 -> /login (bez sesji)
-curl -s -o /dev/null -w "%{http_code}\n" https://app.wizfds.com/login                        # 200 (formularz)
-curl -s -o /dev/null -w "%{http_code} %{content_type}\n" https://app.wizfds.com/assets/shaders/fire.vertex.wgsl   # 200 text/plain
+bash "$REPO/projects/wizfds/backend/tests/smoke.sh" https://app.wizfds.com
 ```
-Na koniec zaloguj się w przeglądarce na https://app.wizfds.com i przeklikaj aplikację.
+Skrypt przechodzi ścieżkę użytkownika po HTTP (logowanie demo, odczyt projektów, kategorii i biblioteki, wylogowanie) i sprawdza asercje bezpieczeństwa: flagi ciasteczka sesji, odrzucenie zapisu bez nagłówka CSRF, brak wycieku danych dla anonima, łagodną odmowę przy złym haśle. Na koniec zaloguj się w przeglądarce na https://app.wizfds.com i przeklikaj aplikację.
+
+Log aplikacji (błędy backendu) jest na serwerze poza docrootem:
+```bash
+ssh wizfds 'tail -20 /home/dkubera/wizfds-logs/wizfds-$(date +%Y-%m).log'
+```
 
 ### B2. Backend → `git pull`
 
@@ -184,11 +187,11 @@ npm run wizFds:build-prod-app              # build produkcyjny (base-href=/) →
 # --- deploy app.wizfds.com (WSL) ---
 REPO=/mnt/c/Users/mateu/Documents/GitHub/WizFDS/wizfds
 # 1) dry-run  2) upload  (te same flagi, drugi bez --dry-run)
-rsync -rtvz --delete --dry-run --chmod=D755,F644 --exclude='index.php' --exclude='.htaccess' --exclude='config.php' --exclude='db.php' --exclude='login.php' --exclude='login.css' --exclude='rest' --exclude='router' --exclude='cgi-bin' --exclude='results.json' "$REPO/dist/wizfds/browser/" wizfds:/home/dkubera/domains/wizfds.com/public_html/app/
+rsync -rtvz --delete --dry-run --chmod=D755,F644 --exclude='index.php' --exclude='.htaccess' --exclude='config.php' --exclude='db.php' --exclude='login.php' --exclude='login.css' --exclude='lib' --exclude='rest' --exclude='router' --exclude='cgi-bin' "$REPO/dist/wizfds/browser/" wizfds:/home/dkubera/domains/wizfds.com/public_html/app/
 # 3) backend
 ssh wizfds 'cd /home/dkubera/git/WizFDS && git fetch && git status -sb && git pull --ff-only'
-# 4) smoke test
-curl -s -o /dev/null -w "%{http_code} -> %{redirect_url}\n" https://app.wizfds.com/
+# 4) smoke test (musi wyjść 0 błędów)
+bash "$REPO/projects/wizfds/backend/tests/smoke.sh" https://app.wizfds.com
 ```
 
-WinSCP (awaryjnie, zamiast `rsync`): wgraj zawartość `dist/wizfds/browser/` do `public_html/app/`, ręcznie usuwając stare `main-*.js`/`styles-*.css`, i **nie kasując** `index.php`, `.htaccess`, `config.php`, `db.php`, `login.php`, `login.css`, `rest`, `router`, `results.json`.
+WinSCP (awaryjnie, zamiast `rsync`): wgraj zawartość `dist/wizfds/browser/` do `public_html/app/`, ręcznie usuwając stare `main-*.js`/`styles-*.css`, i **nie kasując** `index.php`, `.htaccess`, `config.php`, `db.php`, `login.php`, `login.css`, `lib`, `rest`, `router`.

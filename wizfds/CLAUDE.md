@@ -89,6 +89,18 @@ PHP REST API in `projects/wizfds/backend/` using FastRoute router. PostgreSQL da
 - `/api/settings` - User settings
 - `/api/categories` - Category management
 
+Rules that hold for every change in `backend/` (see `docs/adr/0013-*`, `docs/adr/0014-*`):
+- **No shell.** Never `system()`/`exec()`/`shell_exec()` with a value derived from user input. Build paths with `wizfds_user_dir()` and create them with `wizfds_ensure_dir()` (native `mkdir`).
+- **Parameterised queries only.** Everything goes through `pg_query_params`. The array is bound *positionally* — its key order must match `$1..$n`.
+- **No data files in the docroot.** The API answers over HTTP; it does not write dumps next to the app (a `results.json` there leaked every user's project list). Logs go through `wizfds_log()`, which writes outside the docroot.
+- **Sessions start via `wizfds_session_start()`**, never `session_start()` directly — that is where the cookie flags live.
+- **Writes to `/api/*` require the `X-Requested-With` header** (the CSRF guard); the Angular interceptor sets it.
+- **Schema changes go through a numbered migration** in `backend/db/migrations/`, never by hand on the server.
+- **`config.php` on the server is the real file, the one in the repository is a template** — includes resolve against the docroot (`require_once('./config.php')`), so never switch them to `__DIR__`.
+- Verify a deploy with `backend/tests/smoke.sh <base-url>`.
+
+The backend is still stuck on PHP 7.4 in the web tier while the CLI is 8.2 (`AddHandler` in `.htaccess`).
+
 ### Dev Proxy
 
 `projects/wizfds/proxy.conf.js` proxies `/api`, `/logout`, `/register`, `/login` to `fliszer.vdl.pl` for local development. The proxy rewrites cookies to work on localhost.
