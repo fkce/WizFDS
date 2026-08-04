@@ -63,6 +63,11 @@ assert_body_lacks 'GET /config.php nie wypisuje sekretow' 'dbPass' "$BASE/config
 assert_body_lacks 'GET /api/projects bez sesji nie wydaje danych' '"from":"getProjects()"' "$BASE/api/projects"
 assert_body_lacks 'GET /api/settings bez sesji nie wydaje danych' '"from":"getSettings()"' "$BASE/api/settings"
 
+# Logowanie zlym haslem musi wrocic formularzem z komunikatem, a nie 500 -
+# check() siega po polaczenie z baza i to wlasnie tam pekalo.
+assert_body_contains 'POST /login ze zlym haslem odrzuca lagodnie' 'Invalid e-mail or password' \
+  -X POST -d 'check=Login&email=nobody@example.com&password=wrong-on-purpose' "$BASE/login"
+
 head1 'Ciasteczko sesji'
 
 COOKIE_HEADERS=$("${CURL[@]}" -D - -o /dev/null -c "$JAR" "$BASE/login?demo=true")

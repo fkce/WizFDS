@@ -7,8 +7,6 @@ require_once("rest/utils.php");
 
 wizfds_session_start();
 
-$db = new Database();  
-
 function guidv4($data) 
 {
 	assert(strlen($data) == 16);
@@ -69,7 +67,10 @@ function registerForm() {
 }
 
 function check() {
-	global $db;
+	# This file is include()d from inside login(), so anything assigned at its top
+	# level lands in that function's scope, not the global one - the connection has
+	# to be opened here.
+	$db = new Database();
 	$config = new Config();
 
 	if(!empty($_POST['email']) and !empty($_POST['password']) and wizfds_valid_email($_POST['email'])) {
@@ -131,7 +132,7 @@ function check() {
 }
 
 function makeRegister() {
-	global $db;
+	$db = new Database();
 	$config = new Config();
 
 	// Recaptcha implementation
