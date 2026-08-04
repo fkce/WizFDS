@@ -142,3 +142,20 @@ Panel Draw jest żywy, a Home stało się zakładką startową — tak jak w Aut
   natychmiast go pokazują, tak jak `add()` w formularzu aktywuje nowy wiersz.
 
 Wyszarzone do czasu #127 zostają oba pomiary.
+
+## Uzupełnienie (2026-08-04) — co odblokowało #126
+
+Panel Modify jest w komplecie: obok Move / Resize / Delete stoją Copy, Array
+i Mirror — trzy komendy, które ta decyzja przewidziała od początku.
+
+- **Copy** uzbraja następny gest gizma jako kopiujący; skrótem jest ctrl przy
+  chwycie strzałki osi (aneks w ADR-0011).
+- **Array i Mirror są budowane w zakładkach kontekstowych** (ARRAY / MIRROR):
+  liczności i odstępy — albo oś, współrzędna płaszczyzny i „keep original" —
+  wpisuje się w panelach, duchy pokazują wynik na żywo, OK zatwierdza jedną
+  komendą (jedno wejście w historii, ADR-0009), Cancel i zmiana zaznaczenia
+  zamykają budowniczego.
+- Wskazanie płaszczyzny odbicia kliknięciem ze snapem odłożono: pole
+  współrzędnej z presetami Min / Centre / Max pokrywa typowe przypadki;
+  wskazanie punktu w kanwie wymaga narzędzia „wskaż punkt", którego biblioteka
+  jeszcze nie ma.

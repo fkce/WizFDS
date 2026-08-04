@@ -55,3 +55,22 @@ Reguły rozstrzygające dla ctrl:
   przeglądarki (Firefox/Windows); zbyt kruche jak na podstawowy gest.
 - **Ctrl przełączający tryb także w trakcie gestu** — wprost sprzeczne
   z zapadką zawieszenia snapu z ADR-0010.
+
+## Uzupełnienie (2026-08-04) — co zmieniło #126
+
+Kopiowanie przez przeciągnięcie potrzebowało modyfikatora, a ctrl przy chwycie
+strzałki osi niósł znaczenie najsłabsze z całej mapy: „start z zawieszonym
+snapem", osiągalne także świeżym dociśnięciem ctrl tuż po chwycie. To znaczenie
+oddaje miejsce kopii:
+
+| Klawisz | Przy chwycie uchwytu |
+|---|---|
+| **Ctrl** | na kwadracie planu: gest pionowy (bez zmian); **na strzałkach osi: kopia** — oryginał zostaje, snap i dynamic input działają jak przy przesunięciu; na trójkątach resize: start z zawieszonym snapem (bez zmian) |
+
+- Zasada „ctrl decyduje w chwili chwytu i jest tym wyborem zużyty" obejmuje
+  kopię: gest kopiujący snapuje normalnie, a snap zawiesza dopiero ctrl
+  dociśnięty na świeżo w trakcie gestu.
+- Kopia w planie (kwadratem) nie ma skrótu klawiszowego — ctrl na kwadracie
+  pozostaje pionem. Drogą jest przycisk **Copy** w panelu Modify, który uzbraja
+  następny gest (dowolnym uchwytem, także nudge) jako kopiujący; uzbrojenie
+  jest jednorazowe i zdejmowane ponownym kliknięciem.
