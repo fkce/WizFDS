@@ -37,9 +37,23 @@ function wizfds_session_start() {
 # Used by logout and by the registration form.
 function wizfds_session_reset() {
 	wizfds_session_start();
+
 	$_SESSION = array();
+
+	# Expire the old cookie as well, so the browser stops presenting an id the
+	# server has already thrown away.
+	if (ini_get('session.use_cookies') && !headers_sent()) {
+		$params = session_get_cookie_params();
+		setcookie(session_name(), '', array(
+			'expires'  => time() - 42000,
+			'path'     => $params['path'],
+			'domain'   => $params['domain'],
+			'secure'   => $params['secure'],
+			'httponly' => $params['httponly'],
+			'samesite' => isset($params['samesite']) ? $params['samesite'] : 'Lax',
+		));
+	}
+
 	session_destroy();
-	session_write_close();
 	wizfds_session_start();
-	session_regenerate_id(true);
 }
