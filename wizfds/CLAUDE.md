@@ -100,7 +100,7 @@ Rules that hold for every change in `backend/` (see `docs/adr/0013-*`, `docs/adr
 - **Account plumbing lives in `backend/lib/auth.php`** — password hashing (an application secret per address, kept outside the database, plus a per-user salt), the login rate limit, and reset tokens. Never re-implement the hashing inline; never start a session without stamping `$_SESSION['issued_at']`. See `docs/adr/0015-*`.
 - Verify a deploy with `backend/tests/smoke.sh <base-url>`.
 
-app.wizfds.com runs **PHP 8.2** (`AddHandler application/x-httpd-php82 php`, first line of the docroot `.htaccess`); the frozen wizfds.com stays on 7.4. `pgsql` is enabled for 8.2 on the account, but `pdo_pgsql` is not — code here uses `pg_*`.
+app.wizfds.com runs **PHP 8.2** (`AddHandler application/x-httpd-php82 php`, first line of the docroot `.htaccess`); the frozen wizfds.com stays on 7.4. Both `pgsql` and `pdo_pgsql` are available, but the backend deliberately stays on `pg_*` — see `docs/adr/0014-*`. Do not migrate a query to PDO in passing; that is a decision, not a cleanup.
 
 ### Dev Proxy
 

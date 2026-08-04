@@ -18,7 +18,7 @@
 | **webSmokeview** (viewer 3D) | — | **nie deployowany osobno** | wbudowany w `wizfds` przez `web-smokeview-lib` (import ze źródeł) |
 | **backend PHP** | — (nie budowany) | symlinki → `git/WizFDS/wizfds/projects/wizfds/backend/` | **`git pull`** w `/home/dkubera/git/WizFDS/` |
 
-**Wersja PHP:** app.wizfds.com działa na **PHP 8.2** (od 2026-08-04; pierwsza linia `public_html/app/.htaccess` → `AddHandler application/x-httpd-php82 php`). Rollback to ta jedna linia — kopia sprzed przełączenia leży obok jako `.htaccess.php74-<data>`. Rozszerzenie `pgsql` jest włączone dla 8.2 w panelu; `pdo_pgsql` **nie** — kod korzysta z `pg_*`. Instancja legacy zostaje na 7.4.
+**Wersja PHP:** app.wizfds.com działa na **PHP 8.2** (od 2026-08-04; pierwsza linia `public_html/app/.htaccess` → `AddHandler application/x-httpd-php82 php`). Rollback to ta jedna linia — kopia sprzed przełączenia leży obok jako `.htaccess.php74-<data>`. Rozszerzenia `pgsql` i `pdo_pgsql` są włączone dla 8.2 w panelu (sterowniki PDO: mysql, pgsql, sqlite); backend mimo to zostaje na `pg_*` — patrz ADR-0014. Instancja legacy zostaje na 7.4.
 
 **Instancja legacy: `https://wizfds.com`** — zamrożona (frontend `0.7.1` w `public_html/view/`, backend-klon `/home/dkubera/svn/WizFDS/` na `905121f`, landing `welcome/` z 2019). **Nie ruszamy jej** — ani plików, ani klonu; procedura archiwalna w Części C.
 
