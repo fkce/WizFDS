@@ -74,6 +74,19 @@ function rayNearMeshEdge(): BABYLON.Ray {
   return new BABYLON.Ray(new BABYLON.Vector3(-5, 3, 0.03), new BABYLON.Vector3(1, 0, 0), 100);
 }
 
+/**
+ * A ray from above the domain's roof aimed exactly at its bottom-front edge -
+ * how a camera over the model sees the outline the user points at. It ENTERS
+ * the box through the top face, metres from any edge, and leaves through the
+ * aimed edge: the test has to be about the ray passing the outline, not about
+ * where the surface was first met.
+ */
+function rayFromAboveAtBottomEdge(): BABYLON.Ray {
+  const origin = new BABYLON.Vector3(5, 3, 10);
+  const target = new BABYLON.Vector3(5, -1, 0);
+  return new BABYLON.Ray(origin, target.subtract(origin).normalize(), 100);
+}
+
 describe('PickService', () => {
   let picking: PickService;
   let obsts: ObstService;
@@ -303,6 +316,19 @@ describe('PickService', () => {
 
       picking.pick(rayAlongX());
 
+      expect(picking.lastSelected.id).toBe('MESH1');
+    });
+
+    it('answers an edge the ray leaves through, not only one it arrives at', () => {
+      // A camera above the model enters the domain box through its roof,
+      // metres from any edge, and exits through the bottom edge the user is
+      // actually pointing at - the outline has to answer all the same.
+      meshes.meshes = [makeMesh('MESH1', DOMAIN)];
+      meshes.renderMeshes();
+
+      picking.pick(rayFromAboveAtBottomEdge());
+
+      expect(picking.lastSelected).toBeDefined();
       expect(picking.lastSelected.id).toBe('MESH1');
     });
 

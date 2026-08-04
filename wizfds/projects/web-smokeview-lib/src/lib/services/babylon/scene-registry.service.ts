@@ -127,6 +127,18 @@ export class SceneRegistryService implements SceneScoped {
   }
 
   /**
+   * Visit every element currently drawn.
+   *
+   * For a question the meshes cannot answer: the picking service walks a
+   * layer's outlines when that layer is drawn as edges only, because a ray
+   * aimed at a box's edge slides along the very triangles it would have to
+   * hit, and the surface pick cannot be trusted to exist there at all.
+   */
+  public eachEntry(visit: (uuid: string, entry: SceneEntry) => void): void {
+    this.byUuid.forEach((entry, uuid) => visit(uuid, entry));
+  }
+
+  /**
    * Which element a face of this mesh belongs to.
    *
    * Walks that mesh's entries rather than indexing: elements do not have a
