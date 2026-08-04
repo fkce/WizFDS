@@ -48,8 +48,7 @@ function getProjects() {
 		echo json_encode($res->createResponse("success", array("Projects loaded"), $data));
 
 	} catch(Throwable $e) {
-		wizfds_log('error', 'handler failed', array('error' => $e->getMessage()));
-		echo json_encode($res->createResponse("error", array("Server error! Projects not loaded"), $data));
+		handlerFailed($res, $e, "Server error! Projects not loaded", $data);
 	}
 
 	$db->pg_stop();
@@ -90,8 +89,7 @@ function createProject() {
 			echo json_encode($res->createResponse("error", array("Server error! Project not created"), $data));
 		}
 	} catch(Throwable $e) {
-		wizfds_log('error', 'handler failed', array('error' => $e->getMessage()));
-		echo json_encode($res->createResponse("error", array("Server error! Project not created"), $data));
+		handlerFailed($res, $e, "Server error! Project not created", $data);
 	}
 }
 
@@ -120,8 +118,7 @@ function deleteProject($args) {
 			echo json_encode($res->createResponse("error", array("Server error! Project not deleted"), $data));
 		}
 	} catch(Throwable $e) {
-		wizfds_log('error', 'handler failed', array('error' => $e->getMessage()));
-		echo json_encode($res->createResponse("error", array("Server error! Project not deleted"), $data));
+		handlerFailed($res, $e, "Server error! Project not deleted", $data);
 	}
 }
 
@@ -149,8 +146,7 @@ function updateProject($args) {
 			echo json_encode($res->createResponse("error", array("Server error! Project not updated"), $data));
 		}
 	} catch(Throwable $e) {
-		wizfds_log('error', 'handler failed', array('error' => $e->getMessage()));
-		echo json_encode($res->createResponse("error", array("Server error! Project not updated"), $data));
+		handlerFailed($res, $e, "Server error! Project not updated", $data);
 	}
 }
 
@@ -170,8 +166,7 @@ function getCategories($args) {
 			echo json_encode($res->createResponse("error", array("Server error! Categories not loaded"), $data));
 		}
 	} catch(Throwable $e) {
-		wizfds_log('error', 'handler failed', array('error' => $e->getMessage()));
-		echo json_encode($res->createResponse("error", array("Server error! Project not updated"), $data));
+		handlerFailed($res, $e, "Server error! Project not updated", $data);
 	}
 }
 
@@ -198,8 +193,7 @@ function createCategory() {
 			echo json_encode($res->createResponse("error", array("Server error! Category not created"), $data));
 		}
 	} catch(Throwable $e) {
-		wizfds_log('error', 'handler failed', array('error' => $e->getMessage()));
-		echo json_encode($res->createResponse("error", array("Server error! Category not created"), $data));
+		handlerFailed($res, $e, "Server error! Category not created", $data);
 	}
 }
 
@@ -223,8 +217,7 @@ function deleteCategory($args) {
 			echo json_encode($res->createResponse("error", array("Server error! Category not deleted"), $data));
 		}
 	} catch(Throwable $e) {
-		wizfds_log('error', 'handler failed', array('error' => $e->getMessage()));
-		echo json_encode($res->createResponse("error", array("Server error! Category not deleted"), $data));
+		handlerFailed($res, $e, "Server error! Category not deleted", $data);
 	}
 }
 
@@ -252,8 +245,7 @@ function updateCategory($args) {
 			echo json_encode($res->createResponse("error", array("Server error! Category not updated"), $data));
 		}
 	} catch(Throwable $e) {
-		wizfds_log('error', 'handler failed', array('error' => $e->getMessage()));
-		echo json_encode($res->createResponse("error", array("Server error! Category not updated"), $data));
+		handlerFailed($res, $e, "Server error! Category not updated", $data);
 	}
 }
 

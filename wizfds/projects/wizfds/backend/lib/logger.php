@@ -1,4 +1,9 @@
 <?php
+# Paths are resolved against the docroot on purpose: config.php there holds the
+# real credentials, while the copy in the repository is only a template.
+require_once('./config.php');
+require_once('./rest/utils.php');
+
 # Application log. Replaces the previous "mail the failing query to the author"
 # reporting: query text and parameters carry user data, and a broken query could
 # flood the mailbox. One JSON object per line, in a monthly file outside the
@@ -8,11 +13,11 @@ function wizfds_log_dir() {
 	$config = new Config();
 
 	if (!empty($config->logPath)) {
-		return rtrim($config->logPath, '/');
+		return rtrim(wizfds_expand_home($config->logPath), '/');
 	}
 
 	# Default next to the user files, i.e. outside any docroot.
-	return dirname(rtrim($config->usersPath, '/')) . '/wizfds-logs';
+	return dirname(rtrim(wizfds_expand_home($config->usersPath), '/')) . '/wizfds-logs';
 }
 
 # Never let logging break a request: a missing directory or a full disk must not

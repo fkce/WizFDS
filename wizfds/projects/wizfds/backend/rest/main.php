@@ -95,8 +95,7 @@ function updateSettings($args) {
 			echo json_encode($res->createResponse("error", array("Server error! Settings not updated"), $data));
 		}
 	} catch(Throwable $e) {
-		wizfds_log('error', 'handler failed', array('error' => $e->getMessage()));
-		echo json_encode($res->createResponse("error", array("Server error! Settings not updated"), $data));
+		handlerFailed($res, $e, "Server error! Settings not updated", $data);
 	}
 }
 

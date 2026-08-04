@@ -48,8 +48,10 @@ class Database {
 
 		if ($result === false) {
 			# The query text and its parameters carry user data - log the database's
-			# own message only. The request URI in the log entry says which endpoint.
-			wizfds_log('error', 'database query failed', array('db_error' => pg_last_error($connect)));
+			# own message only, and only its first line: a constraint violation
+			# quotes the offending value on the DETAIL line below it. The request URI
+			# in the log entry says which endpoint.
+			wizfds_log('error', 'database query failed', array('db_error' => strtok(pg_last_error($connect), "\n")));
 			throw new RuntimeException('Database query failed');
 		}
 

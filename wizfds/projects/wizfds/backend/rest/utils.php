@@ -6,6 +6,22 @@
 # built with native mkdir() rather than a shell (see wizfds_ensure_dir), because
 # the old system("mkdir -p $path") would have executed anything after a ";".
 
+# Paths in config may start with "~/", which used to be expanded by the shell
+# that system() spawned. PHP expands nothing, so do it here - a literal "~"
+# directory would otherwise appear next to the docroot.
+function wizfds_expand_home($path) {
+	if (strpos($path, '~/') !== 0) {
+		return $path;
+	}
+
+	$home = getenv('HOME');
+	if ($home === false || $home === '') {
+		return $path;
+	}
+
+	return rtrim($home, '/') . substr($path, 1);
+}
+
 function wizfds_valid_email($email) {
 	if (!is_string($email) || $email === '') {
 		return false;
@@ -25,7 +41,7 @@ function wizfds_user_dir($config, $email, $segments = array()) {
 		return null;
 	}
 
-	$path = rtrim($config->usersPath, '/') . '/' . $email;
+	$path = rtrim(wizfds_expand_home($config->usersPath), '/') . '/' . $email;
 
 	foreach ($segments as $segment) {
 		if (!preg_match('/^[A-Za-z0-9_-]+$/', (string) $segment)) {
@@ -45,6 +61,20 @@ function wizfds_ensure_dir($path) {
 		return true;
 	}
 	return @mkdir($path, 0700, true);
+}
+
+# Single exit for a handler that blew up: log it, answer with a real 500 rather
+# than an "error" wrapped in HTTP 200, and keep the response shape the client
+# parses.
+function handlerFailed($res, $e, $details, $data = array()) {
+	wizfds_log('error', 'handler failed', array('error' => $e->getMessage()));
+
+	if (!headers_sent()) {
+		http_response_code(500);
+		header('Content-Type: application/json');
+	}
+
+	echo json_encode($res->createResponse("error", array($details), $data));
 }
 
 function nullToEmpty($arg) {

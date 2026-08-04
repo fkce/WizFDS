@@ -36,8 +36,7 @@ function createScenario($args) {
 			echo json_encode($res->createResponse("error", array("Server error! Scenario not created"), $data));
 		}
 	} catch(Throwable $e) {
-		wizfds_log('error', 'handler failed', array('error' => $e->getMessage()));
-		echo json_encode($res->createResponse("error", array("Server error! Scenario not created"), $data));
+		handlerFailed($res, $e, "Server error! Scenario not created", $data);
 	}
 }
 
@@ -91,8 +90,7 @@ function updateScenario($args) {
 			echo json_encode($res->createResponse("error", array("Server error! Scenario not updated"), $data));
 		}
 	} catch(Throwable $e) {
-		wizfds_log('error', 'handler failed', array('error' => $e->getMessage()));
-			echo json_encode($res->createResponse("error", array("Server error! Scenario not updated"), $data));
+		handlerFailed($res, $e, "Server error! Scenario not updated", $data);
 	}
 }
 
@@ -121,8 +119,7 @@ function deleteScenario($args) {
 			echo json_encode($res->createResponse("error", array("Server error! Scenario not deleted"), $data));
 		}
 	} catch(Throwable $e) {
-		wizfds_log('error', 'handler failed', array('error' => $e->getMessage()));
-		echo json_encode($res->createResponse("error", array("Server error! Scenario not deleted"), $data));
+		handlerFailed($res, $e, "Server error! Scenario not deleted", $data);
 	}
 }
 
@@ -158,8 +155,7 @@ function getScenario($args) {
 			echo json_encode($res->createResponse("error", array("Server error! Scenario not loaded"), $data));
 		}
 	} catch(Throwable $e) {
-		wizfds_log('error', 'handler failed', array('error' => $e->getMessage()));
-		echo json_encode($res->createResponse("error", array("Server error! Scenario not loaded"), $data));
+		handlerFailed($res, $e, "Server error! Scenario not loaded", $data);
 	}
 }
 
@@ -195,8 +191,7 @@ function getLibrary($args) {
 			echo json_encode($res->createResponse("error", array("Server error! Library not loaded"), $data));
 		}
 	} catch(Throwable $e) {
-		wizfds_log('error', 'handler failed', array('error' => $e->getMessage()));
-		echo json_encode($res->createResponse("error", array("Server error! Library not loaded"), $data));
+		handlerFailed($res, $e, "Server error! Library not loaded", $data);
 	}
 }
 
@@ -230,8 +225,7 @@ function updateLibrary($args) {
 			echo json_encode($res->createResponse("error", array("Server error! Library not updated"), $data));
 		}
 	} catch(Throwable $e) {
-		wizfds_log('error', 'handler failed', array('error' => $e->getMessage()));
-		echo json_encode($res->createResponse("error", array("Server error! Library not updated"), $data));
+		handlerFailed($res, $e, "Server error! Library not updated", $data);
 	}
 }
 

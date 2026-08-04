@@ -26,7 +26,7 @@ require_once("rest/fds.php");
 # CORS preflight, which this server never approves - so requiring one on writes
 # is what stands between a session cookie and a forged request. The login form
 # posts to /login, outside /api, and is unaffected.
-function requireSameSiteRequest($httpMethod, $uri) {
+function requireXhrHeader($httpMethod, $uri) {
 	if (!in_array($httpMethod, array('POST', 'PUT', 'DELETE'), true)) {
 		return;
 	}
@@ -84,7 +84,7 @@ function main() {
 	$httpMethod = $_SERVER['REQUEST_METHOD'];
 	$uri = rawurldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
 
-	requireSameSiteRequest($httpMethod, $uri);
+	requireXhrHeader($httpMethod, $uri);
 
 	$db = new Database();
 	refreshSessionActivity($db);

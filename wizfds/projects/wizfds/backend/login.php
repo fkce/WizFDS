@@ -72,7 +72,7 @@ function check() {
 	global $db;
 	$config = new Config();
 
-	if(!empty($_POST['email']) and !empty($_POST['password'])) {
+	if(!empty($_POST['email']) and !empty($_POST['password']) and wizfds_valid_email($_POST['email'])) {
 
 		// Select user data from db
 		$result = $db->pg_read("SELECT * from users where email = $1", array($_POST['email']));
@@ -212,7 +212,7 @@ function makeRegister() {
 # signin demo user
 function demoUser() {
 	$config = new Config();
-	if(isset($_GET['demo']) && $_GET['demo'] == 'true') {
+	if(isset($_GET['demo']) && $_GET['demo'] == 'true' && $config->demoUserId !== '') {
 		session_regenerate_id(True);
 		$_SESSION['user_id'] = $config->demoUserId;
 		$_SESSION['email'] = $config->demoUserEmail;
