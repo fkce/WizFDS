@@ -731,6 +731,38 @@ describe('GizmoService', () => {
       expect((gizmo as any).layer.getRenderCamera().name).toBe('camera');
     });
 
+    it('picks the hover through the model camera, not whatever rendered last', () => {
+      // The utility layer freezes its pointer cameras in its constructor -
+      // before setRenderCamera has said which one the model uses - and with
+      // the view cube pushed onto activeCameras, the frozen one is the cube's
+      // own corner camera. A pick that trusts it lands beside every grip.
+      const viewCube = new BABYLON.ArcRotateCamera(
+        'cameraView', 0, Math.PI / 2, 3, BABYLON.Vector3.Zero(), scene);
+      viewCube.viewport = new BABYLON.Viewport(0.85, 0.85, 0.15, 0.15);
+      scene.activeCameras = [scene.activeCamera, viewCube];
+
+      draw('west', WEST);
+      select('west');
+      gizmo.setMode('resize');
+
+      // Where the model camera - the one the user aims with - puts the grip
+      const camera = scene.getCameraByName('camera') as BABYLON.ArcRotateCamera;
+      const handle = (gizmo as any).handles.get('x2') as BABYLON.Mesh;
+      const screen = BABYLON.Vector3.Project(
+        handle.position.clone(),
+        BABYLON.Matrix.IdentityReadOnly,
+        camera.getViewMatrix(true).multiply(camera.getProjectionMatrix(true)),
+        camera.viewport.toGlobal(engine.getRenderWidth(), engine.getRenderHeight()));
+
+      (scene as any)._inputManager._pointerX = screen.x;
+      (scene as any)._inputManager._pointerY = screen.y;
+
+      expect(gizmo.isPointerOnGizmo).toBe(true);
+
+      (gizmo as any).updateHover();
+      expect(handle.material).toBe((gizmo as any).hoverMaterial);
+    });
+
     it('offers nothing while nothing is selected', () => {
       expect(gizmo.canResize).toBe(false);
       expect(gizmo.gesture).toBeNull();

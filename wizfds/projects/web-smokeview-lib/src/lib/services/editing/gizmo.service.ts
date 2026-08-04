@@ -316,8 +316,12 @@ export class GizmoService implements SceneScoped {
         const scene = this.babylonService.scene;
         if (this.hitTargets.size === 0 || !this.layer || !scene) { return null; }
 
+        // The camera is named outright: a pick left to choose its own would
+        // reach for the utility scene's pointer camera, and that one has a
+        // history of being the view cube's - see ensureLayer.
         const pick = this.layer.utilityLayerScene.pick(
-            scene.pointerX, scene.pointerY, (mesh) => this.hitTargets.has(mesh));
+            scene.pointerX, scene.pointerY, (mesh) => this.hitTargets.has(mesh),
+            false, this.layer.getRenderCamera());
 
         return pick?.hit ? this.hitTargets.get(pick.pickedMesh) : null;
     }
@@ -755,6 +759,16 @@ export class GizmoService implements SceneScoped {
         // *behind*, which comes out as a negative scale, flips the winding of
         // every triangle and hands the whole manipulator to backface culling.
         this.layer.setRenderCamera(this.babylonService.camera);
+
+        // setRenderCamera stores the camera and nothing more - the layer's
+        // constructor has already frozen its POINTER cameras to whatever
+        // getRenderCamera answered before we spoke, and with the view cube
+        // pushed onto activeCameras that is the cube's own corner camera.
+        // Left stale, every pick without an explicit camera lands beside the
+        // grip the user is aiming at. Re-aimed by hand, as _updateCamera
+        // would have done had setRenderCamera called it.
+        this.layer.utilityLayerScene.cameraToUseForPointers = this.babylonService.camera;
+        this.layer.utilityLayerScene.activeCamera = this.babylonService.camera;
 
         // Placed and sized every frame, as PositionGizmo did with its arrows:
         // how many metres a pixel covers changes with every turn of the wheel,
