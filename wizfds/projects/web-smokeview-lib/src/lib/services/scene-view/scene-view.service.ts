@@ -316,9 +316,15 @@ export class SceneViewService {
   /** The standard views a control can offer, in the order it lists them. */
   public readonly standardViews = STANDARD_VIEWS;
 
-  /** Frame the whole model - the view the camera starts in. */
+  /**
+   * Frame the whole model without turning the view (ADR-0012).
+   *
+   * Used to call applySceneBounds(), which also resets the direction of
+   * looking - but that is what the glossary calls a view cube click, not zoom
+   * extents. The ribbon button and the double middle click now agree.
+   */
   public zoomExtents(): void {
-    this.babylonService.applySceneBounds();
+    this.babylonService.zoomExtents();
   }
 
   /**

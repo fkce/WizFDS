@@ -19,7 +19,7 @@ Znaczenie modyfikatora zależy od chwili, w której działa:
 | Klawisz | Przy kliku (bez przeciągania) | Przy chwycie uchwytu | W trakcie gestu |
 |---|---|---|---|
 | **Ctrl** | rozszerza zaznaczenie (ADR-0010) | **na kwadracie planu: otwiera gest pionowy (z)**; na pozostałych uchwytach: gest startuje z zawieszonym snapem | zawiesza snap do końca gestu, z zapadką (ADR-0010) |
-| **Shift** | rozszerza zaznaczenie (ADR-0010) | zabiera kamerze wskaźnik, żeby chybienie nie obróciło widoku | jak przy chwycie |
+| **Shift** | rozszerza zaznaczenie (ADR-0010) | — (kamera nie słucha lewego przycisku, ADR-0012) | — |
 | **Ctrl+Z / Ctrl+Y** | historia edycji (ADR-0009) | — | — |
 | **Escape** | — | — | porzuca gest |
 | **Strzałki / PgUp / PgDn** | nudge: seria = jeden gest, o komórkę siatki (kamera straciła strzałki bezpowrotnie) | — | kontynuują serię nudge |

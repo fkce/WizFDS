@@ -31,8 +31,6 @@ describe('SmokeviewComponent', () => {
       createScene: () => Promise.resolve(),
       disposeScene: () => { },
       animate: () => { },
-      // Shift takes the camera out of the way of a drag (#124)
-      setCameraControl: () => { },
       engine: null,
       scene: null
     };
@@ -90,7 +88,6 @@ describe('SmokeviewComponent', () => {
           createScene,
           disposeScene: () => { },
           animate: () => { },
-          setCameraControl: () => { },
           engine: null,
           scene: null
         }
@@ -204,8 +201,8 @@ describe('SmokeviewComponent', () => {
     let picking: jasmine.SpyObj<PickService>;
     let engine: BABYLON.NullEngine;
     let scene: BABYLON.Scene;
-    /** What the component asked of the camera, in order. */
-    let cameraControl: boolean[];
+    /** Counts the zoom extents the double middle press asked for (ADR-0012). */
+    let zoomExtents: jasmine.Spy;
 
     /** The canvas the scene is drawn on - the only surface a pick may come from. */
     const canvas = (): HTMLCanvasElement =>
@@ -224,7 +221,7 @@ describe('SmokeviewComponent', () => {
     beforeEach(async () => {
       Object.defineProperty(navigator, 'gpu', { value: {}, configurable: true });
 
-      cameraControl = [];
+      zoomExtents = jasmine.createSpy('zoomExtents');
       engine = new BABYLON.NullEngine();
       scene = new BABYLON.Scene(engine);
       // A real camera: the ray is built through scene.createPickingRay()
@@ -252,7 +249,7 @@ describe('SmokeviewComponent', () => {
               createScene: () => Promise.resolve(),
               disposeScene: () => { },
               animate: () => { },
-              setCameraControl: (on: boolean) => cameraControl.push(on)
+              zoomExtents
             }
           },
           { provide: ViewCubeService, useValue: { pickSide: () => undefined, init: () => { } } },
@@ -269,34 +266,6 @@ describe('SmokeviewComponent', () => {
     afterEach(() => {
       scene.dispose();
       engine.dispose();
-    });
-
-    /**
-     * Shift is what the left button needs, because it does two jobs (#124).
-     *
-     * A press decides between orbiting the camera and dragging a manipulator by
-     * whether it landed on a handle, and a near miss turns the model instead -
-     * which moves the very handle that was being aimed at. Held down, the
-     * camera stops answering the pointer, so a drag can only be the tool.
-     */
-    it('takes the camera out of the way while shift is held', () => {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Shift', shiftKey: true }));
-
-      expect(cameraControl).toEqual([false]);
-    });
-
-    it('gives the camera back when shift is released', () => {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Shift', shiftKey: true }));
-
-      window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift', shiftKey: false }));
-
-      expect(cameraControl).toEqual([false, true]);
-    });
-
-    it('leaves the camera alone for a keystroke that is not shift', () => {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
-
-      expect(cameraControl).toEqual([true]);
     });
 
     it('selects on a plain click in the scene', () => {
@@ -324,13 +293,35 @@ describe('SmokeviewComponent', () => {
         .toEqual([{ add: true }, { add: true }]);
     });
 
-    it('ignores a right-click, which pans the camera', () => {
-      // The help table says the right button pans, and a pan that happens to end
-      // where it began would otherwise select whatever was under the pointer.
+    it('ignores a right-click, which is reserved for a future menu (ADR-0012)', () => {
       press(canvas(), { button: 2 });
       release(canvas(), { button: 2 });
 
       expect(picking.pick).not.toHaveBeenCalled();
+    });
+
+    it('zooms to extents on a double middle press', () => {
+      // AutoCAD's gesture: two quick presses of the wheel frame the whole model
+      press(canvas(), { button: 1 });
+      press(canvas(), { button: 1 });
+
+      expect(zoomExtents).toHaveBeenCalledTimes(1);
+    });
+
+    it('a single middle press is a pan, not a zoom, and never selects', () => {
+      press(canvas(), { button: 1 });
+      release(canvas(), { button: 1 });
+
+      expect(zoomExtents).not.toHaveBeenCalled();
+      expect(picking.pick).not.toHaveBeenCalled();
+    });
+
+    it('two middle presses apart in space are two pans, not a pair', () => {
+      // A pan put down and picked up on the other side of the model
+      press(canvas(), { button: 1, clientX: 100, clientY: 100 });
+      press(canvas(), { button: 1, clientX: 300, clientY: 240 });
+
+      expect(zoomExtents).not.toHaveBeenCalled();
     });
 
     it('does not pick when the press landed on the chrome over the canvas', () => {

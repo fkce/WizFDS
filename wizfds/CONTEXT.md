@@ -52,3 +52,24 @@ _Avoid_: tymczasowe wyłączenie snapu
 Panel liczb jadący z kursorem podczas gestu; cyfry przejmują pole od myszy,
 Tab przechodzi między polami, Enter zatwierdza.
 _Avoid_: panel współrzędnych, HUD
+
+### Nawigacja kamerą
+
+**Pan**:
+Przesunięcie widoku środkowym przyciskiem, ściśle 1:1 — chwycony punkt
+modelu jedzie przyklejony do kursora aż do puszczenia.
+_Avoid_: przesuwanie mapy, scroll widoku
+
+**Orbita**:
+Obrót kamery wokół jej bieżącego celu, pod shift+środkowym przyciskiem.
+_Avoid_: rotacja widoku, obracanie sceny
+
+**Zoom do kursora**:
+Skokowe zbliżenie kółkiem, procent odległości na ząbek; punkt pod kursorem
+zostaje pod kursorem, a cel orbity podąża za zoomem.
+_Avoid_: przybliżanie do środka ekranu
+
+**Zoom extents**:
+Kadr na cały model bez zmiany kierunku patrzenia; dwuklik środkowego
+przycisku. Kliknięcie w view cube to co innego — ustawia też kierunek.
+_Avoid_: dopasowanie widoku, fit

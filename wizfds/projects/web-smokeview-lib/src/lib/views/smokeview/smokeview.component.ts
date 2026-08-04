@@ -28,6 +28,16 @@ const CLICK_SLOP = 5;
 /** PointerEvent.button for the left button - the only one that selects. */
 const PRIMARY_BUTTON = 0;
 
+/** PointerEvent.button for the middle button - the camera's (ADR-0012). */
+const MIDDLE_BUTTON = 1;
+
+/**
+ * Two middle presses this close together, in ms, are a double press - and a
+ * double middle press means zoom extents, as it has in AutoCAD for decades.
+ * Within CLICK_SLOP of each other, or it was a pan put down and picked up.
+ */
+const DOUBLE_PRESS_MS = 400;
+
 /**
  * The canvas, and the gestures made on it.
  *
@@ -87,7 +97,17 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     // No scene when the browser has no WebGPU - nothing to pick against
     if (!this.babylonService.scene) return;
 
-    // The left button selects; the right one pans and the middle one is nobody's
+    // The middle button is the camera's (ADR-0012). Babylon pans with it; the
+    // component only watches for the double press, which means zoom extents.
+    if (event.button === MIDDLE_BUTTON) {
+      // The browser's middle-click autoscroll would open its widget over the pan
+      event.preventDefault();
+      this.handleMiddlePress(event);
+      return;
+    }
+
+    // The left button selects and edits - the whole of it; the right one is
+    // reserved for a future context menu (ADR-0012)
     if (event.button !== PRIMARY_BUTTON) return;
 
     // Control camera. A click on the cube is the cube's, not a selection's.
@@ -107,6 +127,27 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     this.gizmo.setSnapSuspended(event.ctrlKey);
 
     this.pointerDownAt = { x: event.clientX, y: event.clientY };
+  }
+
+  /**
+   * The second middle press of a quick pair zooms to extents (ADR-0012).
+   *
+   * Counted by hand rather than read off PointerEvent.detail: the browsers
+   * disagree on whether a pointerdown carries a click count at all, and a pan
+   * put down and picked up somewhere else must not count as a pair - which is
+   * what the slop check is for.
+   */
+  private handleMiddlePress(event: PointerEvent): void {
+    const last = this.lastMiddleDown;
+    this.lastMiddleDown = { time: event.timeStamp, x: event.clientX, y: event.clientY };
+
+    if (last
+      && event.timeStamp - last.time < DOUBLE_PRESS_MS
+      && Math.hypot(event.clientX - last.x, event.clientY - last.y) <= CLICK_SLOP) {
+      // A third press starts a fresh pair, it does not extend this one
+      this.lastMiddleDown = null;
+      this.babylonService.zoomExtents();
+    }
   }
 
   /**
@@ -174,9 +215,8 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   // ==========================================
 
   /**
-   * Ctrl suspends snapping, shift takes the camera out of the way, Escape
-   * abandons the gesture - and while a gesture runs, the keyboard IS the
-   * dynamic input.
+   * Ctrl suspends snapping, Escape abandons the gesture - and while a gesture
+   * runs, the keyboard IS the dynamic input.
    *
    * On the window rather than on the panel's fields, and the fields are never
    * focused at all. They must not be: the canvas holds the focus during a
@@ -188,11 +228,9 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
    * one tick, never noticed. Typing therefore never touches DOM focus: keys
    * are routed here, straight into the gesture (#124).
    *
-   * Shift is the answer to the left button doing two jobs. A press decides
-   * between orbiting the camera and dragging a manipulator by whether it landed
-   * on a handle, and a near miss silently turns the model instead - which moves
-   * the handle the user was aiming at. Held down, the camera stops answering
-   * the pointer at all, so a drag can only be the tool.
+   * Shift used to take the camera out of the left button's way here; since
+   * ADR-0012 the camera does not listen to the left button at all, so there
+   * is nothing to take it out of.
    */
   @HostListener('window:keydown', ['$event'])
   onKeyDown(event: KeyboardEvent): void {
@@ -203,7 +241,6 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     // ctrl does to the NEXT gesture is decided at the grab, in
     // GizmoService.begin().
     if (event.key === 'Control' && !event.repeat) { this.gizmo.setSnapSuspended(true); }
-    this.babylonService.setCameraControl(!event.shiftKey);
     if (event.key === 'Escape') { this.gizmo.cancel(); return; }
 
     if (this.handleNudgeKey(event)) { return; }
@@ -306,13 +343,12 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     this.gizmo.type(key, text);
   }
 
-  /** Releasing them gives the camera back, and snapping between gestures. */
+  /** Releasing ctrl asks for snapping back; a nudge burst settles here too. */
   @HostListener('window:keyup', ['$event'])
   onKeyUp(event: KeyboardEvent): void {
     this.gizmo.setCtrlHeld(event.ctrlKey);
-    // Releasing ctrl asks for snapping back; mid-gesture the latch says no
+    // Mid-gesture the latch says no (ADR-0011)
     if (event.key === 'Control') { this.gizmo.setSnapSuspended(false); }
-    this.babylonService.setCameraControl(!event.shiftKey);
 
     // The nudge burst settles when the last of its keys comes up
     if (this.nudgeKeys.delete(event.key) && this.nudgeKeys.size === 0) {
@@ -381,6 +417,9 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   /** The nudge keys currently held - the burst commits when the last comes up. */
   private readonly nudgeKeys = new Set<string>();
 
+  /** The previous middle press, while a second one could still pair with it. */
+  private lastMiddleDown: { time: number, x: number, y: number } | null = null;
+
   constructor(
     public picking: PickService,
     private babylonService: BabylonService,
@@ -445,8 +484,6 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy() {
     this.destroyed = true;
-    // A view left while shift was held must not hand the next one a deaf camera
-    this.babylonService.setCameraControl(true);
     if (this.sceneSub) {
       this.sceneSub.unsubscribe();
     }

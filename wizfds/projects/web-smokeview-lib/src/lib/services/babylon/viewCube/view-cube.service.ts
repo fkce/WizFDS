@@ -4,6 +4,7 @@ import * as BABYLON from 'babylonjs';
 import { cloneDeep, toNumber } from 'lodash';
 import { SceneBoundsService } from '../../scene-bounds/scene-bounds.service';
 import { SceneLifecycleService, SceneScoped } from '../scene-lifecycle.service';
+import { applyCadPointerMap } from '../camera-navigation';
 
 /**
  * The layer the cube and its hit boxes live on.
@@ -337,6 +338,11 @@ export class ViewCubeService implements SceneScoped {
     // @ts-ignore
     this.cameraViewCube.target = this.viewCube;
     this.cameraViewCube.attachControl(this.babylonService.canvas, true);
+    // The cube follows the model camera's orbit only because both cameras hear
+    // the same canvas - so they must agree on what a drag means and how fast
+    // it turns (ADR-0012). The map only, and without panning: this camera has
+    // nothing to pan, only the cube to keep framed.
+    applyCadPointerMap(this.cameraViewCube, { panning: false });
     this.cameraViewCube.viewport = new BABYLON.Viewport(.85, .8, .2, .2);
     this.cameraViewCube.upVector = new BABYLON.Vector3(0, 0, 1);
     this.cameraViewCube.lowerRadiusLimit = 3;

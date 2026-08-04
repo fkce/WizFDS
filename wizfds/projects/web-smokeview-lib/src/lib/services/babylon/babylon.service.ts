@@ -5,6 +5,7 @@ import { BehaviorSubject } from 'rxjs';
 import { SceneLifecycleService } from './scene-lifecycle.service';
 import { SceneBoundsService } from '../scene-bounds/scene-bounds.service';
 import { SceneXb } from '../drawing/scene-input';
+import { applyCadNavigation } from './camera-navigation';
 
 /** WGSL sources for one shader, plus the URLs they came from (for diagnostics). */
 export interface ShaderSources {
@@ -52,11 +53,13 @@ export interface ShaderMaterialSpec {
 const CAMERA = {
   nearPlane: 0.01,
   farPlane: 1000,
-  /** Wheel notches per unit of radius - hence divided by, not multiplied. */
-  wheelPrecision: 500,
-  /** Pixels per unit of pan - divided by as well. */
-  panningSensibility: 10000,
-  minRadius: 0.1,
+  /**
+   * Just above the near plane, so the wheel stops right before the clipping
+   * would start eating the geometry (ADR-0012). The wheel and pan sensibilities
+   * that used to sit here are gone: a percentage zoom and a 1:1 pan follow from
+   * the current frame, not from the size of the model - see camera-navigation.ts.
+   */
+  minRadius: 0.02,
   maxRadius: 50,
   /** Room left around the model when framing it, so it does not touch the edges. */
   framingMargin: 1.15,
@@ -208,7 +211,6 @@ export class BabylonService {
       console.error('[BabylonService] Disposing the engine failed', e);
     } finally {
       this.engine = null;
-      this.cameraAttached = false;
     }
 
     // The scene took them with it; this is about not redrawing over corpses
@@ -287,7 +289,10 @@ export class BabylonService {
 
     // This attaches the camera to the canvas
     this.camera.attachControl(this.canvas, true);
-    this.cameraAttached = true;
+
+    // The AutoCAD physics: the middle button drives the camera, the left one
+    // is edit-only, and nothing glides after the mouse stops (ADR-0012).
+    applyCadNavigation(this.camera, this.canvas);
 
     /*
      * Every pointer ray is built through this camera, whichever one rendered
@@ -378,32 +383,6 @@ export class BabylonService {
       console.error('[BabylonService] Manifold failed to load - obst openings will not be cut', e);
     }
   }
-
-  /**
-   * Whether a drag on the canvas turns the camera.
-   *
-   * The left button does two jobs in this view: it orbits the camera and it
-   * drags a manipulator, and which one a press means is decided by whether it
-   * landed on a handle. Holding the modifier takes the camera out of the
-   * contest for the duration, so a drag can only be the tool - see
-   * SmokeviewComponent.onKeyDown().
-   */
-  public setCameraControl(enabled: boolean): void {
-    if (!this.scene || !this.canvas || this.cameraAttached === enabled) { return; }
-
-    this.cameraAttached = enabled;
-
-    // Every camera, not just the model's: the view cube's is attached to the
-    // whole canvas as well, so leaving it on would spin the cube in its corner
-    // while the drag it was meant to free went nowhere.
-    const cameras = this.scene.activeCameras?.length ? this.scene.activeCameras : [this.camera];
-    cameras.forEach(camera => {
-      if (enabled) { camera.attachControl(this.canvas, true); } else { camera.detachControl(); }
-    });
-  }
-
-  /** Whether the camera currently answers to the pointer. */
-  private cameraAttached = false;
 
   public animate(): void {
     // We have to run this outside angular zones,
@@ -544,8 +523,6 @@ export class BabylonService {
 
     this.camera.minZ = CAMERA.nearPlane * extent;
     this.camera.maxZ = CAMERA.farPlane * extent;
-    this.camera.wheelPrecision = CAMERA.wheelPrecision / extent;
-    this.camera.panningSensibility = CAMERA.panningSensibility / extent;
     this.camera.lowerRadiusLimit = CAMERA.minRadius * extent;
     this.camera.upperRadiusLimit = CAMERA.maxRadius * extent;
 
@@ -569,6 +546,27 @@ export class BabylonService {
    */
   public radiusToFit(): number {
     return this.radiusFor(this.sceneBounds.boundingRadius);
+  }
+
+  /**
+   * Frame the whole model without turning the view - AutoCAD's zoom extents,
+   * answered here to the double middle click (ADR-0012).
+   *
+   * Unlike a view cube side, the direction of looking is kept: only the target
+   * and the distance change. That is what tells the two apart - the cube sets
+   * where you look from, this one only backs off far enough to see everything.
+   */
+  public zoomExtents(): void {
+    if (!this.scene || !this.camera) { return; }
+
+    const center = this.sceneBounds.center;
+    const target = new BABYLON.Vector3(center.x, center.y, center.z);
+    const direction = this.camera.getTarget().subtract(this.camera.position).normalize();
+
+    // Position first, then target - setTarget() rebuilds alpha, beta and
+    // radius from wherever the camera stands, as in applySceneBounds().
+    this.camera.setPosition(target.subtract(direction.scale(this.radiusToFit())));
+    this.camera.setTarget(target);
   }
 
   /**

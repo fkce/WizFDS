@@ -212,6 +212,32 @@ describe('BabylonService', () => {
       expect(service.camera.target.y).toBeCloseTo(bounds.center.y, 6);
       expect(service.camera.target.z).toBeCloseTo(bounds.center.z, 6);
     });
+
+    it('zoom extents frames the whole model without turning the view', () => {
+      // The double middle click (ADR-0012). Unlike a view cube side it keeps
+      // the direction of looking: only the target and the distance change.
+      service.applySceneBounds();
+      service.camera.setPosition(new BABYLON.Vector3(12, -70, 3));
+      service.camera.setTarget(new BABYLON.Vector3(11, -69, 2.5));
+      const before = service.camera.getTarget().subtract(service.camera.position).normalize();
+
+      service.zoomExtents();
+
+      const after = service.camera.getTarget().subtract(service.camera.position).normalize();
+      expect(after.x).toBeCloseTo(before.x, 6);
+      expect(after.y).toBeCloseTo(before.y, 6);
+      expect(after.z).toBeCloseTo(before.z, 6);
+      expect(service.camera.target.x).toBeCloseTo(bounds.center.x, 6);
+      expect(service.camera.target.y).toBeCloseTo(bounds.center.y, 6);
+      expect(service.camera.target.z).toBeCloseTo(bounds.center.z, 6);
+      expect(service.camera.radius).toBeCloseTo(service.radiusToFit(), 6);
+    });
+
+    it('zoom extents is safe to call before there is a scene', () => {
+      service.scene = null;
+
+      expect(() => service.zoomExtents()).not.toThrow();
+    });
   });
 
   describe('a scene that only changes when the user edits it', () => {
