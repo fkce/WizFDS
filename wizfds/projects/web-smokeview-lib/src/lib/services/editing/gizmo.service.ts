@@ -233,6 +233,18 @@ export class GizmoService implements SceneScoped {
     /** Whether the running gesture belongs to the keyboard - see nudge(). */
     private nudging = false;
 
+    /** Whether ctrl is down, as the canvas last heard it - see setCtrlHeld(). */
+    private ctrlHeld = false;
+
+    /** Whether the running gesture drags along z - decided at the grab. */
+    private vertical = false;
+
+    /** The plan grip's drag behavior, retuned between grabs by ctrl. */
+    private planBehavior: BABYLON.PointerDragBehavior | null = null;
+
+    /** The line a vertical gesture runs along. Null outside one. */
+    private guide: BABYLON.LinesMesh | null = null;
+
     constructor(
         private babylonService: BabylonService,
         private pickService: PickService,
@@ -326,6 +338,29 @@ export class GizmoService implements SceneScoped {
     public setSnapSuspended(suspended: boolean): void {
         if (!suspended && this.current) { return; }
         this.snapService.suspended = suspended;
+    }
+
+    /**
+     * Ctrl's whereabouts, as the canvas hears them.
+     *
+     * Ctrl decides AT THE GRAB what the plan grip does: held, the grab opens
+     * a vertical gesture instead of a plan one (ADR-0011). The grip's drag
+     * behavior is retuned between grabs and never during one - the mode a
+     * gesture began with is the mode it keeps.
+     */
+    public setCtrlHeld(held: boolean): void {
+        if (this.ctrlHeld === held) { return; }
+        this.ctrlHeld = held;
+        this.retunePlanGrip();
+    }
+
+    /** Point the plan grip's drag where the next grab will go. */
+    private retunePlanGrip(): void {
+        if (!this.planBehavior || this.current) { return; }
+
+        this.planBehavior.options = this.ctrlHeld
+            ? { dragAxis: new BABYLON.Vector3(0, 0, 1) }
+            : { dragPlaneNormal: new BABYLON.Vector3(0, 0, 1) };
     }
 
     // ==========================================
@@ -509,6 +544,12 @@ export class GizmoService implements SceneScoped {
             finished: false
         };
 
+        // Ctrl held at the grab starts the gesture with snapping suspended -
+        // the standing contract for every handle (ADR-0010). The vertical
+        // grab overrides this a moment later, having spent its ctrl on the
+        // mode - see onMoveDragStart.
+        if (this.ctrlHeld) { this.snapService.suspended = true; }
+
         this.publish();
     }
 
@@ -610,6 +651,8 @@ export class GizmoService implements SceneScoped {
     private end(): void {
         this.current = null;
         this.nudging = false;
+        this.vertical = false;
+        this.clearGuide();
         this.snapService.hideMarker();
         this.snapService.suspended = false;
         this.pickService.endPreview();
@@ -621,6 +664,8 @@ export class GizmoService implements SceneScoped {
         this.pickService.clearHover();
 
         this.rebuild();
+        // Ctrl may still be held as the gesture ends - the NEXT grab obeys it
+        this.retunePlanGrip();
         this.publish();
     }
 
@@ -776,14 +821,17 @@ export class GizmoService implements SceneScoped {
             behavior.moveAttached = false;
             behavior.useObjectOrientationForDragging = false;
 
-            behavior.onDragStartObservable.add(() => this.onMoveDragStart());
+            behavior.onDragStartObservable.add(() => this.onMoveDragStart(kind));
             behavior.onDragObservable.add(event => this.onMoveDrag(kind, event.delta));
             behavior.onDragEndObservable.add(() => this.onMoveDragEnd());
 
             handle.addBehavior(behavior);
             this.moveHandles.set(kind, handle);
+            if (kind === 'plan') { this.planBehavior = behavior; }
         });
 
+        // Ctrl may already be down as the handles are built - honour it
+        this.retunePlanGrip();
         this.rebuildHitTargets();
     }
 
@@ -867,9 +915,19 @@ export class GizmoService implements SceneScoped {
         });
     }
 
-    private onMoveDragStart(): void {
+    private onMoveDragStart(handle: MoveHandle): void {
+        this.vertical = handle === 'plan' && this.ctrlHeld;
         this.rawDragDelta.setAll(0);
         this.beginMove();
+        if (!this.current) { this.vertical = false; return; }
+
+        if (this.vertical) {
+            // The ctrl that chose the mode is spent: its keydown suspended
+            // snapping the way it does at every other handle, and a vertical
+            // gesture snaps like any other until ctrl is pressed afresh.
+            this.snapService.suspended = false;
+            this.showGuide();
+        }
     }
 
     private onMoveDrag(handle: MoveHandle, delta: BABYLON.Vector3): void {
@@ -877,14 +935,13 @@ export class GizmoService implements SceneScoped {
 
         this.rawDragDelta.addInPlace(delta);
 
-        // Masked to the handle's own axes: whatever component the pointer ray
-        // produced off them is not the gesture's to spend. The height in
-        // particular only ever moves by being typed.
-        const axes = MOVE_AXES[handle];
+        // Masked to the gesture's own axes: whatever component the pointer
+        // ray produced off them is not the gesture's to spend.
+        const axes = this.vertical ? VERTICAL_AXES : MOVE_AXES[handle];
         this.trackMove({
             dx: axes.includes('x') ? this.rawDragDelta.x : 0,
             dy: axes.includes('y') ? this.rawDragDelta.y : 0,
-            dz: 0
+            dz: axes.includes('z') ? this.rawDragDelta.z : 0
         }, axes);
     }
 
@@ -895,8 +952,33 @@ export class GizmoService implements SceneScoped {
     private clearMoveHandles(): void {
         this.moveHandles.forEach(handle => handle.dispose());
         this.moveHandles.clear();
+        this.planBehavior = null;
         this.moveBase = null;
         this.rebuildHitTargets();
+    }
+
+    /**
+     * The track a vertical gesture runs on: a hairline through the anchor,
+     * along z. On a projected scene a climb reads all too easily as a walk
+     * into the depth - the line says which it is before the numbers do.
+     */
+    private showGuide(): void {
+        const base = this.moveBase;
+        if (!this.layer || !base) { return; }
+
+        this.guide = BABYLON.MeshBuilder.CreateLines('verticalGuide', {
+            points: [
+                new BABYLON.Vector3(base.x, base.y, base.z - GUIDE_REACH),
+                new BABYLON.Vector3(base.x, base.y, base.z + GUIDE_REACH)
+            ]
+        }, this.layer.utilityLayerScene);
+        this.guide.color = ACCENT_COLOR;
+        this.guide.isPickable = false;
+    }
+
+    private clearGuide(): void {
+        if (this.guide) { this.guide.dispose(); }
+        this.guide = null;
     }
 
     /** The six face handles, on the one selected element. */
@@ -1112,6 +1194,10 @@ export class GizmoService implements SceneScoped {
         this.moveBase = null;
         this.handleMaterial = null;
         this.hoverMaterial = null;
+        this.planBehavior = null;
+        this.guide = null;
+        this.vertical = false;
+        this.nudging = false;
         this.layer = null;
         this.publish();
     }
@@ -1217,6 +1303,15 @@ const MOVE_HANDLES: readonly MoveHandle[] = ['plan', 'x', 'y'];
 export const MOVE_AXES: Record<MoveHandle, readonly SceneAxis[]> = {
     plan: ['x', 'y'], x: ['x'], y: ['y']
 };
+
+/** What the plan grip frees instead, when ctrl held the grab (ADR-0011). */
+const VERTICAL_AXES: readonly SceneAxis[] = ['z'];
+
+/**
+ * How far the vertical guide reaches each way from the anchor, in metres -
+ * past any building, cheap for the clipper to cut.
+ */
+const GUIDE_REACH = 1000;
 
 /**
  * Where the move handles stand: the middle of the union's base.

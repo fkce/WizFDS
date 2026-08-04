@@ -522,6 +522,112 @@ describe('GizmoService', () => {
   });
 
   /**
+   * Ctrl decides at the grab: the plan grip taken with ctrl held drags the
+   * selection along z instead of the plan, and the ctrl that chose the mode
+   * is spent - the vertical gesture snaps like any other until ctrl is
+   * pressed afresh (docs/adr/0011-mapa-modyfikatorow-gestow.md).
+   */
+  describe('a vertical move on the plan grip', () => {
+
+    beforeEach(() => {
+      draw('west', WEST);
+      select('west');
+    });
+
+    it('sends the drag along z, and only z, when ctrl held the grab', () => {
+      const adapter: any = gizmo;
+      gizmo.setCtrlHeld(true);
+
+      adapter.onMoveDragStart('plan');
+      adapter.onMoveDrag('plan', new BABYLON.Vector3(0.3, 0.2, 0.7));
+      adapter.onMoveDragEnd();
+
+      expect(commands).toEqual([
+        { kind: 'move', uuids: ['west'], delta: { dx: 0, dy: 0, dz: 0.7 } }
+      ]);
+    });
+
+    it('stays a plan drag without ctrl, exactly as before', () => {
+      const adapter: any = gizmo;
+
+      adapter.onMoveDragStart('plan');
+      adapter.onMoveDrag('plan', new BABYLON.Vector3(0.3, 0.2, 0.7));
+      adapter.onMoveDragEnd();
+
+      expect((commands[0] as any).delta).toEqual({ dx: 0.3, dy: 0.2, dz: 0 });
+    });
+
+    it('spends the ctrl that chose the mode - the gesture starts snapping', () => {
+      // The ctrl was down before the grab, so its keydown suspended snapping
+      // the way it does at every other handle. A vertical grab consumes that:
+      // it snaps until ctrl is pressed afresh, mid-gesture.
+      gizmo.setCtrlHeld(true);
+      snapping.suspended = true;
+
+      (gizmo as any).onMoveDragStart('plan');
+
+      expect(snapping.suspended).toBe(false);
+    });
+
+    it('keeps the mode ctrl chose, whatever ctrl does later', () => {
+      const adapter: any = gizmo;
+      gizmo.setCtrlHeld(true);
+      adapter.onMoveDragStart('plan');
+
+      gizmo.setCtrlHeld(false);
+      adapter.onMoveDrag('plan', new BABYLON.Vector3(0.3, 0.2, 0.7));
+      adapter.onMoveDragEnd();
+
+      expect((commands[0] as any).delta).toEqual({ dx: 0, dy: 0, dz: 0.7 });
+    });
+
+    it('starts every OTHER grab suspended while ctrl is held - the old contract', () => {
+      // Under a held ctrl, the second and every later gesture must begin
+      // unsnapped just like the first - the re-arming lives at the grab, not
+      // in keyboard auto-repeat.
+      gizmo.setCtrlHeld(true);
+
+      gizmo.beginResize('x2');
+
+      expect(snapping.suspended).toBe(true);
+    });
+
+    it('leaves the arrows alone - ctrl at their grab means what it always did', () => {
+      const adapter: any = gizmo;
+      gizmo.setCtrlHeld(true);
+
+      adapter.onMoveDragStart('x');
+      adapter.onMoveDrag('x', new BABYLON.Vector3(0.4, 0, 0));
+      adapter.onMoveDragEnd();
+
+      expect((commands[0] as any).delta).toEqual({ dx: 0.4, dy: 0, dz: 0 });
+    });
+
+    it('draws a vertical guide for the gesture, and takes it away after', () => {
+      const adapter: any = gizmo;
+      gizmo.setCtrlHeld(true);
+
+      adapter.onMoveDragStart('plan');
+      expect(adapter.guide).not.toBeNull();
+
+      adapter.onMoveDragEnd();
+      expect(adapter.guide).toBeNull();
+    });
+
+    it('retunes the plan grip to whatever the next grab will mean', () => {
+      const behavior = (gizmo as any).planBehavior as BABYLON.PointerDragBehavior;
+      expect(behavior.options.dragPlaneNormal).toBeDefined();
+
+      gizmo.setCtrlHeld(true);
+      expect(behavior.options.dragAxis).toBeDefined();
+      expect(behavior.options.dragPlaneNormal).toBeUndefined();
+
+      gizmo.setCtrlHeld(false);
+      expect(behavior.options.dragPlaneNormal).toBeDefined();
+    });
+  });
+
+  /**
    * The move manipulator is a family of the same grips as resize: a square on
    * the base that slides the selection in plan, and two arrows for one world
    * axis each. No z handle - the height goes in through the keyboard, which is

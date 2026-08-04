@@ -79,6 +79,9 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
    * silently clear the selection.
    */
   onPointerDown(event: PointerEvent): void {
+    // The pointer knows the truth about ctrl even when a keydown never
+    // reached this window - ctrl pressed with the focus elsewhere
+    this.gizmo.setCtrlHeld(event.ctrlKey);
     this.pointerDownAt = null;
 
     // No scene when the browser has no WebGPU - nothing to pick against
@@ -193,7 +196,13 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   @HostListener('window:keydown', ['$event'])
   onKeyDown(event: KeyboardEvent): void {
-    this.gizmo.setSnapSuspended(event.ctrlKey);
+    this.gizmo.setCtrlHeld(event.ctrlKey);
+    // Only ctrl's OWN fresh press suspends snapping: a held ctrl repeats its
+    // keydown, and every other key pressed while ctrl is down carries
+    // ctrlKey too - neither is the fresh press ADR-0011 means. What a held
+    // ctrl does to the NEXT gesture is decided at the grab, in
+    // GizmoService.begin().
+    if (event.key === 'Control' && !event.repeat) { this.gizmo.setSnapSuspended(true); }
     this.babylonService.setCameraControl(!event.shiftKey);
     if (event.key === 'Escape') { this.gizmo.cancel(); return; }
 
@@ -300,7 +309,9 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Releasing them gives the camera back, and snapping between gestures. */
   @HostListener('window:keyup', ['$event'])
   onKeyUp(event: KeyboardEvent): void {
-    this.gizmo.setSnapSuspended(event.ctrlKey);
+    this.gizmo.setCtrlHeld(event.ctrlKey);
+    // Releasing ctrl asks for snapping back; mid-gesture the latch says no
+    if (event.key === 'Control') { this.gizmo.setSnapSuspended(false); }
     this.babylonService.setCameraControl(!event.shiftKey);
 
     // The nudge burst settles when the last of its keys comes up
