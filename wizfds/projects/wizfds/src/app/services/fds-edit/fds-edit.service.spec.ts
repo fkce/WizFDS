@@ -321,6 +321,66 @@ describe('FdsEditService', () => {
     });
   });
 
+  describe('array', () => {
+    it('lays the copies out on the grid the counts and spacings describe', () => {
+      service.apply({
+        kind: 'array', uuids: ['w1'],
+        counts: { x: 3, y: 2, z: 1 }, spacing: { x: 2, y: 4, z: 0 }
+      });
+
+      expect(fds.geometry.obsts.length).toBe(7);
+      const copies = fds.geometry.obsts.slice(2)
+        .map((o: any) => ({ x: o.xb.x1, y: o.xb.y1 }));
+      expect(copies).toContain({ x: 1, y: 5 });
+      expect(copies).toContain({ x: 3, y: 1 });
+      expect(copies).toContain({ x: 3, y: 5 });
+      expect(copies).toContain({ x: 5, y: 1 });
+      expect(copies).toContain({ x: 5, y: 5 });
+    });
+
+    it('makes a row of twelve columns in one operation (the definition of done)', () => {
+      service.apply({
+        kind: 'array', uuids: ['w1'],
+        counts: { x: 12, y: 1, z: 1 }, spacing: { x: 1.5, y: 0, z: 0 }
+      });
+
+      expect(fds.geometry.obsts.length).toBe(13);
+      expect(new Set(fds.geometry.obsts.map((o: any) => o.id)).size).toBe(13);
+    });
+
+    it('is undone in a single step', () => {
+      service.apply({
+        kind: 'array', uuids: ['w1'],
+        counts: { x: 12, y: 1, z: 1 }, spacing: { x: 1.5, y: 0, z: 0 }
+      });
+
+      service.undo();
+
+      expect(fds.geometry.obsts.length).toBe(2);
+      expect(history.canUndo).toBe(false);
+    });
+
+    it('asks for nothing when the counts describe only the original', () => {
+      const change = service.apply({
+        kind: 'array', uuids: ['w1'],
+        counts: { x: 1, y: 1, z: 1 }, spacing: { x: 1, y: 1, z: 1 }
+      });
+
+      expect(change).toBeNull();
+      expect(fds.geometry.obsts.length).toBe(2);
+      expect(history.canUndo).toBe(false);
+    });
+
+    it('names the operation after the whole array', () => {
+      service.apply({
+        kind: 'array', uuids: ['w1'],
+        counts: { x: 12, y: 1, z: 1 }, spacing: { x: 1.5, y: 0, z: 0 }
+      });
+
+      expect(history.undoLabel).toBe('Array of 12');
+    });
+  });
+
   describe('delete', () => {
     it('takes the element out of the scenario', () => {
       service.apply({ kind: 'delete', uuids: ['w1'] });

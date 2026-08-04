@@ -2,7 +2,9 @@ import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 
 import { ElementsService, FdsElementType, FoundElement } from '@services/elements/elements.service';
-import { boxOf, ElementBox, isDrawnType, shiftedBox, withBox } from '@services/elements/element-geometry';
+import {
+  arrayCount, arraySlots, boxOf, ElementBox, isDrawnType, shiftedBox, withBox
+} from '@services/elements/element-geometry';
 import { MainService } from '@services/main/main.service';
 import { Main } from '@services/main/main';
 import { Fds } from '@services/fds-object/fds-object';
@@ -16,8 +18,8 @@ import {
   SceneChange, SceneDrawnElement, SceneRemovedElement
 } from '../../../../../web-smokeview-lib/src/lib/services/drawing/scene-change';
 import {
-  SceneCopyCommand, SceneCreateCommand, SceneDeleteCommand, SceneEditCommand, SceneMoveCommand,
-  SceneSetXbCommand
+  SceneArrayCommand, SceneCopyCommand, SceneCreateCommand, SceneDeleteCommand, SceneEditCommand,
+  SceneMoveCommand, SceneSetXbCommand
 } from '../../../../../web-smokeview-lib/src/lib/services/editing/edit-command';
 import { SceneElementType, SceneXb } from '../../../../../web-smokeview-lib/src/lib/services/drawing/scene-input';
 
@@ -155,6 +157,7 @@ export class FdsEditService {
       case 'create': return this.createPatches(command);
       case 'delete': return this.deletePatches(command);
       case 'copy': return this.copyPatches(command);
+      case 'array': return this.arrayPatches(command);
     }
   }
 
@@ -226,6 +229,23 @@ export class FdsEditService {
       found: source.found,
       xb: shiftedBox(source.xb, delta.dx, delta.dy, delta.dz)
     })));
+  }
+
+  private arrayPatches(command: SceneArrayCommand): ElementPatch[] {
+    const slots = arraySlots(command.counts);
+
+    const clones: Array<{ found: FoundElement, xb: ElementBox }> = [];
+    this.sourcesOf(command.uuids).forEach(source => {
+      slots.forEach(slot => clones.push({
+        found: source.found,
+        xb: shiftedBox(source.xb,
+          slot.ix * command.spacing.x,
+          slot.iy * command.spacing.y,
+          slot.iz * command.spacing.z)
+      }));
+    });
+
+    return this.clonePatches(clones);
   }
 
   /** The elements a clone-producing command starts from, skipping what is gone. */
@@ -440,5 +460,12 @@ function labelFor(command: SceneEditCommand, patches: readonly ElementPatch[]): 
         : `Delete ${patches[0].collection.toUpperCase()}`;
     case 'copy':
       return patches.length > 1 ? `Copy ${patches.length} elements` : 'Copy';
+    case 'array': {
+      // The whole array, originals included - "Array of 12" is the row the
+      // user asked for, not the eleven boxes it took to complete it
+      const per = arrayCount(command.counts.x)
+        * arrayCount(command.counts.y) * arrayCount(command.counts.z);
+      return `Array of ${(patches.length / (per - 1)) * per}`;
+    }
   }
 }

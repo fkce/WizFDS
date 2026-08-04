@@ -72,6 +72,32 @@ export function withBox(type: FdsElementType, json: any, xb: ElementBox): any {
     return { ...json, xb: { ...xb } };
 }
 
+/** A count that means anything: a whole number, at least one. */
+export function arrayCount(count: number): number {
+    return Math.max(1, Math.floor(count || 1));
+}
+
+/**
+ * Every slot of a rectangular array except the original's, as index triples.
+ *
+ * Shared by the command that creates the copies and the ribbon preview that
+ * shows them, so the ghosts stand exactly where the array will (#126).
+ */
+export function arraySlots(
+    counts: { x: number, y: number, z: number }
+): Array<{ ix: number, iy: number, iz: number }> {
+    const slots: Array<{ ix: number, iy: number, iz: number }> = [];
+    for (let ix = 0; ix < arrayCount(counts.x); ix++) {
+        for (let iy = 0; iy < arrayCount(counts.y); iy++) {
+            for (let iz = 0; iz < arrayCount(counts.z); iz++) {
+                if (ix === 0 && iy === 0 && iz === 0) { continue; }
+                slots.push({ ix: ix, iy: iy, iz: iz });
+            }
+        }
+    }
+    return slots;
+}
+
 /** The same box, shifted. */
 export function shiftedBox(xb: ElementBox, dx: number, dy: number, dz: number): ElementBox {
     return {

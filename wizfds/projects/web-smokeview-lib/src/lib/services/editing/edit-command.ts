@@ -89,6 +89,21 @@ export interface SceneCopyCommand {
 }
 
 /**
+ * Lay copies of the selection out on a rectangular grid - AutoCAD's ARRAYRECT
+ * cut down to what an axis-aligned box needs (#126).
+ *
+ * Counts say how many stand along each axis, the original included; spacing is
+ * the step between neighbours, in FDS metres. The slot the original occupies
+ * is not created again, so counts of {2,1,1} make exactly one copy.
+ */
+export interface SceneArrayCommand {
+    readonly kind: 'array',
+    readonly uuids: readonly string[],
+    readonly counts: { readonly x: number, readonly y: number, readonly z: number },
+    readonly spacing: { readonly x: number, readonly y: number, readonly z: number }
+}
+
+/**
  * One edit, as the user meant it.
  *
  * A closed union rather than an open message: the app has to answer every kind
@@ -97,4 +112,4 @@ export interface SceneCopyCommand {
  */
 export type SceneEditCommand =
     SceneMoveCommand | SceneSetXbCommand | SceneCreateCommand | SceneDeleteCommand |
-    SceneCopyCommand;
+    SceneCopyCommand | SceneArrayCommand;
