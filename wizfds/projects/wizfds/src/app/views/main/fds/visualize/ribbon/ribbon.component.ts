@@ -252,6 +252,16 @@ export class RibbonComponent implements OnInit, OnDestroy {
   drawVentSurfId = '';
 
   /**
+   * The kind last drawn, for the selector while no tool is running.
+   *
+   * The tool switches itself off after each element (ADR-0010), so without
+   * this the ventilation list would be reachable only mid-gesture and every
+   * &VENT after the first would need its &SURF re-chosen - the correction the
+   * current-SURF selector exists to remove (#125).
+   */
+  private lastDrawKind: DrawKind = 'obst';
+
+  /**
    * The &SURFs a new obst could be given - the current layer's list (#125).
    */
   get surfs(): any[] {
@@ -264,20 +274,25 @@ export class RibbonComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * What the selector offers now: the list the active tool draws from. The
-   * pointer's default is the OBST list - the one the next OBST will use.
+   * The kind the selector speaks for: the tool that is running, or the one
+   * last used - the next element is most likely another of the same.
    */
+  private get drawKindInForce(): DrawKind {
+    return this.draw.active ?? this.lastDrawKind;
+  }
+
+  /** What the selector offers now: the list the tool in force draws from. */
   get drawSurfs(): any[] {
-    return this.draw.active === 'vent' ? this.ventSurfs : this.surfs;
+    return this.drawKindInForce === 'vent' ? this.ventSurfs : this.surfs;
   }
 
   /** A &HOLE is an absence and names no surface - the selector says so. */
   get surfSelectorDisabled(): boolean {
-    return this.draw.active === 'hole';
+    return this.drawKindInForce === 'hole';
   }
 
   get currentDrawSurfId(): string {
-    return this.draw.active === 'vent' ? this.drawVentSurfId : this.drawSurfId;
+    return this.drawKindInForce === 'vent' ? this.drawVentSurfId : this.drawSurfId;
   }
 
   /**
@@ -286,7 +301,7 @@ export class RibbonComponent implements OnInit, OnDestroy {
    * committed.
    */
   setDrawSurf(surfId: string): void {
-    if (this.draw.active === 'vent') { this.drawVentSurfId = surfId; }
+    if (this.drawKindInForce === 'vent') { this.drawVentSurfId = surfId; }
     else { this.drawSurfId = surfId; }
 
     if (this.draw.active && this.draw.active !== 'hole') {
@@ -296,6 +311,7 @@ export class RibbonComponent implements OnInit, OnDestroy {
 
   /** Begin drawing one element, with the current &SURF along (#125). */
   startDraw(kind: DrawKind): void {
+    this.lastDrawKind = kind;
     const surfId = kind === 'obst' ? this.drawSurfId
       : kind === 'vent' ? this.drawVentSurfId
         : '';

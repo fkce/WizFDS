@@ -310,6 +310,22 @@ describe('DrawToolService', () => {
       expect(tool.active).toBeNull();
     });
 
+    it('a click into a void places no corner at all', () => {
+      // No surface, no &MESH: nothing under the cursor means nothing to land
+      // on - not a corner at wherever the panel's numbers happened to stand
+      snapping.setScene(emptyScene());
+
+      tool.start('obst');
+      tool.click(down(1, 1));
+
+      expect(tool.gesture.fields.map(field => field.key)).toEqual(['x', 'y', 'z']);
+
+      // The keyboard can still state the corner outright
+      tool.type('x', '1');
+      tool.commit();
+      expect(tool.gesture.fields.map(field => field.key)).toEqual(['dx', 'dy']);
+    });
+
     it('starting another element abandons the one being drawn', () => {
       tool.start('obst');
       tool.click(down(1, 1));

@@ -92,7 +92,7 @@ export function rayPlane(ray: DrawRay, axis: SceneAxis, at: number): ScenePoint 
  * along the floors.
  */
 export function floorUnder(ray: DrawRay, meshes: readonly SceneMesh[]): ScenePoint | null {
-    interface Landing { point: ScenePoint, t: number, outside: number }
+    interface Landing { point: ScenePoint, depth: number, outside: number }
 
     const landings: Landing[] = [];
     meshes.forEach(mesh => {
@@ -101,7 +101,7 @@ export function floorUnder(ray: DrawRay, meshes: readonly SceneMesh[]): ScenePoi
 
         landings.push({
             point: point,
-            t: Math.abs(point.z - ray.origin.z),
+            depth: Math.abs(point.z - ray.origin.z),
             outside: footprintDistance(mesh.xb, point)
         });
     });
@@ -109,7 +109,7 @@ export function floorUnder(ray: DrawRay, meshes: readonly SceneMesh[]): ScenePoi
 
     const over = landings.filter(landing => landing.outside === 0);
     if (over.length > 0) {
-        return over.reduce((best, landing) => landing.t < best.t ? landing : best).point;
+        return over.reduce((best, landing) => landing.depth < best.depth ? landing : best).point;
     }
 
     return landings.reduce((best, landing) =>

@@ -32,7 +32,13 @@ interface DrawGesture {
      * The axis the surface under the cursor is flat on, as of the last track -
      * what decides a &VENT's plane at the moment of the first click.
      */
-    landing: SceneAxis,
+    landingAxis: SceneAxis,
+    /**
+     * Whether the last track actually landed anywhere. A click into a void -
+     * no surface, no &MESH floor, a ray running along the floors - must not
+     * quietly put the corner at wherever the numbers happen to stand.
+     */
+    landed: boolean,
     /** The axis the base is flat on. Meaningful once the first corner is placed. */
     planeAxis: SceneAxis,
     first: ScenePoint | null,
@@ -126,7 +132,8 @@ export class DrawToolService implements SceneScoped {
             kind: kind,
             surfId: surfId,
             step: 'corner',
-            landing: 'z',
+            landingAxis: 'z',
+            landed: false,
             planeAxis: 'z',
             first: null,
             second: null,
@@ -225,16 +232,18 @@ export class DrawToolService implements SceneScoped {
      * corner off what it landed on.
      */
     private trackCorner(gesture: DrawGesture, ray: BABYLON.Ray): void {
-        const landed = this.landingFor(ray);
-        if (!landed) {
+        const landing = this.landingFor(ray);
+        if (!landing) {
+            gesture.landed = false;
             gesture.hit = null;
             this.snapService.hideMarker();
             return;
         }
 
-        gesture.landing = landed.axis;
-        const hit = this.snapService.snap(landed.point, { axes: inPlaneAxes(landed.axis) });
-        const point = hit ? hit.point : landed.point;
+        gesture.landingAxis = landing.axis;
+        gesture.landed = true;
+        const hit = this.snapService.snap(landing.point, { axes: inPlaneAxes(landing.axis) });
+        const point = hit ? hit.point : landing.point;
 
         gesture.hit = hit ? hit.mode : null;
         gesture.input.setLive({ x: point.x, y: point.y, z: point.z });
@@ -304,11 +313,17 @@ export class DrawToolService implements SceneScoped {
         const gesture = this.current;
 
         if (gesture.step === 'corner') {
+            // Landed by the mouse, or stated by the keyboard - a click into a
+            // void is neither, and asks for nothing (spec: the corner lands on
+            // a surface or a floor, never at wherever the numbers stand)
+            const typed = gesture.input.fields.some(field => field.typed);
+            if (!gesture.landed && !typed) { return; }
+
             const values = gesture.input.resolved;
             gesture.first = { x: values.x ?? 0, y: values.y ?? 0, z: values.z ?? 0 };
             // The base is horizontal for a solid - AutoCAD's BOX - and in the
             // landed surface's own plane for a &VENT, which has to lie on one
-            gesture.planeAxis = gesture.kind === 'vent' ? gesture.landing : 'z';
+            gesture.planeAxis = gesture.kind === 'vent' ? gesture.landingAxis : 'z';
             gesture.step = 'base';
             gesture.input = GestureInput.forAxes(inPlaneAxes(gesture.planeAxis));
             gesture.hit = null;
@@ -358,17 +373,22 @@ export class DrawToolService implements SceneScoped {
         const opened = axes.some(axis => gesture.second[axis] !== gesture.first[axis]);
         if (!opened) { return null; }
 
-        const base = boxBetween(gesture.first, gesture.second, gesture.planeAxis);
-        const xb = gesture.step === 'height'
-            ? extruded(base, 'z', gesture.input.resolved.dz ?? 0)
-            : base;
-
         return {
             kind: 'create' as const,
             type: gesture.kind,
-            xb: xb,
+            xb: this.boxSoFar(gesture),
             surfId: gesture.surfId
         };
+    }
+
+    /** The box the gesture describes right now, typed values included. */
+    private boxSoFar(gesture: DrawGesture): SceneXb {
+        const second = gesture.step === 'base' ? this.resolvedSecond(gesture) : gesture.second;
+        const base = boxBetween(gesture.first, second, gesture.planeAxis);
+
+        return gesture.step === 'height'
+            ? extruded(base, 'z', gesture.input.resolved.dz ?? 0)
+            : base;
     }
 
     /** Finish the operation: clean the scene up, emit if there is anything to. */
@@ -396,14 +416,7 @@ export class DrawToolService implements SceneScoped {
     /** Redraw the preview box after the mouse or the keyboard moved a number. */
     private redrawPreview(gesture: DrawGesture): void {
         if (gesture.step === 'corner') { return; }
-
-        const second = gesture.step === 'base' ? this.resolvedSecond(gesture) : gesture.second;
-        const base = boxBetween(gesture.first, second, gesture.planeAxis);
-        const xb = gesture.step === 'height'
-            ? extruded(base, 'z', gesture.input.resolved.dz ?? 0)
-            : base;
-
-        this.showPreview(xb);
+        this.showPreview(this.boxSoFar(gesture));
     }
 
     /**

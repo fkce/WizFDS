@@ -238,6 +238,15 @@ describe('RibbonComponent', () => {
       component.draw.cancel();
     });
 
+    it('keeps speaking for the kind last drawn once the tool switches off', () => {
+      // The tool ends itself after each element (ADR-0010); the twenty supply
+      // vents of the spec's example still need the ventilation list in reach
+      component.startDraw('vent');
+      component.draw.cancel();
+
+      expect(component.drawSurfs.map(surf => surf.id)).toEqual(['SUPPLY']);
+    });
+
     it('keeps a current SURF per list, not one shared', () => {
       component.setDrawSurf('CONCRETE');
       component.draw.start('vent');
