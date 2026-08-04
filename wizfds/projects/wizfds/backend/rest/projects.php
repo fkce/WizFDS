@@ -7,51 +7,56 @@ function getProjects() {
 	$res = new Message("getProjects()");
 	$data = array();
 
-	$db->pg_start();
-
 	try {
-		$result = $db->pg_read_mult("select id, name, description, category_id from projects where user_id=$1 order by name, id", array($_SESSION['user_id']));
-		
-		foreach($result as $project) {
+		# One query for the whole tree. This used to be a query per project, so an
+		# account with 500 projects paid 501 round trips to open its project list.
+		# Only the two booleans the client needs are computed, not the file bodies.
+		$result = $db->pg_read_mult(
+			"select p.id, p.name, p.description, p.category_id,
+			        s.id as scenario_id, s.name as scenario_name,
+			        coalesce(s.fds_file, '') <> '' as has_fds,
+			        coalesce(s.ac_file, '') <> '' as has_ac
+			   from projects p
+			   left join scenarios s on s.project_id = p.id
+			  where p.user_id = $1
+			  order by p.name, p.id, s.name",
+			array($_SESSION['user_id'])
+		);
 
-			# Create new scenarios array for each project
-			if(isset($scenarios)) unset($scenarios);
-			$scenarios = array();
+		# The join repeats each project once per scenario; fold the rows back into
+		# the nested shape the client expects, keeping the order the query gave.
+		$projects = array();
+		foreach($result as $row) {
+			$id = $row['id'];
 
-			$resultScenario = $db->pg_read_mult("select id, project_id, name, fds_file, ac_file, ac_hash from scenarios where project_id=$1 order by name", array($project['id']));
-
-			if(!empty($resultScenario)) {
-				foreach($resultScenario as $scenario){
-					$hasFDS = $scenario['fds_file'] != "" ? true : false;
-					$hasDWG = $scenario['ac_file'] != "" ? true : false;
-
-					# Add to scenarios array
-					$scenarios[] = Array(
-						"id"=>$scenario['id'],
-						"name"=>$scenario['name'],
-						"hasFdsFile"=>$hasFDS,
-						"hasAcFile"=>$hasDWG
-					);
-				}
+			if(!isset($projects[$id])) {
+				$projects[$id] = Array(
+					"id"=>$id,
+					"name"=>$row['name'],
+					"description"=>$row['description'],
+					"category"=>$row['category_id'],
+					"fdsScenarios"=>array(),
+				);
 			}
 
-			# Add to projects array
-			$data[] = Array(
-				"id"=>$project['id'],
-				"name"=>$project['name'],
-				"description"=>$project['description'],
-				"category"=>$project['category_id'], 
-				"fdsScenarios"=>$scenarios,
-			);
+			# A project with no scenarios still produces one row, with nulls in the
+			# scenario columns.
+			if($row['scenario_id'] !== null) {
+				$projects[$id]['fdsScenarios'][] = Array(
+					"id"=>$row['scenario_id'],
+					"name"=>$row['scenario_name'],
+					"hasFdsFile"=>$row['has_fds'] === 't',
+					"hasAcFile"=>$row['has_ac'] === 't'
+				);
+			}
 		}
+		$data = array_values($projects);
 
 		echo json_encode($res->createResponse("success", array("Projects loaded"), $data));
 
 	} catch(Throwable $e) {
 		handlerFailed($res, $e, "Server error! Projects not loaded", $data);
 	}
-
-	$db->pg_stop();
 }
 
 function createProject() {
@@ -104,13 +109,17 @@ function deleteProject($args) {
 			"user_id"=>$_SESSION['user_id']
 		);
 
-		$result_scenarios = $db->pg_change("delete from scenarios where project_id=$1 and user_id=$2;", $data);
-		$result = $db->pg_change("delete from projects where id=$1 and user_id=$2;", $data);
+		# Both deletes or neither: a failure between them used to leave the
+		# scenarios behind with no project to reach them from.
+		$result = $db->transaction(function() use ($db, $data) {
+			$db->pg_change("delete from scenarios where project_id=$1 and user_id=$2;", $data);
+			return $db->pg_change("delete from projects where id=$1 and user_id=$2;", $data);
+		});
 
 		if(!empty($result)) {
-			# Remove project directory
-			$path="~/wizfds_users/". $_SESSION['email'] ."/". $data['id'];
-			rrmdir($path);
+			# Remove project directory. The path used to be spelled "~/wizfds_users/…",
+			# which PHP does not expand, so nothing was ever deleted.
+			wizfds_remove_dir(new Config(), $_SESSION['email'], array($data['id']));
 
 			echo json_encode($res->createResponse("success", array("Project deleted"), $data));
 		}
@@ -176,10 +185,13 @@ function createCategory() {
 	$data = array();
 
 	try {
+		# This used to read from an undefined $postData, so every category was
+		# created with null columns.
+		$postData = json_decode(file_get_contents('php://input'));
 		$data = array(
 			"user_id"=>$_SESSION['user_id'],
-			"label"=>$postData->label,
-			"uuid"=>$postData->uuid,
+			"label"=>nullToEmpty($postData->label),
+			"uuid"=>nullToEmpty($postData->uuid),
 			"active"=>json_encode(nullToEmpty($postData->active)),
 			"visible"=>json_encode(nullToEmpty($postData->visible)),
 		);
