@@ -130,6 +130,13 @@ describe('VisualizeComponent', () => {
     expect(selection.selected).toEqual([{ uuid: created.uuid, type: 'obst' }]);
   });
 
+  it('selects the copies a copy-drag just made (#126)', () => {
+    editStream.emit({ kind: 'copy', uuids: ['wall-uuid'], delta: { dx: 0, dy: 2, dz: 0 } });
+
+    const copy: any = mainService.main.currentFdsScenario.fdsObject.geometry.obsts[1];
+    expect(selection.selected).toEqual([{ uuid: copy.uuid, type: 'obst' }]);
+  });
+
   it('drops a deleted element from the selection', () => {
     // It would otherwise name something the scenario no longer holds, and the
     // palette would go on offering to edit it

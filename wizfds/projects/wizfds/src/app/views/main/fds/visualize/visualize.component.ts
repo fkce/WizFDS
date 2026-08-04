@@ -84,7 +84,7 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.commandSub = this.editStream.commands$
       .subscribe(command => {
         const change = this.fdsEdit.apply(command);
-        if (command.kind === 'create') { this.selectCreated(change); }
+        if (command.kind === 'create' || command.kind === 'copy') { this.selectCreated(change); }
       });
 
     // Every producer of edits arrives on this one stream - the command stream
@@ -136,13 +136,13 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
    * that knows which element the command produced.
    */
   private selectCreated(change: SceneChange | null): void {
-    const created = change?.added?.[0];
-    if (!created) { return; }
+    const created = (change?.added ?? []).map(added => ({
+      uuid: added.element.uuid as string,
+      type: added.type as FdsElementType
+    }));
+    if (created.length === 0) { return; }
 
-    this.selectionService.select({
-      uuid: created.element.uuid,
-      type: created.type as FdsElementType
-    });
+    this.selectionService.setSelection(created);
   }
 
   /**
