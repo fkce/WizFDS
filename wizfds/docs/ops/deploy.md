@@ -1,8 +1,8 @@
 # Runbook: build lokalny i deploy produkcyjny WizFDS
 
-> Procedura operacyjna. Część A = praca lokalna (przygotowanie, dev, build). Część B = wdrożenie na produkcję (wizfds.com).
+> Procedura operacyjna. Część A = praca lokalna (przygotowanie, dev, build). Część B = deploy produkcyjny na **app.wizfds.com** (główna i jedyna aktywna ścieżka deployu). Część C = zamrożona instancja legacy na wizfds.com (tylko do wglądu — **nie deployować**).
 > **Deploy na produkcję jest nieodwracalny** — czytaj kroki po kolei, uruchamiaj `--dry-run` przed właściwym `rsync`, sprawdzaj wynik każdego kroku.
-> Stan zweryfikowany na dzień **2026-07-23**. Zmiany na serwerze (ścieżki, host key) → zaktualizuj ten plik.
+> Stan zweryfikowany na dzień **2026-08-04**. Zmiany na serwerze (ścieżki, host key) → zaktualizuj ten plik.
 
 ---
 
@@ -10,19 +10,22 @@
 
 **Build robi się lokalnie** — serwer produkcyjny **nie ma node/npm**, przyjmuje gotowy `dist/`.
 
+**Instancja produkcyjna: `https://app.wizfds.com`** (od 2026-08-04, wersja `1.0.0-beta.1`, układ root):
+
 | Komponent | Źródło builda (lokalnie) | Cel na serwerze | Mechanizm |
 |---|---|---|---|
-| **wizfds** (edytor FDS) | `dist/wizfds/browser/` | `public_html/view/` | `rsync` z wykluczeniami |
-| **wizWelcome** (landing) | `dist/wizWelcome/browser/` | `public_html/welcome/` | `rsync` (rzadko — ostatni build 2019) |
+| **wizfds** (edytor FDS) | `dist/wizfds/browser/` (build `wizFds:build-prod-app`, base-href `/`) | `public_html/app/` (korzeń docroota) | `rsync` z wykluczeniami |
 | **webSmokeview** (viewer 3D) | — | **nie deployowany osobno** | wbudowany w `wizfds` przez `web-smokeview-lib` (import ze źródeł) |
-| **backend PHP** | — (nie budowany) | symlinki → `svn/WizFDS/wizfds/projects/wizfds/backend/` | **`git pull`** w `/home/dkubera/svn/WizFDS/` |
+| **backend PHP** | — (nie budowany) | symlinki → `git/WizFDS/wizfds/projects/wizfds/backend/` | **`git pull`** w `/home/dkubera/git/WizFDS/` |
+
+**Instancja legacy: `https://wizfds.com`** — zamrożona (frontend `0.7.1` w `public_html/view/`, backend-klon `/home/dkubera/svn/WizFDS/` na `905121f`, landing `welcome/` z 2019). **Nie ruszamy jej** — ani plików, ani klonu; procedura archiwalna w Części C.
 
 **Serwer:** `s156.cyber-folks.pl:222` · user `dkubera` · alias SSH **`wizfds`** (w `~/.ssh/config` w WSL) · logowanie kluczem.
-**Katalog domeny:** `/home/dkubera/domains/wizfds.com/public_html/`
+**Katalog domeny:** `/home/dkubera/domains/wizfds.com/public_html/` (subdomena app → podkatalog `app/`).
 
-Od 2026-08-04 działa druga instancja — **app.wizfds.com** (wersja `1.0.0-beta.1`, ta sama baza danych) — opisana w **Części C**. Instancje są rozdzielone: osobny docroot, osobny klon backendu, osobne sesje logowania.
+Obie instancje używają **tej samej bazy PostgreSQL** (kopia `config.php` w `app/`) — konta, projekty i biblioteki są wspólne, ale **sesje logowania osobne** (cookie `wizfds` jest host-only).
 
-Dlaczego backend przez `git pull`: pliki `index.php`, `db.php`, `login.php`, `rest/`, `router/` w `public_html/` to **symlinki** celujące w katalog `/home/dkubera/svn/WizFDS/` — a ten mimo nazwy „svn" **jest repozytorium `git`** (klon [`fkce/WizFDS`](https://github.com/fkce/WizFDS)). `git pull` w tym katalogu automatycznie aktualizuje pliki wskazywane przez symlinki.
+Dlaczego backend przez `git pull`: pliki `index.php`, `db.php`, `login.php`, `rest/`, `router/` w docroot to **symlinki** celujące w klon [`fkce/WizFDS`](https://github.com/fkce/WizFDS). `git pull` w klonie automatycznie aktualizuje pliki wskazywane przez symlinki.
 
 ---
 
@@ -40,8 +43,9 @@ Dlaczego backend przez `git pull`: pliki `index.php`, `db.php`, `login.php`, `re
   wsl ssh-keygen -R "[s156.cyber-folks.pl]:222"
   wsl bash -lc "ssh-keyscan -p 222 s156.cyber-folks.pl >> ~/.ssh/known_hosts"
   ```
-- **`config.php`** (`public_html/config.php`) — realny plik z sekretami (dostęp do bazy), poza gitem. **Nigdy nie wchodzi do `rsync`, nigdy nie nadpisuj.** (Wykluczenia `rsync` poniżej i tak go nie dotyczą — leży w roocie `public_html`, nie w `view/`.)
-- **Nie ruszaj legacy**: `public_html/v5/` oraz `/home/dkubera/svn/wizfds/` (mała litera) to stary, prawdziwy checkout SVN — poza zakresem tego runbooka.
+- **`config.php`** — realny plik z sekretami (dostęp do bazy), poza gitem. Oryginał w `public_html/`, kopia w `public_html/app/`. **Nigdy nie wchodzi do `rsync`, nigdy nie nadpisuj** (wykluczenie `--exclude='config.php'` w komendzie deployu).
+- **Certyfikat TLS (lekcja z 2026-08-04):** panel DirectAdmin wystawia **jeden** cert Let's Encrypt na domenę. Wystawienie certu „tylko dla subdomeny" **podmienia cert także dla wizfds.com** (incydent: cert `CN=app.wizfds.com` serwowany na wizfds.com → błąd nazwy w przeglądarkach). Przy każdej zmianie certu zaznaczaj **wszystkie nazwy naraz**: `wizfds.com`, `www.wizfds.com`, `app.wizfds.com`. Weryfikacja: `echo | openssl s_client -connect wizfds.com:443 -servername wizfds.com | openssl x509 -noout -ext subjectAltName`.
+- **Nie ruszaj legacy**: `public_html/view/`, `public_html/welcome/`, `public_html/v5/`, `/home/dkubera/svn/WizFDS/` oraz `/home/dkubera/svn/wizfds/` (mała litera — prawdziwy stary checkout SVN) są poza zakresem bieżących deployów.
 
 ---
 
@@ -66,162 +70,106 @@ npm run wizWel:start      # wizWelcome (landing)
 ```
 **Proxy dev:** `projects/wizfds/proxy.conf.js` przekierowuje `/api`, `/login`, `/logout`, `/register` na `fliszer.vdl.pl` i przepisuje cookies, żeby sesja działała na `localhost`. Dzięki temu lokalny frontend gada z zdalnym backendem/bazą — nie musisz stawiać PHP lokalnie.
 
-### A3. Buildy produkcyjne
+### A3. Build produkcyjny
 
 ```powershell
-npm run wizFds:build-prod   # ng build wizfds --configuration production --base-href=/view/  → dist/wizfds/browser/
-npm run wizWel:build-prod   # → dist/wizWelcome/browser/   (tylko gdy zmieniasz landing)
+npm run wizFds:build-prod-app   # ng build wizfds --configuration production --base-href=/  → dist/wizfds/browser/
 ```
 Uwagi:
-- **Zawsze przez skrypty npm** — samo `ng build wizfds` używa konfiguracji domyślnej (`optimization:false`, z source-mapami). Konfiguracja `production` (hashowanie nazw, minifikacja, `environment.prod.ts`) jest w skryptach `*:build-prod`.
-- **`--base-href=/view/`** dla wizfds jest krytyczny — aplikacja jest serwowana z podkatalogu `/view/`. Bez tego ścieżki do assetów będą złe.
+- **Zawsze przez skrypty npm** — samo `ng build wizfds` używa konfiguracji domyślnej (`optimization:false`, z source-mapami). Konfiguracja `production` (hashowanie nazw, minifikacja, `environment.prod.ts`) jest w skryptach `*:build-prod*`.
+- **`--base-href=/`** — app.wizfds.com serwuje aplikację z korzenia docroota. (Legacy skrypt `wizFds:build-prod` z `--base-href=/view/` zostaje tylko dla zamrożonej instancji wizfds.com — nie używaj go do deployu.)
+- Build jest **host-agnostyczny**: frontend woła API relatywnie (na własny origin), więc ten sam `dist/` działa na dowolnym hoście.
 - `webSmokeview` i `web-smokeview-lib` **nie są** częścią deployu produkcyjnego (viewer jest wbudowany w `wizfds`). Buduj je tylko do pracy standalone.
 - Output esbuildowego buildera `application` ląduje w podkatalogu **`browser/`** — źródłem uploadu jest `dist/<projekt>/browser/`, nie `dist/<projekt>/`.
 
 ---
 
-## Część B — Deploy produkcyjny
+## Część B — Deploy produkcyjny (app.wizfds.com)
 
 > Wykonuj z powłoki WSL (albo prefiksuj każdą komendę `wsl `). Dla czytelności ustaw zmienną z lokalną ścieżką repo:
 > ```bash
 > REPO=/mnt/c/Users/mateu/Documents/GitHub/WizFDS/wizfds
 > ```
 
+**Układ docroota `public_html/app/`:** korzeń = build Angulara (`index.html`, `main-*.js`, `assets/`, `media/`) + pliki serwerowe: symlinki backendu (`index.php`, `db.php`, `login.php`, `login.css`, `rest`, `router` → `/home/dkubera/git/WizFDS/wizfds/projects/wizfds/backend/`), kopia `config.php`, `.htaccess`, `results.json` (zapisywany przez backend). Router FastRoute pełni rolę bramki: żądanie `/` przechodzi przez `index.php` (kontrola sesji — `DirectoryIndex index.php` w `.htaccess`), zalogowanym `getIndex()` serwuje `index.html` z korzenia, niezalogowanych `getFrontPage()` przekierowuje na `/login`.
+
 ### B0. Przygotowanie release
 
-1. Upewnij się, że jesteś na właściwym commicie (`git log --oneline -1`) i że kod przechodzi build.
-2. **Podbij wersję** w `package.json` (`version`) — używana jako etykieta snapshotu rollbacku (np. `0.7.1` → `0.7.2`).
-3. Zbuduj lokalnie: `npm run wizFds:build-prod` (i `wizWel:build-prod`, jeśli zmieniałeś landing).
-4. Sanity-check outputu: `ls "$REPO/dist/wizfds/browser/"` — powinny być `index.html`, `main-*.js`, `styles-*.css`, `assets/`.
+1. Zmiany wprowadzaj przez **branch + PR + merge do mastera** — backend na serwerze pulluje z `origin/master`.
+2. **Podbij wersję** w `package.json` i `projects/wizfds/src/environments/environment*.ts` (np. `1.0.0-beta.1` → `1.0.0-beta.2`).
+3. Zbuduj lokalnie: `npm run wizFds:build-prod-app`.
+4. Sanity-check outputu: `ls "$REPO/dist/wizfds/browser/"` — powinny być `index.html` (z `<base href="/">`), `main-*.js`, `styles-*.css`, `assets/`, `media/`.
 
-### B1. Frontend `wizfds` → `view/`
+### B1. Frontend → `public_html/app/`
 
-**Krok 1 — snapshot obecnego żywego builda (rollback).** Ustaw `OLD` = wersja, którą właśnie zastępujesz (ta aktualnie na produkcji):
+**Krok 1 — próba na sucho (`--dry-run`).** Pokazuje CO zostanie zmienione/usunięte, bez ruszania serwera:
 ```bash
-ssh wizfds 'cd /home/dkubera/domains/wizfds.com/public_html/view && \
-  OLD=0.7.1; mkdir -p "v$OLD" && \
-  find . -maxdepth 1 -mindepth 1 \
-    -not -name "v[0-9]*" -not -name "index.php" -not -name ".htaccess" \
-    -exec cp -a {} "v$OLD"/ \; && echo "snapshot -> view/v$OLD OK"'
-```
-Kopiuje bieżące pliki roota `view/` (index.html, `*.js`, `*.css`, `assets/`, favicon) do `view/v<stara-wersja>/`, pomijając bramkę, `.htaccess` i istniejące katalogi wersji.
-
-**Krok 2 — próba na sucho (`--dry-run`).** Pokazuje CO zostanie zmienione/usunięte, bez ruszania serwera:
-```bash
-rsync -rtvz --delete --dry-run --chmod=D755,F644 \
-  --exclude='index.php' --exclude='.htaccess' --exclude='/v[0-9]*' \
-  "$REPO/dist/wizfds/browser/" \
-  wizfds:/home/dkubera/domains/wizfds.com/public_html/view/
-```
-Przejrzyj listę: usuwane powinny być tylko **stare hashowane pliki** (`main-<stary-hash>.js` itp.). Jeśli widzisz `deleting index.php`, `.htaccess` albo `v0.x.0/` — **STOP**, wykluczenia nie zadziałały.
-
-**Krok 3 — właściwy upload** (ta sama komenda bez `--dry-run`):
-```bash
-rsync -rtvz --delete --chmod=D755,F644 \
-  --exclude='index.php' --exclude='.htaccess' --exclude='/v[0-9]*' \
-  "$REPO/dist/wizfds/browser/" \
-  wizfds:/home/dkubera/domains/wizfds.com/public_html/view/
-```
-Dlaczego tak:
-- **`--delete`** + hashowane nazwy → stare buildy nie zalegają w `view/`.
-- **wykluczenia** chronią pliki serwerowe, których nie ma w `dist/`: `index.php` (bramka logowania — sprawdza sesję, przekierowuje niezalogowanych na `/welcome`), `.htaccess` (`DirectoryIndex`), katalogi wersji `v0.6.0`/`v0.7.0`/…
-- **`--chmod=D755,F644`** normalizuje uprawnienia (źródło leży na `/mnt/c`, gdzie wszystko ma 0777).
-
-**Krok 4 — weryfikacja:**
-```bash
-ssh wizfds 'ls -la /home/dkubera/domains/wizfds.com/public_html/view | grep -E "index\.(html|php)|\.htaccess|main-"'
-```
-Sprawdź, że `index.php` i `.htaccess` **nadal są**, a `index.html`/`main-*.js` mają świeży hash i datę. Na koniec otwórz https://wizfds.com/view/ (zalogowany) i https://wizfds.com/welcome (wylogowany → powinno działać przekierowanie).
-
-### B2. Frontend `wizWelcome` → `welcome/` (tylko przy zmianie landingu)
-
-`welcome/` to czysta statyka (brak plików serwerowych), więc bez wykluczeń:
-```bash
-rsync -rtvz --delete --dry-run --chmod=D755,F644 \
-  "$REPO/dist/wizWelcome/browser/" \
-  wizfds:/home/dkubera/domains/wizfds.com/public_html/welcome/
-# po werydze dry-run — bez --dry-run
-```
-
-### B3. Backend PHP → `git pull`
-
-```bash
-ssh wizfds 'cd /home/dkubera/svn/WizFDS && git fetch && git status -sb && git pull --ff-only'
-```
-Asercje przed pull: gałąź `master`, working tree czysty (`git status -sb` bez zmian). `--ff-only` zapobiega przypadkowym merge-commitom. Po pull symlinki (`index.php`, `rest/`, `router/`…) automatycznie wskazują nowy kod — nic więcej nie trzeba kopiować.
-
-### Rollback (wizfds.com)
-
-Frontend — przywróć poprzednią wersję ze snapshotu (bez rebuildu):
-```bash
-ssh wizfds 'cd /home/dkubera/domains/wizfds.com/public_html/view && \
-  PREV=0.7.0; \
-  find . -maxdepth 1 -mindepth 1 -not -name "v[0-9]*" -not -name "index.php" -not -name ".htaccess" -exec rm -rf {} \; && \
-  cp -a "v$PREV"/* . && echo "rollback <- view/v$PREV OK"'
-```
-Backend — cofnij do poprzedniego commita: `ssh wizfds 'cd /home/dkubera/svn/WizFDS && git reset --hard <poprzedni-commit>'` (świadomie, tylko gdy wiesz co robisz).
-
----
-
-## Część C — app.wizfds.com (instancja beta, układ root)
-
-> Subdomena założona w panelu cyber-folks 2026-08-04 (DNS + Let's Encrypt z panelu). Ta sama baza PostgreSQL co wizfds.com — konta, projekty i biblioteki są wspólne, ale **sesje logowania osobne** (cookie `wizfds` jest host-only).
-
-**Różnice względem wizfds.com:**
-
-| | wizfds.com | app.wizfds.com |
-|---|---|---|
-| Docroot | `public_html/` | `public_html/app/` |
-| Frontend | `view/` · build z `--base-href=/view/` | **korzeń docroota** · build z `--base-href=/` (`npm run wizFds:build-prod-app`) |
-| Klon backendu (symlinki) | `/home/dkubera/svn/WizFDS/` | **`/home/dkubera/git/WizFDS/`** |
-| Landing `welcome/` | jest | brak — `getFrontPage()` przekierowuje niezalogowanych na `/login` |
-| `config.php` | oryginał | kopia (te same sekrety bazy) |
-| `.htaccess` | ręczny plik (z `AddHandler php74`) | `AddHandler php74` + kopia `backend/.htaccess` z repo — **regeneruj po każdym pullu, jeśli `backend/.htaccess` się zmienił** |
-
-Router FastRoute sam pełni rolę bramki: `getIndex()` serwuje `index.html` z korzenia docroota (bo istnieje), `DirectoryIndex index.php` gwarantuje, że żądanie `/` przechodzi przez router (kontrola sesji), a nie przez surowy `index.html`.
-
-### C1. Deploy frontendu
-
-```bash
-npm run wizFds:build-prod-app        # lokalnie → dist/wizfds/browser/ z base-href=/
-REPO=/mnt/c/Users/mateu/Documents/GitHub/WizFDS/wizfds
 rsync -rtvz --delete --dry-run --chmod=D755,F644 \
   --exclude='index.php' --exclude='.htaccess' --exclude='config.php' \
   --exclude='db.php' --exclude='login.php' --exclude='login.css' \
   --exclude='rest' --exclude='router' --exclude='cgi-bin' --exclude='results.json' \
   "$REPO/dist/wizfds/browser/" \
   wizfds:/home/dkubera/domains/wizfds.com/public_html/app/
-# po weryfikacji dry-run — ta sama komenda bez --dry-run
 ```
+Przejrzyj listę: usuwane powinny być tylko **stare hashowane pliki** (`main-<stary-hash>.js` itp.). Jeśli widzisz `deleting index.php`, `config.php`, `rest` itd. — **STOP**, wykluczenia nie zadziałały. W układzie root pliki serwerowe leżą w tym samym katalogu co aplikacja, więc wykluczenia są krytyczne.
 
-Wykluczenia chronią pliki serwerowe leżące w tym samym katalogu co aplikacja (w układzie root nie ma rozdziału na `view/` i korzeń): symlinki backendu, kopię `config.php`, `.htaccess` i `results.json` zapisywany przez backend.
+**Krok 2 — właściwy upload** (ta sama komenda bez `--dry-run`).
 
-### C2. Deploy backendu
+**Krok 3 — weryfikacja:**
+```bash
+curl -s -o /dev/null -w "%{http_code} -> %{redirect_url}\n" https://app.wizfds.com/          # 302 -> /login (bez sesji)
+curl -s -o /dev/null -w "%{http_code}\n" https://app.wizfds.com/login                        # 200 (formularz)
+curl -s -o /dev/null -w "%{http_code} %{content_type}\n" https://app.wizfds.com/assets/shaders/fire.vertex.wgsl   # 200 text/plain
+```
+Na koniec zaloguj się w przeglądarce na https://app.wizfds.com i przeklikaj aplikację.
+
+### B2. Backend → `git pull`
 
 ```bash
 ssh wizfds 'cd /home/dkubera/git/WizFDS && git fetch && git status -sb && git pull --ff-only'
-# jeśli zmienił się wizfds/projects/wizfds/backend/.htaccess — zregeneruj plik w docroot:
+```
+Asercje przed pull: gałąź `master`, working tree czysty (`git status -sb` bez zmian). `--ff-only` zapobiega przypadkowym merge-commitom. Po pull symlinki wskazują nowy kod automatycznie.
+
+**Jeśli zmienił się `wizfds/projects/wizfds/backend/.htaccess`** — zregeneruj plik w docroot (jest kopią, nie symlinkiem, bo dokleja serwerowy `AddHandler`):
+```bash
 ssh wizfds 'BE=/home/dkubera/git/WizFDS/wizfds/projects/wizfds/backend; { echo "AddHandler application/x-httpd-php74 php"; cat "$BE/.htaccess"; } > /home/dkubera/domains/wizfds.com/public_html/app/.htaccess'
 ```
 
-### C3. Rollback
+### B3. Rollback
 
-Frontend: wgraj ponownie poprzedni build (`rsync` z dist zbudowanego ze starszego commita). Backend: `git reset --hard <commit>` w `/home/dkubera/git/WizFDS` — nie dotyka wizfds.com, bo tamta instancja ma własny klon.
+Frontend — zbuduj dist ze starszego commita i wgraj ponownie (Krok B1):
+```bash
+git checkout <poprzedni-commit> && npm run wizFds:build-prod-app   # potem rsync jak w B1
+```
+Backend — cofnij klon do poprzedniego commita (nie dotyka wizfds.com — tamta instancja ma własny klon):
+```bash
+ssh wizfds 'cd /home/dkubera/git/WizFDS && git reset --hard <poprzedni-commit>'
+```
 
-**Znane ograniczenia:** rejestracja nowych kont na subdomenie może odrzucać reCAPTCHA (klucz przypisany do wizfds.com — do dopisania w konsoli Google); rejestracja pozostaje na wizfds.com.
+---
+
+## Część C — wizfds.com (legacy, ZAMROŻONE)
+
+> **Nie deployujemy tu niczego.** Instancja zamrożona 2026-08-04 na wersji `0.7.1` (frontend `view/` z 2026-02-16, backend-klon `/home/dkubera/svn/WizFDS/` na `905121f`, landing `welcome/` z 2019). Zostaje jako działająca wersja odniesienia dla użytkowników, dopóki app.wizfds.com nie przejmie ruchu na stałe.
+
+Elementy instancji (do wglądu przy diagnostyce):
+- `public_html/view/` — frontend 0.7.1 + bramka `index.php` + snapshoty `v0.6.0`/`v0.7.0`/… (rollbacki starą metodą snapshotową)
+- `public_html/welcome/` — landing (build 2019)
+- `public_html/{index.php,db.php,login.php,rest,router}` — symlinki do `/home/dkubera/svn/WizFDS/` (git mimo nazwy „svn")
+- `public_html/.htaccess`, `public_html/config.php` — ręczne pliki serwerowe
+
+Archiwalna procedura deployu na tę instancję (snapshot → rsync do `view/` z wykluczeniami `index.php`/`.htaccess`/`v[0-9]*` → `git pull` w `svn/WizFDS`) jest w historii gita tego pliku (stan sprzed 2026-08-04).
 
 ---
 
 ## Known issues / do weryfikacji
 
-1. ⚠️ **Backend na produkcji jest przestarzały.** Checkout `/home/dkubera/svn/WizFDS/` stoi na `905121f` (era Angular 13), a repo lokalnie na `207675d` (Angular 20). Frontend `view/` jest świeży, backend **nie** → możliwy rozjazd API. **Przed następnym realnym deployem** sprawdź różnice i wykonaj kontrolowany pull:
-   ```bash
-   ssh wizfds 'cd /home/dkubera/svn/WizFDS && git log --oneline 905121f..origin/master -- wizfds/projects/wizfds/backend'
-   ```
-2. **Mylące nazewnictwo `svn/`.** `/home/dkubera/svn/WizFDS/` to git, nie svn (legacy nazwa katalogu). `/home/dkubera/svn/wizfds/` (mała litera) i `public_html/v5/` to prawdziwe, stare SVN — nie ruszać.
-3. **`welcome/` bardzo stary** (build z 2019, stary format Angulara). Redeploy tylko przy realnej zmianie landingu.
-4. **Uprawnienia z `/mnt/c`.** Źródło na dysku Windows nie niesie sensownych uprawnień — dlatego `--chmod=D755,F644` w `rsync`. Bez tego pliki wylądują z 0777.
-5. **Nowe katalogi outputu łatwo pominąć przy ręcznym uploadzie.** 2026-07-23 `rsync --dry-run` wykrył, że produkcyjny `view/` nie miał katalogu **`media/`** (fonty KaTeX) — poprzedni upload przez WinSCP przeoczył nowy folder obok `assets/`, przez co wzory KaTeX leciały na fontach zastępczych. Dograno addytywnie (`rsync` bez `--delete`) i zweryfikowano (`HTTP 200`, `font/woff2`). **Lekcja:** `rsync` (Krok B1) synchronizuje całe drzewo `browser/`, więc problem nie wróci; przy WinSCP zawsze porównaj listę katalogów `dist/wizfds/browser/` z `view/`.
+1. **reCAPTCHA na app.wizfds.com** — klucz w `config.php` jest przypisany do domeny wizfds.com; rejestracja nowych kont na subdomenie może odrzucać captchę, dopóki `app.wizfds.com` nie zostanie dopisana w konsoli Google reCAPTCHA. Do tego czasu rejestracja pozostaje na wizfds.com.
+2. **Wspólna baza obu instancji** — zmiany w projektach zrobione na app.wizfds.com widzi też wizfds.com (i odwrotnie). Zamierzone; pamiętaj przy testach na żywych danych.
+3. **Backend legacy na wizfds.com jest przestarzały** (klon na `905121f`, era Angular 13) względem frontendu `view/` (0.7.1 z mastera 2026-02). Świadomie zamrożone — nie „naprawiać" pullem, bo nowszy backend zmienia zachowanie (`logout`, layout-agnostyczne `getIndex`).
+4. **Mylące nazewnictwo `svn/`.** `/home/dkubera/svn/WizFDS/` to git, nie svn (legacy nazwa katalogu). `/home/dkubera/svn/wizfds/` (mała litera) i `public_html/v5/` to prawdziwe, stare SVN — nie ruszać.
+5. **Uprawnienia z `/mnt/c`.** Źródło na dysku Windows nie niesie sensownych uprawnień — dlatego `--chmod=D755,F644` w `rsync`. Bez tego pliki wylądują z 0777.
+6. **Jeden cert TLS na domenę** — patrz „Certyfikat TLS" w prerekwizytach; przy odnowieniach zawsze wszystkie nazwy naraz.
 
 ---
 
@@ -231,21 +179,16 @@ Frontend: wgraj ponownie poprzedni build (`rsync` z dist zbudowanego ze starszeg
 # --- lokalnie ---
 npm ci && npm run wizFds:cm:copy          # po instalacji zależności
 npm run wizFds:start                       # dev :4200
-npm run wizFds:build-prod                  # → dist/wizfds/browser/
+npm run wizFds:build-prod-app              # build produkcyjny (base-href=/) → dist/wizfds/browser/
 
-# --- deploy (WSL) ---
+# --- deploy app.wizfds.com (WSL) ---
 REPO=/mnt/c/Users/mateu/Documents/GitHub/WizFDS/wizfds
-# 1) snapshot rollback (OLD = wersja obecnie żywa)
-ssh wizfds 'cd .../public_html/view && OLD=0.7.1; mkdir -p v$OLD && find . -maxdepth 1 -mindepth 1 -not -name "v[0-9]*" -not -name "index.php" -not -name ".htaccess" -exec cp -a {} v$OLD/ \;'
-# 2) dry-run  3) upload  (te same flagi, drugi bez --dry-run)
-rsync -rtvz --delete --dry-run --chmod=D755,F644 --exclude='index.php' --exclude='.htaccess' --exclude='/v[0-9]*' "$REPO/dist/wizfds/browser/" wizfds:/home/dkubera/domains/wizfds.com/public_html/view/
-# 4) backend
-ssh wizfds 'cd /home/dkubera/svn/WizFDS && git fetch && git status -sb && git pull --ff-only'
-
-# --- app.wizfds.com (Część C) ---
-npm run wizFds:build-prod-app              # build z base-href=/
+# 1) dry-run  2) upload  (te same flagi, drugi bez --dry-run)
 rsync -rtvz --delete --dry-run --chmod=D755,F644 --exclude='index.php' --exclude='.htaccess' --exclude='config.php' --exclude='db.php' --exclude='login.php' --exclude='login.css' --exclude='rest' --exclude='router' --exclude='cgi-bin' --exclude='results.json' "$REPO/dist/wizfds/browser/" wizfds:/home/dkubera/domains/wizfds.com/public_html/app/
+# 3) backend
 ssh wizfds 'cd /home/dkubera/git/WizFDS && git fetch && git status -sb && git pull --ff-only'
+# 4) smoke test
+curl -s -o /dev/null -w "%{http_code} -> %{redirect_url}\n" https://app.wizfds.com/
 ```
 
-WinSCP (awaryjnie, zamiast `rsync`): wgraj zawartość `dist/wizfds/browser/` do `public_html/view/`, ręcznie usuwając stare `main-*.js`/`styles-*.css`, i **nie kasując** `index.php`, `.htaccess`, `v0.*`.
+WinSCP (awaryjnie, zamiast `rsync`): wgraj zawartość `dist/wizfds/browser/` do `public_html/app/`, ręcznie usuwając stare `main-*.js`/`styles-*.css`, i **nie kasując** `index.php`, `.htaccess`, `config.php`, `db.php`, `login.php`, `login.css`, `rest`, `router`, `results.json`.
