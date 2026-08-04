@@ -29,6 +29,32 @@
     </div>
 
     <!--
+        Dynamic input: what the gesture is making of the mouse, and where the
+        user says otherwise. At the cursor and only while a gesture runs, which
+        is why it belongs to the canvas and not to the host's ribbon (ADR-0010).
+        Enter commits, Tab moves on, Escape abandons the whole gesture.
+    -->
+    <div class="dynamic-input" *ngIf="gesture"
+        [style.left.px]="gesture.at.x" [style.top.px]="gesture.at.y">
+
+        <!-- Which mode caught it, named beside the cursor as the marker is drawn -->
+        <span class="snap" *ngIf="gesture.snap">{{ gesture.snap }}</span>
+
+        <!-- Readouts, not a form: nothing here may take the focus, because the
+             canvas answers its blur by releasing every held button and the drag
+             dies under the hand. The keyboard reaches the gesture through the
+             window - see SmokeviewComponent.routeGestureKey(). -->
+        <label class="field" *ngFor="let field of gesture.fields"
+            [class.active]="field.key === gesture.activeKey">
+            <span class="name">{{ field.label }}</span>
+            <input type="text" readonly tabindex="-1" autocomplete="off"
+                [class.typed]="field.typed" [value]="values[field.key]"
+                [attr.aria-label]="field.label" />
+            <span class="unit">m</span>
+        </label>
+    </div>
+
+    <!--
         The results player. It belongs to what is drawn rather than to what is
         edited, so it stays here while the editing chrome lives in the host -
         Phase 6 (#89) is what gives it a Results tab to answer to.

@@ -162,7 +162,10 @@ describe('SceneBoundsService', () => {
       // not a reason to zoom out.
       service.setFromScene({
         ...emptyScene(),
-        meshes: [{ uuid: 'm', id: 'M1', xb: { x1: 0, x2: 10, y1: 0, y2: 10, z1: 0, z2: 4 } }],
+        meshes: [{
+          uuid: 'm', id: 'M1', xb: { x1: 0, x2: 10, y1: 0, y2: 10, z1: 0, z2: 4 },
+          cell: { i: 0.25, j: 0.25, k: 0.25 }
+        }],
         obsts: [{
           uuid: 'o', id: 'O1', surfId: '', permitHole: true,
           xb: { x1: 0, x2: 400, y1: 0, y2: 1, z1: 0, z2: 1 },

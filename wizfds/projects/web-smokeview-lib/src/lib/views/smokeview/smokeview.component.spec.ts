@@ -8,6 +8,7 @@ import * as BABYLON from 'babylonjs';
 import { BabylonService } from '../../services/babylon/babylon.service';
 import { ViewCubeService } from '../../services/babylon/viewCube/view-cube.service';
 import { PickService } from '../../services/picking/pick.service';
+import { GizmoService } from '../../services/editing/gizmo.service';
 import { SmokeviewComponent } from './smokeview.component';
 
 describe('SmokeviewComponent', () => {
@@ -121,6 +122,74 @@ describe('SmokeviewComponent', () => {
   });
 
   /**
+   * The dynamic input must never stand between the mouse and the canvas (#124).
+   *
+   * It appears at the cursor the moment a gesture starts, and it is a sibling
+   * of the canvas - so a pointermove that hits it bubbles up past the canvas,
+   * and Babylon, whose listeners sit on the canvas element, never sees the
+   * move. The observed result: a drag starts (the press landed on the canvas,
+   * the panel was not up yet) and then freezes on the first move. Typing needs
+   * no clicks - the field is focused programmatically and Tab walks on.
+   */
+  describe('the dynamic input overlay', () => {
+    it('lets every pointer event fall through to the canvas', async () => {
+      await configure(true);
+      component.gesture = {
+        kind: 'move', activeKey: 'dx', at: { x: 100, y: 100 }, snap: null,
+        fields: [{ key: 'dx', label: 'dX', value: 0, typed: false }]
+      } as any;
+      fixture.detectChanges();
+
+      const panel: HTMLElement = fixture.nativeElement.querySelector('.dynamic-input');
+      expect(panel).toBeTruthy();
+      expect(getComputedStyle(panel).pointerEvents).toBe('none');
+
+      const field: HTMLElement = panel.querySelector('input');
+      expect(getComputedStyle(field).pointerEvents).toBe('none');
+    });
+
+    it('never takes the focus - the canvas blur would end the drag', async () => {
+      // Babylon answers the canvas losing focus by synthesising a release of
+      // every held button (WebDeviceInputSystem._pointerBlurEvent), so a panel
+      // that focused its field killed the very gesture it was reporting on.
+      await configure(true);
+      (document.activeElement as HTMLElement)?.blur?.();
+
+      component.gesture = {
+        kind: 'move', activeKey: 'dx', at: { x: 100, y: 100 }, snap: null,
+        fields: [{ key: 'dx', label: 'dX', value: 0, typed: false }]
+      } as any;
+      fixture.detectChanges();
+      await new Promise(resolve => setTimeout(resolve, 20));
+
+      expect(document.activeElement === document.body
+        || document.activeElement === null).toBe(true);
+    });
+
+    it('routes typing through the window, straight into the gesture', async () => {
+      await configure(true);
+      const gizmo = TestBed.inject(GizmoService);
+      const typed = spyOn(gizmo, 'type');
+      const tabbed = spyOn(gizmo, 'nextField');
+
+      component.gesture = {
+        kind: 'move', activeKey: 'dx', at: { x: 100, y: 100 }, snap: null,
+        fields: [{ key: 'dx', label: 'dX', value: 0, typed: false }]
+      } as any;
+      fixture.detectChanges();
+
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: '5' }));
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: ',' }));
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab' }));
+
+      // The comma types as a decimal point - the numeric keypad of a Polish
+      // keyboard produces one
+      expect(typed.calls.allArgs()).toEqual([['dx', '5'], ['dx', '5.']]);
+      expect(tabbed).toHaveBeenCalled();
+    });
+  });
+
+  /**
    * The pointer gestures: what selects, what belongs to the camera, and what the
    * chrome layered over the canvas must never do.
    *
@@ -132,6 +201,10 @@ describe('SmokeviewComponent', () => {
     let picking: jasmine.SpyObj<PickService>;
     let engine: BABYLON.NullEngine;
     let scene: BABYLON.Scene;
+    /** Counts the zoom extents the double middle press asked for (ADR-0012). */
+    let zoomExtents: jasmine.Spy;
+    /** The cube, as the component drives it: picked and lit on hover. */
+    let viewCube: { pickSide: jasmine.Spy, highlight: jasmine.Spy, init: () => void };
 
     /** The canvas the scene is drawn on - the only surface a pick may come from. */
     const canvas = (): HTMLCanvasElement =>
@@ -150,6 +223,12 @@ describe('SmokeviewComponent', () => {
     beforeEach(async () => {
       Object.defineProperty(navigator, 'gpu', { value: {}, configurable: true });
 
+      zoomExtents = jasmine.createSpy('zoomExtents');
+      viewCube = {
+        pickSide: jasmine.createSpy('pickSide').and.returnValue(null),
+        highlight: jasmine.createSpy('highlight'),
+        init: () => { }
+      };
       engine = new BABYLON.NullEngine();
       scene = new BABYLON.Scene(engine);
       // A real camera: the ray is built through scene.createPickingRay()
@@ -157,7 +236,11 @@ describe('SmokeviewComponent', () => {
         'camera', 0, Math.PI / 3, 10, BABYLON.Vector3.Zero(), scene);
 
       picking = jasmine.createSpyObj<PickService>(
-        'PickService', ['pick', 'hover', 'clearHover', 'clearSelection', 'setSelected', 'bind']);
+        'PickService',
+        ['pick', 'hover', 'clearHover', 'clearSelection', 'setSelected', 'bind',
+          'previewMove', 'previewBox', 'endPreview'],
+        // The gizmo stands on the selection and is told about it here (#124)
+        { selection$: new BehaviorSubject<any>([]) });
 
       await TestBed.configureTestingModule({
         imports: [FormsModule, MatIconModule],
@@ -172,10 +255,11 @@ describe('SmokeviewComponent', () => {
               scene$: new BehaviorSubject<any>(null),
               createScene: () => Promise.resolve(),
               disposeScene: () => { },
-              animate: () => { }
+              animate: () => { },
+              zoomExtents
             }
           },
-          { provide: ViewCubeService, useValue: { pickSide: () => undefined, init: () => { } } },
+          { provide: ViewCubeService, useValue: viewCube },
           { provide: PickService, useValue: picking }
         ]
       }).compileComponents();
@@ -216,13 +300,35 @@ describe('SmokeviewComponent', () => {
         .toEqual([{ add: true }, { add: true }]);
     });
 
-    it('ignores a right-click, which pans the camera', () => {
-      // The help table says the right button pans, and a pan that happens to end
-      // where it began would otherwise select whatever was under the pointer.
+    it('ignores a right-click, which is reserved for a future menu (ADR-0012)', () => {
       press(canvas(), { button: 2 });
       release(canvas(), { button: 2 });
 
       expect(picking.pick).not.toHaveBeenCalled();
+    });
+
+    it('zooms to extents on a double middle press', () => {
+      // AutoCAD's gesture: two quick presses of the wheel frame the whole model
+      press(canvas(), { button: 1 });
+      press(canvas(), { button: 1 });
+
+      expect(zoomExtents).toHaveBeenCalledTimes(1);
+    });
+
+    it('a single middle press is a pan, not a zoom, and never selects', () => {
+      press(canvas(), { button: 1 });
+      release(canvas(), { button: 1 });
+
+      expect(zoomExtents).not.toHaveBeenCalled();
+      expect(picking.pick).not.toHaveBeenCalled();
+    });
+
+    it('two middle presses apart in space are two pans, not a pair', () => {
+      // A pan put down and picked up on the other side of the model
+      press(canvas(), { button: 1, clientX: 100, clientY: 100 });
+      press(canvas(), { button: 1, clientX: 300, clientY: 240 });
+
+      expect(zoomExtents).not.toHaveBeenCalled();
     });
 
     it('does not pick when the press landed on the chrome over the canvas', () => {
@@ -247,6 +353,24 @@ describe('SmokeviewComponent', () => {
       canvas().dispatchEvent(new PointerEvent('pointerleave', { bubbles: true }));
 
       expect(picking.clearHover).toHaveBeenCalled();
+    });
+
+    it('lights the cube part under the pointer as it moves', async () => {
+      // The cube's own hover died with tuneForStaticScene() - Babylon no
+      // longer picks the scene on pointer moves, so the ActionManager
+      // triggers never fired. The component's throttled hover drives it now.
+      viewCube.pickSide.and.returnValue('top');
+
+      canvas().dispatchEvent(new PointerEvent('pointermove', { bubbles: true }));
+      await new Promise(resolve => requestAnimationFrame(resolve));
+
+      expect(viewCube.highlight).toHaveBeenCalledWith('top');
+    });
+
+    it('puts the cube light out when the pointer leaves the canvas', () => {
+      canvas().dispatchEvent(new PointerEvent('pointerleave', { bubbles: true }));
+
+      expect(viewCube.highlight).toHaveBeenCalledWith(null);
     });
   });
 

@@ -66,3 +66,17 @@ Ta decyzja wymieniała „co jest zaznaczone" jako przykład stanu czysto prezen
 ### Budżet klatki ma drugiego konsumenta
 
 Sekcja „Negatywne" wskazywała jako koszt pełny obieg komendy przy przeciąganiu i rozwiązywała go lokalnym podglądem gestu. To niewystarczające. Autosave wykonuje `isEqual` całego `fdsObject` w `ngDoCheck` komponentu głównego (`app.component.ts:149`), a `pointerdown` i `pointermove` w `SmokeviewComponent` są `@HostListener`-ami — więc każdy ruch myszy nad kanwą wywołuje `tick()` i wraz z nim głębokie porównanie scenariusza, niezależnie od tego, czy jakakolwiek komenda została wyemitowana. Rozwiązanie opisuje ADR-0009.
+
+## Uzupełnienie (2026-07-31) — co dołożył gest (#124)
+
+Kontrakt wejściowy i „podgląd rysowany lokalnie" doprecyzowały się przy gizmie.
+
+### `SceneMesh` niesie rozmiar komórki
+
+Punkt 1 przepływu mówi, że aplikacja przekazuje stan do wyrenderowania. Snapowanie do siatki wymaga jednak czegoś, czego biblioteka do rysowania nie potrzebowała: `isize` / `jsize` / `ksize`. Odpowiedź „niech aplikacja policzy snap" byłaby złamaniem tego, co ta decyzja rozstrzyga o budżecie klatki — pytanie „która siatka obowiązuje w tym punkcie" pada na każdej klatce przeciągania, a odpowiedź jest funkcją pudełek, nie scenariusza. `SceneMesh` dostaje więc `cell`, a reguła wyboru siatki (najdrobniejsza z zachodzących, najbliższa poza wszystkimi) mieszka w bibliotece — łącznie z tą, którą czyta status bar. Dwie implementacje „aktywnej siatki" prędzej czy później by się rozjechały, a użytkownik czytałby inną niż ta, której jego edycja usłuchała.
+
+### Podgląd gestu to obwódka, nie model
+
+„Podgląd przeciągania rysowany lokalnie" zrealizowany jest jako przesunięcie obwódek zaznaczenia — tych samych, które rysuje `PickService`. Element zostaje dokładnie tam, gdzie mówi scenariusz, aż do końca gestu; przy zmianie rozmiaru obwódka jest przebudowywana, bo pudełko skalowane względem środka ruszałoby obie ściany, a sens uchwytu ściany jest taki, że druga stoi.
+
+Komenda jest jedna na gest, a nie jedna na klatkę, i gest, który wrócił tam, gdzie się zaczął, nie prosi o nic — pusta edycja zajęłaby miejsce na stosie cofania.

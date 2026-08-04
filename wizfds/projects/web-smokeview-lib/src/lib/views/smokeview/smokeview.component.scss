@@ -86,6 +86,102 @@ $font-mono:        var(--font-mono, "Fira Code", "Consolas", monospace);
   // --- Results player -------------------------------------------------------
   // An overlay along the foot of the canvas, not a sibling of it: the canvas
   // fills the viewport, so anything laid out beside it has no room to be in.
+  // --- Dynamic input: the numbers a gesture is making (#124) ----------------
+  //
+  // At the cursor, over the canvas, and only while a gesture runs. Offset a
+  // little down and to the right of the point it belongs to, as AutoCAD's is,
+  // so it never sits under the pointer itself.
+  .dynamic-input {
+    position: absolute;
+    z-index: 3;
+    transform: translate(1rem, 1rem);
+
+    // Transparent to the mouse, fields included - see the rule at the foot of
+    // this block. The panel stands at the cursor while a drag is running, and
+    // it is a sibling of the canvas: a pointermove that hits it bubbles up PAST
+    // the canvas, so Babylon - whose listeners sit on the canvas element -
+    // never sees the move and the drag freezes on its first frame. Typing needs
+    // no clicks: the field is focused programmatically when the gesture starts,
+    // and Tab walks the rest (#124).
+    pointer-events: none;
+
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.45rem;
+    border: 1px solid $accent;
+    border-radius: $radius-sm;
+    background: $surface-1;
+    box-shadow: $shadow-md;
+    font-family: $font-mono;
+    font-size: 0.75rem;
+    white-space: nowrap;
+
+    // The other half of the pointer transparency above: `pointer-events` does
+    // not inherit into elements that set their own, and an <input> is exactly
+    // the kind of element a stylesheet resets - so every descendant is told
+    // explicitly, or the fields would go on eating the drag.
+    * {
+      pointer-events: none;
+    }
+
+    .snap {
+      padding: 0.05rem 0.35rem;
+      border-radius: $radius-sm;
+      background: $accent;
+      color: #fff;
+      font-family: $font-ui;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .field {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+
+      .name {
+        color: $on-surface-muted;
+      }
+
+      .unit {
+        color: $on-surface-muted;
+        opacity: 0.7;
+      }
+
+      input {
+        width: 4.5rem;
+        padding: 0.1rem 0.3rem;
+        border: 1px solid $border-muted;
+        border-radius: $radius-sm;
+        background: $surface-2;
+        color: $on-surface;
+        font-family: inherit;
+        font-size: inherit;
+        text-align: right;
+
+        &:focus {
+          outline: none;
+          border-color: $accent;
+        }
+
+        // A field the keyboard has taken over from the mouse
+        &.typed {
+          border-color: $accent;
+          color: $accent;
+        }
+      }
+
+      // Where the next keystroke lands - what Tab moves. Not the browser's
+      // focus: nothing in this panel may ever take that, or the canvas blur
+      // would end the drag (see routeGestureKey).
+      &.active input {
+        border-color: $accent;
+      }
+    }
+  }
+
   .player {
     position: absolute;
     left: 1rem;

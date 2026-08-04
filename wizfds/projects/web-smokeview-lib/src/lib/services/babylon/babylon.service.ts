@@ -5,6 +5,7 @@ import { BehaviorSubject } from 'rxjs';
 import { SceneLifecycleService } from './scene-lifecycle.service';
 import { SceneBoundsService } from '../scene-bounds/scene-bounds.service';
 import { SceneXb } from '../drawing/scene-input';
+import { applyCadNavigation } from './camera-navigation';
 
 /** WGSL sources for one shader, plus the URLs they came from (for diagnostics). */
 export interface ShaderSources {
@@ -52,11 +53,13 @@ export interface ShaderMaterialSpec {
 const CAMERA = {
   nearPlane: 0.01,
   farPlane: 1000,
-  /** Wheel notches per unit of radius - hence divided by, not multiplied. */
-  wheelPrecision: 500,
-  /** Pixels per unit of pan - divided by as well. */
-  panningSensibility: 10000,
-  minRadius: 0.1,
+  /**
+   * Just above the near plane, so the wheel stops right before the clipping
+   * would start eating the geometry (ADR-0012). The wheel and pan sensibilities
+   * that used to sit here are gone: a percentage zoom and a 1:1 pan follow from
+   * the current frame, not from the size of the model - see camera-navigation.ts.
+   */
+  minRadius: 0.02,
   maxRadius: 50,
   /** Room left around the model when framing it, so it does not touch the edges. */
   framingMargin: 1.15,
@@ -273,6 +276,12 @@ export class BabylonService {
     // Right-handed with Z up, as in FDS - see docs/adr/0002-wspolrzedne-w-metrach.md
     this.camera.upVector = new BABYLON.Vector3(0, 0, 1);
 
+    // The arrow keys belong to the keyboard nudge (#124); the camera keeps
+    // the mouse, as it does in PyroSim. Removed rather than re-bound - nobody
+    // orbits by keyboard here, and a stray arrow must not turn a set view.
+    const keyboard = this.camera.inputs.attached['keyboard'];
+    if (keyboard) { this.camera.inputs.remove(keyboard); }
+
     // Everything else about the camera, and the world axes, follows from how big
     // the model is. Nothing has been measured yet, so this frames the default
     // box; SmokeviewApiService calls it again once it knows the scenario.
@@ -280,6 +289,27 @@ export class BabylonService {
 
     // This attaches the camera to the canvas
     this.camera.attachControl(this.canvas, true);
+
+    // The AutoCAD physics: the middle button drives the camera, the left one
+    // is edit-only, and nothing glides after the mouse stops (ADR-0012).
+    applyCadNavigation(this.camera, this.canvas);
+
+    /*
+     * Every pointer ray is built through this camera, whichever one rendered
+     * last.
+     *
+     * The view cube renders through a second camera, into a corner of the
+     * canvas, and Babylon leaves `scene.activeCamera` on whichever of the two
+     * went last - the cube's. Without this, the InputManager builds every
+     * pointer ray from a camera three metres from the origin, aimed through a
+     * viewport a fifth of the canvas wide. Nothing that reads those rays can
+     * work: a gizmo handle is missed at nearly every press, because the ray
+     * offered to it points somewhere else entirely (#124).
+     *
+     * ViewCubeService picks with its own camera, passed explicitly, so it is
+     * unaffected.
+     */
+    this.scene.cameraToUseForPointers = this.camera;
 
     this.scene.activeCameras.push(this.camera);
 
@@ -493,8 +523,6 @@ export class BabylonService {
 
     this.camera.minZ = CAMERA.nearPlane * extent;
     this.camera.maxZ = CAMERA.farPlane * extent;
-    this.camera.wheelPrecision = CAMERA.wheelPrecision / extent;
-    this.camera.panningSensibility = CAMERA.panningSensibility / extent;
     this.camera.lowerRadiusLimit = CAMERA.minRadius * extent;
     this.camera.upperRadiusLimit = CAMERA.maxRadius * extent;
 
@@ -518,6 +546,27 @@ export class BabylonService {
    */
   public radiusToFit(): number {
     return this.radiusFor(this.sceneBounds.boundingRadius);
+  }
+
+  /**
+   * Frame the whole model without turning the view - AutoCAD's zoom extents,
+   * answered here to the double middle click (ADR-0012).
+   *
+   * Unlike a view cube side, the direction of looking is kept: only the target
+   * and the distance change. That is what tells the two apart - the cube sets
+   * where you look from, this one only backs off far enough to see everything.
+   */
+  public zoomExtents(): void {
+    if (!this.scene || !this.camera) { return; }
+
+    const center = this.sceneBounds.center;
+    const target = new BABYLON.Vector3(center.x, center.y, center.z);
+    const direction = this.camera.getTarget().subtract(this.camera.position).normalize();
+
+    // Position first, then target - setTarget() rebuilds alpha, beta and
+    // radius from wherever the camera stands, as in applySceneBounds().
+    this.camera.setPosition(target.subtract(direction.scale(this.radiusToFit())));
+    this.camera.setTarget(target);
   }
 
   /**

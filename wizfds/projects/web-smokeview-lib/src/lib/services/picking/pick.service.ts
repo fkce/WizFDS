@@ -7,6 +7,7 @@ import { SceneLifecycleService, SceneScoped } from '../babylon/scene-lifecycle.s
 import { ScenePick, SceneRegistryService } from '../babylon/scene-registry.service';
 import { SceneBoundsService, ScenePoint } from '../scene-bounds/scene-bounds.service';
 import { SceneElementType, SceneXb } from '../drawing/scene-input';
+import { SceneDelta } from '../editing/edit-command';
 
 /**
  * What the picking service needs from the obst layer.
@@ -109,6 +110,19 @@ export class PickService implements SceneScoped {
   public hovered: ScenePick;
 
   /**
+   * What is highlighted, each time that changes.
+   *
+   * Replayed, because a tool that stands on the selection - the gizmo of #124 -
+   * is switched on long after the click that made it. It also fires when a
+   * redraw follows an edit, so the gizmo goes where the element went instead of
+   * staying behind on the box it used to occupy.
+   *
+   * Not the same statement as `picked$`: that one is what the user *did*, this
+   * is what is currently marked, whoever decided it.
+   */
+  public readonly selection$: Observable<readonly ScenePick[]>;
+
+  /**
    * Where the pointer last met the model, in FDS metres - what the status bar
    * reads out. Null when it is over empty space, or off the canvas altogether.
    *
@@ -146,6 +160,9 @@ export class PickService implements SceneScoped {
    */
   private readonly pointerAtSubject = new BehaviorSubject<ScenePoint | null>(null);
 
+  /** Replayed for the same reason as pointerAt$ - see selection$. */
+  private readonly selectionSubject = new BehaviorSubject<readonly ScenePick[]>([]);
+
   constructor(
     private babylonService: BabylonService,
     private sceneBounds: SceneBoundsService,
@@ -155,6 +172,7 @@ export class PickService implements SceneScoped {
     sceneLifecycle.register(this);
     this.picked$ = this.pickedSubject.asObservable();
     this.pointerAt$ = this.pointerAtSubject.asObservable();
+    this.selection$ = this.selectionSubject.asObservable();
   }
 
   /**
@@ -181,8 +199,9 @@ export class PickService implements SceneScoped {
     this.hoverMaterial = undefined;
     this.selected = [];
     this.hovered = undefined;
-    // There is no model left to be over
+    // There is no model left to be over, and nothing left to stand on
     this.pointerAtSubject.next(null);
+    this.selectionSubject.next([]);
   }
 
   /**
@@ -253,6 +272,8 @@ export class PickService implements SceneScoped {
     drawn
       .filter(element => !this.selectionMeshes.has(element.uuid))
       .forEach(element => this.addHighlight(element));
+
+    this.selectionSubject.next(this.selected);
   }
 
   /**
@@ -283,6 +304,63 @@ export class PickService implements SceneScoped {
         entry.xb, `picked_${uuid}`, SELECTED_COLOR, SELECTED_ALPHA));
     });
     this.selected = drawn;
+
+    // The boxes moved, so whatever stands on them has to move too
+    this.selectionSubject.next(this.selected);
+  }
+
+  // ==========================================
+  // While a gesture is in progress
+  // ==========================================
+
+  /**
+   * Draw the outlines where the gesture currently has the selection.
+   *
+   * Nothing is committed until the pointer comes up (ADR-0004), so this is the
+   * whole of what moves under the user's hand: the elements themselves stay
+   * where the scenario says they are, and one command lands when the drag ends.
+   *
+   * Read off the registry each time rather than remembered, so a preview cannot
+   * drift from where the elements actually are.
+   */
+  public previewMove(delta: SceneDelta): void {
+    this.selectionMeshes.forEach((mesh, uuid) => {
+      const entry = this.sceneRegistry.entryFor(uuid);
+      if (!entry) { return; }
+
+      mesh.position = new BABYLON.Vector3(
+        (entry.xb.x1 + entry.xb.x2) / 2 + delta.dx,
+        (entry.xb.y1 + entry.xb.y2) / 2 + delta.dy,
+        (entry.xb.z1 + entry.xb.z2) / 2 + delta.dz
+      );
+    });
+  }
+
+  /**
+   * Draw one element's outline at a box of its own - what a face drag shows.
+   *
+   * Rebuilt rather than scaled: a box scaled about its centre moves both of its
+   * faces, and the point of a face handle is that one of them stays put. It is
+   * one mesh per frame, and a face drag is one element by construction.
+   */
+  public previewBox(uuid: string, xb: SceneXb): void {
+    const existing = this.selectionMeshes.get(uuid);
+    if (!existing) { return; }
+
+    existing.dispose();
+    this.selectionMeshes.set(uuid, this.outlineBox(
+      xb, `picked_${uuid}`, SELECTED_COLOR, SELECTED_ALPHA));
+  }
+
+  /**
+   * Put the outlines back where the scenario has the elements.
+   *
+   * The end of every gesture, committed or abandoned: if it was committed, the
+   * edit has already been applied and this draws the result; if it was not,
+   * this is what undoes the preview.
+   */
+  public endPreview(): void {
+    this.redrawSelection();
   }
 
   /**

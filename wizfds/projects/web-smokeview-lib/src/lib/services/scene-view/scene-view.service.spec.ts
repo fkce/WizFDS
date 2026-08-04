@@ -91,7 +91,10 @@ describe('SceneViewService', () => {
         {
           provide: BabylonService,
           useValue: {
-            applySceneBounds: () => record.push('zoomExtents'),
+            // Zoom extents keeps the direction of looking (ADR-0012), so the
+            // ribbon button delegates to the camera's own zoomExtents(), not
+            // to applySceneBounds() - which would also reset the direction.
+            zoomExtents: () => record.push('zoomExtents'),
             frameBox: (box: any) => record.push(`frame:${box.x1}-${box.x2}`)
           }
         },

@@ -69,8 +69,32 @@ export interface SceneElement {
     readonly xb: SceneXb
 }
 
-/** A &MESH. Drawn as an outline, in a colour the library picks itself. */
-export type SceneMesh = SceneElement;
+/**
+ * How big one cell of a &MESH's grid is, in FDS metres, on each axis.
+ *
+ * An FDS mesh is uniform - `IJK` divides `XB` into equal cells - so three
+ * numbers describe the whole grid, and a cell boundary is a multiple of one of
+ * them measured from the mesh's own corner.
+ *
+ * The names are the mesh's own: `i` spans x, `j` spans y, `k` spans z.
+ */
+export interface SceneCell {
+    readonly i: number,
+    readonly j: number,
+    readonly k: number
+}
+
+/**
+ * A &MESH. Drawn as an outline, in a colour the library picks itself.
+ *
+ * It carries its cell size because it is what an edit snaps to (#124), and
+ * which mesh's grid applies at a point is a question about boxes that has to be
+ * answered while the pointer is moving. The app holds the same three numbers as
+ * `isize` / `jsize` / `ksize`.
+ */
+export interface SceneMesh extends SceneElement {
+    readonly cell: SceneCell
+}
 
 /**
  * A &HOLE - an opening, cut out of every &OBST it overlaps.

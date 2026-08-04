@@ -97,7 +97,10 @@ describe('SmokeviewApiService', () => {
   });
 
   it('measures the model from the scenario it is about to draw', async () => {
-    const meshes = [{ uuid: 'm', id: 'M1', xb: { x1: 0, x2: 40, y1: 0, y2: 10, z1: 0, z2: 4 } }];
+    const meshes = [{
+      uuid: 'm', id: 'M1', xb: { x1: 0, x2: 40, y1: 0, y2: 10, z1: 0, z2: 4 },
+      cell: { i: 0.25, j: 0.25, k: 0.25 }
+    }];
 
     await service.render({ ...emptyScene(), meshes: meshes });
 

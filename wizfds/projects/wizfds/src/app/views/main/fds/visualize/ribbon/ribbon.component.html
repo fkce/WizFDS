@@ -38,11 +38,16 @@
   <!-- The help table that used to sit in a corner of the canvas -->
   <div class="help-card" *ngIf="showHelp">
     <table>
-      <tr><td>Rotate</td><td>hold left button + move</td></tr>
-      <tr><td>Pan</td><td>hold right button + move</td></tr>
-      <tr><td>Zoom</td><td>mouse wheel</td></tr>
+      <tr><td>Pan</td><td>hold middle button + move</td></tr>
+      <tr><td>Orbit</td><td>shift + hold middle button + move</td></tr>
+      <tr><td>Zoom</td><td>mouse wheel, towards the cursor</td></tr>
+      <tr><td>Zoom extents</td><td>double-click the middle button</td></tr>
       <tr><td>Select</td><td>left click</td></tr>
       <tr><td>Add to selection</td><td>ctrl or shift + left click</td></tr>
+      <tr><td>Move / resize</td><td>drag an arrow or a face handle</td></tr>
+      <tr><td>Type an exact value</td><td>while dragging: tab, enter, esc</td></tr>
+      <tr><td>Suspend snapping</td><td>hold ctrl during the drag</td></tr>
+      <tr><td>Delete</td><td>delete key</td></tr>
     </table>
   </div>
 
@@ -87,14 +92,19 @@
 
       <section class="panel">
         <div class="panel-body">
-          <button type="button" class="cmd big" disabled [title]="awaitingGeometryTools">
+          <!-- Which manipulator is on screen, not a mode over the whole view:
+               a plain click still selects and a drag in empty space still
+               orbits (ADR-0010). Three arrows and six face handles drawn at
+               once would be unreadable, so the two choose between them. -->
+          <button type="button" class="cmd big" [class.on]="gizmo.mode === 'move'"
+            [disabled]="!canModify" [title]="moveTitle" (click)="gizmo.setMode('move')">
             <mat-icon svgIcon="cursor-move" aria-hidden="true"></mat-icon><span>Move</span>
           </button>
-          <button type="button" class="cmd big" disabled [title]="awaitingGeometryTools">
+          <button type="button" class="cmd big" [class.on]="gizmo.mode === 'resize'"
+            [disabled]="!canModify || !gizmo.canResize" [title]="resizeTitle"
+            (click)="gizmo.setMode('resize')">
             <mat-icon svgIcon="arrow-top-right-bottom-left" aria-hidden="true"></mat-icon><span>Resize</span>
           </button>
-          <!-- Move and Resize are gestures and wait for the gizmo (#124); a
-               delete is a command over the selection and needs none. -->
           <button type="button" class="cmd big" [disabled]="selected.length === 0"
             [title]="deleteTitle" (click)="deleteSelection()">
             <mat-icon svgIcon="delete-outline" aria-hidden="true"></mat-icon><span>Delete</span>
@@ -105,14 +115,14 @@
 
       <section class="panel">
         <div class="panel-body column">
-          <button type="button" class="cmd wide" disabled [title]="awaitingGeometryTools">
-            <mat-icon svgIcon="checkbox-blank-outline" aria-hidden="true"></mat-icon><span>Grid</span>
-          </button>
-          <button type="button" class="cmd wide" disabled [title]="awaitingGeometryTools">
-            <mat-icon svgIcon="checkbox-blank-outline" aria-hidden="true"></mat-icon><span>Edge</span>
-          </button>
-          <button type="button" class="cmd wide" disabled [title]="awaitingGeometryTools">
-            <mat-icon svgIcon="checkbox-blank-outline" aria-hidden="true"></mat-icon><span>Corner</span>
+          <!-- Independently toggleable, in the manner of OSNAP, and listed in
+               the order a snap tries them. Ctrl suspends the lot for the
+               duration of one gesture. -->
+          <button type="button" class="cmd wide" *ngFor="let mode of snapModes"
+            [class.on]="snap.isOn(mode.id)" [title]="mode.title" (click)="snap.toggle(mode.id)">
+            <mat-icon [svgIcon]="snap.isOn(mode.id) ? 'checkbox-marked-outline' : 'checkbox-blank-outline'"
+              aria-hidden="true"></mat-icon>
+            <span>{{ mode.label }}</span>
           </button>
         </div>
         <div class="panel-title">Snap</div>

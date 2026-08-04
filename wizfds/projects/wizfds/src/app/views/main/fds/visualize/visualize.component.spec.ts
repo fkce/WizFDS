@@ -80,6 +80,8 @@ describe('VisualizeComponent', () => {
           provide: PickService,
           useValue: {
             picked$: new Subject(), pointerAt$: new Subject(),
+            // The gizmo stands on the selection and is told about it here (#124)
+            selection$: new BehaviorSubject([]),
             applyOwnPicks: true, setSelected: () => { }
           }
         }
@@ -182,6 +184,60 @@ describe('VisualizeComponent', () => {
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', bubbles: true }));
 
       expect(wall().xb.x1).toBe(0.5);
+    });
+  });
+
+  /**
+   * Delete on the selection (#124).
+   *
+   * No gesture behind it, which is why it needs no gizmo - and no confirmation
+   * either, because Ctrl+Z takes it straight back (ADR-0009).
+   */
+  describe('the Delete key', () => {
+    /** Press Delete as the document would deliver it. */
+    function pressDelete(target?: HTMLElement): void {
+      const event = new KeyboardEvent('keydown', { key: 'Delete', bubbles: true });
+      (target ?? document).dispatchEvent(event);
+    }
+
+    function obsts(): any[] {
+      return mainService.main.currentFdsScenario.fdsObject.geometry.obsts;
+    }
+
+    it('takes the selection out of the scenario', () => {
+      selection.select({ uuid: 'wall-uuid', type: 'obst' });
+
+      pressDelete();
+
+      expect(obsts().length).toBe(0);
+    });
+
+    it('is one entry in the history, and Ctrl+Z brings it back', () => {
+      selection.select({ uuid: 'wall-uuid', type: 'obst' });
+      pressDelete();
+
+      document.dispatchEvent(new KeyboardEvent(
+        'keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+
+      expect(obsts().length).toBe(1);
+      expect(obsts()[0].id).toBe('WALL');
+    });
+
+    it('does nothing at all with nothing selected', () => {
+      pressDelete();
+
+      expect(obsts().length).toBe(1);
+    });
+
+    it('leaves Delete alone in a field, where it removes a character', () => {
+      selection.select({ uuid: 'wall-uuid', type: 'obst' });
+      const field = document.createElement('input');
+      document.body.appendChild(field);
+
+      pressDelete(field);
+
+      expect(obsts().length).toBe(1);
+      document.body.removeChild(field);
     });
   });
 });

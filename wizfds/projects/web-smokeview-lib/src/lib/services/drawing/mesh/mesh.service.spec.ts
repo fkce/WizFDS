@@ -6,8 +6,11 @@ import { BabylonService } from '../../babylon/babylon.service';
 import { SceneRegistryService } from '../../babylon/scene-registry.service';
 import { SceneMesh, SceneXb } from '../scene-input';
 
+/** A quarter-metre grid - nothing here is drawn from it, but a mesh has one. */
+const CELL = { i: 0.25, j: 0.25, k: 0.25 };
+
 function makeMesh(id: string, xb: SceneXb): SceneMesh {
-  return { id: id, uuid: `${id}-uuid`, xb: xb };
+  return { id: id, uuid: `${id}-uuid`, xb: xb, cell: CELL };
 }
 
 describe('MeshService', () => {

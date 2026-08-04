@@ -1,4 +1,7 @@
-import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, isDevMode } from '@angular/core';
+import {
+  Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild,
+  HostListener, NgZone, isDevMode
+} from '@angular/core';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { PickService } from '../../services/picking/pick.service';
@@ -8,6 +11,10 @@ import { PlayerService } from '../../services/player/player.service';
 import { ViewCubeService } from '../../services/babylon/viewCube/view-cube.service';
 import * as BABYLON from 'babylonjs';
 import { SceneBoundsService } from '../../services/scene-bounds/scene-bounds.service';
+import {
+  GestureView, GizmoService, NUDGE_KEYS, NudgeKey, nudgeDirection
+} from '../../services/editing/gizmo.service';
+import { GestureKey } from '../../services/editing/gesture';
 
 /**
  * How far the pointer may travel between down and up and still count as a click,
@@ -20,6 +27,16 @@ const CLICK_SLOP = 5;
 
 /** PointerEvent.button for the left button - the only one that selects. */
 const PRIMARY_BUTTON = 0;
+
+/** PointerEvent.button for the middle button - the camera's (ADR-0012). */
+const MIDDLE_BUTTON = 1;
+
+/**
+ * Two middle presses this close together, in ms, are a double press - and a
+ * double middle press means zoom extents, as it has in AutoCAD for decades.
+ * Within CLICK_SLOP of each other, or it was a pan put down and picked up.
+ */
+const DOUBLE_PRESS_MS = 400;
 
 /**
  * The canvas, and the gestures made on it.
@@ -41,6 +58,27 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('mainContainer', { static: true }) mainContainer: ElementRef<HTMLCanvasElement>;
 
   /**
+   * What the dynamic input is showing, or null when no gesture is running.
+   *
+   * One of the overlays that belong to a gesture, which is why it is here and
+   * not in the host's ribbon (ADR-0010): it stands at the cursor, over the
+   * canvas, and only exists while the pointer is down.
+   */
+  gesture: GestureView | null = null;
+
+  /** What is in each field, as text - the user's, not the model's. */
+  values: Partial<Record<GestureKey, string>> = {};
+
+  /**
+   * The fields the keyboard has taken charge of.
+   *
+   * A field mid-typing reads as `-` or `1.`, and neither is a number yet - so
+   * the live value must not be written back over it while the mouse goes on
+   * moving. See GestureInput.type().
+   */
+  private editing = new Set<GestureKey>();
+
+  /**
    * Arm a possible click.
    *
    * Bound on the canvas in the template rather than on the host: the player
@@ -51,12 +89,25 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
    * silently clear the selection.
    */
   onPointerDown(event: PointerEvent): void {
+    // The pointer knows the truth about ctrl even when a keydown never
+    // reached this window - ctrl pressed with the focus elsewhere
+    this.gizmo.setCtrlHeld(event.ctrlKey);
     this.pointerDownAt = null;
 
     // No scene when the browser has no WebGPU - nothing to pick against
     if (!this.babylonService.scene) return;
 
-    // The left button selects; the right one pans and the middle one is nobody's
+    // The middle button is the camera's (ADR-0012). Babylon pans with it; the
+    // component only watches for the double press, which means zoom extents.
+    if (event.button === MIDDLE_BUTTON) {
+      // The browser's middle-click autoscroll would open its widget over the pan
+      event.preventDefault();
+      this.handleMiddlePress(event);
+      return;
+    }
+
+    // The left button selects and edits - the whole of it; the right one is
+    // reserved for a future context menu (ADR-0012)
     if (event.button !== PRIMARY_BUTTON) return;
 
     // Control camera. A click on the cube is the cube's, not a selection's.
@@ -66,7 +117,37 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    // A press on an arrow or a face handle starts a gesture; it is not a click
+    // at whatever stands behind it, and releasing it must not drop the very
+    // selection the gesture is about (#124).
+    if (this.gizmo.isPointerOnGizmo) return;
+
+    // Ctrl held as the gesture starts suspends snapping for the whole of it -
+    // and each press arms the latch afresh, so it never carries over
+    this.gizmo.setSnapSuspended(event.ctrlKey);
+
     this.pointerDownAt = { x: event.clientX, y: event.clientY };
+  }
+
+  /**
+   * The second middle press of a quick pair zooms to extents (ADR-0012).
+   *
+   * Counted by hand rather than read off PointerEvent.detail: the browsers
+   * disagree on whether a pointerdown carries a click count at all, and a pan
+   * put down and picked up somewhere else must not count as a pair - which is
+   * what the slop check is for.
+   */
+  private handleMiddlePress(event: PointerEvent): void {
+    const last = this.lastMiddleDown;
+    this.lastMiddleDown = { time: event.timeStamp, x: event.clientX, y: event.clientY };
+
+    if (last
+      && event.timeStamp - last.time < DOUBLE_PRESS_MS
+      && Math.hypot(event.clientX - last.x, event.clientY - last.y) <= CLICK_SLOP) {
+      // A third press starts a fresh pair, it does not extend this one
+      this.lastMiddleDown = null;
+      this.babylonService.zoomExtents();
+    }
   }
 
   /**
@@ -88,6 +169,9 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (!downAt || !this.babylonService.scene) return;
     if (Math.hypot(event.clientX - downAt.x, event.clientY - downAt.y) > CLICK_SLOP) return;
+
+    // A drag that stayed within the slop is still a drag, not a click
+    if (this.gizmo.isDragging) return;
 
     this.picking.pick(this.pickingRay(), { add: event.ctrlKey || event.shiftKey });
   }
@@ -116,6 +200,9 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
       // The pointer can have left, or the view been torn down, since the move
       if (this.destroyed || !this.babylonService.scene) { return; }
       this.picking.hover(this.pickingRay());
+      // The cube lights its own part from here - its ActionManager hover died
+      // with tuneForStaticScene(), which stopped Babylon picking on every move
+      this.viewCubeService.highlight(this.viewCubeService.pickSide());
     });
   }
 
@@ -124,6 +211,175 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     this.hoverQueued = false;
     this.pointerDownAt = null;
     this.picking.clearHover();
+    this.viewCubeService.highlight(null);
+  }
+
+  // ==========================================
+  // The dynamic input (#124)
+  // ==========================================
+
+  /**
+   * Ctrl suspends snapping, Escape abandons the gesture - and while a gesture
+   * runs, the keyboard IS the dynamic input.
+   *
+   * On the window rather than on the panel's fields, and the fields are never
+   * focused at all. They must not be: the canvas holds the focus during a
+   * drag, and Babylon answers the canvas's blur by synthesising a release of
+   * every held button (WebDeviceInputSystem._pointerBlurEvent) - so the moment
+   * anything steals the focus, the drag dies under the user's hand. Focusing
+   * the panel's field on gesture start was exactly that, and it is why a held
+   * drag ended two milliseconds after it began while a scripted one, over in
+   * one tick, never noticed. Typing therefore never touches DOM focus: keys
+   * are routed here, straight into the gesture (#124).
+   *
+   * Shift used to take the camera out of the left button's way here; since
+   * ADR-0012 the camera does not listen to the left button at all, so there
+   * is nothing to take it out of.
+   */
+  @HostListener('window:keydown', ['$event'])
+  onKeyDown(event: KeyboardEvent): void {
+    this.gizmo.setCtrlHeld(event.ctrlKey);
+    // Only ctrl's OWN fresh press suspends snapping: a held ctrl repeats its
+    // keydown, and every other key pressed while ctrl is down carries
+    // ctrlKey too - neither is the fresh press ADR-0011 means. What a held
+    // ctrl does to the NEXT gesture is decided at the grab, in
+    // GizmoService.begin().
+    if (event.key === 'Control' && !event.repeat) { this.gizmo.setSnapSuspended(true); }
+    if (event.key === 'Escape') { this.gizmo.cancel(); return; }
+
+    if (this.handleNudgeKey(event)) { return; }
+    if (this.gesture) { this.routeGestureKey(event); }
+  }
+
+  /**
+   * One press of a nudge key - the selection moves by one grid cell (#124).
+   *
+   * The arrows speak the camera's language, snapped to a world axis by
+   * nudgeDirection(); the camera itself lost the arrow keys to this (see
+   * BabylonService), so a stray press can never turn a set view. A burst of
+   * presses is one gesture: it settles when the last key comes up (onKeyUp),
+   * and Escape abandons it like any other. Nothing here fires while the user
+   * types in a form field of the host, or while the mouse owns the gesture.
+   */
+  private handleNudgeKey(event: KeyboardEvent): boolean {
+    if (!(NUDGE_KEYS as readonly string[]).includes(event.key)) { return false; }
+    if (this.gizmo.mode !== 'move') { return false; }
+    if (SmokeviewComponent.isFormField(event.target)) { return false; }
+    if (this.gesture && !this.gizmo.isNudging) { return false; }
+
+    // A repeat continues a burst - it never starts one. That is what lets
+    // Escape abandon a burst under a held key: the element stays put until
+    // the key is pressed afresh.
+    if (event.repeat && !this.gizmo.isNudging) {
+      event.preventDefault();
+      return true;
+    }
+
+    const camera = this.babylonService.camera;
+    if (!camera) { return false; }
+
+    // The camera's OWN up, taken into world space - not upVector, which this
+    // scene pins to the world's z and whose floor projection is nothing.
+    const move = nudgeDirection(
+      event.key as NudgeKey,
+      camera.getDirection(BABYLON.Vector3.Right()),
+      camera.getTarget().subtract(camera.position),
+      camera.getDirection(BABYLON.Vector3.Up()));
+    if (!move) { return false; }
+
+    event.preventDefault();
+    this.nudgeKeys.add(event.key);
+    this.gizmo.nudge(move.axis, move.direction);
+    return true;
+  }
+
+  /**
+   * One keystroke of the dynamic input.
+   *
+   * The AutoCAD contract: digits state the dimension, Tab moves along, Enter
+   * settles, Backspace corrects - all while the mouse goes on dragging. The
+   * first digit replaces what the mouse was showing rather than appending to
+   * it, exactly as a focused-and-selected field would have behaved.
+   */
+  private routeGestureKey(event: KeyboardEvent): void {
+    if (event.ctrlKey || event.metaKey || event.altKey) { return; }
+    const key = this.gesture.activeKey;
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.gizmo.commit();
+      return;
+    }
+
+    if (event.key === 'Tab') {
+      // The panel floats over a canvas; the next thing in the document order
+      // is not the next field
+      event.preventDefault();
+      this.gizmo.nextField();
+      return;
+    }
+
+    if (event.key === 'Backspace') {
+      event.preventDefault();
+      const trimmed = (this.values[key] ?? '').slice(0, -1);
+      this.applyTyped(key, trimmed);
+      return;
+    }
+
+    // The characters a coordinate is made of. Comma types as a decimal point -
+    // the numeric keypad of every Polish keyboard produces one.
+    if (/^[0-9.,+-]$/.test(event.key)) {
+      event.preventDefault();
+      const typed = event.key === ',' ? '.' : event.key;
+      const base = this.editing.has(key) ? (this.values[key] ?? '') : '';
+      this.applyTyped(key, base + typed);
+    }
+  }
+
+  /** Put one field's text where both the panel and the gesture read it. */
+  private applyTyped(key: GestureKey, text: string): void {
+    if (text === '') {
+      this.editing.delete(key);
+    } else {
+      this.editing.add(key);
+    }
+    this.values[key] = text;
+    this.gizmo.type(key, text);
+  }
+
+  /** Releasing ctrl asks for snapping back; a nudge burst settles here too. */
+  @HostListener('window:keyup', ['$event'])
+  onKeyUp(event: KeyboardEvent): void {
+    this.gizmo.setCtrlHeld(event.ctrlKey);
+    // Mid-gesture the latch says no (ADR-0011)
+    if (event.key === 'Control') { this.gizmo.setSnapSuspended(false); }
+
+    // The nudge burst settles when the last of its keys comes up
+    if (this.nudgeKeys.delete(event.key) && this.nudgeKeys.size === 0) {
+      this.gizmo.endNudge();
+    }
+  }
+
+  /** Alt-tab mid-burst: the keyup never arrives, so the burst settles here. */
+  @HostListener('window:blur')
+  onWindowBlur(): void {
+    this.nudgeKeys.clear();
+    this.gizmo.endNudge();
+  }
+
+  /** Show what the gesture is doing, without stepping on what is being typed. */
+  private onGesture(view: GestureView | null): void {
+    this.gesture = view;
+
+    if (!view) {
+      this.values = {};
+      this.editing.clear();
+      return;
+    }
+
+    view.fields
+      .filter(field => !this.editing.has(field.key))
+      .forEach(field => this.values[field.key] = field.value.toFixed(3));
   }
 
   /**
@@ -147,6 +403,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   webGPUAvailable: boolean = true;
 
   private sceneSub: Subscription;
+  private gestureSub: Subscription;
 
   /** Set in ngOnDestroy - createScene() is awaited and can outlive the view. */
   private destroyed = false;
@@ -161,19 +418,41 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   private pointerDownAt: { x: number, y: number } | null = null;
 
+  /** The nudge keys currently held - the burst commits when the last comes up. */
+  private readonly nudgeKeys = new Set<string>();
+
+  /** The previous middle press, while a second one could still pair with it. */
+  private lastMiddleDown: { time: number, x: number, y: number } | null = null;
+
   constructor(
     public picking: PickService,
     private babylonService: BabylonService,
     public sliceService: SliceService,
     public playerService: PlayerService,
     public viewCubeService: ViewCubeService,
-    private sceneBounds: SceneBoundsService
+    private sceneBounds: SceneBoundsService,
+    private gizmo: GizmoService,
+    private zone: NgZone
   ) { }
+
+  /** Whether a keystroke belongs to a form field rather than the scene. */
+  private static isFormField(target: EventTarget | null): boolean {
+    const element = target as HTMLElement | null;
+    if (!element || !element.tagName) { return false; }
+    return element.tagName === 'INPUT' || element.tagName === 'TEXTAREA'
+      || element.isContentEditable === true;
+  }
 
   ngOnInit() {
     // Decided on first paint, so an unsupported browser sees the message
     // straight away instead of after a failed engine initialisation.
     this.webGPUAvailable = BabylonService.isWebGPUSupported();
+
+    // A drag arrives from Babylon's own pointer handling, and the render loop
+    // runs outside the zone (see BabylonService.animate) - so the panel is
+    // brought back into it rather than trusting the frame to do it.
+    this.gestureSub = this.gizmo.gesture$.subscribe(view =>
+      this.zone.run(() => this.onGesture(view)));
   }
 
   async ngAfterViewInit() {
@@ -211,6 +490,9 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     this.destroyed = true;
     if (this.sceneSub) {
       this.sceneSub.unsubscribe();
+    }
+    if (this.gestureSub) {
+      this.gestureSub.unsubscribe();
     }
     // Tears down scene and engine, and resets every scene-scoped service
     this.babylonService.disposeScene();
