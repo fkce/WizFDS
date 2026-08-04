@@ -106,3 +106,19 @@ export function shiftedBox(xb: ElementBox, dx: number, dy: number, dz: number): 
         z1: xb.z1 + dz, z2: xb.z2 + dz
     };
 }
+
+/**
+ * The box reflected about the plane `axis = coordinate`, its min and max kept
+ * in order: the reflection of the near face is the far face of the mirror.
+ */
+export function mirroredBox(
+    xb: ElementBox, axis: 'x' | 'y' | 'z', coordinate: number
+): ElementBox {
+    const lo = 2 * coordinate - xb[`${axis}2`];
+    const hi = 2 * coordinate - xb[`${axis}1`];
+    return {
+        x1: axis === 'x' ? lo : xb.x1, x2: axis === 'x' ? hi : xb.x2,
+        y1: axis === 'y' ? lo : xb.y1, y2: axis === 'y' ? hi : xb.y2,
+        z1: axis === 'z' ? lo : xb.z1, z2: axis === 'z' ? hi : xb.z2
+    };
+}

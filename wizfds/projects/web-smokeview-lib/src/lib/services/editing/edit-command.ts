@@ -104,6 +104,20 @@ export interface SceneArrayCommand {
 }
 
 /**
+ * Mirror the selection about a plane perpendicular to one axis (#126).
+ *
+ * The plane is `axis = coordinate`. With `keepOriginal` the mirrored boxes are
+ * copies under fresh identities; without it the elements themselves move.
+ */
+export interface SceneMirrorCommand {
+    readonly kind: 'mirror',
+    readonly uuids: readonly string[],
+    readonly axis: 'x' | 'y' | 'z',
+    readonly coordinate: number,
+    readonly keepOriginal: boolean
+}
+
+/**
  * One edit, as the user meant it.
  *
  * A closed union rather than an open message: the app has to answer every kind
@@ -112,4 +126,4 @@ export interface SceneArrayCommand {
  */
 export type SceneEditCommand =
     SceneMoveCommand | SceneSetXbCommand | SceneCreateCommand | SceneDeleteCommand |
-    SceneCopyCommand | SceneArrayCommand;
+    SceneCopyCommand | SceneArrayCommand | SceneMirrorCommand;

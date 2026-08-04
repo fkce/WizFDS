@@ -3,7 +3,7 @@ import { Observable, Subject } from 'rxjs';
 
 import { ElementsService, FdsElementType, FoundElement } from '@services/elements/elements.service';
 import {
-  arrayCount, arraySlots, boxOf, ElementBox, isDrawnType, shiftedBox, withBox
+  arrayCount, arraySlots, boxOf, ElementBox, isDrawnType, mirroredBox, shiftedBox, withBox
 } from '@services/elements/element-geometry';
 import { MainService } from '@services/main/main.service';
 import { Main } from '@services/main/main';
@@ -19,7 +19,7 @@ import {
 } from '../../../../../web-smokeview-lib/src/lib/services/drawing/scene-change';
 import {
   SceneArrayCommand, SceneCopyCommand, SceneCreateCommand, SceneDeleteCommand, SceneEditCommand,
-  SceneMoveCommand, SceneSetXbCommand
+  SceneMirrorCommand, SceneMoveCommand, SceneSetXbCommand
 } from '../../../../../web-smokeview-lib/src/lib/services/editing/edit-command';
 import { SceneElementType, SceneXb } from '../../../../../web-smokeview-lib/src/lib/services/drawing/scene-input';
 
@@ -158,6 +158,7 @@ export class FdsEditService {
       case 'delete': return this.deletePatches(command);
       case 'copy': return this.copyPatches(command);
       case 'array': return this.arrayPatches(command);
+      case 'mirror': return this.mirrorPatches(command);
     }
   }
 
@@ -246,6 +247,22 @@ export class FdsEditService {
     });
 
     return this.clonePatches(clones);
+  }
+
+  private mirrorPatches(command: SceneMirrorCommand): ElementPatch[] {
+    const sources = this.sourcesOf(command.uuids);
+
+    if (command.keepOriginal) {
+      return this.clonePatches(sources.map(source => ({
+        found: source.found,
+        xb: mirroredBox(source.xb, command.axis, command.coordinate)
+      })));
+    }
+
+    // Dropping the original is the elements themselves moving - an edit, not
+    // a creation, and still one history entry however many were selected
+    return sources.map(source =>
+      this.editPatch(source.found, mirroredBox(source.xb, command.axis, command.coordinate)));
   }
 
   /** The elements a clone-producing command starts from, skipping what is gone. */
@@ -467,5 +484,7 @@ function labelFor(command: SceneEditCommand, patches: readonly ElementPatch[]): 
         * arrayCount(command.counts.y) * arrayCount(command.counts.z);
       return `Array of ${(patches.length / (per - 1)) * per}`;
     }
+    case 'mirror':
+      return patches.length > 1 ? `Mirror ${patches.length} elements` : 'Mirror';
   }
 }

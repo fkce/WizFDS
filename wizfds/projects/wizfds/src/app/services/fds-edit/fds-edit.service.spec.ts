@@ -381,6 +381,50 @@ describe('FdsEditService', () => {
     });
   });
 
+  describe('mirror', () => {
+    // w1 spans x 1..2; about the plane x=3 its reflection spans 4..5
+    it('reflects about a plane perpendicular to x, min and max kept in order', () => {
+      service.apply({ kind: 'mirror', uuids: ['w1'], axis: 'x', coordinate: 3, keepOriginal: true });
+
+      const copy: any = fds.geometry.obsts[2];
+      expect(copy.xb).toEqual(jasmine.objectContaining({ x1: 4, x2: 5, y1: 1, y2: 2 }));
+      expect(boxOf('w1').x1).toBe(1);
+    });
+
+    it('reflects about planes perpendicular to y and to z', () => {
+      service.apply({ kind: 'mirror', uuids: ['w1'], axis: 'y', coordinate: 0, keepOriginal: true });
+      service.apply({ kind: 'mirror', uuids: ['w1'], axis: 'z', coordinate: 3, keepOriginal: true });
+
+      expect((fds.geometry.obsts[2] as any).xb).toEqual(jasmine.objectContaining({ y1: -2, y2: -1 }));
+      expect((fds.geometry.obsts[3] as any).xb).toEqual(jasmine.objectContaining({ z1: 3, z2: 6 }));
+    });
+
+    it('gives a kept mirror a fresh identity, like any other copy', () => {
+      service.apply({ kind: 'mirror', uuids: ['w1'], axis: 'x', coordinate: 3, keepOriginal: true });
+
+      const copy: any = fds.geometry.obsts[2];
+      expect(copy.id).toBe('OBST3');
+      expect(copy.uuid).not.toBe('w1');
+    });
+
+    it('moves the elements themselves when the original is dropped', () => {
+      service.apply({ kind: 'mirror', uuids: ['w1'], axis: 'x', coordinate: 3, keepOriginal: false });
+
+      expect(fds.geometry.obsts.length).toBe(2);
+      expect(boxOf('w1')).toEqual(jasmine.objectContaining({ x1: 4, x2: 5 }));
+    });
+
+    it('is one step to undo either way', () => {
+      service.apply({ kind: 'mirror', uuids: ['w1', 'w2'], axis: 'x', coordinate: 3, keepOriginal: false });
+
+      service.undo();
+
+      expect(boxOf('w1').x1).toBe(1);
+      expect(boxOf('w2').x1).toBe(5);
+      expect(history.canUndo).toBe(false);
+    });
+  });
+
   describe('delete', () => {
     it('takes the element out of the scenario', () => {
       service.apply({ kind: 'delete', uuids: ['w1'] });
