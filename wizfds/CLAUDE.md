@@ -97,6 +97,7 @@ Rules that hold for every change in `backend/` (see `docs/adr/0013-*`, `docs/adr
 - **Writes to `/api/*` require the `X-Requested-With` header** (the CSRF guard); the Angular interceptor sets it.
 - **Schema changes go through a numbered migration** in `backend/db/migrations/`, never by hand on the server.
 - **`config.php` on the server is the real file, the one in the repository is a template** — includes resolve against the docroot (`require_once('./config.php')`), so never switch them to `__DIR__`.
+- **Account plumbing lives in `backend/lib/auth.php`** — password hashing (an application secret per address, kept outside the database, plus a per-user salt), the login rate limit, and reset tokens. Never re-implement the hashing inline; never start a session without stamping `$_SESSION['issued_at']`. See `docs/adr/0015-*`.
 - Verify a deploy with `backend/tests/smoke.sh <base-url>`.
 
 The web tier is stuck on PHP 7.4 because the host's PHP 8.2 build has no `pgsql` extension loaded — switching the `AddHandler` would break every database call. See `docs/ops/deploy.md` → Known issues.
