@@ -135,6 +135,7 @@ function main() {
 			$r->addRoute('GET'  , '/'      , 'getFrontPage');
 			$r->addRoute(['GET', 'POST']   , '/login'      , 'login');
 			$r->addRoute(['GET', 'POST']   , '/register'                     , 'register');
+			$r->addRoute(['GET', 'POST']   , '/reset'                        , 'resetPassword');
 			$r->addRoute('GET'  , '/{nothing:.+}'      , 'getFrontPage');
 		});
  	}

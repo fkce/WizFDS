@@ -3,11 +3,12 @@ require_once("config.php");
 require_once("db.php");
 require_once("lib/session.php");
 require_once("lib/logger.php");
+require_once("lib/auth.php");
 require_once("rest/utils.php");
 
 wizfds_session_start();
 
-function guidv4($data) 
+function guidv4($data)
 {
 	assert(strlen($data) == 16);
 
@@ -15,17 +16,31 @@ function guidv4($data)
 	$data[8] = chr(ord($data[8]) & 0x3f | 0x80); // set bits 6-7 to 10
 
 	return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
-} 
+}
+
+function loginError($message) {
+	echo "<div class='login-error'>". htmlspecialchars($message, ENT_QUOTES) ."</div>";
+}
+
+function loginNotice($message) {
+	echo "<div class='login-notice'>". htmlspecialchars($message, ENT_QUOTES) ."</div>";
+}
+
+function brandHeader($subtitle = '') {
+	$sub = $subtitle === '' ? '' : "<div class='brand-sub'>". htmlspecialchars($subtitle, ENT_QUOTES) ."</div>";
+	return "
+		<div class='brand'>
+			<span class='brand-name'>Wiz<span class='brand-accent'>FDS</span></span>
+			<span class='beta-chip'>beta</span>
+			$sub
+		</div>";
+}
 
 function loginForm() {
 	echo "
 	<form method='post' action=".$_SERVER['REQUEST_URI'].">
 	<div class='login'>
-		<div class='brand'>
-			<span class='brand-name'>Wiz<span class='brand-accent'>FDS</span></span>
-			<span class='beta-chip'>beta</span>
-			<div class='brand-sub'>GUI for Fire Dynamics Simulator</div>
-		</div>
+		". brandHeader('GUI for Fire Dynamics Simulator') ."
 		<div class='fields'>
 			<input type='email' name='email' placeholder='E-mail address'>
 			<input type='password' name='password' placeholder='Password'>
@@ -34,6 +49,7 @@ function loginForm() {
 			<input class='btn btn-primary' type='submit' name='check' value='Login'>
 			<input class='btn btn-ghost' type='submit' name='addUserShowForm' value='Register'>
 		</div>
+		<div class='form-links'><a href='/reset'>Forgot your password?</a></div>
 	</div>
 	</form>
 	";
@@ -44,10 +60,7 @@ function registerForm() {
 	echo "
 	<form method='post' action=".$_SERVER['REQUEST_URI'].">
 		<div class='register'>
-			<div class='brand'>
-				<span class='brand-name'>Wiz<span class='brand-accent'>FDS</span></span>
-				<span class='beta-chip'>beta</span>
-			</div>
+			". brandHeader() ."
 			<div class='form-title'>Register new user</div>
 			<div class='fields'>
 				<input type='text' name='userName' required placeholder='Name'>
@@ -55,10 +68,52 @@ function registerForm() {
 				<input onkeyup='checkPasswordMatch();' id='txtNewPassword' type='password' name='password' placeholder='Password'>
 				<input onkeyup='checkPasswordMatch();' id='txtConfirmPassword' type='password' name='password2' placeholder='Repeat password'>
 			</div>
+			<div class='form-hint'>At least ". WIZFDS_MIN_PASSWORD_LENGTH ." characters.</div>
 			<div class='g-recaptcha' data-sitekey='". $config->recaptchaPublic ."' data-theme='dark'></div>
 			<input type='hidden' name='makeRegister' value=1/>
 			<div class='actions'>
 				<input id='registerButton' class='btn btn-primary' type='submit' value='Register'>
+			</div>
+			<div id='divCheckPasswordMatch'></div>
+		</div>
+	</form>
+	";
+}
+
+function resetRequestForm() {
+	echo "
+	<form method='post' action='/reset'>
+		<div class='login'>
+			". brandHeader() ."
+			<div class='form-title'>Reset your password</div>
+			<div class='fields'>
+				<input type='email' name='email' required placeholder='E-mail address'>
+			</div>
+			<input type='hidden' name='makeResetRequest' value=1/>
+			<div class='actions'>
+				<input class='btn btn-primary' type='submit' value='Send reset link'>
+			</div>
+			<div class='form-links'><a href='/login'>Back to sign in</a></div>
+		</div>
+	</form>
+	";
+}
+
+function resetPasswordForm($token) {
+	echo "
+	<form method='post' action='/reset'>
+		<div class='login'>
+			". brandHeader() ."
+			<div class='form-title'>Choose a new password</div>
+			<div class='fields'>
+				<input onkeyup='checkPasswordMatch();' id='txtNewPassword' type='password' name='password' placeholder='New password'>
+				<input onkeyup='checkPasswordMatch();' id='txtConfirmPassword' type='password' name='password2' placeholder='Repeat new password'>
+			</div>
+			<div class='form-hint'>At least ". WIZFDS_MIN_PASSWORD_LENGTH ." characters.</div>
+			<input type='hidden' name='token' value='". htmlspecialchars($token, ENT_QUOTES) ."'/>
+			<input type='hidden' name='makeResetPassword' value=1/>
+			<div class='actions'>
+				<input id='registerButton' class='btn btn-primary' type='submit' value='Set new password'>
 			</div>
 			<div id='divCheckPasswordMatch'></div>
 		</div>
@@ -73,62 +128,56 @@ function check() {
 	$db = new Database();
 	$config = new Config();
 
-	if(!empty($_POST['email']) and !empty($_POST['password']) and wizfds_valid_email($_POST['email'])) {
+	$email = isset($_POST['email']) ? trim($_POST['email']) : '';
+	$password = isset($_POST['password']) ? $_POST['password'] : '';
 
-		// Select user data from db
-		$result = $db->pg_read("SELECT * from users where email = $1", array($_POST['email']));
-		if(!empty($result) and strlen($result[0]['password']) > 1) {
-			extract($result[0]);
+	if ($email === '' || $password === '' || !wizfds_valid_email($email)) {
+		loginError('Invalid e-mail or password. Try again.');
+		return;
+	}
 
-			// Generate new hashes for existing users with old algorithm
-			if($salt == "") {
-				// Generate user secret code
-				$userSecret = base64_encode(random_bytes(2048));
+	# Guessing budget spent: refuse before touching the password at all, so the
+	# answer costs an attacker the same whether or not the account exists.
+	if (wizfds_login_blocked($db, $email)) {
+		wizfds_log('warning', 'login blocked by rate limit', array('identifier' => strtolower($email)));
+		loginError('Too many attempts. Please wait ' . WIZFDS_ATTEMPT_WINDOW_MINUTES . ' minutes and try again.');
+		return;
+	}
 
-				// Concat strings and prepare salt
-				$appSecret = $config->getAppSecret($_POST['email']);
-				$stringToHash = $appSecret . $_POST['password'] . $userSecret;
-				$intermediateHashedString = hash('sha512', $stringToHash);
-				$len = strlen($intermediateHashedString);
-				$base256HashedString = '';
-				for ($i = 0; $i < $len; $i += 2) {
-					$base256HashedString .= chr(hexdec(substr($intermediateHashedString, $i, 2)));
-				}
+	# Addresses are unique regardless of case (migration 004), so match the same
+	# way - otherwise whoever registered with capitals cannot sign in without them.
+	$result = $db->pg_read("SELECT * from users where lower(email) = lower($1)", array($email));
 
-				// Generate final hash
-				$pass = password_hash($base256HashedString, PASSWORD_BCRYPT);
+	if (!empty($result)) {
+		$user = $result[0];
 
-				// Update user to database and return id
-				$result=$db->pg_change("UPDATE users set password = $1, salt = $2 where id = $3;", array($pass, $userSecret, $id));
+		# Accounts predating the salted scheme used to be handled by re-hashing
+		# whatever password was typed and then verifying against that - which
+		# accepted ANY password. They go through the reset link instead.
+		if ($user['salt'] === null || $user['salt'] === '') {
+			wizfds_log('warning', 'login attempt on an account with no salt', array('login_user_id' => $user['id']));
+		} else if (strlen($user['password']) > 1
+			&& wizfds_password_verify($config, $user['email'], $password, $user['salt'], $user['password'])) {
 
-				// Overwrite db values
-                $password = $pass;
-                $salt = $userSecret;
-			}
+			wizfds_record_attempt($db, 'login', $email, true);
+			wizfds_clear_failures($db, $email);
 
-			// Regenerate intermediate hash
-			$appSecret = $config->getAppSecret($_POST['email']);
-            $stringToHash = $appSecret . $_POST['password'] . $salt;
-            $intermediateHashedString = hash('sha512', $stringToHash);
-            $len = strlen($intermediateHashedString);
-            $base256HashedString = '';
-            for ($i = 0; $i < $len; $i += 2) {
-                $base256HashedString .= chr(hexdec(substr($intermediateHashedString, $i, 2)));
-            }
+			session_regenerate_id(True);
+			$_SESSION['user_id'] = $user['id'];
+			$_SESSION['email'] = $user['email'];
+			$_SESSION['editor'] = $user['editor'];
 
-			// Verify passwords
-            if(password_verify($base256HashedString, $password)) {
-				session_regenerate_id(True);
-				$_SESSION['user_id']="$id";
-				$_SESSION['email']="$email";
-				$_SESSION['editor']="$editor";
+			wizfds_log('info', 'login succeeded', array('login_user_id' => $user['id']));
 
-				header("Location: https://". $_SERVER['SERVER_NAME']);
-				return;
-			}
+			header("Location: https://". $_SERVER['SERVER_NAME']);
+			return;
 		}
 	}
-	echo "<div class='login-error'>Invalid e-mail or password. Try again.</div>";
+
+	wizfds_record_attempt($db, 'login', $email, false);
+	wizfds_log('warning', 'login failed', array('identifier' => strtolower($email)));
+
+	loginError('Invalid e-mail or password. Try again.');
 }
 
 function makeRegister() {
@@ -136,11 +185,10 @@ function makeRegister() {
 	$config = new Config();
 
 	// Recaptcha implementation
-	$response = $_POST["g-recaptcha-response"];
 	$url = 'https://www.google.com/recaptcha/api/siteverify';
 	$data = array(
 		'secret' => $config->recaptchaSecret,
-		'response' => $_POST["g-recaptcha-response"]
+		'response' => isset($_POST["g-recaptcha-response"]) ? $_POST["g-recaptcha-response"] : ''
 	);
 	$options = array(
 		'http' => array (
@@ -149,65 +197,165 @@ function makeRegister() {
 		)
 	);
 	$context  = stream_context_create($options);
-	$verify = file_get_contents($url, false, $context);
+	$verify = @file_get_contents($url, false, $context);
 	$captcha_success = json_decode($verify);
 
 	// Check if a boot register user
-	if ($captcha_success->success==false) {
+	if (!isset($captcha_success->success) || $captcha_success->success == false) {
 		echo "<p style='text-align: center;'>You are a bot! Go away!</p>";
-	} else if ($captcha_success->success==true) {
-
-		// Check if send data are not empty
-		if(!empty($_POST['email']) and !empty($_POST['password'])) {
-
-			// The address becomes a directory name under usersPath, so it has to be
-			// a real address and nothing that could climb out of that directory.
-			if(!wizfds_valid_email($_POST['email'])) {
-				echo "<div class='login-error'>Invalid e-mail address.</div>";
-				return;
-			}
-
-			// Check if user e-mail already exists
-			$result = $db->pg_read("SELECT * from users where email=$1", array($_POST['email']));
-			if(!empty($result)) {
-				echo $_POST['email']." already exists.<br>";
-				exit();
-			}
-
-			// Create user home folder
-			wizfds_ensure_dir(wizfds_user_dir($config, $_POST['email']));
-
-			// Salt and hash user password
-			// Generate user secret code
-			$userSecret = base64_encode(random_bytes(2048));
-
-			// Concat strings and prepare salt
-            $appSecret = $config->getAppSecret($_POST['email']);
-            $stringToHash = $appSecret . $_POST['password'] . $userSecret;
-            $intermediateHashedString = hash('sha512', $stringToHash);
-            $len = strlen($intermediateHashedString);
-            $base256HashedString = '';
-            for ($i = 0; $i < $len; $i += 2) {
-                $base256HashedString .= chr(hexdec(substr($intermediateHashedString, $i, 2)));
-            }
-
-			// Generate final hash
-			$pass = password_hash($base256HashedString, PASSWORD_BCRYPT);
-
-			// Add user to database and return id
-			$result=$db->pg_create("INSERT INTO users (email, password, salt, editor, websocket_host, websocket_port, username) values($1, $2, $3, $4, $5, $6, $7) returning id;", array($_POST['email'], $pass, $userSecret, 'default', 'localhost', 2012, $_POST['userName']));
-			$user_id = $result[0]['id'];
-
-			// Create default categories
-			$result=$db->pg_create("INSERT INTO categories (user_id, label, active, visible, uuid) values($1, $2, $3, $4, $5);", array($user_id, 'current', true, true, guidv4(random_bytes(16))));
-			$result=$db->pg_create("INSERT INTO categories (user_id, label, active, visible, uuid) values($1, $2, $3, $4, $5);", array($user_id, 'archive', true, true, guidv4(random_bytes(16))));
-			$result=$db->pg_create("INSERT INTO categories (user_id, label, active, visible, uuid) values($1, $2, $3, $4, $5);", array($user_id, 'finished', true, true, guidv4(random_bytes(16))));
-
-			$headers = "From: wizfds@wizfds.com\r\nReply-To: wizfds@wizfds.com";
-			mail("mateusz.fliszkiewicz@fkce.pl", "New WizFDS user registered", "$_POST[email] has registered in WizFDS!", $headers);
-
-		}
+		return false;
 	}
+
+	$email = isset($_POST['email']) ? trim($_POST['email']) : '';
+	$password = isset($_POST['password']) ? $_POST['password'] : '';
+	$password2 = isset($_POST['password2']) ? $_POST['password2'] : '';
+
+	if ($email === '' || $password === '') {
+		return false;
+	}
+
+	// The address becomes a directory name under usersPath, so it has to be
+	// a real address and nothing that could climb out of that directory.
+	if (!wizfds_valid_email($email)) {
+		loginError('Invalid e-mail address.');
+		return false;
+	}
+
+	if ($password !== $password2) {
+		loginError('Passwords do not match.');
+		return false;
+	}
+
+	$problem = wizfds_password_problem($password, $email);
+	if ($problem !== null) {
+		loginError($problem);
+		return false;
+	}
+
+	// Check if user e-mail already exists. The unique index on lower(email)
+	// (migration 004) is what actually settles a race between two sign-ups.
+	$result = $db->pg_read("SELECT id from users where lower(email) = lower($1)", array($email));
+	if (!empty($result)) {
+		loginError($email . ' already exists.');
+		return false;
+	}
+
+	// Create user home folder
+	wizfds_ensure_dir(wizfds_user_dir($config, $email));
+
+	$salt = wizfds_new_salt();
+	$pass = wizfds_password_make($config, $email, $password, $salt);
+
+	try {
+		$result = $db->pg_create("INSERT INTO users (email, password, salt, editor, websocket_host, websocket_port, username) values($1, $2, $3, $4, $5, $6, $7) returning id;", array($email, $pass, $salt, 'default', 'localhost', 2012, isset($_POST['userName']) ? $_POST['userName'] : ''));
+	} catch (Throwable $e) {
+		loginError($email . ' already exists.');
+		return false;
+	}
+
+	$user_id = $result[0]['id'];
+
+	// Create default categories
+	foreach (array('current', 'archive', 'finished') as $label) {
+		$db->pg_create("INSERT INTO categories (user_id, label, active, visible, uuid) values($1, $2, $3, $4, $5);", array($user_id, $label, true, true, guidv4(random_bytes(16))));
+	}
+
+	wizfds_log('info', 'account registered', array('login_user_id' => $user_id));
+
+	$headers = "From: wizfds@wizfds.com\r\nReply-To: wizfds@wizfds.com";
+	mail("mateusz.fliszkiewicz@fkce.pl", "New WizFDS user registered", $email . " has registered in WizFDS!", $headers);
+
+	return true;
+}
+
+function makeResetRequest() {
+	$db = new Database();
+	$email = isset($_POST['email']) ? trim($_POST['email']) : '';
+
+	# The answer never changes, whether or not the address has an account -
+	# otherwise this form becomes a way to ask who is registered.
+	$neutral = 'If that address has an account, a reset link is on its way. The link is valid for '
+		. WIZFDS_RESET_TTL_MINUTES . ' minutes.';
+
+	if ($email === '' || !wizfds_valid_email($email)) {
+		loginNotice($neutral);
+		echo "<div class='form-links'><a href='/login'>Back to sign in</a></div>";
+		return;
+	}
+
+	if (wizfds_reset_requests_exhausted($db, $email)) {
+		wizfds_log('warning', 'password reset rate limited', array('identifier' => strtolower($email)));
+		loginNotice($neutral);
+		echo "<div class='form-links'><a href='/login'>Back to sign in</a></div>";
+		return;
+	}
+
+	wizfds_record_attempt($db, 'reset', $email, true);
+
+	$result = $db->pg_read("select id, email from users where lower(email) = lower($1)", array($email));
+
+	if (!empty($result)) {
+		$user = $result[0];
+		$token = wizfds_create_reset_token($db, $user['id']);
+		$link = 'https://' . $_SERVER['SERVER_NAME'] . '/reset?token=' . $token;
+
+		$body = "Someone asked to reset the password for your WizFDS account.\r\n\r\n"
+			. $link . "\r\n\r\n"
+			. "The link is valid for " . WIZFDS_RESET_TTL_MINUTES . " minutes and can be used once.\r\n"
+			. "If this was not you, ignore this message - your password stays as it is.\r\n";
+
+		mail($user['email'], 'WizFDS password reset', $body, "From: wizfds@wizfds.com\r\nReply-To: wizfds@wizfds.com");
+
+		wizfds_log('info', 'password reset requested', array('login_user_id' => $user['id']));
+	} else {
+		wizfds_log('info', 'password reset requested for unknown address', array('identifier' => strtolower($email)));
+	}
+
+	loginNotice($neutral);
+	echo "<div class='form-links'><a href='/login'>Back to sign in</a></div>";
+}
+
+function makeResetPassword() {
+	$db = new Database();
+	$config = new Config();
+
+	$token = isset($_POST['token']) ? $_POST['token'] : '';
+	$password = isset($_POST['password']) ? $_POST['password'] : '';
+	$password2 = isset($_POST['password2']) ? $_POST['password2'] : '';
+
+	$user = wizfds_reset_token_user($db, $token);
+	if ($user === null) {
+		wizfds_log('warning', 'password reset with an invalid or expired link');
+		loginError('This reset link is no longer valid. Ask for a new one.');
+		resetRequestForm();
+		return;
+	}
+
+	if ($password !== $password2) {
+		loginError('Passwords do not match.');
+		resetPasswordForm($token);
+		return;
+	}
+
+	$problem = wizfds_password_problem($password, $user['email']);
+	if ($problem !== null) {
+		loginError($problem);
+		resetPasswordForm($token);
+		return;
+	}
+
+	# A fresh salt, so the new password shares nothing with the old one.
+	$salt = wizfds_new_salt();
+	$hash = wizfds_password_make($config, $user['email'], $password, $salt);
+
+	$db->pg_change("update users set password = $1, salt = $2, session_id = '' where id = $3", array($hash, $salt, $user['id']));
+	wizfds_burn_reset_token($db, $user['reset_id']);
+	wizfds_clear_failures($db, $user['email']);
+
+	wizfds_log('info', 'password reset completed', array('login_user_id' => $user['id']));
+
+	loginNotice('Your password has been changed. You can sign in now.');
+	echo "<div class='form-links'><a href='/login'>Go to sign in</a></div>";
 }
 
 # signin demo user
@@ -249,10 +397,21 @@ if(!isset($_SESSION['email'])) {
 	<body>
 	<div class='auth-shell'>
 	";
-	if(isset($_REQUEST['check'])) { check(); } 
-	if(isset($_REQUEST['makeRegister'])) { makeRegister(); check(); } 
-	if(isset($_REQUEST['addUserShowForm'])) { registerForm(); } 
-	else { loginForm(); }
+
+	if(isset($_REQUEST['makeResetPassword'])) { makeResetPassword(); }
+	else if(isset($_REQUEST['makeResetRequest'])) { makeResetRequest(); }
+	else if(isset($_GET['token'])) { resetPasswordForm($_GET['token']); }
+	else if(isset($_REQUEST['wizfdsReset'])) { resetRequestForm(); }
+	else {
+		if(isset($_REQUEST['check'])) { check(); }
+		# Signing the new account straight in, as before - but only when the
+		# registration actually went through, so a rejected sign-up no longer
+		# collects an "invalid e-mail or password" on top of its own message.
+		if(isset($_REQUEST['makeRegister']) && makeRegister()) { check(); }
+		if(isset($_REQUEST['addUserShowForm'])) { registerForm(); }
+		else { loginForm(); }
+	}
+
 	echo "
 	<div class='login-support'>Support: mateusz.fliszkiewicz @ fkce.pl</div>
 	</div>
@@ -273,7 +432,7 @@ if(!isset($_SESSION['email'])) {
 	</body>
 	</html>
 	";
-} 
+}
 else {
 	header("Location: https://". $_SERVER['SERVER_NAME']);
 }

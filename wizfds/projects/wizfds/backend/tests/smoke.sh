@@ -65,8 +65,30 @@ assert_body_lacks 'GET /api/settings bez sesji nie wydaje danych' '"from":"getSe
 
 # Logowanie zlym haslem musi wrocic formularzem z komunikatem, a nie 500 -
 # check() siega po polaczenie z baza i to wlasnie tam pekalo.
+# Adres jest unikalny dla kazdego przebiegu, zeby limit prob nie zliczal sie
+# miedzy uruchomieniami skryptu.
+ONE_OFF="smoke-$$-$(date +%s)@example.com"
 assert_body_contains 'POST /login ze zlym haslem odrzuca lagodnie' 'Invalid e-mail or password' \
-  -X POST -d 'check=Login&email=nobody@example.com&password=wrong-on-purpose' "$BASE/login"
+  -X POST -d "check=Login&email=$ONE_OFF&password=wrong-on-purpose" "$BASE/login"
+
+head1 'Limit prob logowania'
+
+# Po wyczerpaniu budzetu prob backend ma odmawiac zanim w ogole dotknie hasla.
+LOCK_EMAIL="smoke-lock-$$-$(date +%s)@example.com"
+for _ in 1 2 3 4 5; do
+  "${CURL[@]}" -o /dev/null -X POST -d "check=Login&email=$LOCK_EMAIL&password=wrong" "$BASE/login"
+done
+assert_body_contains 'po serii prob konto jest chwilowo zablokowane' 'Too many attempts' \
+  -X POST -d "check=Login&email=$LOCK_EMAIL&password=wrong" "$BASE/login"
+
+head1 'Reset hasla'
+
+assert_body_contains 'GET /reset pokazuje formularz' 'Reset your password' "$BASE/reset"
+assert_body_contains 'zgloszenie resetu nie zdradza czy konto istnieje' 'If that address has an account' \
+  -X POST -d "makeResetRequest=1&email=$ONE_OFF" "$BASE/reset"
+assert_body_contains 'zmyslony token jest odrzucany' 'no longer valid' \
+  -X POST -d 'makeResetPassword=1&token=nieistniejacy&password=abcdefghij&password2=abcdefghij' "$BASE/reset"
+assert_body_contains 'formularz logowania linkuje do resetu' '/reset' "$BASE/login"
 
 head1 'Ciasteczko sesji'
 
