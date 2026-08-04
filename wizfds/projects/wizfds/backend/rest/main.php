@@ -27,13 +27,13 @@ function login() {
 }
 
 function register() {
-	session_destroy(); $_SESSION=""; session_name("wizfds"); session_start();  
+	wizfds_session_reset();
 	$_REQUEST['addUserShowForm'] = '';
 	include("login.php");
 }
 
 function logout() {
-	session_destroy(); $_SESSION=''; session_start();
+	wizfds_session_reset();
 	header("Location: /");
 }
 
@@ -94,7 +94,8 @@ function updateSettings($args) {
 		else {
 			echo json_encode($res->createResponse("error", array("Server error! Settings not updated"), $data));
 		}
-	} catch(Exception $e) {
+	} catch(Throwable $e) {
+		wizfds_log('error', 'handler failed', array('error' => $e->getMessage()));
 		echo json_encode($res->createResponse("error", array("Server error! Settings not updated"), $data));
 	}
 }
