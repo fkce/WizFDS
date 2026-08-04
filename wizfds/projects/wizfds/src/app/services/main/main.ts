@@ -1,7 +1,6 @@
 import { Project } from '@services/project/project';
 import { FdsScenario } from '@services/fds-scenario/fds-scenario';
 import { Category } from '@services/category/category';
-import { environment } from '@env/environment';
 
 import { toString } from 'lodash';
 
@@ -80,7 +79,10 @@ export class Main {
         this.settings = {
             userName: base.userName || '',
             editor: base.editor || 'normal',
-            hostAddress: base.hostAddress || environment.host,
+            // Always call the API on the current origin - the app is served from the
+            // same host as the backend (wizfds.com and app.wizfds.com alike), and the
+            // hostAddress stored in the database must not redirect calls cross-origin.
+            hostAddress: '',
             email: base.email || '',
             tooltips: (toString(base.tooltips) == 't' || base.tooltips == true) ? true : false
         }
