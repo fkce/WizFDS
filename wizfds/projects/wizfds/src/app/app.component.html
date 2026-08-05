@@ -20,9 +20,20 @@
   <!-- Instrument status bar -->
   <footer class="shell-statusbar" *ngIf="main">
     <div class="status-left">
-      <span class="status-seg cad-file" *ngIf="main.currentFdsScenario != undefined && main.currentFdsScenario.acFile != '' && main.currentFdsScenario.acPath">
+      <!--
+        The one field on the bar that gives up space. Every readout beside it has
+        a slot measured to its widest value, so when the window narrows this is
+        what shrinks - the directory first and the filename only once the
+        directory is gone, because two drawings in one folder differ by the
+        filename alone. The whole path is in the tooltip either way, so nothing
+        is only ever half-visible.
+      -->
+      <span class="status-seg cad-file"
+        [matTooltip]="main.currentFdsScenario.acPath + main.currentFdsScenario.acFile"
+        matTooltipPosition="above"
+        *ngIf="main.currentFdsScenario != undefined && main.currentFdsScenario.acFile != '' && main.currentFdsScenario.acPath">
         <mat-icon svgIcon="vector-square" aria-hidden="true"></mat-icon>
-        <span class="mono">{{ main.currentFdsScenario.acPath }}{{ main.currentFdsScenario.acFile }}</span>
+        <span class="mono path-readout"><span class="path">{{ main.currentFdsScenario.acPath }}</span><span class="file">{{ main.currentFdsScenario.acFile }}</span></span>
       </span>
       <span class="status-seg muted" *ngIf="!(main.currentFdsScenario != undefined && main.currentFdsScenario.acFile != '' && main.currentFdsScenario.acPath)">
         <mat-icon svgIcon="vector-square" aria-hidden="true"></mat-icon>
@@ -34,29 +45,58 @@
         everywhere else, and dashed rather than gone while the pointer is over
         empty space - it crosses a lot of it, and a segment coming and going
         with it would reflow the row several times a second (ADR-0010).
+
+        Each axis sits in a slot of its own so the decimal points stand in one
+        column and the digits do not dance as the pointer moves. The dashed
+        variant reuses the same slots, so the segment keeps its width.
       -->
       <ng-container *ngIf="viewportStatus.active">
         <span class="status-seg cursor">
           <mat-icon svgIcon="axis-arrow" aria-hidden="true"></mat-icon>
           <span class="mono" *ngIf="viewportStatus.cursor; else noCursor">
-            {{ viewportStatus.cursor.x | number:'1.2-2' }},
-            {{ viewportStatus.cursor.y | number:'1.2-2' }},
-            {{ viewportStatus.cursor.z | number:'1.2-2' }} m
+            <span class="axis">{{ viewportStatus.cursor.x | number:'1.2-2' }}</span>,
+            <span class="axis">{{ viewportStatus.cursor.y | number:'1.2-2' }}</span>,
+            <span class="axis">{{ viewportStatus.cursor.z | number:'1.2-2' }}</span> m
           </span>
-          <ng-template #noCursor><span class="mono muted">—, —, — m</span></ng-template>
+          <ng-template #noCursor>
+            <span class="mono muted">
+              <span class="axis">—</span>,
+              <span class="axis">—</span>,
+              <span class="axis">—</span> m
+            </span>
+          </ng-template>
         </span>
 
+        <!--
+          Three states, not two. `grid` is null both when the pointer is over
+          nothing and when the scenario has no &MESH at all, and those are
+          different things to say: no reading is dashes, like the coordinates
+          beside it; no mesh is a sentence. Saying "no &MESH here" the moment
+          the pointer left the model claimed something untrue about the model.
+        -->
         <span class="status-seg grid">
           <mat-icon svgIcon="grid" aria-hidden="true"></mat-icon>
-          <span class="mono" *ngIf="viewportStatus.grid; else noGrid">
-            {{ viewportStatus.grid.id }}
-            <span class="muted">
-              {{ viewportStatus.grid.cell.i | number:'1.2-3' }} ×
-              {{ viewportStatus.grid.cell.j | number:'1.2-3' }} ×
-              {{ viewportStatus.grid.cell.k | number:'1.2-3' }} m
+          <span class="grid-readout" *ngIf="viewportStatus.grid; else gridAbsent">
+            <span class="mesh-id" [matTooltip]="viewportStatus.grid.id" matTooltipPosition="above">{{ viewportStatus.grid.id }}</span>
+            <span class="cells muted">
+              <span class="cell">{{ viewportStatus.grid.cell.i | number:'1.2-3' }}</span> ×
+              <span class="cell">{{ viewportStatus.grid.cell.j | number:'1.2-3' }}</span> ×
+              <span class="cell">{{ viewportStatus.grid.cell.k | number:'1.2-3' }}</span> m
             </span>
           </span>
-          <ng-template #noGrid><span class="mono muted">no &amp;MESH here</span></ng-template>
+          <ng-template #gridAbsent>
+            <span class="grid-readout muted" *ngIf="viewportStatus.cursor; else gridNoReading">no &amp;MESH here</span>
+            <ng-template #gridNoReading>
+              <span class="grid-readout muted">
+                <span class="mesh-id">—</span>
+                <span class="cells">
+                  <span class="cell">—</span> ×
+                  <span class="cell">—</span> ×
+                  <span class="cell">—</span> m
+                </span>
+              </span>
+            </ng-template>
+          </ng-template>
         </span>
 
         <!--
@@ -71,18 +111,34 @@
       </ng-container>
     </div>
 
+    <!--
+      Every label a segment can show is in the DOM at once, stacked in one grid
+      cell with the inactive ones hidden. The segment is therefore always as wide
+      as its longest label, measured by the browser rather than guessed in rem -
+      "Saved" swapping to the longest label used to shove the CAD link and the
+      version number sideways. The three are kept close in length on purpose:
+      the labels stay left-aligned against their dot, so whatever a short state
+      leaves over sits at the end where a long label would have been.
+      `visibility: hidden` also keeps the labels that are not showing out of the
+      accessibility tree.
+    -->
     <div class="status-right">
       <span class="status-seg save" [ngClass]="saveState"
         *ngIf="main.currentFdsScenario != undefined">
         <i class="dot"></i>
-        <span *ngIf="saveState === 'saved'">Saved</span>
-        <span *ngIf="saveState === 'unsaved'">Unsaved changes</span>
-        <span *ngIf="saveState === 'idle'">Autosave on</span>
+        <span class="label-stack">
+          <span [class.on]="saveState === 'saved'">Saved</span>
+          <span [class.on]="saveState === 'unsaved'">Unsaved</span>
+          <span [class.on]="saveState === 'idle'">Autosave on</span>
+        </span>
       </span>
 
       <span class="status-seg cad-link" [class.connected]="websocketService.isConnected">
         <i class="dot"></i>
-        <span>{{ websocketService.isConnected ? 'CAD connected' : 'CAD offline' }}</span>
+        <span class="label-stack">
+          <span [class.on]="websocketService.isConnected">CAD connected</span>
+          <span [class.on]="!websocketService.isConnected">CAD offline</span>
+        </span>
       </span>
 
       <span class="status-seg version mono">WizFDS <span class="ver-num">v{{ version }}</span></span>

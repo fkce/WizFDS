@@ -68,6 +68,13 @@ dla VENT-a płaszczyznę prostokąta, dla brył tylko wysokość podstawy
 (podstawa bryły jest zawsze pozioma).
 _Avoid_: projekcja kursora, raycast na podłogę (opisowo)
 
+**Aktywna siatka**:
+Siatka &MESH, do której zaokrągli się edycja w danym punkcie: najdrobniejsza
+z siatek zawierających punkt, a poza nimi wszystkimi — najbliższa. Rozstrzyga
+i snap, i to, co nazywa pasek stanu. Brak odczytu (kursor w pustce) to co
+innego niż brak siatki (kursor na modelu, scenariusz bez &MESH).
+_Avoid_: siatka pod kursorem (poza siatkami nadal jakaś obowiązuje)
+
 **Bieżący SURF**:
 Selektor w panelu Draw — odpowiednik warstwy bieżącej AutoCAD-a. Nowy
 element dostaje wskazany &SURF w chwili zatwierdzenia; pozycja INERT nie
