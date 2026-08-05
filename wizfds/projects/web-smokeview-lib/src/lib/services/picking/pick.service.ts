@@ -163,6 +163,8 @@ export class PickService implements SceneScoped {
 
   /** The highlight boxes drawn over the selection, and the one over the hover. */
   private readonly selectionMeshes = new Map<string, BABYLON.Mesh>();
+  /** The outlines of boxes that do not exist yet - an array or mirror preview (#126). */
+  private ghostMeshes: BABYLON.Mesh[] = [];
   private hoverMesh: BABYLON.Mesh;
   private selectionMaterial: BABYLON.StandardMaterial;
   private hoverMaterial: BABYLON.StandardMaterial;
@@ -210,6 +212,8 @@ export class PickService implements SceneScoped {
   /** Release everything tied to the scene that has just been disposed. */
   public resetSceneState(): void {
     this.selectionMeshes.clear();
+    // The ghosts died with the scene - only the list is left to drop
+    this.ghostMeshes = [];
     this.hoverMesh = undefined;
     this.selectionMaterial = undefined;
     this.hoverMaterial = undefined;
@@ -377,6 +381,27 @@ export class PickService implements SceneScoped {
    */
   public endPreview(): void {
     this.redrawSelection();
+  }
+
+  /**
+   * Show where a clone-producing command would put its copies (#126).
+   *
+   * Boxes and nothing else: the elements do not exist yet, so there is no uuid
+   * to address them by. The app redraws the set on every change of the
+   * builder's numbers and clears it when the builder closes.
+   */
+  public previewGhosts(boxes: readonly SceneXb[]): void {
+    this.clearGhosts();
+    if (!this.babylonService.scene) { return; }
+
+    this.ghostMeshes = boxes.map((xb, index) =>
+      this.outlineBox(xb, `ghost_${index}`, SELECTED_COLOR, SELECTED_ALPHA));
+  }
+
+  /** Take the ghost outlines down. */
+  public clearGhosts(): void {
+    this.ghostMeshes.forEach(mesh => mesh.dispose());
+    this.ghostMeshes = [];
   }
 
   /**

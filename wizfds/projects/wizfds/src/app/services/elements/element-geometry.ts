@@ -71,3 +71,54 @@ export function withBox(type: FdsElementType, json: any, xb: ElementBox): any {
     }
     return { ...json, xb: { ...xb } };
 }
+
+/** A count that means anything: a whole number, at least one. */
+export function arrayCount(count: number): number {
+    return Math.max(1, Math.floor(count || 1));
+}
+
+/**
+ * Every slot of a rectangular array except the original's, as index triples.
+ *
+ * Shared by the command that creates the copies and the ribbon preview that
+ * shows them, so the ghosts stand exactly where the array will (#126).
+ */
+export function arraySlots(
+    counts: { x: number, y: number, z: number }
+): Array<{ ix: number, iy: number, iz: number }> {
+    const slots: Array<{ ix: number, iy: number, iz: number }> = [];
+    for (let ix = 0; ix < arrayCount(counts.x); ix++) {
+        for (let iy = 0; iy < arrayCount(counts.y); iy++) {
+            for (let iz = 0; iz < arrayCount(counts.z); iz++) {
+                if (ix === 0 && iy === 0 && iz === 0) { continue; }
+                slots.push({ ix: ix, iy: iy, iz: iz });
+            }
+        }
+    }
+    return slots;
+}
+
+/** The same box, shifted. */
+export function shiftedBox(xb: ElementBox, dx: number, dy: number, dz: number): ElementBox {
+    return {
+        x1: xb.x1 + dx, x2: xb.x2 + dx,
+        y1: xb.y1 + dy, y2: xb.y2 + dy,
+        z1: xb.z1 + dz, z2: xb.z2 + dz
+    };
+}
+
+/**
+ * The box reflected about the plane `axis = coordinate`, its min and max kept
+ * in order: the reflection of the near face is the far face of the mirror.
+ */
+export function mirroredBox(
+    xb: ElementBox, axis: 'x' | 'y' | 'z', coordinate: number
+): ElementBox {
+    const lo = 2 * coordinate - xb[`${axis}2`];
+    const hi = 2 * coordinate - xb[`${axis}1`];
+    return {
+        x1: axis === 'x' ? lo : xb.x1, x2: axis === 'x' ? hi : xb.x2,
+        y1: axis === 'y' ? lo : xb.y1, y2: axis === 'y' ? hi : xb.y2,
+        z1: axis === 'z' ? lo : xb.z1, z2: axis === 'z' ? hi : xb.z2
+    };
+}

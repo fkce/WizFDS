@@ -293,7 +293,8 @@
     text-transform: uppercase;
     color: var(--on-surface-muted);
   }
-  select {
+  select,
+  input {
     width: 7rem;
     height: 1.5rem;
     min-height: 1.5rem;

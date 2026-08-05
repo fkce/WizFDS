@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 
 import { RibbonComponent } from './ribbon.component';
 import { MainService } from '@services/main/main.service';
+import { HistoryService } from '@services/history/history.service';
 import { SelectionService } from '@services/selection/selection.service';
 import { FdsEditService } from '@services/fds-edit/fds-edit.service';
 import { FdsScenario } from '@services/fds-scenario/fds-scenario';
@@ -89,6 +90,138 @@ describe('RibbonComponent', () => {
     return Array.from<HTMLElement>(fixture.nativeElement.querySelectorAll('.tab'))
       .map(tab => tab.textContent.trim());
   }
+
+  /** The command button carrying this label. */
+  function cmd(label: string): HTMLButtonElement {
+    return Array.from<HTMLButtonElement>(fixture.nativeElement.querySelectorAll('button.cmd'))
+      .find(button => button.textContent.trim() === label);
+  }
+
+  describe('the Modify panel (#126)', () => {
+    it('arms the gizmo to copy on the next gesture', () => {
+      const gizmo = TestBed.inject(GizmoService);
+      selection.select({ uuid: 'wall-uuid', type: 'obst' });
+      fixture.detectChanges();
+
+      cmd('Copy').click();
+
+      expect(gizmo.isCopyArmed).toBe(true);
+    });
+
+    it('offers Copy, Array and Mirror only over a selection', () => {
+      expect(cmd('Copy').disabled).toBe(true);
+      expect(cmd('Array').disabled).toBe(true);
+      expect(cmd('Mirror').disabled).toBe(true);
+    });
+  });
+
+  describe('the Array builder (#126)', () => {
+    function obsts(): any[] {
+      return TestBed.inject(MainService).main.currentFdsScenario.fdsObject.geometry.obsts;
+    }
+
+    beforeEach(() => {
+      selection.select({ uuid: 'wall-uuid', type: 'obst' });
+      fixture.detectChanges();
+    });
+
+    it('opens a contextual ARRAY tab with counts and spacings', () => {
+      cmd('Array').click();
+      fixture.detectChanges();
+
+      expect(component.active).toBe('array');
+      expect(tabLabels()).toContain('ARRAY');
+      // Spacing defaults to the selection's own size, so the copies stand
+      // shoulder to shoulder until told otherwise
+      expect(component.arrayForm.spacing.x).toBe(4);
+    });
+
+    it('commits the whole array as one command, and selects the copies', () => {
+      const history = TestBed.inject(HistoryService);
+      cmd('Array').click();
+      component.setArrayCount('x', 12);
+      component.setArraySpacing('x', 1.5);
+
+      component.commitArray();
+      fixture.detectChanges();
+
+      expect(obsts().length).toBe(12);
+      expect(history.undoLabel).toBe('Array of 12');
+      expect(selection.selected.length).toBe(11);
+      expect(component.active).toBe('home');
+    });
+
+    it('closes without a trace on Cancel', () => {
+      cmd('Array').click();
+
+      component.closeBuilder();
+      fixture.detectChanges();
+
+      expect(component.arrayForm).toBeNull();
+      expect(obsts().length).toBe(1);
+      expect(component.active).toBe('home');
+    });
+
+    it('closes when the selection changes out from under it', () => {
+      cmd('Array').click();
+
+      selection.clear();
+      fixture.detectChanges();
+
+      expect(component.arrayForm).toBeNull();
+    });
+  });
+
+  describe('the Mirror builder (#126)', () => {
+    function obsts(): any[] {
+      return TestBed.inject(MainService).main.currentFdsScenario.fdsObject.geometry.obsts;
+    }
+
+    beforeEach(() => {
+      selection.select({ uuid: 'wall-uuid', type: 'obst' });
+      fixture.detectChanges();
+      cmd('Mirror').click();
+      fixture.detectChanges();
+    });
+
+    it('opens on the selection centre, keeping the original', () => {
+      expect(component.active).toBe('mirror');
+      expect(component.mirrorForm.axis).toBe('x');
+      // The wall spans x 0..4, so its centre plane stands at 2
+      expect(component.mirrorForm.coordinate).toBe(2);
+      expect(component.mirrorForm.keepOriginal).toBe(true);
+    });
+
+    it('re-derives the coordinate when the axis changes', () => {
+      component.setMirrorAxis('z');
+
+      expect(component.mirrorForm.coordinate).toBe(1.5);
+    });
+
+    it('commits a kept mirror and selects the copy', () => {
+      component.setMirrorCoordinate(5);
+
+      component.commitMirror();
+      fixture.detectChanges();
+
+      expect(obsts().length).toBe(2);
+      expect((obsts()[1] as any).xb.x1).toBe(6);
+      expect(selection.selected.length).toBe(1);
+      expect(selection.selected[0].uuid).toBe((obsts()[1] as any).uuid);
+    });
+
+    it('moves the original when told not to keep it', () => {
+      component.setMirrorCoordinate(5);
+      component.toggleMirrorKeep();
+
+      component.commitMirror();
+      fixture.detectChanges();
+
+      expect(obsts().length).toBe(1);
+      expect((obsts()[0] as any).xb.x1).toBe(6);
+      expect(selection.selected.map(element => element.uuid)).toEqual(['wall-uuid']);
+    });
+  });
 
   it('opens on Home, where AutoCAD opens', () => {
     // Since #125 the Draw panel works, so the tab a user reaches first is the

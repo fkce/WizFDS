@@ -25,7 +25,8 @@ function scenarioJson(): object {
         surfs: [{ id: 'WALL', uuid: 'surf-uuid', color: { rgb: [200, 100, 50] }, transparency: 1 }],
         obsts: [
           {
-            id: 'OBST1', uuid: 'w1', xb: { x1: 1, x2: 2, y1: 1, y2: 2, z1: 0, z2: 3 },
+            id: 'OBST1', uuid: 'w1', idAC: 12345,
+            xb: { x1: 1, x2: 2, y1: 1, y2: 2, z1: 0, z2: 3 },
             surf: { type: 'surf_id', surf_id: 'WALL' }
           },
           {
@@ -260,6 +261,167 @@ describe('FdsEditService', () => {
 
       expect(fds.geometry.holes.length).toBe(2);
       expect((fds.geometry.holes[1] as any).id).toBe('HOLE1');
+    });
+  });
+
+  describe('copy', () => {
+    it('creates a copy at the shifted box and leaves the original put', () => {
+      service.apply({ kind: 'copy', uuids: ['w1'], delta: { dx: 3, dy: 0, dz: 0 } });
+
+      expect(fds.geometry.obsts.length).toBe(3);
+      expect(boxOf('w1').x1).toBe(1);
+      const copy: any = fds.geometry.obsts[2];
+      expect(copy.xb.x1).toBe(4);
+      expect(copy.xb.x2).toBe(5);
+    });
+
+    it('carries the source\'s properties but a fresh identity and no idAC', () => {
+      service.apply({ kind: 'copy', uuids: ['w1'], delta: { dx: 3, dy: 0, dz: 0 } });
+
+      const copy: any = fds.geometry.obsts[2];
+      expect(copy.surf.surf_id).toBe(fds.geometry.surfs[0] as any);
+      expect(copy.uuid).toBeTruthy();
+      expect(copy.uuid).not.toBe('w1');
+      expect(copy.id).toBe('OBST3');
+      expect(Number(copy.idAC ?? 0)).toBe(0);
+    });
+
+    it('numbers many copies each with its own id', () => {
+      // getListId() reads the live list and every patch is computed before
+      // anything is written - naive per-patch numbering would hand every copy
+      // the same OBST3 (#126)
+      service.apply({ kind: 'copy', uuids: ['w1', 'w2'], delta: { dx: 0, dy: 3, dz: 0 } });
+
+      expect(fds.geometry.obsts.map((o: any) => o.id))
+        .toEqual(['OBST1', 'OBST2', 'OBST3', 'OBST4']);
+    });
+
+    it('copies a fire through the &VENT that carries its geometry', () => {
+      service.apply({ kind: 'copy', uuids: ['f1'], delta: { dx: 1, dy: 0, dz: 0 } });
+
+      expect(fds.fires.fires.length).toBe(2);
+      expect((fds.fires.fires[1] as any).vent.xb.x1).toBe(3);
+      expect((fds.fires.fires[0] as any).vent.xb.x1).toBe(2);
+    });
+
+    it('is one entry in the history, however many copies it made', () => {
+      service.apply({ kind: 'copy', uuids: ['w1', 'w2'], delta: { dx: 0, dy: 3, dz: 0 } });
+
+      service.undo();
+
+      expect(fds.geometry.obsts.length).toBe(2);
+      expect(history.canUndo).toBe(false);
+    });
+
+    it('announces the copies as added, so the preview builds them', () => {
+      const change = service.apply({ kind: 'copy', uuids: ['w1'], delta: { dx: 3, dy: 0, dz: 0 } });
+
+      expect(change.added.length).toBe(1);
+      expect(change.changed.length).toBe(0);
+    });
+  });
+
+  describe('array', () => {
+    it('lays the copies out on the grid the counts and spacings describe', () => {
+      service.apply({
+        kind: 'array', uuids: ['w1'],
+        counts: { x: 3, y: 2, z: 1 }, spacing: { x: 2, y: 4, z: 0 }
+      });
+
+      expect(fds.geometry.obsts.length).toBe(7);
+      const copies = fds.geometry.obsts.slice(2)
+        .map((o: any) => ({ x: o.xb.x1, y: o.xb.y1 }));
+      expect(copies).toContain({ x: 1, y: 5 });
+      expect(copies).toContain({ x: 3, y: 1 });
+      expect(copies).toContain({ x: 3, y: 5 });
+      expect(copies).toContain({ x: 5, y: 1 });
+      expect(copies).toContain({ x: 5, y: 5 });
+    });
+
+    it('makes a row of twelve columns in one operation (the definition of done)', () => {
+      service.apply({
+        kind: 'array', uuids: ['w1'],
+        counts: { x: 12, y: 1, z: 1 }, spacing: { x: 1.5, y: 0, z: 0 }
+      });
+
+      expect(fds.geometry.obsts.length).toBe(13);
+      expect(new Set(fds.geometry.obsts.map((o: any) => o.id)).size).toBe(13);
+    });
+
+    it('is undone in a single step', () => {
+      service.apply({
+        kind: 'array', uuids: ['w1'],
+        counts: { x: 12, y: 1, z: 1 }, spacing: { x: 1.5, y: 0, z: 0 }
+      });
+
+      service.undo();
+
+      expect(fds.geometry.obsts.length).toBe(2);
+      expect(history.canUndo).toBe(false);
+    });
+
+    it('asks for nothing when the counts describe only the original', () => {
+      const change = service.apply({
+        kind: 'array', uuids: ['w1'],
+        counts: { x: 1, y: 1, z: 1 }, spacing: { x: 1, y: 1, z: 1 }
+      });
+
+      expect(change).toBeNull();
+      expect(fds.geometry.obsts.length).toBe(2);
+      expect(history.canUndo).toBe(false);
+    });
+
+    it('names the operation after the whole array', () => {
+      service.apply({
+        kind: 'array', uuids: ['w1'],
+        counts: { x: 12, y: 1, z: 1 }, spacing: { x: 1.5, y: 0, z: 0 }
+      });
+
+      expect(history.undoLabel).toBe('Array of 12');
+    });
+  });
+
+  describe('mirror', () => {
+    // w1 spans x 1..2; about the plane x=3 its reflection spans 4..5
+    it('reflects about a plane perpendicular to x, min and max kept in order', () => {
+      service.apply({ kind: 'mirror', uuids: ['w1'], axis: 'x', coordinate: 3, keepOriginal: true });
+
+      const copy: any = fds.geometry.obsts[2];
+      expect(copy.xb).toEqual(jasmine.objectContaining({ x1: 4, x2: 5, y1: 1, y2: 2 }));
+      expect(boxOf('w1').x1).toBe(1);
+    });
+
+    it('reflects about planes perpendicular to y and to z', () => {
+      service.apply({ kind: 'mirror', uuids: ['w1'], axis: 'y', coordinate: 0, keepOriginal: true });
+      service.apply({ kind: 'mirror', uuids: ['w1'], axis: 'z', coordinate: 3, keepOriginal: true });
+
+      expect((fds.geometry.obsts[2] as any).xb).toEqual(jasmine.objectContaining({ y1: -2, y2: -1 }));
+      expect((fds.geometry.obsts[3] as any).xb).toEqual(jasmine.objectContaining({ z1: 3, z2: 6 }));
+    });
+
+    it('gives a kept mirror a fresh identity, like any other copy', () => {
+      service.apply({ kind: 'mirror', uuids: ['w1'], axis: 'x', coordinate: 3, keepOriginal: true });
+
+      const copy: any = fds.geometry.obsts[2];
+      expect(copy.id).toBe('OBST3');
+      expect(copy.uuid).not.toBe('w1');
+    });
+
+    it('moves the elements themselves when the original is dropped', () => {
+      service.apply({ kind: 'mirror', uuids: ['w1'], axis: 'x', coordinate: 3, keepOriginal: false });
+
+      expect(fds.geometry.obsts.length).toBe(2);
+      expect(boxOf('w1')).toEqual(jasmine.objectContaining({ x1: 4, x2: 5 }));
+    });
+
+    it('is one step to undo either way', () => {
+      service.apply({ kind: 'mirror', uuids: ['w1', 'w2'], axis: 'x', coordinate: 3, keepOriginal: false });
+
+      service.undo();
+
+      expect(boxOf('w1').x1).toBe(1);
+      expect(boxOf('w2').x1).toBe(5);
+      expect(history.canUndo).toBe(false);
     });
   });
 

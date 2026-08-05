@@ -2,7 +2,9 @@ import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 
 import { ElementsService, FdsElementType, FoundElement } from '@services/elements/elements.service';
-import { boxOf, isDrawnType, withBox } from '@services/elements/element-geometry';
+import {
+  arrayCount, arraySlots, boxOf, ElementBox, isDrawnType, mirroredBox, shiftedBox, withBox
+} from '@services/elements/element-geometry';
 import { MainService } from '@services/main/main.service';
 import { Main } from '@services/main/main';
 import { Fds } from '@services/fds-object/fds-object';
@@ -16,7 +18,8 @@ import {
   SceneChange, SceneDrawnElement, SceneRemovedElement
 } from '../../../../../web-smokeview-lib/src/lib/services/drawing/scene-change';
 import {
-  SceneCreateCommand, SceneDeleteCommand, SceneEditCommand, SceneMoveCommand, SceneSetXbCommand
+  SceneArrayCommand, SceneCopyCommand, SceneCreateCommand, SceneDeleteCommand, SceneEditCommand,
+  SceneMirrorCommand, SceneMoveCommand, SceneSetXbCommand
 } from '../../../../../web-smokeview-lib/src/lib/services/editing/edit-command';
 import { SceneElementType, SceneXb } from '../../../../../web-smokeview-lib/src/lib/services/drawing/scene-input';
 
@@ -153,6 +156,9 @@ export class FdsEditService {
       case 'setXb': return this.setXbPatches(command);
       case 'create': return this.createPatches(command);
       case 'delete': return this.deletePatches(command);
+      case 'copy': return this.copyPatches(command);
+      case 'array': return this.arrayPatches(command);
+      case 'mirror': return this.mirrorPatches(command);
     }
   }
 
@@ -216,6 +222,108 @@ export class FdsEditService {
       uuid: created.uuid, collection: type, index: list.length,
       before: null, after: created
     }];
+  }
+
+  private copyPatches(command: SceneCopyCommand): ElementPatch[] {
+    const delta = command.delta;
+    return this.clonePatches(this.sourcesOf(command.uuids).map(source => ({
+      found: source.found,
+      xb: shiftedBox(source.xb, delta.dx, delta.dy, delta.dz)
+    })));
+  }
+
+  private arrayPatches(command: SceneArrayCommand): ElementPatch[] {
+    const slots = arraySlots(command.counts);
+
+    const clones: Array<{ found: FoundElement, xb: ElementBox }> = [];
+    this.sourcesOf(command.uuids).forEach(source => {
+      slots.forEach(slot => clones.push({
+        found: source.found,
+        xb: shiftedBox(source.xb,
+          slot.ix * command.spacing.x,
+          slot.iy * command.spacing.y,
+          slot.iz * command.spacing.z)
+      }));
+    });
+
+    return this.clonePatches(clones);
+  }
+
+  private mirrorPatches(command: SceneMirrorCommand): ElementPatch[] {
+    const sources = this.sourcesOf(command.uuids);
+
+    if (command.keepOriginal) {
+      return this.clonePatches(sources.map(source => ({
+        found: source.found,
+        xb: mirroredBox(source.xb, command.axis, command.coordinate)
+      })));
+    }
+
+    // Dropping the original is the elements themselves moving - an edit, not
+    // a creation, and still one history entry however many were selected
+    return sources.map(source =>
+      this.editPatch(source.found, mirroredBox(source.xb, command.axis, command.coordinate)));
+  }
+
+  /** The elements a clone-producing command starts from, skipping what is gone. */
+  private sourcesOf(uuids: readonly string[]): Array<{ found: FoundElement, xb: ElementBox }> {
+    const sources: Array<{ found: FoundElement, xb: ElementBox }> = [];
+    uuids.forEach(uuid => {
+      const found = this.elements.byUuid(uuid);
+      if (!found) { return; }
+      const xb = boxOf(found.type, found.element);
+      if (!xb) { return; }
+      sources.push({ found: found, xb: xb });
+    });
+    return sources;
+  }
+
+  /**
+   * One patch per copy: the source's whole state at a new box, under a fresh
+   * identity and with no CAD link (#126).
+   *
+   * Built from `toJSON()` for the same reason editPatch() is: the &SURF, the
+   * colour, the device - whatever else the source carries survives untouched.
+   * Ids are numbered here rather than per patch, because every patch is
+   * computed before anything is written: N calls to getListId() would hand N
+   * copies the same number.
+   */
+  private clonePatches(
+    clones: ReadonlyArray<{ found: FoundElement, xb: ElementBox }>
+  ): ElementPatch[] {
+    const nextId = new Map<FdsElementType, number>();
+    const nextIndex = new Map<FdsElementType, number>();
+
+    return clones.map(clone => {
+      const type = clone.found.type;
+      const list = this.elements.listOf(type);
+
+      if (!nextId.has(type)) {
+        nextId.set(type, this.mainService.getListId(list, type));
+        nextIndex.set(type, list.length);
+      }
+      const number = nextId.get(type);
+      nextId.set(type, number + 1);
+      const index = nextIndex.get(type);
+      nextIndex.set(type, index + 1);
+
+      const created: any = withBox(type, clone.found.element.toJSON(), clone.xb);
+      created.uuid = this.idGenerator.genUUID();
+      created.id = `${type.toUpperCase()}${number}`;
+      // A copy is a browser object: inheriting the source's link to the
+      // drawing would make a CAD import treat two objects as one (#120)
+      delete created.idAC;
+      // A fire's geometry is its nested &VENT, which has an identity of its own
+      if (created.vent) {
+        delete created.vent.idAC;
+        if (created.vent.uuid) { created.vent.uuid = this.idGenerator.genUUID(); }
+      }
+
+      return {
+        uuid: created.uuid, collection: type, index: index,
+        before: null, after: created
+      };
+    });
   }
 
   private deletePatches(command: SceneDeleteCommand): ElementPatch[] {
@@ -367,5 +475,16 @@ function labelFor(command: SceneEditCommand, patches: readonly ElementPatch[]): 
       return patches.length > 1
         ? `Delete ${patches.length} elements`
         : `Delete ${patches[0].collection.toUpperCase()}`;
+    case 'copy':
+      return patches.length > 1 ? `Copy ${patches.length} elements` : 'Copy';
+    case 'array': {
+      // The whole array, originals included - "Array of 12" is the row the
+      // user asked for, not the eleven boxes it took to complete it
+      const per = arrayCount(command.counts.x)
+        * arrayCount(command.counts.y) * arrayCount(command.counts.z);
+      return `Array of ${(patches.length / (per - 1)) * per}`;
+    }
+    case 'mirror':
+      return patches.length > 1 ? `Mirror ${patches.length} elements` : 'Mirror';
   }
 }

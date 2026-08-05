@@ -75,6 +75,49 @@ export interface SceneDeleteCommand {
 }
 
 /**
+ * Create a copy of each element: the source's whole state at a shifted box.
+ *
+ * A delta over uuids, exactly as a move - the gizmo's copy-drag IS a move whose
+ * original stays put (#126). Identity is the app's to hand out, copy by copy,
+ * and a copy must not inherit the source's CAD link, or the next import would
+ * treat two objects as one.
+ */
+export interface SceneCopyCommand {
+    readonly kind: 'copy',
+    readonly uuids: readonly string[],
+    readonly delta: SceneDelta
+}
+
+/**
+ * Lay copies of the selection out on a rectangular grid - AutoCAD's ARRAYRECT
+ * cut down to what an axis-aligned box needs (#126).
+ *
+ * Counts say how many stand along each axis, the original included; spacing is
+ * the step between neighbours, in FDS metres. The slot the original occupies
+ * is not created again, so counts of {2,1,1} make exactly one copy.
+ */
+export interface SceneArrayCommand {
+    readonly kind: 'array',
+    readonly uuids: readonly string[],
+    readonly counts: { readonly x: number, readonly y: number, readonly z: number },
+    readonly spacing: { readonly x: number, readonly y: number, readonly z: number }
+}
+
+/**
+ * Mirror the selection about a plane perpendicular to one axis (#126).
+ *
+ * The plane is `axis = coordinate`. With `keepOriginal` the mirrored boxes are
+ * copies under fresh identities; without it the elements themselves move.
+ */
+export interface SceneMirrorCommand {
+    readonly kind: 'mirror',
+    readonly uuids: readonly string[],
+    readonly axis: 'x' | 'y' | 'z',
+    readonly coordinate: number,
+    readonly keepOriginal: boolean
+}
+
+/**
  * One edit, as the user meant it.
  *
  * A closed union rather than an open message: the app has to answer every kind
@@ -82,4 +125,5 @@ export interface SceneDeleteCommand {
  * say so when a new one is added.
  */
 export type SceneEditCommand =
-    SceneMoveCommand | SceneSetXbCommand | SceneCreateCommand | SceneDeleteCommand;
+    SceneMoveCommand | SceneSetXbCommand | SceneCreateCommand | SceneDeleteCommand |
+    SceneCopyCommand | SceneArrayCommand | SceneMirrorCommand;

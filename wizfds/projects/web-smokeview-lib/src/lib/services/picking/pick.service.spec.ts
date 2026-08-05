@@ -139,6 +139,32 @@ describe('PickService', () => {
     obsts.renderObsts();
   }
 
+  describe('ghost previews (#126)', () => {
+    it('draws one outline per box and clears them all', () => {
+      picking.previewGhosts([
+        { x1: 0, x2: 1, y1: 0, y2: 1, z1: 0, z2: 1 },
+        { x1: 2, x2: 3, y1: 0, y2: 1, z1: 0, z2: 1 }
+      ]);
+
+      expect(scene.meshes.filter(mesh => mesh.name.startsWith('ghost_')).length).toBe(2);
+
+      picking.clearGhosts();
+
+      expect(scene.meshes.filter(mesh => mesh.name.startsWith('ghost_')).length).toBe(0);
+    });
+
+    it('replaces the previous set rather than piling on', () => {
+      picking.previewGhosts([{ x1: 0, x2: 1, y1: 0, y2: 1, z1: 0, z2: 1 }]);
+
+      picking.previewGhosts([
+        { x1: 2, x2: 3, y1: 0, y2: 1, z1: 0, z2: 1 },
+        { x1: 4, x2: 5, y1: 0, y2: 1, z1: 0, z2: 1 }
+      ]);
+
+      expect(scene.meshes.filter(mesh => mesh.name.startsWith('ghost_')).length).toBe(2);
+    });
+  });
+
   describe('picking', () => {
     it('selects the element the ray reaches first', () => {
       render([makeObst('W', WEST), makeObst('M', MIDDLE), makeObst('E', EAST)]);
