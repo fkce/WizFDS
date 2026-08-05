@@ -159,3 +159,66 @@ i Mirror — trzy komendy, które ta decyzja przewidziała od początku.
   współrzędnej z presetami Min / Centre / Max pokrywa typowe przypadki;
   wskazanie punktu w kanwie wymaga narzędzia „wskaż punkt", którego biblioteka
   jeszcze nie ma.
+
+## Uzupełnienie (2026-08-04) — pasek stanu o stałej podziałce
+
+Pasek dostał to, co ma każdy przyrząd: skalę, która stoi. Do tej pory szerokość
+każdego segmentu wynikała z treści, a treść zmienia się kilkanaście razy na
+sekundę — `-12.35, 4.00, -0.75 m` jest węższe niż `3.20, 118.05, 2.50 m`, więc
+cały rząd reflowował przy każdym ruchu myszą nad kanwą.
+
+- **Slot na każdą oś, liczba wyrównana do prawej.** Siedem znaków na współrzędną
+  (`-999.99`, czyli model do kilometra w każdą stronę), pięć na krok komórki
+  (`0.125`), sześć na ID `&MESH` (`MESH12`, czyli domyślne nazewnictwo). Kropki
+  dziesiętne stoją w jednej kolumnie, więc wartość przechodząca przez zero albo
+  tracąca cyfrę nie rusza sąsiadów. Sloty są `min-width`, nie `width`: model
+  większy od budżetu raz rozszerza slot, zamiast uciąć liczbę — przyrząd, który
+  drgnie, bije przyrząd, który kłamie.
+- **`.mono` dopiero teraz jest mono.** Klasa była w pasku od początku, ale
+  `--font-mono` nie pojawiało się w nim ani razu i odczyty renderowały się
+  proporcjonalną Fira Sans. Bez tego jednostka `ch`, w której wymierzone są
+  wszystkie sloty, nie mierzy ani minusa, ani kropki, ani przecinka.
+- **Slot liczy się w znakach, nie w `ch`.** `ch` to advance zera i nie wie nic
+  o `letter-spacing: 0.02em`, którym pasek rozstrzela każdy znak. Zmierzone:
+  slot `7ch` to 45,69 px, a `-999.99` zajmuje 47,22 px — segment puchłby dokładnie
+  przy wartości, pod którą budżet był pisany. Stąd funkcja `slot($chars)`, która
+  dolicza tracking; po niej szerokość segmentu kursora trzyma się w 222,70 →
+  222,72 px na całym budżecie.
+- **Ścieżka CAD jest jedynym polem, które ustępuje.** `flex: 0 1 auto` — kurczy
+  się, nigdy nie rośnie, więc lewa grupa zostaje spakowana do lewej, a odczyty
+  mają stałą pozycję od krawędzi. Wewnątrz niej ustępuje najpierw katalog, a
+  nazwa pliku dopiero wtedy, gdy katalogu już nie ma (stosunek `flex-shrink`
+  1000:1) — dwa rysunki w jednym folderze różnią się właśnie nazwą. „Ostatnia",
+  a nie „nigdy": realne nazwy rysunków przekraczają czterdzieści znaków, a
+  połowa, która nie oddaje nic, tylko przenosi przepełnienie w inne miejsce
+  paska. Pełna ścieżka jest w tooltipie — tak samo jak pełne ID `&MESH`, gdy nie
+  zmieści się w slocie.
+- **Prawa grupa nie uczestniczy w kurczeniu.** Nie ma w niej nic elastycznego,
+  więc ściśnięta poniżej swojej treści nie ucina jej wielokropkiem, tylko
+  wypycha numer wersji poza pasek, gdzie zjada go `overflow: hidden` shella —
+  wersja znikała po cichu. `flex: 0 0 auto` zostawia cały luz po lewej stronie.
+- **Brak odczytu to nie brak siatki.** `ViewportStatusService.grid` jest `null`
+  w obu przypadkach, a pasek mówił „no &MESH here" także wtedy, gdy kursor po
+  prostu zjechał w pustkę — czyli twierdził coś nieprawdziwego o modelu. Kursor
+  w pustce daje teraz kreski w tych samych slotach, a zdanie zostaje na wypadek,
+  w którym siatki naprawdę nie ma. Segment trzyma przy tym szerokość pełnego
+  odczytu, żeby krótszy komunikat nie pociągnął licznika ostrzeżeń za sobą.
+  Termin **aktywna siatka** trafił do `CONTEXT.md`.
+- **Etykiety po prawej mierzy przeglądarka.** Wszystkie stany segmentu („Saved" /
+  „Unsaved" / „Autosave on" oraz „CAD connected" / „CAD offline") leżą w jednej
+  komórce grida, nieaktywne z `visibility: hidden`. Segment jest zawsze szeroki
+  na najdłuższą z nich, bez liczby dobranej ręcznie w `rem` — dopisanie czwartego
+  stanu poszerzy slot samo, a `visibility: hidden` trzyma ukryte etykiety poza
+  drzewem dostępności. Etykiety są przy tym trzymane blisko siebie długością:
+  „Unsaved changes" było o połowę dłuższe od pozostałych dwóch i zostawiało
+  26 px pustego pola, gdy segment pokazywał krótszy stan — czyli rezerwa
+  przeciw drganiu zamieniała się w widoczną dziurę przed kolejną kreską. Stąd
+  „Unsaved", tą samą frazą także w QAT ribbona, który pokazuje ten stan
+  równocześnie. Zapas, który mimo to zostaje, leży na końcu etykiety, a nie po
+  obu jej stronach: wyśrodkowanie próbowano i odrzucono, bo odsuwa tekst od
+  kropki, która stoi przed nim i mówi, którego odczytu on dotyczy — para
+  przestaje się czytać jako jedno.
+
+Licznik ostrzeżeń świadomie bez slotu: stoi jako ostatni w lewej grupie, więc
+jego szerokość niczego nie przesuwa. Pola kursora i siatki nadal znikają poza
+widokiem 3D — to zmiana trasy, a nie reflow kilka razy na sekundę.

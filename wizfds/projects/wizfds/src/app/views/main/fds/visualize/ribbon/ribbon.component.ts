@@ -221,8 +221,11 @@ export class RibbonComponent implements OnInit, OnDestroy {
 
   get saveLabel(): string {
     const state = this.saveState;
+    // Same wording as the status bar, which shows this state at the same time -
+    // "Unsaved" rather than "Unsaved changes" so neither readout has to reserve
+    // room for a label half again as long as the other two.
     return state === 'saved' ? 'Saved'
-      : state === 'unsaved' ? 'Unsaved changes' : 'Autosave on';
+      : state === 'unsaved' ? 'Unsaved' : 'Autosave on';
   }
 
   // ==========================================

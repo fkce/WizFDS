@@ -73,6 +73,27 @@ mat-progress-bar.progress {
 }
 
 // --- Instrument status bar ---------------------------------------------------
+// The bar reads as an instrument, and an instrument has a fixed scale: the
+// needle moves, the dial does not. Every readout therefore sits in a slot wide
+// enough for its widest value, counted in characters of the mono face the bar
+// sets on itself below. The slots are `min-width` and not `width`: a model
+// larger than the budget widens its slot once rather than clipping the number,
+// because a gauge that twitches beats a gauge that lies.
+//
+// A slot is counted in characters and not in `ch`, which is the advance of "0"
+// alone and knows nothing about the 0.02em this bar tracks every character by.
+// Measured: a 7ch slot is 45.69px while "-999.99" renders at 47.22px, so the
+// segment would widen at exactly the value the budget was written for.
+@function slot($chars) {
+  @return calc(#{$chars} * (1ch + 0.02em));
+}
+
+$axis-chars:    7;  // "-999.99" — a model up to a kilometre either way
+$cell-chars:    5;  // "0.125" / "12.50" — one &MESH cell at `number:'1.2-3'`
+$mesh-id-chars: 6;  // MESH12 — the default naming; longer ones ellipsise
+// mesh id + "0.125 × 0.125 × 0.125 m" (three cells, two separators, the unit)
+$grid-chars: $mesh-id-chars + 3 * $cell-chars + 8;
+
 .shell-statusbar {
   grid-area: statusbar;
   display: flex;
@@ -97,15 +118,29 @@ mat-progress-bar.progress {
     align-items: center;
     min-width: 0;
   }
+  // The right-hand group has nothing flexible in it, so it must not take part in
+  // the shrinking at all: squeezed below its content it does not ellipsise, it
+  // simply pushes the version number past the edge of the bar, where the shell's
+  // `overflow: hidden` eats it. All the give lives on the left, in the path.
   .status-right {
+    flex: 0 0 auto;
     gap: 0.15rem;
+  }
+
+  // `.mono` used to be decoration only: the bar inherited the UI face, so the
+  // digits, the minus and the decimal point were all different widths and `ch`
+  // measured none of them. Naming the face is what makes every slot below exact.
+  // `.grid-readout` sets it on itself because its own `min-width` is in `ch`.
+  .mono,
+  .grid-readout {
+    font-family: var(--font-mono);
   }
 
   .status-seg {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    padding: 0 0.6rem;
+    padding: 0 0.4rem;
     height: 100%;
     white-space: nowrap;
 
@@ -121,31 +156,100 @@ mat-progress-bar.progress {
     }
   }
 
+  // Nothing yields but the CAD path (below), so every other segment keeps the
+  // width its slots ask for however narrow the window gets.
+  .status-left .status-seg,
+  .status-right .status-seg {
+    flex: 0 0 auto;
+  }
+
+  // The left group hugs its content at both ends - the bar's own 1rem gap is
+  // what separates it from the right-hand group, so a trailing padding on the
+  // last segment only reads as slack after the warning count.
   .status-left .status-seg {
     padding-left: 0;
     min-width: 0;
-    .mono {
+
+    &:last-child { padding-right: 0; }
+  }
+
+  // The one field on the bar that gives up space: it shrinks but never grows,
+  // so the left group stays packed to the left and the readouts hold a fixed
+  // position. Inside it the directory yields first and the filename only once
+  // the directory is gone - the filename is the half that tells two drawings in
+  // one folder apart. Only "last", though, not "never": real drawing names run
+  // past forty characters, and a half that refuses to shrink at all just moves
+  // the overflow somewhere else on the bar. The 1000:1 shrink ratio is what
+  // orders the two; the tooltip carries the whole path either way.
+  .status-left .cad-file {
+    flex: 0 1 auto;
+
+    .path-readout {
+      display: flex;
+      min-width: 0;
+      color: var(--on-surface);
+    }
+    .path,
+    .file {
+      min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-  }
-  .status-left .cad-file .mono {
-    color: var(--on-surface);
+    .path { flex: 0 1000 auto; }
+    .file { flex: 0 1 auto; }
   }
 
-  // The 3D read-outs sit after the CAD file, each behind a hairline of its own -
-  // the left group only zeroes the padding on the segment that starts the row.
+  // The 3D read-outs sit after the CAD file, each behind a hairline of its own,
+  // so the padding zeroed at the two ends of the group comes back between them.
   .status-left .status-seg + .status-seg {
-    padding-left: 0.6rem;
+    padding-left: 0.4rem;
     border-left: 1px solid var(--border-muted);
   }
-  .status-left .cursor .mono,
-  .status-left .grid .mono {
+
+  // One slot per axis and per cell, the number pushed to the right of it, so the
+  // decimal points stand in a column and a value crossing zero or losing a digit
+  // moves nothing beside it.
+  .axis,
+  .cell {
+    display: inline-block;
+    text-align: right;
+  }
+  .axis { min-width: slot($axis-chars); }
+  .cell { min-width: slot($cell-chars); }
+
+  .status-left .cursor .mono {
     color: var(--on-surface);
   }
-  .status-left .grid .mono.muted {
+  .status-left .cursor .mono.muted {
     color: var(--on-surface-muted);
+  }
+
+  // Held to the width of a full reading, so the two shorter states - the
+  // "no &MESH here" sentence and the dashes - do not pull the warning counter
+  // that stands behind them.
+  .grid-readout {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: calc(#{slot($grid-chars)} + 0.4rem); // + the gap between the halves
+    white-space: nowrap;
+    color: var(--on-surface);
+
+    &.muted { color: var(--on-surface-muted); }
+  }
+  // The only unbounded value on the left: an &MESH `ID` is whatever the user
+  // typed. Capped and ellipsised like the path, with the whole of it in a
+  // tooltip, rather than allowed to push the cell sizes around.
+  .mesh-id {
+    flex: 0 0 slot($mesh-id-chars);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cells {
+    flex: 0 0 auto;
+    &.muted { color: var(--on-surface-muted); }
   }
 
   // How many FDS rules the scenario currently breaks. Amber and not red: none
@@ -163,6 +267,30 @@ mat-progress-bar.progress {
   // Right-hand segments read as instrument read-outs, divided by hairlines.
   .status-right .status-seg + .status-seg {
     border-left: 1px solid var(--border-muted);
+  }
+
+  // Every label a segment can show, stacked in one grid cell with the inactive
+  // ones hidden: the column is as wide as the longest of them, so switching
+  // state moves nothing. The width is measured by the browser rather than
+  // guessed in rem - "Saved" swapping to the longest label used to shove the CAD
+  // link and the version number sideways, and a fourth state would need the
+  // guess redone. `visibility: hidden` also keeps the labels that are not
+  // showing out of the accessibility tree.
+  //
+  // Left-aligned, and deliberately not centred: the dot in front of the label is
+  // what says which reading this is, and centring floats the text away from it
+  // in the shorter states - the pair stops reading as one thing. Whatever a
+  // short state leaves over therefore sits at the end, which is why the three
+  // labels are kept close in length in the first place.
+  .label-stack {
+    display: inline-grid;
+
+    > span {
+      grid-area: 1 / 1;
+      white-space: nowrap;
+      visibility: hidden;
+    }
+    > span.on { visibility: visible; }
   }
 
   .dot {
