@@ -230,14 +230,22 @@
       </section>
     </ng-container>
 
-    <!-- ---------- Measure -------------------------------------------------- -->
+    <!-- ---------- Measure (#127) ------------------------------------------- -->
     <ng-container *ngSwitchCase="'measure'">
       <section class="panel">
         <div class="panel-body">
-          <button type="button" class="cmd big" disabled [title]="awaitingMeasure">
+          <!-- Two snapped points, the answer in the status bar - and nothing
+               about the scenario changes. Unlike drawing, measuring is done in
+               runs, so the tool stays on until Esc ends it. -->
+          <button type="button" class="cmd big" [class.on]="measure.active"
+            title="Measure a distance: pick two points, snapped like an edit. Esc ends the tool."
+            (click)="startMeasure()">
             <mat-icon svgIcon="ruler" aria-hidden="true"></mat-icon><span>Distance</span>
           </button>
-          <button type="button" class="cmd big" disabled [title]="awaitingMeasure">
+          <!-- A toggle, not a gesture: the labels are noise when unwanted. -->
+          <button type="button" class="cmd big" [class.on]="dims.enabled"
+            title="Label the extents of the selection - width, depth, height, off its XB"
+            (click)="dims.toggle()">
             <mat-icon svgIcon="ruler-square" aria-hidden="true"></mat-icon><span>Dimensions</span>
           </button>
         </div>

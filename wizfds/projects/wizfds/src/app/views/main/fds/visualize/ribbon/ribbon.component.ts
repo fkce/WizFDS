@@ -21,6 +21,8 @@ import { GizmoService } from '../../../../../../../../web-smokeview-lib/src/lib/
 import { SnapService } from '../../../../../../../../web-smokeview-lib/src/lib/services/editing/snap.service';
 import { SnapMode } from '../../../../../../../../web-smokeview-lib/src/lib/services/editing/snap';
 import { DrawToolService } from '../../../../../../../../web-smokeview-lib/src/lib/services/editing/draw-tool.service';
+import { MeasureToolService } from '../../../../../../../../web-smokeview-lib/src/lib/services/editing/measure-tool.service';
+import { DimensionLabelService } from '../../../../../../../../web-smokeview-lib/src/lib/services/editing/dimension-label.service';
 import { DrawKind } from '../../../../../../../../web-smokeview-lib/src/lib/services/editing/draw';
 import { PickService } from '../../../../../../../../web-smokeview-lib/src/lib/services/picking/pick.service';
 import { SceneChange } from '../../../../../../../../web-smokeview-lib/src/lib/services/drawing/scene-change';
@@ -40,16 +42,6 @@ const FIXED_TABS: ReadonlyArray<{ id: RibbonTabId, label: string }> = [
   { id: 'view', label: 'View' },
   { id: 'measure', label: 'Measure' }
 ];
-
-/**
- * What a control with no tool behind it yet says when it is hovered.
- *
- * The panels are here because this issue builds the ribbon and the sub-issues
- * fill them (#88): a greyed command that says when it arrives is what AutoCAD
- * does with a command that does not apply, and it beats a panel that is empty
- * or a button that is missing.
- */
-const AWAITING_MEASURE = 'Available once the measuring tools land';
 
 /**
  * The three Draw commands, in the order the panel lists them.
@@ -107,8 +99,6 @@ export class RibbonComponent implements OnInit, OnDestroy {
   readonly snapModes = SNAP_MODES;
   readonly drawTools = DRAW_TOOLS;
 
-  readonly awaitingMeasure = AWAITING_MEASURE;
-
   /**
    * Home, which is where AutoCAD opens - since #125 there is something to draw
    * with, so the tab a user reaches first is the one that creates geometry.
@@ -132,6 +122,8 @@ export class RibbonComponent implements OnInit, OnDestroy {
     public gizmo: GizmoService,
     public snap: SnapService,
     public draw: DrawToolService,
+    public measure: MeasureToolService,
+    public dims: DimensionLabelService,
     private picking: PickService,
     private selection: SelectionService,
     private elements: ElementsService,
@@ -322,11 +314,27 @@ export class RibbonComponent implements OnInit, OnDestroy {
 
   /** Begin drawing one element, with the current &SURF along (#125). */
   startDraw(kind: DrawKind): void {
+    // Two tools cannot share one pointer - starting one ends the other (#127)
+    this.measure.cancel();
     this.lastDrawKind = kind;
     const surfId = kind === 'obst' ? this.drawSurfId
       : kind === 'vent' ? this.drawVentSurfId
         : '';
     this.draw.start(kind, surfId || undefined);
+  }
+
+  // ==========================================
+  // Measure tab (#127)
+  // ==========================================
+
+  /**
+   * Begin measuring a distance - the library's tool, started from here the
+   * way the Draw buttons start theirs. The tool cancels any draw gesture in
+   * flight itself; measuring stays on until Esc, because it is usually done
+   * in runs.
+   */
+  startMeasure(): void {
+    this.measure.start();
   }
 
   // ==========================================

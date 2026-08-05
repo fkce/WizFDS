@@ -15,6 +15,7 @@ import { PickService } from '../../../../../../../web-smokeview-lib/src/lib/serv
 import { EditStreamService } from '../../../../../../../web-smokeview-lib/src/lib/services/editing/edit-stream.service';
 import { SnapService } from '../../../../../../../web-smokeview-lib/src/lib/services/editing/snap.service';
 import { GizmoService } from '../../../../../../../web-smokeview-lib/src/lib/services/editing/gizmo.service';
+import { MeasureToolService } from '../../../../../../../web-smokeview-lib/src/lib/services/editing/measure-tool.service';
 import { SceneChange } from '../../../../../../../web-smokeview-lib/src/lib/services/drawing/scene-change';
 import { ScenePoint } from '../../../../../../../web-smokeview-lib/src/lib/services/scene-bounds/scene-bounds.service';
 import { ViewportGrid } from '@services/viewport-status/viewport-status.service';
@@ -36,6 +37,8 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
   pointerSub: Subscription;
   commandSub: Subscription;
   appliedSub: Subscription;
+  measuringSub: Subscription;
+  measurementSub: Subscription;
 
   constructor(
     private mainService: MainService,
@@ -45,6 +48,7 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
     private pickService: PickService,
     private snapService: SnapService,
     private gizmoService: GizmoService,
+    private measureTool: MeasureToolService,
     private editStream: EditStreamService,
     private fdsEdit: FdsEditService,
     private validation: FdsValidationService,
@@ -61,6 +65,13 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.viewportStatus.enter();
     this.pointerSub = this.pickService.pointerAt$
       .subscribe(point => this.viewportStatus.setCursor(point, this.gridAt(point)));
+
+    // The measurement takes the same route (#127): the tool measures in the
+    // library, the bar reads the numbers here - and both go down together.
+    this.measuringSub = this.measureTool.active$
+      .subscribe(active => this.viewportStatus.setMeasuring(active));
+    this.measurementSub = this.measureTool.measurement$
+      .subscribe(measurement => this.viewportStatus.setMeasurement(measurement));
 
     // The app owns the selection, not the preview (ADR-0004): the forms and the
     // CAD bridge are outside the library, and only one of the two may apply a
@@ -255,10 +266,14 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.pointerSub.unsubscribe();
     this.commandSub.unsubscribe();
     this.appliedSub.unsubscribe();
+    this.measuringSub.unsubscribe();
+    this.measurementSub.unsubscribe();
     this.viewportStatus.leave();
     // The services are the application's, not this view's - a gizmo left armed
-    // would attach itself to a selection made in a form.
+    // would attach itself to a selection made in a form, and a measuring run
+    // has nothing left to measure in.
     this.gizmoService.enabled = false;
+    this.measureTool.cancel();
   }
 
 }

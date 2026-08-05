@@ -88,6 +88,45 @@ describe('ViewportStatusService', () => {
     expect(service.grid).toBeNull();
   });
 
+  describe('the measurement readout (#127)', () => {
+
+    const MEASUREMENT = { distance: 5, dx: 3, dy: 4, dz: 0 };
+
+    it('shows no measure segment until the tool runs', () => {
+      expect(service.measuring).toBe(false);
+      expect(service.measurement).toBeNull();
+    });
+
+    it('carries the distance and its components while the tool runs', () => {
+      service.setMeasuring(true);
+      service.setMeasurement(MEASUREMENT);
+
+      expect(service.measuring).toBe(true);
+      expect(service.measurement).toEqual(MEASUREMENT);
+    });
+
+    it('takes the readout down with the tool - Esc ends both', () => {
+      service.setMeasuring(true);
+      service.setMeasurement(MEASUREMENT);
+
+      service.setMeasuring(false);
+
+      expect(service.measuring).toBe(false);
+      expect(service.measurement).toBeNull();
+    });
+
+    it('goes down with the rest when the view is left', () => {
+      service.enter();
+      service.setMeasuring(true);
+      service.setMeasurement(MEASUREMENT);
+
+      service.leave();
+
+      expect(service.measuring).toBe(false);
+      expect(service.measurement).toBeNull();
+    });
+  });
+
   it('drops everything when the view is left', () => {
     // The status bar is the whole app's, so the 3D view has to take its readout
     // back down on the way out - otherwise a stale coordinate sits there while

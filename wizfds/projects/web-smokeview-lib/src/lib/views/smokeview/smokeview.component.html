@@ -55,6 +55,19 @@
     </div>
 
     <!--
+        The distance riding the cursor between the two measured points (#127).
+        A readout and not a form: a measurement has no fields to type into, so
+        it shares the dynamic input's dress but never its inputs. At the cursor
+        and only while the second point is being chosen, which is why it lives
+        here and not in the host's ribbon (ADR-0010).
+    -->
+    <div class="measure-label" *ngIf="measureLabel"
+        [style.left.px]="measureLabel.at.x" [style.top.px]="measureLabel.at.y">
+        <span class="snap" *ngIf="measureLabel.snap">{{ measureLabel.snap }}</span>
+        <span class="value">{{ measureLabel.text }}</span>
+    </div>
+
+    <!--
         The results player. It belongs to what is drawn rather than to what is
         edited, so it stays here while the editing chrome lives in the host -
         Phase 6 (#89) is what gives it a Results tab to answer to.

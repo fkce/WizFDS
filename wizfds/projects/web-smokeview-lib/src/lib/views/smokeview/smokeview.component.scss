@@ -182,6 +182,48 @@ $font-mono:        var(--font-mono, "Fira Code", "Consolas", monospace);
     }
   }
 
+  // --- Measure label: the distance riding the cursor (#127) ------------------
+  //
+  // The dynamic input's dress - same offset, same border, same mono - without
+  // its fields: a measurement is a readout, not a form.
+  .measure-label {
+    position: absolute;
+    z-index: 3;
+    transform: translate(1rem, 1rem);
+    pointer-events: none;
+
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.45rem;
+    border: 1px solid $accent;
+    border-radius: $radius-sm;
+    background: $surface-1;
+    box-shadow: $shadow-md;
+    font-family: $font-mono;
+    font-size: 0.75rem;
+    white-space: nowrap;
+
+    * {
+      pointer-events: none;
+    }
+
+    .snap {
+      padding: 0.05rem 0.35rem;
+      border-radius: $radius-sm;
+      background: $accent;
+      color: #fff;
+      font-family: $font-ui;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .value {
+      color: $on-surface;
+    }
+  }
+
   .player {
     position: absolute;
     left: 1rem;
