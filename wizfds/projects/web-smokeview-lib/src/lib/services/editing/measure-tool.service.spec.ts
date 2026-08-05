@@ -198,6 +198,32 @@ describe('MeasureToolService', () => {
       expect(snapping.suspended).toBeFalse();
     });
 
+    it('dashes the readout while the cursor is over nothing mid-pair', () => {
+      // The bar must not show a number that corresponds to nothing on screen
+      tool.start();
+      tool.click(down(1, 1));
+      tool.track(down(3, 1));
+      expect(lastMeasurement()).not.toBeNull();
+
+      snapping.setScene(emptyScene());
+      tool.track(down(3, 1));
+
+      expect(lastMeasurement()).toBeNull();
+      expect(tool.label).toBeNull();
+    });
+
+    it('keeps a settled answer while the cursor crosses empty space', () => {
+      tool.start();
+      tool.click(down(1, 1));
+      tool.click(down(4, 5));
+
+      snapping.setScene(emptyScene());
+      tool.track(down(3, 1));
+
+      expect(lastMeasurement()).toEqual({ distance: 5, dx: 3, dy: 4, dz: 0 });
+      expect(scene.getMeshByName('measureLine')).toBeTruthy();
+    });
+
     it('a click into a void places no point at all', () => {
       // No surface, no &MESH: nothing under the cursor means nothing to
       // measure from - the same contract as the draw tool's first corner

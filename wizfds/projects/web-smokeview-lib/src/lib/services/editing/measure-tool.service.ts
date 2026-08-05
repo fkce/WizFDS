@@ -7,10 +7,10 @@ import { SceneLifecycleService, SceneScoped } from '../babylon/scene-lifecycle.s
 import { ScenePoint } from '../scene-bounds/scene-bounds.service';
 import { PickService } from '../picking/pick.service';
 import { ACCENT_COLOR } from '../../consts/drawing';
-import { DrawRay, floorUnder } from './draw';
+import { floorUnder } from './draw';
 import { GestureKey } from './gesture';
 import { GizmoService } from './gizmo.service';
-import { DrawToolService } from './draw-tool.service';
+import { DrawToolService, toDrawRay } from './draw-tool.service';
 import { measurementBetween, SceneMeasurement } from './measure';
 import { SnapHit, SnapMode } from './snap';
 import { SnapService } from './snap.service';
@@ -140,7 +140,14 @@ export class MeasureToolService implements SceneScoped {
         const landing = this.landingFor(ray);
         if (!landing) {
             this.snapService.hideMarker();
-            if (this.first) { this.labelSubject.next(null); }
+            // Mid-pair, a cursor over nothing has nothing measured under it:
+            // the rubber band and both readouts go, as the cursor segment
+            // dashes over empty space. A settled answer (first is null) stays.
+            if (this.first) {
+                this.disposeLine();
+                this.labelSubject.next(null);
+                this.measurementSubject.next(null);
+            }
             return;
         }
 
@@ -283,12 +290,4 @@ export class MeasureToolService implements SceneScoped {
         this.labelSubject.next(null);
         this.measurementSubject.next(null);
     }
-}
-
-/** A Babylon ray, as the plain numbers draw.ts reasons over. */
-function toDrawRay(ray: BABYLON.Ray): DrawRay {
-    return {
-        origin: { x: ray.origin.x, y: ray.origin.y, z: ray.origin.z },
-        direction: { x: ray.direction.x, y: ray.direction.y, z: ray.direction.z }
-    };
 }

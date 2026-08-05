@@ -123,7 +123,7 @@ export class RibbonComponent implements OnInit, OnDestroy {
     public snap: SnapService,
     public draw: DrawToolService,
     public measure: MeasureToolService,
-    public dims: DimensionLabelService,
+    public dimensions: DimensionLabelService,
     private picking: PickService,
     private selection: SelectionService,
     private elements: ElementsService,
@@ -328,13 +328,13 @@ export class RibbonComponent implements OnInit, OnDestroy {
   // ==========================================
 
   /**
-   * Begin measuring a distance - the library's tool, started from here the
-   * way the Draw buttons start theirs. The tool cancels any draw gesture in
-   * flight itself; measuring stays on until Esc, because it is usually done
-   * in runs.
+   * Start or end a measuring run - the button reads as a toggle, so it is
+   * one; Esc ends the run too. The tool cancels any draw gesture in flight
+   * itself, and stays on between measurements, because measuring is usually
+   * done in runs.
    */
-  startMeasure(): void {
-    this.measure.start();
+  toggleMeasure(): void {
+    if (this.measure.active) { this.measure.cancel(); } else { this.measure.start(); }
   }
 
   // ==========================================

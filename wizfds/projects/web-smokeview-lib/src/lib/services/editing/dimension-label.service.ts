@@ -8,6 +8,7 @@ import { SceneXb } from '../drawing/scene-input';
 import { PickService } from '../picking/pick.service';
 import { DimensionLabel, dimensionLabelsFor } from './dimension-labels';
 import { SceneDelta } from './edit-command';
+import { GestureKey } from './gesture';
 import { GestureView, GizmoService } from './gizmo.service';
 import { SnapService } from './snap.service';
 
@@ -18,8 +19,15 @@ const LABEL_HEIGHT_PIXELS = 16;
 const TEXTURE_WIDTH = 256;
 const TEXTURE_HEIGHT = 64;
 
-/** The number in the bar's own mono face, big enough to downscale cleanly. */
+/**
+ * How a label is painted. A DynamicTexture's canvas cannot read the host's
+ * CSS custom properties, so - like ACCENT_COLOR in consts/drawing.ts - the
+ * token values have to exist here as literals: the mono face the status bar
+ * uses, the on-surface text, a translucent surface behind it.
+ */
 const LABEL_FONT = `bold 40px 'Fira Code', Consolas, monospace`;
+const LABEL_TEXT_COLOR = '#e3e3e3';
+const LABEL_TAG_COLOR = 'rgba(18, 18, 18, 0.75)';
 
 /** A millimetre, like the dynamic input - the precision a user verifies at. */
 const LABEL_DECIMALS = 3;
@@ -114,7 +122,9 @@ export class DimensionLabelService implements SceneScoped {
 
         if (view.kind === 'move') {
             const delta: SceneDelta = {
-                dx: valueOf(view, 'dx'), dy: valueOf(view, 'dy'), dz: valueOf(view, 'dz')
+                dx: fieldValue(view, 'dx'),
+                dy: fieldValue(view, 'dy'),
+                dz: fieldValue(view, 'dz')
             };
             this.place(this.selection.map(pick => shifted(pick.xb, delta)));
             return;
@@ -198,12 +208,12 @@ export class DimensionLabelService implements SceneScoped {
         const context = label.texture.getContext() as CanvasRenderingContext2D;
         context.clearRect(0, 0, TEXTURE_WIDTH, TEXTURE_HEIGHT);
 
-        context.fillStyle = 'rgba(18, 18, 18, 0.75)';
+        context.fillStyle = LABEL_TAG_COLOR;
         roundedRect(context, 2, 2, TEXTURE_WIDTH - 4, TEXTURE_HEIGHT - 4, 12);
         context.fill();
 
         context.font = LABEL_FONT;
-        context.fillStyle = '#e3e3e3';
+        context.fillStyle = LABEL_TEXT_COLOR;
         context.textAlign = 'center';
         context.textBaseline = 'middle';
         context.fillText(text, TEXTURE_WIDTH / 2, TEXTURE_HEIGHT / 2);
@@ -255,7 +265,7 @@ export class DimensionLabelService implements SceneScoped {
 }
 
 /** The number a field of the gesture view currently holds. */
-function valueOf(view: GestureView, key: string): number {
+function fieldValue(view: GestureView, key: GestureKey): number {
     const field = view.fields.find(candidate => candidate.key === key);
     return field ? field.value : 0;
 }

@@ -204,10 +204,6 @@ $font-mono:        var(--font-mono, "Fira Code", "Consolas", monospace);
     font-size: 0.75rem;
     white-space: nowrap;
 
-    * {
-      pointer-events: none;
-    }
-
     .snap {
       padding: 0.05rem 0.35rem;
       border-radius: $radius-sm;

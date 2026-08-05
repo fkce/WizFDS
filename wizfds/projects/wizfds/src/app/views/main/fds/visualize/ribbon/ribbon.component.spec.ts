@@ -425,7 +425,7 @@ describe('RibbonComponent', () => {
 
     afterEach(() => {
       component.measure.cancel();
-      component.dims.setEnabled(false);
+      component.dimensions.setEnabled(false);
     });
 
     it('starts the distance tool, and shows it running', () => {
@@ -434,6 +434,15 @@ describe('RibbonComponent', () => {
 
       expect(component.measure.active).toBeTrue();
       expect(cmd('Distance').classList).toContain('on');
+    });
+
+    it('ends the run when its button is pressed again', () => {
+      // The button reads as a toggle, so it is one - alongside Esc
+      cmd('Distance').click();
+
+      cmd('Distance').click();
+
+      expect(component.measure.active).toBeFalse();
     });
 
     it('ends the measuring run when a draw begins', () => {
@@ -449,7 +458,7 @@ describe('RibbonComponent', () => {
     it('ends the draw gesture when measuring begins', () => {
       component.draw.start('obst');
 
-      component.startMeasure();
+      component.toggleMeasure();
 
       expect(component.draw.active).toBeNull();
     });
@@ -458,11 +467,11 @@ describe('RibbonComponent', () => {
       cmd('Dimensions').click();
       fixture.detectChanges();
 
-      expect(component.dims.enabled).toBeTrue();
+      expect(component.dimensions.enabled).toBeTrue();
       expect(cmd('Dimensions').classList).toContain('on');
 
       cmd('Dimensions').click();
-      expect(component.dims.enabled).toBeFalse();
+      expect(component.dimensions.enabled).toBeFalse();
     });
   });
 

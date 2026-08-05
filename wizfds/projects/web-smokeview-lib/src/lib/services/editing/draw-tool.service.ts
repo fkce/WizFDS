@@ -511,7 +511,7 @@ export class DrawToolService implements SceneScoped {
 }
 
 /** A Babylon ray, as the plain numbers draw.ts reasons over. */
-function toDrawRay(ray: BABYLON.Ray): DrawRay {
+export function toDrawRay(ray: BABYLON.Ray): DrawRay {
     return {
         origin: { x: ray.origin.x, y: ray.origin.y, z: ray.origin.z },
         direction: { x: ray.direction.x, y: ray.direction.y, z: ray.direction.z }
