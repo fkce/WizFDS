@@ -8,4 +8,5 @@
  export * from './lib/services/scene-view/scene-view.service';
  export * from './lib/views/smokeview/smokeview.component';
  export * from './lib/services/drawing/scene-input';
- export * from './lib/services/parsers/smokeviewJson/obst-json.service';
+ export * from './lib/services/parsers/smv/smv-parser.service';
+ export * from './lib/services/parsers/smv/smv-file';

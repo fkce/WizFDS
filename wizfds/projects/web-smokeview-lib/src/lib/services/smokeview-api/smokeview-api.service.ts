@@ -69,8 +69,8 @@ export class SmokeviewApiService {
    * (ADR-0004).
    *
    * The only way in, for both apps that use the library: `wizfds` builds the
-   * input from its `Fds` object, and the standalone viewer from a loaded
-   * Smokeview export - see SceneInputService and ObstJsonService respectively.
+   * input from its `Fds` object, and the standalone viewer from the parsed
+   * `.smv` master file - see SceneInputService and SmvParserService.
    *
    * The promise settles once everything has been drawn and never rejects: a
    * failed render is logged rather than left to surface as an unhandled

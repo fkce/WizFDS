@@ -22,7 +22,7 @@
 **FDS** — [`firemodels/fds`](https://github.com/firemodels/fds/tree/master)
 | Katalog | Do czego nam |
 |---|---|
-| [`Source/`](https://github.com/firemodels/fds/tree/master/Source) | kod solvera; nas interesują głównie `read.f90` (input), `dump.f90` (output), `smvv.f90` (plik `.smv`) |
+| [`Source/`](https://github.com/firemodels/fds/tree/master/Source) | kod solvera; nas interesują głównie `read.f90` (input) i `dump.f90` (output — w tym `WRITE_SMOKEVIEW_FILE`, pisarz pliku `.smv`; `smvv.f90` to writery iso/smoke3d) |
 | [`Manuals/FDS_User_Guide/`](https://github.com/firemodels/fds/tree/master/Manuals/FDS_User_Guide) | **referencja namelistów** — źródło prawdy o parametrach `&OBST`, `&SURF`, `&REAC`… |
 | [`Manuals/FDS_Technical_Reference_Guide/`](https://github.com/firemodels/fds/tree/master/Manuals/FDS_Technical_Reference_Guide) | fizyka (rzadko potrzebne, ale bywa — np. jednostki, definicje wielkości) |
 | [`Verification/`](https://github.com/firemodels/fds/tree/master/Verification) · [`Validation/`](https://github.com/firemodels/fds/tree/master/Validation) | **setki gotowych plików `.fds`** — bezcenne jako przykłady poprawnej składni każdego namelistu |
@@ -55,13 +55,13 @@ Nasz kod składa plik wejściowy z modelu obiektowego (`services/json-fds/` → 
 
 ## ② Formaty plików wyjściowych — format ↔ reader w SMV ↔ nasz kod
 
-FDS zapisuje wyniki do plików binarnych (potwierdzone w [`Source/dump.f90`](https://github.com/firemodels/fds/blob/master/Source/dump.f90)), a plik-katalog `.smv` ([`Source/smvv.f90`](https://github.com/firemodels/fds/blob/master/Source/smvv.f90)) spina scenę i wskazuje pozostałe pliki. Nasz viewer musi czytać te same formaty.
+FDS zapisuje wyniki do plików binarnych (potwierdzone w [`Source/dump.f90`](https://github.com/firemodels/fds/blob/master/Source/dump.f90)), a plik-katalog `.smv` (`WRITE_SMOKEVIEW_FILE`, także w `dump.f90`) spina scenę i wskazuje pozostałe pliki. Nasz viewer musi czytać te same formaty.
 
 **Warstwy po stronie SMV:** `Source/shared/read*.c` = parser formatu (współdzielony przez smokeview/smokezip/smokediff); `Source/smokeview/IO*.c` = IO + rendering w viewerze. Spec formatów: [`SMV_Technical_Reference_Guide.tex`](https://github.com/firemodels/smv/blob/master/Manuals/SMV_Technical_Reference_Guide/SMV_Technical_Reference_Guide.tex) — ale **najpewniejszym źródłem prawdy jest kod `read*.c`**.
 
 | Plik / token `.smv` | Co zawiera | Zapis w FDS | Reader w SMV (format) | IO/render w SMV | Nasz serwis w `web-smokeview-lib` |
 |---|---|---|---|---|---|
-| **`.smv`** (master) | meshe, geometria, lista plików danych, obst/vent/device | [`smvv.f90`](https://github.com/firemodels/fds/blob/master/Source/smvv.f90) | [`shared/readsmvfile.c`](https://github.com/firemodels/smv/blob/master/Source/shared/readsmvfile.c) — kanoniczny parser tokenów `.smv` | [`smokeview/readsmv.c`](https://github.com/firemodels/smv/blob/master/Source/smokeview/readsmv.c) (geometria nagłówka), dyspozycja w [`main.c`](https://github.com/firemodels/smv/blob/master/Source/smokeview/main.c) | [`services/parsers/`](../../projects/web-smokeview-lib/src/lib/services/parsers) + [`services/babylon/babylon.service.ts`](../../projects/web-smokeview-lib/src/lib/services/babylon/babylon.service.ts) |
+| **`.smv`** (master) | meshe, geometria, lista plików danych, obst/vent/device | `WRITE_SMOKEVIEW_FILE` w [`dump.f90`](https://github.com/firemodels/fds/blob/master/Source/dump.f90) | [`shared/readsmvfile.c`](https://github.com/firemodels/smv/blob/master/Source/shared/readsmvfile.c) — kanoniczny parser tokenów `.smv` | [`smokeview/readsmv.c`](https://github.com/firemodels/smv/blob/master/Source/smokeview/readsmv.c) (geometria nagłówka), dyspozycja w [`main.c`](https://github.com/firemodels/smv/blob/master/Source/smokeview/main.c) | [`parsers/smv/smv-parser.service.ts`](../../projects/web-smokeview-lib/src/lib/services/parsers/smv/smv-parser.service.ts) (#115) — geometria w metrach + katalog plików wynikowych |
 | **`.sf`** (`SLCF` / cell-centered `SLCC`) | slice — 2D wycinek skalarny w czasie | [`dump.f90`](https://github.com/firemodels/fds/blob/master/Source/dump.f90) | [`shared/readslice.c`](https://github.com/firemodels/smv/blob/master/Source/shared/readslice.c) | [`smokeview/IOslice.c`](https://github.com/firemodels/smv/blob/master/Source/smokeview/IOslice.c) | [`drawing/slice/slice.service.ts`](../../projects/web-smokeview-lib/src/lib/services/drawing/slice/slice.service.ts) (+ `slice-cell`, `slice-geom`, `slice-node`) |
 | **`.bf`** (`BNDF` / `BNDC`) | boundary — wielkości na powierzchniach obst | [`dump.f90`](https://github.com/firemodels/fds/blob/master/Source/dump.f90) | (parser w `getdata.c`/IO) | [`smokeview/IOboundary.c`](https://github.com/firemodels/smv/blob/master/Source/smokeview/IOboundary.c) | [`drawing/bndf/bndf.service.ts`](../../projects/web-smokeview-lib/src/lib/services/drawing/bndf/bndf.service.ts) |
 | **`.prt5`** (`PRT5`) | cząstki / particles | [`dump.f90`](https://github.com/firemodels/fds/blob/master/Source/dump.f90) | (w IO) | [`smokeview/IOpart.c`](https://github.com/firemodels/smv/blob/master/Source/smokeview/IOpart.c) | [`drawing/part/part.service.ts`](../../projects/web-smokeview-lib/src/lib/services/drawing/part/part.service.ts) |
@@ -86,19 +86,11 @@ FDS zapisuje wyniki do plików binarnych (potwierdzone w [`Source/dump.f90`](htt
 | `OPEN` (vent) | [`drawing/open/open.service.ts`](../../projects/web-smokeview-lib/src/lib/services/drawing/open/open.service.ts) | — |
 | jet fan | [`drawing/jetfan/jetfan.service.ts`](../../projects/web-smokeview-lib/src/lib/services/drawing/jetfan/jetfan.service.ts) | — (własne rozszerzenie WizFDS) |
 
-### Eksport HTML/JSON — czym karmi się `webSmokeview`
+### Czym karmi się `webSmokeview`
 
-Standalone viewer nie ma scenariusza. Jego backend woła `smokeview -runhtmlscript`, a komenda skryptu `RENDERHTMLOBST` zapisuje `<chid>_obst.json`. Format wypisuje [`Obst2Data()`](https://github.com/firemodels/smv/blob/SMV6.7.21/Source/smokeview/renderhtml.c) w `Source/smokeview/renderhtml.c` — trzy płaskie tablice i nic więcej:
+Standalone viewer nie ma scenariusza — czyta **sam plik `.smv`** (#115): backend serwuje surowy tekst (`/api/loadSmv`), a [`parsers/smv/smv-parser.service.ts`](../../projects/web-smokeview-lib/src/lib/services/parsers/smv/smv-parser.service.ts) buduje z niego `SceneInput` w metrach (token `PDIM` niesie wymiary siatek) oraz katalog plików wynikowych (tokeny `SLCF`/`BNDF`/`PRT5`/`SMOKF3D`/`ISOG`) dla fazy 6 (#89).
 
-| Klucz | Zawartość | Ile na jeden blockage |
-|---|---|---|
-| `vertices` | trójki `x, y, z` | 24 wierzchołki (8 narożników × 3 grupy ścian) = 72 liczby |
-| `colors` | `rgba` w 0..1, każdy wierzchołek blockage'a ten sam | 96 liczb (alpha wpisywana na sztywno jako `1.0`) |
-| `indices` | trójkąty, indeksy od zera | 36 (6 ścian × 2 trójkąty × 3) |
-
-Blockage'e idą po kolei, więc plik **rozkłada się z powrotem na pudełka**, z których powstał — na tym stoi [`parsers/smokeviewJson/obst-json.service.ts`](../../projects/web-smokeview-lib/src/lib/services/parsers/smokeviewJson/obst-json.service.ts), który buduje z niego `SceneInput`.
-
-> **Uwaga: to nie są metry.** SmokeView normalizuje siatkę zaraz po wczytaniu `.smv` — makro `NORMALIZE_X(x)` w [`shared/datadefs.h`](https://github.com/firemodels/smv/blob/master/Source/shared/datadefs.h) to `(x - xbar0) / xyzmaxdiff`. Eksport nie niesie ani `xbar0`, ani `xyzmaxdiff`, więc nie ma czym tego odwrócić: najdłuższy bok modelu ma długość 1. Kamera, suwaki przycinania i grubości krawędzi mierzą się od samego modelu i działają mimo to, ale współrzędna odczytana w `webSmokeview` **nie jest** liczbą w metrach, którą ADR-0002 obiecuje w aplikacji. Naprawa wymaga zmiany tego, co wysyła serwer.
+> **Historia.** Do 2026-08 backend wołał `smokeview -runhtmlscript`, a viewer czytał `<chid>_obst.json` — trzy płaskie tablice z samymi obstami, znormalizowane do sześcianu jednostkowego bez możliwości odzyskania metrów (stały wyjątek od ADR-0002). Ścieżka wycofana w całości wraz z `ObstJsonService`.
 
 ---
 

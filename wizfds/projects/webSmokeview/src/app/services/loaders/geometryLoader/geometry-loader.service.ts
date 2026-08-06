@@ -1,4 +1,4 @@
-import { Injectable, isDevMode } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { HttpManagerService, Result } from '../../http-manager/http-manager.service';
 import { ungzip } from 'pako';
 import { ConfigService } from '../../config/config.service';
@@ -12,7 +12,7 @@ import { ConfigService } from '../../config/config.service';
 export interface SimulationNode {
   readonly name: string,
   readonly type: string,
-  /** With the dot, as the backend writes it: `.smv`, `.json`. */
+  /** With the dot, as the backend writes it: `.smv`. */
   readonly extension: string,
   /** Where the file sits on the backend, which is what the loaders ask for. */
   readonly path: string
@@ -28,62 +28,26 @@ export class GeometryLoaderService {
   ) { }
 
   /**
-   * Load / generate smokeview geometry
-   * @param simulation tree node
+   * Fetch the raw `.smv` master file of a simulation.
+   *
+   * The backend serves the text as FDS wrote it (gzipped for the wire);
+   * parsing belongs to the library's SmvParserService (#115, ADR-0016).
+   * Resolves with `data` holding the text - and settles on **every** branch:
+   * the old implementation left the promise pending forever on anything but
+   * a success, and the caller waiting for a load that would never arrive.
    */
   public loadSmv(simulation: SimulationNode): Promise<Result> {
-    // Create promise
-    let promise = new Promise<Result>((resolve, reject) => {
-      if (simulation.extension == '.smv') {
+    if (simulation.extension != '.smv') {
+      return Promise.reject(new Error(`not a .smv file: ${simulation.name}`));
+    }
 
-        this.httpManager.get(ConfigService.settings.host + `/api/loadSmv/${simulation.path}`).then(
-          (result: Result) => {
-
-            if (result.meta.status == 'success') {
-              // Decode gzipped data
-              let data = ungzip(result.data, { to: 'string' });
-              result.data = JSON.parse(data);
-              resolve(result);
-            }
-            else {
-              reject();
-            }
-          },
-          (error) => {
-            if (isDevMode()) console.log(error);
-          });
-      }
-    });
-    return promise;
-  }
-
-  /**
-   * Load already generated json geometry
-   * @param simulation tree node
-   */
-  public loadJson(simulation: SimulationNode): Promise<Result> {
-    // Create promise
-    let promise = new Promise<Result>((resolve, reject) => {
-      if (simulation.extension == '.json') {
-
-        this.httpManager.get(ConfigService.settings.host + `/api/loadJson/${simulation.path}`).then(
-          (result: Result) => {
-
-            if (result.meta.status == 'success') {
-              // Decode gzipped data
-              let data = ungzip(result.data, { to: 'string' });
-              result.data = JSON.parse(data);
-              resolve(result);
-            }
-            else {
-              reject();
-            }
-          },
-          (error) => {
-            if (isDevMode()) console.log(error);
-          });
-      }
-    });
-    return promise;
+    return this.httpManager.get(ConfigService.settings.host + `/api/loadSmv/${simulation.path}`).then(
+      (result: Result) => {
+        if (result.meta.status != 'success') {
+          throw new Error(result.meta.details.join('; ') || 'loading the .smv failed');
+        }
+        result.data = ungzip(result.data, { to: 'string' });
+        return result;
+      });
   }
 }
