@@ -135,6 +135,27 @@ Przy okazji zdejmuje obrys hovera — do następnego ruchu myszy. Nie działa
 podczas pisania w polu formularza — tam Escape należy do pola.
 _Avoid_: anulowanie (bez wskazania, czego)
 
+### Wyniki symulacji (post-processing)
+
+**Oś czasu**:
+Wspólny zegar odtwarzania wyników w sekundach czasu symulacji. Każdy format
+animowany pokazuje swoją ostatnią klatkę o czasie ≤ t (schodkowo, bez
+interpolacji); tempo odtwarzania to mnożnik czasu rzeczywistego.
+_Avoid_: player, globalny numer klatki (klatki należą do formatu, nie do osi)
+
+**Zakres wielkości**:
+Wspólne min/max mapowania wartość→kolor, liczone ze wszystkich klatek
+wszystkich plików tej samej wielkości fizycznej — TEMPERATURE ma jedną skalę
+w całej scenie, niezależnie od formatu (slice czy boundary). Ręczne
+nadpisanie zastępuje końce zakresu.
+_Avoid_: zakres pliku, zakres klatki
+
+**Katalog wyników**:
+Miejsce, z którego viewer bierze `.smv` i pliki wynikowe: w wizfds lokalny
+folder wskazany przez użytkownika, w webSmokeview katalog serwowany przez
+backend. `.smv` jest spisem treści katalogu wyników.
+_Avoid_: upload wyników (nic nie jest wysyłane na serwer)
+
 ### Nawigacja kamerą
 
 **Pan**:
