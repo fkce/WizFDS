@@ -13,6 +13,14 @@ export interface ViewportGrid {
   readonly cell: { readonly i: number, readonly j: number, readonly k: number };
 }
 
+/** What the measure tool has between its points - in metres, signed (#127). */
+export interface ViewportMeasurement {
+  readonly distance: number;
+  readonly dx: number;
+  readonly dy: number;
+  readonly dz: number;
+}
+
 /**
  * What the status bar says while the pointer is over the 3D view.
  *
@@ -53,6 +61,17 @@ export class ViewportStatusService {
    */
   public grid: ViewportGrid | null = null;
 
+  /**
+   * Whether the measure tool is running - what the bar shows its measurement
+   * segment on, dashes included, rather than on the measurement itself: the
+   * segment appearing at the first click and vanishing at the second would
+   * reflow the bar mid-measurement.
+   */
+  public measuring = false;
+
+  /** What the measure tool currently has. Null while nothing is measured. */
+  public measurement: ViewportMeasurement | null = null;
+
   /** The 3D view has been opened, and is about to start reporting. */
   public enter(): void {
     this.active = true;
@@ -77,6 +96,17 @@ export class ViewportStatusService {
     this.grid = grid;
   }
 
+  /** The measure tool has started or ended; its readout goes with it (#127). */
+  public setMeasuring(measuring: boolean): void {
+    this.measuring = measuring;
+    if (!measuring) { this.measurement = null; }
+  }
+
+  /** Say what the measure tool has, or that it has nothing yet. */
+  public setMeasurement(measurement: ViewportMeasurement | null): void {
+    this.measurement = measurement;
+  }
+
   /**
    * Take the readout down - the user has left the 3D view.
    *
@@ -87,6 +117,8 @@ export class ViewportStatusService {
     this.active = false;
     this.cursor = null;
     this.grid = null;
+    this.measuring = false;
+    this.measurement = null;
   }
 
 }

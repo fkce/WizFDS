@@ -91,6 +91,8 @@ mat-progress-bar.progress {
 $axis-chars:    7;  // "-999.99" — a model up to a kilometre either way
 $cell-chars:    5;  // "0.125" / "12.50" — one &MESH cell at `number:'1.2-3'`
 $mesh-id-chars: 6;  // MESH12 — the default naming; longer ones ellipsise
+$dist-chars:    7;  // "999.999" — a distance is unsigned, at the millimetre
+$delta-chars:   8;  // "-999.999" — a component is signed, at the millimetre
 // mesh id + "0.125 × 0.125 × 0.125 m" (three cells, two separators, the unit)
 $grid-chars: $mesh-id-chars + 3 * $cell-chars + 8;
 
@@ -211,17 +213,23 @@ $grid-chars: $mesh-id-chars + 3 * $cell-chars + 8;
   // decimal points stand in a column and a value crossing zero or losing a digit
   // moves nothing beside it.
   .axis,
-  .cell {
+  .cell,
+  .dist,
+  .delta {
     display: inline-block;
     text-align: right;
   }
   .axis { min-width: slot($axis-chars); }
   .cell { min-width: slot($cell-chars); }
+  .dist { min-width: slot($dist-chars); }
+  .delta { min-width: slot($delta-chars); }
 
-  .status-left .cursor .mono {
+  .status-left .cursor .mono,
+  .status-left .measure .mono {
     color: var(--on-surface);
   }
-  .status-left .cursor .mono.muted {
+  .status-left .cursor .mono.muted,
+  .status-left .measure .mono.muted {
     color: var(--on-surface-muted);
   }
 

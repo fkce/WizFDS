@@ -15,6 +15,7 @@ import {
   GestureView, GizmoService, NUDGE_KEYS, NudgeKey, nudgeDirection
 } from '../../services/editing/gizmo.service';
 import { DrawToolService } from '../../services/editing/draw-tool.service';
+import { MeasureLabel, MeasureToolService } from '../../services/editing/measure-tool.service';
 import { GestureKey } from '../../services/editing/gesture';
 
 /**
@@ -73,6 +74,14 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   private gizmoView: GestureView | null = null;
   private drawView: GestureView | null = null;
 
+  /**
+   * The distance riding the cursor between the two measured points (#127).
+   *
+   * A separate overlay rather than a third gesture producer: a measurement has
+   * no fields to type into, so what it shows is a readout, not the panel.
+   */
+  measureLabel: MeasureLabel | null = null;
+
   /** What is in each field, as text - the user's, not the model's. */
   values: Partial<Record<GestureKey, string>> = {};
 
@@ -121,6 +130,14 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     const side = this.viewCubeService.pickSide();
     if (side) {
       this.viewCubeService.zoomToSide(side);
+      return;
+    }
+
+    // While the measure tool runs, the left button lands its points (#127) -
+    // the same claim the draw tool makes below, and the same ctrl latch.
+    if (this.measureTool.active) {
+      this.measureTool.setSnapSuspended(event.ctrlKey);
+      this.pointerDownAt = { x: event.clientX, y: event.clientY };
       return;
     }
 
@@ -186,6 +203,12 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!downAt || !this.babylonService.scene) return;
     if (Math.hypot(event.clientX - downAt.x, event.clientY - downAt.y) > CLICK_SLOP) return;
 
+    // The measure tool takes the click as one of its two points (#127)
+    if (this.measureTool.active) {
+      this.measureTool.click(this.pickingRay());
+      return;
+    }
+
     // The draw tool takes the click as one step of its gesture (#125)
     if (this.drawTool.active) {
       this.drawTool.click(this.pickingRay());
@@ -221,6 +244,14 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
       this.hoverQueued = false;
       // The pointer can have left, or the view been torn down, since the move
       if (this.destroyed || !this.babylonService.scene) { return; }
+
+      // The measure tool follows the pointer for the same reason the draw
+      // tool does below: what the cursor means now is where the next point
+      // lands (#127)
+      if (this.measureTool.active) {
+        this.measureTool.track(this.pickingRay());
+        return;
+      }
 
       // The draw tool follows the pointer instead of the hover: a highlight
       // chasing the cursor under a gesture would be noise, and what the cursor
@@ -284,7 +315,8 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     // (ADR-0004), exactly like a click on empty space. Not while typing in a
     // host form field, where Escape means the field.
     if (event.key === 'Escape') {
-      if (this.drawTool.active) { this.drawTool.cancel(); }
+      if (this.measureTool.active) { this.measureTool.cancel(); }
+      else if (this.drawTool.active) { this.drawTool.cancel(); }
       else if (this.gizmo.isDragging) { this.gizmo.cancel(); }
       else if (!SmokeviewComponent.isFormField(event.target)) { this.picking.dropSelection(); }
       return;
@@ -295,10 +327,11 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /**
-   * Who the keyboard is talking to: the draw tool while it is on, the gizmo
-   * otherwise. One pointer, so never both at once.
+   * Who the keyboard is talking to: the measure or draw tool while one is on,
+   * the gizmo otherwise. One pointer, so never more than one at once.
    */
-  private get gestureOwner(): GizmoService | DrawToolService {
+  private get gestureOwner(): GizmoService | DrawToolService | MeasureToolService {
+    if (this.measureTool.active) { return this.measureTool; }
     return this.drawTool.active ? this.drawTool : this.gizmo;
   }
 
@@ -458,6 +491,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   private sceneSub: Subscription;
   private gestureSub: Subscription;
   private drawGestureSub: Subscription;
+  private measureLabelSub: Subscription;
 
   /** Set in ngOnDestroy - createScene() is awaited and can outlive the view. */
   private destroyed = false;
@@ -487,6 +521,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     private sceneBounds: SceneBoundsService,
     private gizmo: GizmoService,
     private drawTool: DrawToolService,
+    private measureTool: MeasureToolService,
     private zone: NgZone
   ) { }
 
@@ -510,6 +545,8 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
       this.zone.run(() => { this.gizmoView = view; this.onGesture(); }));
     this.drawGestureSub = this.drawTool.gesture$.subscribe(view =>
       this.zone.run(() => { this.drawView = view; this.onGesture(); }));
+    this.measureLabelSub = this.measureTool.label$.subscribe(label =>
+      this.zone.run(() => this.measureLabel = label));
   }
 
   async ngAfterViewInit() {
@@ -553,6 +590,9 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     if (this.drawGestureSub) {
       this.drawGestureSub.unsubscribe();
+    }
+    if (this.measureLabelSub) {
+      this.measureLabelSub.unsubscribe();
     }
     // Tears down scene and engine, and resets every scene-scoped service
     this.babylonService.disposeScene();

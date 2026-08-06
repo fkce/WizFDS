@@ -222,3 +222,31 @@ cały rząd reflowował przy każdym ruchu myszą nad kanwą.
 Licznik ostrzeżeń świadomie bez slotu: stoi jako ostatni w lewej grupie, więc
 jego szerokość niczego nie przesuwa. Pola kursora i siatki nadal znikają poza
 widokiem 3D — to zmiana trasy, a nie reflow kilka razy na sekundę.
+
+## Uzupełnienie (2026-08-05) — co odblokowało #127
+
+Zakładka Measure jest w komplecie — ostatnie wyszarzone przyciski tej decyzji
+ożyły — a pomiar niczego w scenariuszu nie zmienia: FDS nie ma encji wymiaru,
+więc wszystko, co tu powstaje, jest stanem prezentacyjnym biblioteki
+(ADR-0004) i nie jest nigdzie zapisywane.
+
+- **Distance to narzędzie na serie, nie pojedynczy gest.** Dwa punkty ze
+  snapem wolnym we wszystkich trzech osiach (pomiar narożnik–narożnik musi być
+  dokładny), gumka i etykieta odległości przy kursorze między punktami, wynik
+  na pasku stanu. W odróżnieniu od rysowania narzędzie **nie** wyłącza się po
+  odpowiedzi — mierzy się seriami, a kończy je Esc, wraz z którym znika też
+  zmierzona linia i odczyt. Klik w pustkę nie stawia punktu, tak jak nie
+  stawia narożnika w geście rysowania. Zapadka ctrl obowiązuje jak wszędzie
+  (ADR-0011); Escape ma pomiar na szczycie swojej warstwy.
+- **Wynik na pasku stanu w slotach o stałej podziałce**: odległość
+  (`999.999`, 7 znaków) i składowe `Δ dx, dy, dz` (`-999.999`, 8 znaków),
+  wszystko z dokładnością milimetra, jak dynamic input. Segment stoi jako
+  ostatni w lewej grupie — pojawia się z narzędziem i niczego obok nie rusza —
+  a zanim padnie pierwsza odpowiedź, pokazuje kreski w tych samych slotach.
+- **Dimensions to przełącznik etykiet rozmiarów zaznaczenia**: szerokość,
+  głębokość i wysokość odczytane wprost z `XB`, po trzy billboardy na element,
+  zakotwiczone na krawędziach, które mierzą, o stałej wysokości ekranowej.
+  Rysowane w bibliotece (etykiety wymiarów były jej przypisane od pierwszej
+  wersji tej decyzji) i podążające za gizmem: w trakcie gestu ze strumienia
+  gestów, po nim z odrysowanego zaznaczenia. Przełącznik, bo etykiety są
+  szumem, kiedy nie są potrzebne — i nie jest nigdzie utrwalany.

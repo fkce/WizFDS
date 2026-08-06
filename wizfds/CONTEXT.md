@@ -75,6 +75,22 @@ i snap, i to, co nazywa pasek stanu. Brak odczytu (kursor w pustce) to co
 innego niż brak siatki (kursor na modelu, scenariusz bez &MESH).
 _Avoid_: siatka pod kursorem (poza siatkami nadal jakaś obowiązuje)
 
+**Seria pomiarowa**:
+Narzędzie Distance po uruchomieniu mierzy parami punktów aż do Esc — nie
+wyłącza się po odpowiedzi jak gest rysowania. Punkty łapią się snapem wolnym
+we wszystkich osiach; wynik (odległość i `Δ dx/dy/dz`) stoi na pasku stanu,
+a znika wraz z narzędziem. Klik w pustkę nie stawia punktu. Nic nie jest
+zapisywane — FDS nie ma encji wymiaru.
+_Avoid_: tryb pomiaru (to seria, nie tryb globalny), wymiarowanie (nic nie
+powstaje w modelu)
+
+**Etykiety wymiarów**:
+Przełącznik Dimensions: szerokość, głębokość i wysokość każdego zaznaczonego
+elementu odczytane z jego `XB`, zakotwiczone na krawędziach, które mierzą,
+o stałej wysokości ekranowej. Podążają za gestem gizma i znikają z
+zaznaczeniem. Stan prezentacyjny biblioteki, nigdzie nie utrwalany.
+_Avoid_: wymiary elementu (odczyt, nie właściwość), adnotacje
+
 **Bieżący SURF**:
 Selektor w panelu Draw — odpowiednik warstwy bieżącej AutoCAD-a. Nowy
 element dostaje wskazany &SURF w chwili zatwierdzenia; pozycja INERT nie
@@ -113,10 +129,10 @@ leży.
 _Avoid_: priorytet picku (opisowo)
 
 **Escape (warstwowo)**:
-Trwa gest → przerywa gest. Gestu nie ma → czyści zaznaczenie w aplikacji,
-tak jak klik w pustkę. Przy okazji zdejmuje obrys hovera — do następnego
-ruchu myszy. Nie działa podczas pisania w polu formularza — tam Escape
-należy do pola.
+Trwa seria pomiarowa → kończy ją, wraz z odczytem. Trwa gest → przerywa
+gest. Gestu nie ma → czyści zaznaczenie w aplikacji, tak jak klik w pustkę.
+Przy okazji zdejmuje obrys hovera — do następnego ruchu myszy. Nie działa
+podczas pisania w polu formularza — tam Escape należy do pola.
 _Avoid_: anulowanie (bez wskazania, czego)
 
 ### Nawigacja kamerą

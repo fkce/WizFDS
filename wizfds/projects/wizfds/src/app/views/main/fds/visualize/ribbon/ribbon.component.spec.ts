@@ -409,6 +409,72 @@ describe('RibbonComponent', () => {
     });
   });
 
+  /**
+   * The Measure panel (#127).
+   *
+   * The ribbon owns neither measurement: it starts the library's distance tool
+   * and flips the library's dimension-label toggle, and nothing about the
+   * scenario changes either way (ADR-0004).
+   */
+  describe('the Measure panel', () => {
+
+    beforeEach(() => {
+      component.select('measure');
+      fixture.detectChanges();
+    });
+
+    afterEach(() => {
+      component.measure.cancel();
+      component.dimensions.setEnabled(false);
+    });
+
+    it('starts the distance tool, and shows it running', () => {
+      cmd('Distance').click();
+      fixture.detectChanges();
+
+      expect(component.measure.active).toBeTrue();
+      expect(cmd('Distance').classList).toContain('on');
+    });
+
+    it('ends the run when its button is pressed again', () => {
+      // The button reads as a toggle, so it is one - alongside Esc
+      cmd('Distance').click();
+
+      cmd('Distance').click();
+
+      expect(component.measure.active).toBeFalse();
+    });
+
+    it('ends the measuring run when a draw begins', () => {
+      // Two tools cannot share one pointer
+      component.measure.start();
+
+      component.startDraw('obst');
+
+      expect(component.measure.active).toBeFalse();
+      component.draw.cancel();
+    });
+
+    it('ends the draw gesture when measuring begins', () => {
+      component.draw.start('obst');
+
+      component.toggleMeasure();
+
+      expect(component.draw.active).toBeNull();
+    });
+
+    it('toggles the dimension labels of the selection', () => {
+      cmd('Dimensions').click();
+      fixture.detectChanges();
+
+      expect(component.dimensions.enabled).toBeTrue();
+      expect(cmd('Dimensions').classList).toContain('on');
+
+      cmd('Dimensions').click();
+      expect(component.dimensions.enabled).toBeFalse();
+    });
+  });
+
   describe('minimising', () => {
     it('hides the panels but keeps the tabs, as AutoCAD does', () => {
       // Pressing the tab that is already open is what minimises

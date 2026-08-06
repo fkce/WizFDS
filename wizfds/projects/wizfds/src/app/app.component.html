@@ -108,6 +108,35 @@
           <mat-icon svgIcon="alert-outline" aria-hidden="true"></mat-icon>
           <span>{{ validation.count }} {{ validation.count === 1 ? 'warning' : 'warnings' }}</span>
         </span>
+
+        <!--
+          What the measure tool has between its points (#127): the distance,
+          then its components - the numbers a corridor width is checked with.
+          Present for as long as the tool runs and dashed before the first
+          answer, in the same slots, so the bar does not reflow mid-measurement.
+          Last in the group, so appearing with the tool moves nothing beside it.
+        -->
+        <span class="status-seg measure" *ngIf="viewportStatus.measuring">
+          <mat-icon svgIcon="ruler" aria-hidden="true"></mat-icon>
+          <span class="mono" *ngIf="viewportStatus.measurement as measurement; else noMeasurement">
+            <span class="dist">{{ measurement.distance | number:'1.3-3' }}</span> m
+            <span class="deltas muted">Δ
+              <span class="delta">{{ measurement.dx | number:'1.3-3' }}</span>,
+              <span class="delta">{{ measurement.dy | number:'1.3-3' }}</span>,
+              <span class="delta">{{ measurement.dz | number:'1.3-3' }}</span> m
+            </span>
+          </span>
+          <ng-template #noMeasurement>
+            <span class="mono muted">
+              <span class="dist">—</span> m
+              <span class="deltas">Δ
+                <span class="delta">—</span>,
+                <span class="delta">—</span>,
+                <span class="delta">—</span> m
+              </span>
+            </span>
+          </ng-template>
+        </span>
       </ng-container>
     </div>
 
