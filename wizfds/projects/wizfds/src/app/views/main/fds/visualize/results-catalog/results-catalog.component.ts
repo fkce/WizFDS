@@ -1,9 +1,14 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
+import { Subscription } from 'rxjs';
 
 import { ResultsCatalog, ResultsDirectoryService } from '@services/results-directory/results-directory.service';
 import {
   SmvResultFile, SmvResultKind
 } from '../../../../../../../../web-smokeview-lib/src/lib/services/parsers/smv/smv-file';
+import {
+  QuantityGroup, isLoadableSliceGroup
+} from '../../../../../../../../web-smokeview-lib/src/lib/services/results/quantity-groups';
+import { SliceService } from '../../../../../../../../web-smokeview-lib/src/lib/services/drawing/slice/slice.service';
 
 /**
  * How this app words the result formats, and which icon it gives them.
@@ -48,9 +53,36 @@ const SIZE_UNITS: readonly string[] = ['B', 'KB', 'MB', 'GB', 'TB'];
   styleUrls: ['./results-catalog.component.scss'],
   standalone: false
 })
-export class ResultsCatalogComponent {
+export class ResultsCatalogComponent implements OnDestroy {
 
-  constructor(public results: ResultsDirectoryService) { }
+  private readonly caseSub: Subscription;
+
+  constructor(public results: ResultsDirectoryService, public sliceService: SliceService) {
+    // Rebind the readers whenever the catalog changes folder or case; the
+    // service disposes whatever the previous case had loaded (#149).
+    this.caseSub = this.results.catalog$.subscribe(() => {
+      if (this.results.smv && this.results.source) {
+        this.sliceService.setCase(this.results.smv, this.results.source);
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.caseSub.unsubscribe();
+  }
+
+  canLoadGroup(group: QuantityGroup): boolean {
+    return isLoadableSliceGroup(group);
+  }
+
+  onGroupClick(group: QuantityGroup): void {
+    if (!this.canLoadGroup(group)) return;
+    void this.sliceService.toggleGroup(group);
+  }
+
+  onFrameInput(event: Event): void {
+    this.sliceService.setFrame(Number((event.target as HTMLInputElement).value));
+  }
 
   get catalog(): ResultsCatalog | null {
     return this.results.catalog;
