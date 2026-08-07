@@ -108,6 +108,15 @@ describe('HttpResultsDirectory', () => {
       expect(rangeHeaderOf(fetchSpy.calls.mostRecent().args[1])).toBe('bytes=10-13');
     });
 
+    it('reads zero bytes without asking, since no range can spell an empty one', async () => {
+      const { handle, fetchSpy } = await openedHandle();
+      const requests = fetchSpy.calls.count();
+
+      expect((await handle.read(0, 0)).byteLength).toBe(0);
+
+      expect(fetchSpy.calls.count()).toBe(requests);
+    });
+
     it('fails on a 200, rather than mistake a whole file for the slice it asked for', async () => {
       const { handle, fetchSpy } = await openedHandle();
       fetchSpy.and.callFake(() => Promise.resolve(new Response(new Uint8Array(64), { status: 200 })));

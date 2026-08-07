@@ -109,6 +109,20 @@ describe('LocalResultsDirectory', () => {
 
       expect(Array.from(bytes)).toEqual([12, 13, 14]);
     });
+
+    it('reads zero bytes off the empty file an interrupted run left behind', async () => {
+      // Where the HTTP source needs a short-circuit - no range can ask for
+      // nothing - File.slice(0, 0) is already an empty blob, so the same call
+      // needs nothing special here. Pinned so the two sources stay agreed.
+      const directory = new LocalResultsDirectory(directoryHandle({
+        'demo_01.sf': new Uint8Array([])
+      }));
+
+      const handle = await directory.open('demo_01.sf');
+
+      expect(handle.size).toBe(0);
+      expect((await handle.read(0, 0)).byteLength).toBe(0);
+    });
   });
 
   describe('over a directory input', () => {

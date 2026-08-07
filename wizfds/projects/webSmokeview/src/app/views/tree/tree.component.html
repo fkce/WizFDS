@@ -25,8 +25,9 @@
       <!-- Third level -->
       <div *ngFor="let level3 of level2.children" [ngClass]="l2==level2.name ? 'open' : 'close'">
         <p class="menu-l3" *ngIf="level3.type == 'directory'" (click)="setLevel3(level3.name)">
-          <mat-icon *ngIf="l3!=level3.name">folder</mat-icon>
-          <mat-icon *ngIf="l3==level3.name">folder_open</mat-icon>{{level3.name}}
+          <mat-icon *ngIf="l3!=level3.name" svgIcon="folder-outline"></mat-icon>
+          <mat-icon *ngIf="l3==level3.name" svgIcon="folder-open-outline"></mat-icon>
+          {{level3.name}}
         </p>
         <p class="menu-l3" *ngIf="level3.type == 'file' && level3.extension == '.smv'" (click)="loadSmv(level3)">
           {{level3.name}}</p>
@@ -34,4 +35,39 @@
 
     </div>
   </div>
+
+  <!--
+    The results catalog of the loaded case: format, then quantity group, then
+    one file per mesh. Nothing here is clickable except the format headers -
+    it is a listing, and opening a result file is the readers' job (#149...#155).
+  -->
+  <ng-container *ngIf="resultFormats.length > 0">
+    <div class="header">Results</div>
+
+    <div *ngFor="let format of resultFormats">
+      <p class="menu-l1 format" (click)="toggleFormat(format.kind)">
+        <mat-icon [svgIcon]="formatIcon(format.kind)"></mat-icon>
+        {{formatLabel(format.kind)}}
+      </p>
+
+      <div [ngClass]="isFormatOpen(format.kind) ? 'open' : 'close'">
+        <ng-container *ngFor="let group of format.groups">
+          <p class="menu-l2 group">
+            {{group.label}}
+            <span class="unit" *ngIf="group.unit">{{group.unit}}</span>
+          </p>
+
+          <!--
+            The right of the row answers the same question either way: how big
+            the file is, or that the directory has not got it.
+          -->
+          <p class="menu-l3 file" *ngFor="let file of group.files" [class.absent]="isAbsent(file)">
+            MESH {{file.meshIndex}}
+            <span class="size" *ngIf="sizeOf(file) !== null">{{formatSize(sizeOf(file))}}</span>
+            <mat-icon class="missing" *ngIf="isAbsent(file)" svgIcon="alert-circle-outline"></mat-icon>
+          </p>
+        </ng-container>
+      </div>
+    </div>
+  </ng-container>
 </div>

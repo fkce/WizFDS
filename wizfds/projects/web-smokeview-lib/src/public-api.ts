@@ -13,3 +13,4 @@
  export * from './lib/services/results/results-directory';
  export * from './lib/services/results/local-results-directory';
  export * from './lib/services/results/http-results-directory';
+ export * from './lib/services/results/quantity-groups';

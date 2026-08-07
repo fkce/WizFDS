@@ -101,7 +101,9 @@ export function smvFixture(): string {
     ' temp',
     ' C',
     '',
-    'SLCC     1 # STRUCTURED &     0     4     0     2     0     2 !      2      1      3 ',
+    // Cell-centered, so the node range spans the cell layer the values sit in
+    // rather than lying on a single plane: one cell deep on the ior axis.
+    'SLCC     1 # STRUCTURED &     0     4     0     2     1     2 !      2      1      3 ',
     ' demo_1_2.sf',
     ' HRRPUV',
     ' hrrpuv',

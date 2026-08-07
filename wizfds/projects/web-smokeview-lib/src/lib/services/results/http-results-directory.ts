@@ -94,6 +94,13 @@ class HttpFileHandle implements ResultFileHandle {
   ) { }
 
   public async read(offset: number, length: number): Promise<ArrayBuffer> {
+    // An empty file is a real thing - an interrupted run leaves them behind -
+    // and reading none of one has to be as ordinary as reading none of a big
+    // one. There is no range that says so, though: ranges are inclusive, so
+    // asking for zero bytes would spell `bytes=0--1`, which is not a range at
+    // all. Answer it here rather than let the server puzzle over it.
+    if (length === 0) { return new ArrayBuffer(0); }
+
     // HTTP ranges are inclusive at both ends, unlike every offset/length pair
     // above this line.
     const range = `bytes=${offset}-${offset + length - 1}`;
