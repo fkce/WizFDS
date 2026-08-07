@@ -107,7 +107,7 @@ const SHADER_INTERFACES: Record<string, { attributes: string[]; uniforms: string
   mesh: { attributes: ['position', 'normal', 'color'], uniforms: ['transparent'] },
   meshInstanced: { attributes: ['position', 'normal'], uniforms: ['transparent'] },
   arrow: { attributes: ['position', 'normal'], uniforms: [] },
-  slice: { attributes: ['position', 'normal', 'color', 'texture_coordinate', 'blank'], uniforms: ['is_blank'] }
+  slice: { attributes: ['position', 'slice_value', 'blank'], uniforms: ['is_blank', 'range_min', 'range_max'] }
 };
 
 @Injectable({
