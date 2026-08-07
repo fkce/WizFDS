@@ -15,6 +15,20 @@ export interface SmvMeshGrid {
     readonly z: readonly number[]
 }
 
+/**
+ * One obst's node-index box within its mesh, straight off the OBST block's
+ * second line. What #149 computes blank from: a slice node inside one of
+ * these is hidden by matter (GEOM deliberately does not occlude - see
+ * "Blank" in CONTEXT.md).
+ */
+export interface SmvBlockage {
+    /** 1-based, as every mesh reference in the `.smv` counts. */
+    readonly meshIndex: number,
+    readonly i1: number, readonly i2: number,
+    readonly j1: number, readonly j2: number,
+    readonly k1: number, readonly k2: number
+}
+
 /** The result-file kinds Phase 6 reads. `slcf` covers SLCC via `cellCentered`. */
 export type SmvResultKind = 'slcf' | 'bndf' | 'prt5' | 'smoke3d' | 'isof';
 
@@ -57,5 +71,6 @@ export interface SmvFile {
     /** The geometry, in FDS metres (ADR-0002), ready for `render(scene)`. */
     readonly scene: SceneInput,
     readonly grids: readonly SmvMeshGrid[],
+    readonly blockages: readonly SmvBlockage[],
     readonly results: readonly SmvResultFile[]
 }

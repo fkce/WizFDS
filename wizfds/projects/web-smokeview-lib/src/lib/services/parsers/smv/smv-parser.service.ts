@@ -3,7 +3,7 @@ import {
   SceneColor, SceneDevc, SceneDevcExtent, SceneDevcMarker, SceneInput, SceneMesh,
   SceneObst, SceneOpen, SceneVent, SceneXb
 } from '../../drawing/scene-input';
-import { SmvFile, SmvMeshGrid, SmvResultFile } from './smv-file';
+import { SmvBlockage, SmvFile, SmvMeshGrid, SmvResultFile } from './smv-file';
 
 /**
  * Reads the `.smv` master file FDS writes, straight in the browser (ADR-0016).
@@ -62,6 +62,7 @@ class SmvWalk {
   private readonly vents: SceneVent[] = [];
   private readonly opens: SceneOpen[] = [];
   private readonly devcs: SceneDevc[] = [];
+  private readonly blockages: SmvBlockage[] = [];
   private readonly results: SmvResultFile[] = [];
 
   constructor(private readonly lines: string[]) { }
@@ -100,6 +101,7 @@ class SmvWalk {
       grids: this.meshes.map((mesh, index): SmvMeshGrid => ({
         meshIndex: index + 1, x: mesh.x, y: mesh.y, z: mesh.z
       })),
+      blockages: this.blockages,
       results: this.results
     };
   }
@@ -207,6 +209,13 @@ class SmvWalk {
     for (let i = 0; i < count; i++) {
       const values = this.numbers(this.next());
       const box = boxes[i];
+
+      // The OBST block sits inside its mesh's section, so the mesh being
+      // built last is the one these node indices count in (#149).
+      this.blockages.push({
+        meshIndex: this.meshes.length,
+        i1: values[0], i2: values[1], j1: values[2], j2: values[3], k1: values[4], k2: values[5]
+      });
 
       // -3 says the obst was painted over - COLOR on the &OBST itself - and
       // carries its own rgba; anything else colours from the faces' surface
