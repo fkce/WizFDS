@@ -67,20 +67,6 @@
         <span class="value">{{ measureLabel.text }}</span>
     </div>
 
-    <!--
-        The results player. It belongs to what is drawn rather than to what is
-        edited, so it stays here while the editing chrome lives in the host -
-        Phase 6 (#89) is what gives it a Results tab to answer to.
-    -->
-    <div class="player" *ngIf="webGPUAvailable && playerService.frameNo > 0">
-        <mat-icon class="control" (click)="control()" *ngIf="!playerService.isPlay"
-            svgIcon="play" aria-label="Play"></mat-icon>
-        <mat-icon class="control" (click)="control()" *ngIf="playerService.isPlay"
-            svgIcon="pause" aria-label="Pause"></mat-icon>
-        <div class="frame">Frame {{ playerService.frameCur }}</div>
-        <div class="track">
-            <div class="progress" [style.width.px]="playerService.setSlider()"></div>
-        </div>
-    </div>
+    <!-- The results playback controls return with the shared timeline (#150). -->
 
 </div>

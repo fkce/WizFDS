@@ -6,8 +6,6 @@ import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { PickService } from '../../services/picking/pick.service';
 import { BabylonService } from '../../services/babylon/babylon.service';
-import { SliceService } from '../../services/drawing/slice/slice.service';
-import { PlayerService } from '../../services/player/player.service';
 import { ViewCubeService } from '../../services/babylon/viewCube/view-cube.service';
 import * as BABYLON from 'babylonjs';
 import { SceneBoundsService } from '../../services/scene-bounds/scene-bounds.service';
@@ -515,8 +513,6 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
   constructor(
     public picking: PickService,
     private babylonService: BabylonService,
-    public sliceService: SliceService,
-    public playerService: PlayerService,
     public viewCubeService: ViewCubeService,
     private sceneBounds: SceneBoundsService,
     private gizmo: GizmoService,
@@ -596,32 +592,6 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     // Tears down scene and engine, and resets every scene-scoped service
     this.babylonService.disposeScene();
-  }
-
-  /**
-   * On slice file upload
-   */
-  public onSliceFileSelected() {
-    const inputNode: any = document.querySelector('#fileSlice');
-
-    if (typeof (FileReader) !== 'undefined') {
-      const reader = new FileReader();
-
-      reader.onload = (e: any) => {
-        this.sliceService.getFromFile(JSON.parse(e.target.result));
-      };
-
-      reader.readAsText(inputNode.files[0], 'UTF-8');
-    }
-  }
-
-  public control() {
-    if (this.playerService.isPlay) {
-      this.playerService.stop();
-    } else {
-      this.playerService.start();
-      this.sliceService.playSlice();
-    }
   }
 
 }
