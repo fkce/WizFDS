@@ -11,7 +11,7 @@ import { VentService } from '../drawing/vent/vent.service';
 import { JetfanService } from '../drawing/jetfan/jetfan.service';
 import { SliceService } from '../drawing/slice/slice.service';
 import { ViewCubeService } from './viewCube/view-cube.service';
-import { PlayerService } from '../player/player.service';
+import { TimelineService } from '../timeline/timeline.service';
 
 /**
  * Every drawing service is providedIn: 'root' and outlives the scene it draws
@@ -43,7 +43,7 @@ describe('scene lifecycle wiring', () => {
       TestBed.inject(JetfanService),
       TestBed.inject(SliceService),
       TestBed.inject(ViewCubeService),
-      TestBed.inject(PlayerService)
+      TestBed.inject(TimelineService)
     ];
     const resets = services.map(service => {
       const spy = spyOn(service, 'resetSceneState').and.callThrough();
@@ -73,7 +73,7 @@ describe('scene lifecycle wiring', () => {
       { name: 'JetfanService', instance: TestBed.inject(JetfanService) },
       { name: 'SliceService', instance: TestBed.inject(SliceService) },
       { name: 'ViewCubeService', instance: TestBed.inject(ViewCubeService) },
-      { name: 'PlayerService', instance: TestBed.inject(PlayerService) }
+      { name: 'TimelineService', instance: TestBed.inject(TimelineService) }
     ];
 
     const scene = new BABYLON.Scene(engine);

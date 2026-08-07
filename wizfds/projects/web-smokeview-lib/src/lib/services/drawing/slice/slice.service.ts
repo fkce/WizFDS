@@ -11,13 +11,20 @@ import { parseSf } from '../../parsers/sf/sf-parser';
 import { buildSliceGeometry } from './slice-geometry';
 import { computeSliceBlank } from './slice-blank';
 import { Slice } from './slice';
+import { mergeSpans, TimelineClient, TimelineService, TimeSpan } from '../../timeline/timeline.service';
 
 /** One loaded quantity group: its shared material and its per-mesh planes. */
 interface LoadedGroup {
     readonly material: BABYLON.ShaderMaterial;
     readonly colorbar: BABYLON.RawTexture;
     readonly slices: readonly Slice[];
-    readonly frameCount: number;
+    /**
+     * What this group contributes to the axis, or null when not one of its
+     * files holds a frame - an interrupted run can leave headers with nothing
+     * behind them. Such a group still loads and still toggles off; it simply
+     * never has anything to show.
+     */
+    readonly span: TimeSpan | null;
 }
 
 /**
@@ -34,11 +41,15 @@ interface LoadedGroup {
  * "Zakres wielkości"), the colorbar, the blank toggle - are exactly the
  * things the group's planes share. #151 will replace the computed range with
  * the global per-quantity one; the uniforms are its seam.
+ *
+ * This is the timeline's first client (#150): it reports what it holds and is
+ * told which moment to show, and each `.sf` file resolves that moment against
+ * its own frame times.
  */
 @Injectable({
   providedIn: 'root'
 })
-export class SliceService implements SceneScoped {
+export class SliceService implements SceneScoped, TimelineClient {
 
   private grids: readonly SmvMeshGrid[] = [];
   private blockages: readonly SmvBlockage[] = [];
@@ -47,15 +58,16 @@ export class SliceService implements SceneScoped {
   private readonly loaded = new Map<QuantityGroup, LoadedGroup>();
   private readonly loading = new Set<QuantityGroup>();
 
-  private frameCur = 0;
   /** True culls blanked cells, false shows the data under them. */
   private cullBlank = true;
 
   constructor(
     private babylonService: BabylonService,
+    private timeline: TimelineService,
     sceneLifecycle: SceneLifecycleService
   ) {
     sceneLifecycle.register(this);
+    timeline.register(this);
   }
 
   /** Everything belongs to the scene that has just been disposed - drop it. */
@@ -67,7 +79,6 @@ export class SliceService implements SceneScoped {
     this.grids = [];
     this.blockages = [];
     this.directory = null;
-    this.frameCur = 0;
     this.cullBlank = true;
   }
 
@@ -83,6 +94,8 @@ export class SliceService implements SceneScoped {
     this.grids = smv.grids;
     this.blockages = smv.blockages;
     this.directory = directory;
+    // Another simulation: a position from the previous one means nothing here.
+    this.timeline.resetForNewCase();
   }
 
   public canLoad(group: QuantityGroup): boolean {
@@ -117,21 +130,16 @@ export class SliceService implements SceneScoped {
     }
   }
 
-  /** The longest loaded file, which is what the interim frame slider runs over. */
-  public get frameCount(): number {
-    let count = 0;
-    this.loaded.forEach(group => { count = Math.max(count, group.frameCount); });
-    return count;
+  /** What the loaded groups span together, or null while nothing is loaded. */
+  public timeSpan(): TimeSpan | null {
+    const spans: (TimeSpan | null)[] = [];
+    this.loaded.forEach(group => spans.push(group.span));
+    return mergeSpans(spans);
   }
 
-  public get frame(): number {
-    return this.frameCur;
-  }
-
-  /** Show frame `index` everywhere; a shorter file clamps to its last frame. */
-  public setFrame(index: number): void {
-    this.frameCur = index;
-    this.loaded.forEach(group => group.slices.forEach(slice => slice.setFrame(index)));
+  /** The timeline's moment, resolved by each file against its own frame times. */
+  public showAt(time: number): void {
+    this.loaded.forEach(group => group.slices.forEach(slice => slice.showAt(time)));
   }
 
   /** The "Blank" toggle (CONTEXT.md): culled matter against visible data. */
@@ -163,7 +171,8 @@ export class SliceService implements SceneScoped {
       const geometry = buildSliceGeometry(entry.sf.bounds, grid);
       const blank = computeSliceBlank(entry.sf.bounds,
         this.blockages.filter(box => box.meshIndex === entry.file.meshIndex));
-      slices.push(new Slice(made.material, geometry, blank, entry.sf.values, entry.sf.pointsPerFrame, scene));
+      slices.push(new Slice(made.material, geometry, blank,
+        entry.sf.values, entry.sf.times, entry.sf.pointsPerFrame, scene));
     }
     if (slices.length === 0) {
       made.material.dispose();
@@ -173,10 +182,10 @@ export class SliceService implements SceneScoped {
 
     this.loaded.set(group, {
       material: made.material, colorbar: made.colorbar, slices: slices,
-      frameCount: Math.max(...slices.map(slice => slice.frameCount))
+      span: timeSpanOf(parsed.map(entry => entry.sf))
     });
-    // Late arrivals join the show at the frame everything else is on.
-    slices.forEach(slice => slice.setFrame(this.frameCur));
+    // Late arrivals join the show at the moment everything else is showing.
+    slices.forEach(slice => slice.showAt(this.timeline.time));
   }
 
   /** The group's material, fully configured before any Slice may use it. */
@@ -211,6 +220,16 @@ export class SliceService implements SceneScoped {
     group.material.dispose();
     group.colorbar.dispose();
   }
+}
+
+/**
+ * What the group spans on the axis: from the earliest first frame of its files
+ * to the latest last one. Null when no file of the group has a frame at all.
+ */
+function timeSpanOf(files: readonly SfFile[]): TimeSpan | null {
+    return mergeSpans(files.map(file => file.times.length === 0 ? null : {
+        first: file.times[0], last: file.times[file.times.length - 1]
+    }));
 }
 
 /**

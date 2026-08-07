@@ -17,3 +17,5 @@
  export * from './lib/services/parsers/sf/sf-file';
  export * from './lib/services/parsers/sf/sf-parser';
  export * from './lib/services/drawing/slice/slice.service';
+ export * from './lib/services/timeline/timeline.service';
+ export * from './lib/services/timeline/frame-at';

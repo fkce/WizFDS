@@ -64,13 +64,6 @@
       </ng-container>
     </div>
 
-    <!-- Interim frame picker - #150 replaces it with the shared timeline. -->
-    <div class="frame-picker" *ngIf="sliceService.frameCount > 0">
-      <input type="range" min="0" [max]="sliceService.frameCount - 1"
-        [value]="sliceService.frame" (input)="onFrameInput($event)" aria-label="Frame">
-      <span class="mono">{{ sliceService.frame + 1 }} / {{ sliceService.frameCount }}</span>
-    </div>
-
     <p class="note">
       Click a slice quantity to load it; other formats arrive with their
       readers.

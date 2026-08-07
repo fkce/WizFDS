@@ -44,13 +44,6 @@
   <ng-container *ngIf="resultFormats.length > 0">
     <div class="header">Results</div>
 
-    <!-- Interim frame picker - #150 replaces it with the shared timeline. -->
-    <div class="frame-picker" *ngIf="sliceService.frameCount > 0">
-      <input type="range" min="0" [max]="sliceService.frameCount - 1"
-        [value]="sliceService.frame" (input)="onFrameInput($event)" aria-label="Frame">
-      <span class="mono">{{ sliceService.frame + 1 }} / {{ sliceService.frameCount }}</span>
-    </div>
-
     <div *ngFor="let format of resultFormats">
       <p class="menu-l1 format" (click)="toggleFormat(format.kind)">
         <mat-icon [svgIcon]="formatIcon(format.kind)"></mat-icon>

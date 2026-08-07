@@ -15,6 +15,7 @@ import {
 import { DrawToolService } from '../../services/editing/draw-tool.service';
 import { MeasureLabel, MeasureToolService } from '../../services/editing/measure-tool.service';
 import { GestureKey } from '../../services/editing/gesture';
+import { TimelineService } from '../../services/timeline/timeline.service';
 
 /**
  * How far the pointer may travel between down and up and still count as a click,
@@ -320,6 +321,18 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    // Play/pause, the one key the timeline takes (#150). Nothing else claims
+    // space, and it costs no learning. Not while typing in a host form field,
+    // and not when a button has the focus - space is that button's own click,
+    // and the play button would otherwise toggle twice.
+    if (event.key === ' ' && this.timeline.hasAxis
+      && !SmokeviewComponent.isFormField(event.target)
+      && !SmokeviewComponent.isButton(event.target)) {
+      event.preventDefault();
+      this.zone.run(() => this.timeline.toggle());
+      return;
+    }
+
     if (this.handleNudgeKey(event)) { return; }
     if (this.gesture) { this.routeGestureKey(event); }
   }
@@ -518,6 +531,7 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     private gizmo: GizmoService,
     private drawTool: DrawToolService,
     private measureTool: MeasureToolService,
+    private timeline: TimelineService,
     private zone: NgZone
   ) { }
 
@@ -527,6 +541,12 @@ export class SmokeviewComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!element || !element.tagName) { return false; }
     return element.tagName === 'INPUT' || element.tagName === 'TEXTAREA'
       || element.tagName === 'SELECT' || element.isContentEditable === true;
+  }
+
+  /** Whether a keystroke is a focused button's own activation. */
+  private static isButton(target: EventTarget | null): boolean {
+    const element = target as HTMLElement | null;
+    return !!element && element.tagName === 'BUTTON';
   }
 
   ngOnInit() {

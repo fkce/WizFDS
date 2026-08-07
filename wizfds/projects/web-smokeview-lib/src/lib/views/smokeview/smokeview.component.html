@@ -67,6 +67,13 @@
         <span class="value">{{ measureLabel.text }}</span>
     </div>
 
-    <!-- The results playback controls return with the shared timeline (#150). -->
+    <!--
+        The shared timeline (#150). Here rather than in either host's panels:
+        both want the same bar, neither has anything to decide about it, and
+        the host panel it would otherwise live in is closable - see the
+        2026-08-07 addendum to ADR-0010. It shows itself only once something
+        animated is loaded.
+    -->
+    <lib-timeline-bar></lib-timeline-bar>
 
 </div>

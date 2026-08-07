@@ -1,0 +1,131 @@
+// The token contract of ADR-0010: the host's values when it has them, sane
+// dark defaults when it does not, so the bar looks right in both consumers.
+$surface-1:        var(--surface-1, #1a1a1a);
+$surface-2:        var(--surface-2, #1e1e1e);
+$on-surface:       var(--on-surface, #e3e3e3);
+$on-surface-muted: var(--on-surface-muted, #b3b3b3);
+$border:           var(--border, #474747);
+$accent:           var(--accent, #3b82f6);
+$radius-sm:        var(--radius-sm, 4px);
+$shadow-md:        var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.35));
+$font-ui:          var(--font-ui, "Fira Sans", "Segoe UI", Roboto, system-ui, sans-serif);
+$font-mono:        var(--font-mono, "Fira Code", "Consolas", monospace);
+
+:host {
+  position: absolute;
+  left: 50%;
+  bottom: 0.75rem;
+  transform: translateX(-50%);
+  z-index: 3;
+  // Only the bar itself takes the pointer; the host box must not eat clicks
+  // meant for the canvas under it.
+  pointer-events: none;
+}
+
+.timeline-bar {
+  pointer-events: auto;
+
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0.6rem;
+
+  border: 1px solid $border;
+  border-radius: $radius-sm;
+  background: $surface-1;
+  box-shadow: $shadow-md;
+
+  font-family: $font-ui;
+  font-size: 0.8rem;
+  color: $on-surface;
+  user-select: none;
+}
+
+.play {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+
+  border: 1px solid $border;
+  border-radius: $radius-sm;
+  background: $surface-2;
+  color: $on-surface;
+  cursor: pointer;
+
+  &:hover { border-color: $accent; }
+  &:focus-visible { outline: 1px solid $accent; outline-offset: 1px; }
+
+  // Drawn rather than iconed: the library has no icon set of its own, and one
+  // triangle is not worth a dependency on the host's.
+  .glyph {
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0.35rem 0 0.35rem 0.55rem;
+    border-color: transparent transparent transparent currentColor;
+    margin-left: 0.1rem;
+
+    &.pause {
+      width: 0.5rem;
+      height: 0.7rem;
+      margin-left: 0;
+      border: none;
+      background: currentColor;
+      // Two bars from one box, so the glyph needs no second element.
+      clip-path: polygon(0 0, 35% 0, 35% 100%, 0 100%, 0 0,
+                         65% 0, 100% 0, 100% 100%, 65% 100%);
+    }
+  }
+}
+
+.scrub {
+  flex: 1;
+  min-width: 14rem;
+  accent-color: $accent;
+  cursor: pointer;
+}
+
+// Fixed slots, tabular figures: this value changes with every frame, and a
+// readout that reflows is an instrument that lies about its own scale. The
+// same discipline as the status bar (ADR-0010, 2026-08-04).
+.readout {
+  font-family: $font-mono;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  // `3600.0 / 3600.0 s` - the longest reading a run of hours can produce, so
+  // the slot is never the thing that grows. Sized for the worst case rather
+  // than the current one, because the bar is shrink-to-fit and centred: a
+  // readout one character wider would shift every control beside it, and
+  // 9.9 -> 10.0 happens within the first ten seconds of every playback.
+  min-width: 17ch;
+  text-align: right;
+  color: $on-surface-muted;
+}
+
+.note {
+  min-width: 11ch;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: $on-surface-muted;
+  opacity: 0.8;
+
+  // Hidden, not removed: the slot stays so nothing shifts when it speaks.
+  &.hidden { visibility: hidden; }
+}
+
+.rate {
+  padding: 0.15rem 0.25rem;
+  border: 1px solid $border;
+  border-radius: $radius-sm;
+  background: $surface-2;
+  color: $on-surface;
+  font-family: $font-ui;
+  font-size: 0.75rem;
+  cursor: pointer;
+
+  &:focus-visible { outline: 1px solid $accent; outline-offset: 1px; }
+}

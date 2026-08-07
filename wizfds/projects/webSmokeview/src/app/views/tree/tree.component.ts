@@ -188,10 +188,6 @@ export class TreeComponent implements OnInit, AfterViewInit {
     void this.sliceService.toggleGroup(group);
   }
 
-  public onFrameInput(event: Event): void {
-    this.sliceService.setFrame(Number((event.target as HTMLInputElement).value));
-  }
-
   public isFormatOpen(kind: SmvResultKind): boolean {
     return this.openFormats.has(kind);
   }

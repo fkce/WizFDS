@@ -10,6 +10,8 @@ import { ViewCubeService } from '../../services/babylon/viewCube/view-cube.servi
 import { PickService } from '../../services/picking/pick.service';
 import { GizmoService } from '../../services/editing/gizmo.service';
 import { SmokeviewComponent } from './smokeview.component';
+import { TimelineBarComponent } from '../timeline-bar/timeline-bar.component';
+import { TimelineClient, TimelineService, TimeSpan } from '../../services/timeline/timeline.service';
 
 describe('SmokeviewComponent', () => {
   let component: SmokeviewComponent;
@@ -37,7 +39,9 @@ describe('SmokeviewComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [FormsModule, MatIconModule],
-      declarations: [SmokeviewComponent],
+      // The timeline bar is an overlay of this component (#150), so it is
+      // declared alongside it here as SmokeviewModule declares them together.
+      declarations: [SmokeviewComponent, TimelineBarComponent],
       providers: [{ provide: BabylonService, useValue: babylonStub }]
     }).compileComponents();
 
@@ -79,7 +83,7 @@ describe('SmokeviewComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [FormsModule, MatIconModule],
-      declarations: [SmokeviewComponent],
+      declarations: [SmokeviewComponent, TimelineBarComponent],
       providers: [{
         provide: BabylonService,
         useValue: {
@@ -118,6 +122,69 @@ describe('SmokeviewComponent', () => {
     ['.menu', '.clip', '.help', '.info'].forEach(selector => {
       expect(fixture.nativeElement.querySelector(selector))
         .withContext(`${selector} still in the library`).toBeNull();
+    });
+  });
+
+  /**
+   * The one key the timeline takes (#150). It is handled here rather than in
+   * the bar because this component already owns the window's keydown and the
+   * guards that go with it.
+   */
+  describe('the space bar', () => {
+
+    /** A format holding something, which is what makes an axis exist. */
+    const withAxis = () => {
+      const timeline = TestBed.inject(TimelineService);
+      const client: TimelineClient = {
+        timeSpan: (): TimeSpan => ({ first: 0, last: 300 }),
+        showAt: () => { }
+      };
+      timeline.register(client);
+      return timeline;
+    };
+
+    it('starts and stops playback', async () => {
+      await configure(true);
+      const timeline = withAxis();
+
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+      expect(timeline.playing).toBeTrue();
+
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+      expect(timeline.playing).toBeFalse();
+    });
+
+    it('leaves the key alone while the user is typing in a field', async () => {
+      await configure(true);
+      const timeline = withAxis();
+
+      const field = document.createElement('input');
+      document.body.appendChild(field);
+      field.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+      document.body.removeChild(field);
+
+      expect(timeline.playing).toBeFalse();
+    });
+
+    it('leaves the key to a focused button, whose own click it already is', async () => {
+      await configure(true);
+      const timeline = withAxis();
+
+      const button = document.createElement('button');
+      document.body.appendChild(button);
+      button.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+      document.body.removeChild(button);
+
+      expect(timeline.playing).toBeFalse();
+    });
+
+    it('does nothing while there is no axis to play', async () => {
+      await configure(true);
+      const timeline = TestBed.inject(TimelineService);
+
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+
+      expect(timeline.playing).toBeFalse();
     });
   });
 
@@ -290,7 +357,7 @@ describe('SmokeviewComponent', () => {
 
       await TestBed.configureTestingModule({
         imports: [FormsModule, MatIconModule],
-        declarations: [SmokeviewComponent],
+        declarations: [SmokeviewComponent, TimelineBarComponent],
         providers: [
           {
             provide: BabylonService,
