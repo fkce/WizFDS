@@ -250,3 +250,34 @@ więc wszystko, co tu powstaje, jest stanem prezentacyjnym biblioteki
   wersji tej decyzji) i podążające za gizmem: w trakcie gestu ze strumienia
   gestów, po nim z odrysowanego zaznaczenia. Przełącznik, bo etykiety są
   szumem, kiedy nie są potrzebne — i nie jest nigdzie utrwalany.
+
+## Uzupełnienie (2026-08-07) — granica biblioteki to prezentacja bez decyzji hosta
+
+Ta decyzja opisała to, co zostaje w bibliotece, jako „kanwa, ViewCube i
+overlaye **należące do gestu**". Oś czasu wyników (#150) tego opisu nie
+spełnia — pasek transportowy nie jest przywiązany ani do kursora, ani do
+żadnego gestu — a mimo to trafia do biblioteki. Granica biegnie więc gdzie
+indziej, niż mówiło pierwsze sformułowanie: w bibliotece zostaje
+**prezentacja, w której host nie ma nic do zdecydowania**.
+
+- **Oś czasu jest jedna dla obu hostów.** `t`, stan odtwarzania i tempo to
+  stan prezentacyjny biblioteki (ADR-0004), tej samej kategorii co etykiety
+  wymiarów: niczego nie zapisuje, niczego nie zmienia w modelu, a wizfds
+  i webSmokeview chcą dokładnie tego samego paska. Odrzucona wyżej
+  alternatywa „biblioteka zachowuje wbudowane UI, host je ukrywa" upadła na
+  dwóch zestawach tych samych kontrolek — tutaj zestaw jest jeden i hosty nie
+  mają własnej wersji do ukrywania.
+- **Pasek musiał wyjść z panelu wyników.** Katalog wyników w wizfds jest
+  warunkowy (`visualize.component.html`), a tymczasowy suwak klatek z #149
+  siedział właśnie w nim: zamknięcie panelu zabierało sterowanie
+  odtwarzaniem slice'om, które zostawały na ekranie. Pasek stoi przy dolnej
+  krawędzi kanwy, wewnątrz `smokeview.component`, obok dynamic input
+  i etykiety pomiaru.
+- **Legenda wielkości (#151) pójdzie tą samą drogą**, i to jest część powodu.
+  UI wyników rozdarte między overlay biblioteki a panele dwóch hostów
+  kosztowałoby przy każdym z formatów #152–#155.
+
+Katalog wyników zostaje po stronie hostów — tam host naprawdę *decyduje*:
+skąd biorą się bajty (lokalny katalog wskazany przez użytkownika kontra pliki
+serwowane przez backend) i co wolno załadować. Budowa samej osi jest
+w ADR-0018.
