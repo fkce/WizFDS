@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatIconModule } from '@angular/material/icon';
+import { of } from 'rxjs';
 
 import { ResultsCatalogComponent } from './results-catalog.component';
 import {
@@ -56,6 +57,11 @@ describe('ResultsCatalogComponent', () => {
       status: state.status,
       message: state.message ?? '',
       catalog: state.catalog ?? null,
+      // The component rebinds the slice reader off this stream (#149); the
+      // stub's catalog never carries a parsed .smv, so nothing else happens.
+      catalog$: of(state.catalog ?? null),
+      smv: null,
+      source: null,
       smvChoice: state.smvChoice ?? [],
       name: 'demo',
       sizeOf: (file: any) => {
