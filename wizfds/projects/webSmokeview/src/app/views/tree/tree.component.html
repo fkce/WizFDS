@@ -11,8 +11,6 @@
     </p>
     <p class="menu-l1" *ngIf="level1.type == 'file' && level1.extension == '.smv'" (click)="loadSmv(level1)">
       {{level1.name}}</p>
-    <p class="menu-l1" *ngIf="level1.type == 'file' && level1.extension == '.json'" (click)="loadJson(level1)">
-      {{level1.name}}</p>
 
     <!-- Second level -->
     <div *ngFor="let level2 of level1.children" [ngClass]="l1==level1.name ? 'open' : 'close'">
@@ -23,8 +21,6 @@
       </p>
       <p class="menu-l2" *ngIf="level2.type == 'file' && level2.extension == '.smv'" (click)="loadSmv(level2)">
         {{level2.name}}</p>
-      <p class="menu-l2" *ngIf="level2.type == 'file' && level2.extension == '.json'" (click)="loadJson(level2)">
-        {{level2.name}}</p>
 
       <!-- Third level -->
       <div *ngFor="let level3 of level2.children" [ngClass]="l2==level2.name ? 'open' : 'close'">
@@ -33,8 +29,6 @@
           <mat-icon *ngIf="l3==level3.name">folder_open</mat-icon>{{level3.name}}
         </p>
         <p class="menu-l3" *ngIf="level3.type == 'file' && level3.extension == '.smv'" (click)="loadSmv(level3)">
-          {{level3.name}}</p>
-        <p class="menu-l3" *ngIf="level3.type == 'file' && level3.extension == '.json'" (click)="loadJson(level3)">
           {{level3.name}}</p>
       </div>
 

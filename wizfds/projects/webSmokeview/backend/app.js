@@ -41,13 +41,3 @@ else if (global.gConfig.protocol == 'http') {
   var httpServer = http.createServer(app);
   httpServer.listen(port);
 }
-
-// For internal testing
-const request = require('supertest');
-request(app)
-  .get('/api/loadSmvInfo/d:/smokeweb/test-case/test_sym1.smv')
-  .expect('Content-Type', /json/)
-  .end(function (err, res) {
-    if (err) throw err;
-    //else console.log(res.body);
-  });

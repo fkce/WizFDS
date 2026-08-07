@@ -2,17 +2,12 @@ import { ComponentFixture, TestBed, fakeAsync, tick, waitForAsync } from '@angul
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { SmokeviewApiService } from 'projects/web-smokeview-lib/src/lib/services/smokeview-api/smokeview-api.service';
 import { SceneInput } from 'projects/web-smokeview-lib/src/lib/services/drawing/scene-input';
-import { exportOfBoxes } from 'projects/web-smokeview-lib/src/lib/services/parsers/smokeviewJson/obst-json.fixture';
+import { smvFixture } from 'projects/web-smokeview-lib/src/lib/services/parsers/smv/smv.fixture';
 
 import { TreeComponent } from './tree.component';
 import { TreeService } from '../../services/tree/tree.service';
 import { GeometryLoaderService, SimulationNode } from '../../services/loaders/geometryLoader/geometry-loader.service';
 import { Result } from '../../services/http-manager/http-manager.service';
-
-/** One blockage, as `<chid>_obst.json` holds it - see ObstJsonService. */
-function obstExport() {
-  return exportOfBoxes([{ x1: 0, x2: 1, y1: 0, y2: 1, z1: 0, z2: 0.5 }]);
-}
 
 function loaded(data: unknown): Result {
   return { meta: { status: 'success', from: '', details: [] }, data: data };
@@ -31,13 +26,12 @@ describe('TreeComponent', () => {
   let fixture: ComponentFixture<TreeComponent>;
   /** Every scene the component handed the library, in order. */
   let rendered: SceneInput[];
-  let loader: { loadSmv: jasmine.Spy, loadJson: jasmine.Spy };
+  let loader: { loadSmv: jasmine.Spy };
 
   beforeEach(waitForAsync(() => {
     rendered = [];
     loader = {
-      loadSmv: jasmine.createSpy('loadSmv'),
-      loadJson: jasmine.createSpy('loadJson')
+      loadSmv: jasmine.createSpy('loadSmv')
     };
 
     TestBed.configureTestingModule({
@@ -67,34 +61,25 @@ describe('TreeComponent', () => {
   });
 
   describe('loading a simulation', () => {
-    // #106: the standalone viewer draws through the same render(scene) call as
-    // the app does, so a loaded export never reaches the drawing services raw.
+    // #115: the backend serves the raw `.smv`; the component parses it in the
+    // library and draws through the same render(scene) call as the app does,
+    // so nothing reaches the drawing services raw - and in metres (ADR-0002).
 
-    it('draws a .smv through the scene contract', fakeAsync(() => {
-      loader.loadSmv.and.returnValue(Promise.resolve(loaded(obstExport())));
+    it('parses the served .smv and draws it through the scene contract', fakeAsync(() => {
+      loader.loadSmv.and.returnValue(Promise.resolve(loaded(smvFixture())));
 
       component.loadSmv(node('.smv'));
       tick();
 
       expect(rendered.length).toBe(1);
-      expect(rendered[0].obsts.length).toBe(1);
-      expect(rendered[0].obsts[0].uuid).toBeTruthy();
+      expect(rendered[0].obsts.length).toBe(2);
+      expect(rendered[0].meshes.length).toBe(1);
+      // The metres the retired JSON export could not carry
+      expect(rendered[0].meshes[0].xb.x2).toBe(2);
     }));
 
-    it('draws a .json the same way', fakeAsync(() => {
-      loader.loadJson.and.returnValue(Promise.resolve(loaded(obstExport())));
-
-      component.loadJson(node('.json'));
-      tick();
-
-      expect(rendered.length).toBe(1);
-      expect(rendered[0].obsts.length).toBe(1);
-    }));
-
-    it('draws nothing when the response is not a success', fakeAsync(() => {
-      loader.loadSmv.and.returnValue(Promise.resolve({
-        meta: { status: 'error', from: '', details: [] }, data: null
-      } as Result));
+    it('draws nothing when the load rejects', fakeAsync(() => {
+      loader.loadSmv.and.returnValue(Promise.reject('no such file'));
 
       component.loadSmv(node('.smv'));
       tick();
