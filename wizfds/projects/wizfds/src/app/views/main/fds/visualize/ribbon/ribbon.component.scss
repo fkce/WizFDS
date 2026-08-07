@@ -331,6 +331,12 @@
   }
 }
 
+// The directory input is never seen - the Open folder button clicks it for the
+// browsers with no picker, so the panel reads the same in all of them (#148).
+.folder-input {
+  display: none;
+}
+
 .readout-row {
   display: flex;
   align-items: baseline;

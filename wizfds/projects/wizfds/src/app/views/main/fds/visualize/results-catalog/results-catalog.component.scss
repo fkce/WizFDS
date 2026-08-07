@@ -1,0 +1,241 @@
+// =============================================================================
+// The results catalog, docked beside the properties palette and built out of
+// the same parts: same head, same empty state, same groups and rows (ADR-0010).
+// Two panels that look like two panels of one application, on the app's tokens.
+// =============================================================================
+@use "../../../../../../styles/palette" as *;
+
+:host {
+  display: block;
+  height: 100%;
+  min-height: 0;
+}
+
+.palette {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--surface-1);
+  border-left: 1px solid var(--border-muted);
+  font-family: var(--font-ui);
+  font-size: 0.76rem;
+  color: var(--on-surface);
+  overflow: hidden;
+}
+
+.palette-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 1.9rem;
+  padding: 0 0.6rem;
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-1));
+  border-bottom: 1px solid var(--border-muted);
+  box-shadow: inset 2px 0 0 var(--accent);
+  @include no-select;
+
+  mat-icon {
+    width: 0.95rem;
+    height: 0.95rem;
+    color: var(--on-surface-muted);
+  }
+  .title {
+    flex: 1 1 auto;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--on-surface-muted);
+  }
+  .type {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--accent);
+  }
+}
+
+.palette-empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 1.2rem 1rem;
+  text-align: center;
+  color: var(--on-surface-muted);
+
+  mat-icon {
+    width: 1.6rem;
+    height: 1.6rem;
+    opacity: 0.6;
+  }
+  p { font-size: 0.76rem; }
+  .hint {
+    font-size: 0.68rem;
+    line-height: 1.35;
+    opacity: 0.75;
+  }
+}
+
+.palette-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.5rem 0.6rem 0.7rem;
+}
+
+.group {
+  margin-bottom: 0.7rem;
+
+  .group-title {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--on-surface-muted);
+    padding-bottom: 0.25rem;
+    margin-bottom: 0.3rem;
+    border-bottom: 1px solid var(--border-muted);
+    @include no-select;
+
+    mat-icon {
+      width: 0.85rem;
+      height: 0.85rem;
+      color: inherit;
+    }
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.2rem;
+
+    .mono {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+    }
+  }
+
+  // The quantity group - what a reader will load in one go, so it heads the
+  // shards under it rather than reading as one more file.
+  .row.quantity {
+    margin-top: 0.35rem;
+    font-size: 0.72rem;
+    color: var(--on-surface);
+
+    .label {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .unit {
+      flex: 0 0 auto;
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      color: var(--on-surface-muted);
+    }
+  }
+
+  // One shard per mesh, indented under its quantity
+  .row.file {
+    padding-left: 0.6rem;
+    font-size: 0.7rem;
+    color: var(--on-surface-muted);
+
+    .mesh {
+      flex: 1 1 auto;
+      font-family: var(--font-mono);
+    }
+    .size {
+      flex: 0 0 auto;
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+    }
+    mat-icon.missing {
+      flex: 0 0 auto;
+      width: 0.8rem;
+      height: 0.8rem;
+      color: inherit;
+    }
+
+    // Named by the `.smv`, not on the disk: an interrupted run, or a copy that
+    // did not finish. Greyed rather than hidden - that it is missing is the
+    // information.
+    &.absent {
+      opacity: 0.55;
+    }
+  }
+
+  // One of the cases the folder holds, offered as a row to click
+  .row.choice {
+    width: 100%;
+    min-height: 1.6rem;
+    padding: 0 0.35rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--on-surface);
+    font-family: var(--font-ui);
+    font-size: 0.72rem;
+    text-align: left;
+    cursor: pointer;
+
+    &::after { display: none; } // kill the global button ripple
+
+    mat-icon {
+      flex: 0 0 auto;
+      width: 0.85rem;
+      height: 0.85rem;
+      color: var(--on-surface-muted);
+    }
+
+    &:hover {
+      background: var(--surface-2);
+      border-color: var(--border-muted);
+    }
+  }
+}
+
+.open-form {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 1.8rem;
+  min-height: 1.8rem;
+  margin-top: 0.4rem;
+  padding: 0 0.7rem;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-family: var(--font-ui);
+  font-size: 0.74rem;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+
+  &::after { display: none; } // kill the global button ripple
+
+  mat-icon { width: 0.95rem; height: 0.95rem; color: inherit; }
+
+  &:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--on-accent);
+  }
+}
+
+.note {
+  margin-top: 0.5rem;
+  font-size: 0.64rem;
+  line-height: 1.35;
+  color: var(--on-surface-muted);
+  opacity: 0.8;
+}

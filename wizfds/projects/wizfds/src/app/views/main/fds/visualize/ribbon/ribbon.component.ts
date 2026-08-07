@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 
@@ -26,21 +26,23 @@ import { DimensionLabelService } from '../../../../../../../../web-smokeview-lib
 import { DrawKind } from '../../../../../../../../web-smokeview-lib/src/lib/services/editing/draw';
 import { PickService } from '../../../../../../../../web-smokeview-lib/src/lib/services/picking/pick.service';
 import { SceneChange } from '../../../../../../../../web-smokeview-lib/src/lib/services/drawing/scene-change';
+import { ResultsDirectoryService } from '@services/results-directory/results-directory.service';
 
 /** Which tab of the ribbon is open. */
-export type RibbonTabId = 'home' | 'view' | 'measure' | 'context' | 'array' | 'mirror';
+export type RibbonTabId = 'home' | 'view' | 'measure' | 'results' | 'context' | 'array' | 'mirror';
 
 /**
  * The tabs that are always there, in the order the strip lists them.
  *
  * A list rather than four near-identical buttons in the markup, and the one
- * place the order is decided. Phase 6 (#89) adds a Results tab here - and a
- * panel block for it in the template, which is where a tab's contents live.
+ * place the order is decided. Results comes last because it is where a case
+ * goes after it has been built (#148).
  */
 const FIXED_TABS: ReadonlyArray<{ id: RibbonTabId, label: string }> = [
   { id: 'home', label: 'Home' },
   { id: 'view', label: 'View' },
-  { id: 'measure', label: 'Measure' }
+  { id: 'measure', label: 'Measure' },
+  { id: 'results', label: 'Results' }
 ];
 
 /**
@@ -115,6 +117,13 @@ export class RibbonComponent implements OnInit, OnDestroy {
 
   main: Main;
 
+  /**
+   * The directory input behind the Open folder button, for the browsers with
+   * no picker. It lives in the template so the click that reaches it is the
+   * user's own - a synthesised one from anywhere else would be refused.
+   */
+  @ViewChild('resultsFolder') private resultsFolder?: ElementRef<HTMLInputElement>;
+
   private readonly subs: Subscription[] = [];
 
   constructor(
@@ -124,6 +133,7 @@ export class RibbonComponent implements OnInit, OnDestroy {
     public draw: DrawToolService,
     public measure: MeasureToolService,
     public dimensions: DimensionLabelService,
+    public results: ResultsDirectoryService,
     private picking: PickService,
     private selection: SelectionService,
     private elements: ElementsService,
@@ -335,6 +345,36 @@ export class RibbonComponent implements OnInit, OnDestroy {
    */
   toggleMeasure(): void {
     if (this.measure.active) { this.measure.cancel(); } else { this.measure.start(); }
+  }
+
+  // ==========================================
+  // Results tab (#148)
+  // ==========================================
+
+  /**
+   * Point WizFDS at a folder of FDS results.
+   *
+   * One button whichever browser the user brought: Chromium gets the picker,
+   * everything else gets the directory input, and neither is a choice worth
+   * putting in front of somebody who only wants to see their slices. What the
+   * fallback costs is that the folder does not outlive the page - a handle can
+   * be stored, a list of files cannot.
+   */
+  openResults(): void {
+    if (this.results.canPick) {
+      void this.results.openPicker();
+      return;
+    }
+    this.resultsFolder?.nativeElement.click();
+  }
+
+  /** What the directory input collected, on its way into the same scan. */
+  onResultsFiles(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = input.files;
+    // Cleared so that picking the same folder twice running is still a change
+    input.value = '';
+    if (files && files.length > 0) { void this.results.openFiles(files); }
   }
 
   // ==========================================

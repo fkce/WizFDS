@@ -19,6 +19,7 @@ import { MeasureToolService } from '../../../../../../../web-smokeview-lib/src/l
 import { SceneChange } from '../../../../../../../web-smokeview-lib/src/lib/services/drawing/scene-change';
 import { ScenePoint } from '../../../../../../../web-smokeview-lib/src/lib/services/scene-bounds/scene-bounds.service';
 import { ViewportGrid } from '@services/viewport-status/viewport-status.service';
+import { ResultsDirectoryService } from '@services/results-directory/results-directory.service';
 
 @Component({
     selector: 'app-visualize',
@@ -54,7 +55,10 @@ export class VisualizeComponent implements OnInit, AfterViewInit, OnDestroy {
     private validation: FdsValidationService,
     private selectionService: SelectionService,
     private elementsService: ElementsService,
-    private viewportStatus: ViewportStatusService
+    private viewportStatus: ViewportStatusService,
+    // Read by the template, which gives the catalog its shelf only when there
+    // is a folder to show - the state itself belongs to the whole app (#148).
+    public results: ResultsDirectoryService
   ) { }
 
   ngOnInit(): void {

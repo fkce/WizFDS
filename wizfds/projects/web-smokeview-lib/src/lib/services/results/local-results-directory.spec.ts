@@ -20,6 +20,14 @@ describe('LocalResultsDirectory', () => {
   const directoryHandle = (tree: FakeTree, name = 'demo'): FileSystemDirectoryHandle => ({
     kind: 'directory',
     name,
+    values: async function* () {
+      for (const entryName of Object.keys(tree)) {
+        const entry = tree[entryName];
+        yield entry instanceof Uint8Array
+          ? fileHandle(entryName, entry)
+          : { kind: 'directory', name: entryName };
+      }
+    },
     getDirectoryHandle: (entryName: string) => {
       const entry = tree[entryName];
       if (entry === undefined) { return Promise.reject(notFound()); }
@@ -110,6 +118,18 @@ describe('LocalResultsDirectory', () => {
       expect(Array.from(bytes)).toEqual([12, 13, 14]);
     });
 
+    it('lists what is in the root of the picked directory, and nothing below it', async () => {
+      // What a host looks at to find the .smv: a picker hands back a folder,
+      // and which case is in it is a question only the contents answer.
+      const directory = new LocalResultsDirectory(directoryHandle({
+        'demo.smv': new Uint8Array([1]),
+        'demo_01.sf': new Uint8Array([1, 2]),
+        sub: { 'other.smv': new Uint8Array([1]) }
+      }));
+
+      expect(await directory.listFiles()).toEqual(['demo.smv', 'demo_01.sf']);
+    });
+
     it('reads zero bytes off the empty file an interrupted run left behind', async () => {
       // Where the HTTP source needs a short-circuit - no range can ask for
       // nothing - File.slice(0, 0) is already an empty blob, so the same call
@@ -147,6 +167,16 @@ describe('LocalResultsDirectory', () => {
       ]);
 
       expect((await directory.open('demo_01.sf')).size).toBe(3);
+    });
+
+    it('lists the root of the picked directory, once its own name is off the front', async () => {
+      const directory = LocalResultsDirectory.fromFiles([
+        pickedFile('demo/demo.smv', new Uint8Array([1])),
+        pickedFile('demo/demo_01.sf', new Uint8Array([1, 2])),
+        pickedFile('demo/sub/other.smv', new Uint8Array([1]))
+      ]);
+
+      expect(await directory.listFiles()).toEqual(['demo.smv', 'demo_01.sf']);
     });
 
     it('reads exactly the requested slice', async () => {

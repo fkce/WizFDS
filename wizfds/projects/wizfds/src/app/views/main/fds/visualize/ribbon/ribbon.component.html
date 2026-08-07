@@ -253,6 +253,54 @@
       </section>
     </ng-container>
 
+    <!-- ---------- Results (#148) ------------------------------------------- -->
+    <ng-container *ngSwitchCase="'results'">
+      <section class="panel">
+        <div class="panel-body">
+          <!-- A browser cannot read a path: the folder an FDS run wrote to has
+               to be handed over by the user, once per scenario. The picker is
+               Chromium's; everywhere else the same button opens the directory
+               input below it. -->
+          <button type="button" class="cmd big" [class.on]="results.status === 'open'"
+            title="Point WizFDS at the folder this case was run in"
+            (click)="openResults()">
+            <mat-icon svgIcon="folder-open-outline" aria-hidden="true"></mat-icon>
+            <span>Open folder</span>
+          </button>
+          <!-- A stored folder always comes back needing permission again, and
+               the browser only grants it from a click - so there is a button. -->
+          <button type="button" class="cmd big" *ngIf="results.status === 'resumable'"
+            title="Give the remembered folder its permission back"
+            (click)="results.resume()">
+            <mat-icon svgIcon="refresh" aria-hidden="true"></mat-icon>
+            <span>Resume access</span>
+          </button>
+          <!-- Not only over an open catalog: an error and the several-cases
+               question also need a way out that is not a successful re-pick. -->
+          <button type="button" class="cmd big" *ngIf="results.status !== 'closed'"
+            title="Put the folder away and forget it" (click)="results.close()">
+            <mat-icon svgIcon="close" aria-hidden="true"></mat-icon>
+            <span>Close</span>
+          </button>
+
+          <input #resultsFolder class="folder-input" type="file" webkitdirectory multiple
+            aria-hidden="true" tabindex="-1" (change)="onResultsFiles($event)" />
+
+          <div class="panel-body column tight">
+            <div class="readout-row">
+              <label>Folder</label>
+              <span class="mono">{{ results.name || '-' }}</span>
+            </div>
+            <div class="readout-row">
+              <label>CHID</label>
+              <span class="mono">{{ results.caseChid || '-' }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="panel-title">Results</div>
+      </section>
+    </ng-container>
+
     <!-- ---------- Array builder (#126) ------------------------------------- -->
     <ng-container *ngSwitchCase="'array'">
       <section class="panel">

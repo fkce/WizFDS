@@ -1,0 +1,68 @@
+<aside class="palette">
+
+  <header class="palette-head">
+    <mat-icon svgIcon="folder-open-outline" aria-hidden="true"></mat-icon>
+    <span class="title">Results</span>
+    <span class="type mono" *ngIf="catalog">{{ catalog.chid }}</span>
+  </header>
+
+  <!-- The folder holds more than one case, so only the user can say which of
+       them this is. A choice of table of contents, not of results. -->
+  <div class="palette-body" *ngIf="choices.length > 0">
+    <div class="group">
+      <div class="group-title">Which case</div>
+      <button type="button" class="row choice" *ngFor="let name of choices"
+        (click)="results.chooseSmv(name)">
+        <mat-icon svgIcon="file-document-outline" aria-hidden="true"></mat-icon>
+        <span class="mono">{{ name }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Everything that is not an open catalog: a folder waiting for its
+       permission back, a folder that turned out to hold no case, a read that
+       failed. The message is the service's - it is the one that knows. -->
+  <div class="palette-empty" *ngIf="!catalog && choices.length === 0">
+    <mat-icon [svgIcon]="emptyIcon" aria-hidden="true"></mat-icon>
+    <p>{{ results.message || 'No results folder' }}</p>
+    <p class="hint" *ngIf="results.status === 'resumable'">
+      The browser needs your permission again after a reload.
+    </p>
+    <button type="button" class="open-form" *ngIf="results.status === 'resumable'"
+      (click)="results.resume()">
+      <mat-icon svgIcon="refresh" aria-hidden="true"></mat-icon>
+      <span>Resume access</span>
+    </button>
+  </div>
+
+  <div class="palette-body" *ngIf="catalog">
+    <div class="group" *ngFor="let format of catalog.formats">
+      <div class="group-title">
+        <mat-icon [svgIcon]="formatIcon(format.kind)" aria-hidden="true"></mat-icon>
+        {{ formatLabel(format.kind) }}
+      </div>
+
+      <ng-container *ngFor="let group of format.groups">
+        <div class="row quantity">
+          <span class="label">{{ group.label }}</span>
+          <span class="unit" *ngIf="group.unit">{{ group.unit }}</span>
+        </div>
+
+        <!-- The right of the row answers the same question either way: how big
+             the file is, or that the folder has not got it. -->
+        <div class="row file" *ngFor="let file of group.files" [class.absent]="isAbsent(file)">
+          <span class="mesh">MESH {{ file.meshIndex }}</span>
+          <span class="size" *ngIf="sizeOf(file) !== null">{{ formatSize(sizeOf(file)) }}</span>
+          <mat-icon class="missing" *ngIf="isAbsent(file)" svgIcon="alert-circle-outline"
+            aria-label="not in the folder"></mat-icon>
+        </div>
+      </ng-container>
+    </div>
+
+    <p class="note">
+      A listing of what the run wrote. Opening a result file arrives with the
+      readers.
+    </p>
+  </div>
+
+</aside>

@@ -9,6 +9,7 @@ import { HistoryService } from '@services/history/history.service';
 import { SelectionService } from '@services/selection/selection.service';
 import { FdsEditService } from '@services/fds-edit/fds-edit.service';
 import { FdsScenario } from '@services/fds-scenario/fds-scenario';
+import { ResultsDirectoryService } from '@services/results-directory/results-directory.service';
 import { appServiceProviders } from '../../../../../../testing/app-service-testing';
 import { SceneViewService } from '../../../../../../../../web-smokeview-lib/src/lib/services/scene-view/scene-view.service';
 import { GizmoService } from '../../../../../../../../web-smokeview-lib/src/lib/services/editing/gizmo.service';
@@ -30,6 +31,7 @@ describe('RibbonComponent', () => {
     return new FdsScenario(JSON.stringify({
       id: 1, projectId: 1, name: 'ribbon',
       fdsObject: {
+        general: { head: { chid: 'ribbon_case' } },
         geometry: {
           obsts: [{
             id: 'WALL', uuid: 'wall-uuid',
@@ -74,6 +76,11 @@ describe('RibbonComponent', () => {
         { provide: SceneViewService, useValue: view }
       ]
     }).compileComponents();
+
+    // Entering a scenario looks for the results folder it was last given, and
+    // that store outlives a spec run - so it is stood in for here (#148).
+    spyOn<any>(TestBed.inject(ResultsDirectoryService), 'recallHandle')
+      .and.returnValue(Promise.resolve(null));
 
     TestBed.inject(MainService).setCurrentFdsScenario(scenario());
     selection = TestBed.inject(SelectionService);
@@ -231,14 +238,14 @@ describe('RibbonComponent', () => {
 
   describe('the contextual tab', () => {
     it('is not there while nothing is selected', () => {
-      expect(tabLabels()).toEqual(['Home', 'View', 'Measure']);
+      expect(tabLabels()).toEqual(['Home', 'View', 'Measure', 'Results']);
     });
 
     it('appears named after what was selected', () => {
       selection.select({ uuid: 'wall-uuid', type: 'obst' });
       fixture.detectChanges();
 
-      expect(tabLabels()).toEqual(['Home', 'View', 'Measure', 'OBST']);
+      expect(tabLabels()).toEqual(['Home', 'View', 'Measure', 'Results', 'OBST']);
     });
 
     it('is renamed when a different kind of element is selected', () => {
@@ -271,7 +278,7 @@ describe('RibbonComponent', () => {
       fixture.detectChanges();
 
       expect(component.active).toBe('home');
-      expect(tabLabels()).toEqual(['Home', 'View', 'Measure']);
+      expect(tabLabels()).toEqual(['Home', 'View', 'Measure', 'Results']);
     });
 
     it('names the selected element by its FDS id', () => {
@@ -472,6 +479,71 @@ describe('RibbonComponent', () => {
 
       cmd('Dimensions').click();
       expect(component.dimensions.enabled).toBeFalse();
+    });
+  });
+
+  /**
+   * The Results panel (#148).
+   *
+   * The ribbon owns no folder: it asks the service for one, by whichever of
+   * the two ways this browser has, and reads back what it found.
+   */
+  describe('the Results panel', () => {
+
+    let results: ResultsDirectoryService;
+
+    beforeEach(() => {
+      results = TestBed.inject(ResultsDirectoryService);
+      component.select('results');
+      fixture.detectChanges();
+    });
+
+    it('asks the browser for a folder where there is a picker', () => {
+      const picker = spyOn(results, 'openPicker');
+      spyOnProperty(results, 'canPick').and.returnValue(true);
+
+      cmd('Open folder').click();
+
+      expect(picker).toHaveBeenCalled();
+    });
+
+    it('falls back to the directory input where there is not', () => {
+      // Same button and same label either way: which browser the user brought
+      // is not a choice they should have to make.
+      spyOnProperty(results, 'canPick').and.returnValue(false);
+      const input: HTMLInputElement = fixture.nativeElement.querySelector('input.folder-input');
+      const opened = spyOn(input, 'click');
+
+      cmd('Open folder').click();
+
+      expect(opened).toHaveBeenCalled();
+    });
+
+    it('offers Resume access only while a folder is waiting for it', () => {
+      expect(cmd('Resume access')).toBeUndefined();
+
+      (results as any).setState('resumable', 'demo needs your permission again.');
+      fixture.detectChanges();
+
+      expect(cmd('Resume access')).toBeTruthy();
+      // Close stands beside it: declining to resume - putting the remembered
+      // folder away for good - must not require granting access first.
+      expect(cmd('Close')).toBeTruthy();
+    });
+
+    it('names the folder and the case it is showing', () => {
+      (results as any).setState('open', '');
+      (results as any).directoryName = 'tunnel_run';
+      fixture.detectChanges();
+
+      // Label and value are neighbouring elements with a flex gap between
+      // them, so their text has to be joined here rather than read off the row.
+      const readouts = Array.from<HTMLElement>(
+        fixture.nativeElement.querySelectorAll('.readout-row'))
+        .map(row => Array.from<HTMLElement>(row.querySelectorAll('label, span'))
+          .map(cell => cell.textContent.trim()).join(' '));
+      expect(readouts).toEqual(['Folder tunnel_run', 'CHID ribbon_case']);
+      expect(cmd('Close')).toBeTruthy();
     });
   });
 

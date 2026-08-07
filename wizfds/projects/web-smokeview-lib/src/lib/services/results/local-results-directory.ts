@@ -43,6 +43,31 @@ export class LocalResultsDirectory implements ResultsDirectory {
     return new LocalResultsDirectory(byPath);
   }
 
+  /**
+   * The names of the files sitting directly in the results directory.
+   *
+   * A picker hands back a folder, not a case, and the case is whatever `.smv`
+   * is in there - so before anything can be read, something has to look. That
+   * question belongs here rather than in the host: the two sources spell their
+   * contents differently (a handle is walked, a file list carries the picked
+   * directory at the front of every path), and this class is already the one
+   * place that knows the difference.
+   *
+   * The root only, and files only. The `.smv` FDS writes sits beside the
+   * results it names, so anything deeper is a different case, not this one.
+   */
+  public async listFiles(): Promise<readonly string[]> {
+    if (isFileMap(this.source)) {
+      return Array.from(this.source.keys()).filter(path => !path.includes('/'));
+    }
+
+    const names: string[] = [];
+    for await (const entry of this.source.values()) {
+      if (entry.kind === 'file') { names.push(entry.name); }
+    }
+    return names;
+  }
+
   public async open(filename: string): Promise<ResultFileHandle | null> {
     const found = isFileMap(this.source)
       ? this.source.get(filename) ?? null
