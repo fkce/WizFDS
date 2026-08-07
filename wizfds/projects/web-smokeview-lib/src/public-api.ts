@@ -10,3 +10,6 @@
  export * from './lib/services/drawing/scene-input';
  export * from './lib/services/parsers/smv/smv-parser.service';
  export * from './lib/services/parsers/smv/smv-file';
+ export * from './lib/services/results/results-directory';
+ export * from './lib/services/results/local-results-directory';
+ export * from './lib/services/results/http-results-directory';
