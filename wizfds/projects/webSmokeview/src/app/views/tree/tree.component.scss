@@ -68,3 +68,58 @@ mat-icon {
   @include menu;
   padding-left: 2.5rem;
 }
+
+// The results catalog under the explorer. It borrows the explorer's
+// indentation so the two listings read as one panel, but only the format
+// headers answer a click - the rows are a listing, and opening a result file
+// is the readers' job (#149...#155). So they give up the pointer and the hover
+// the tree rows carry, which would otherwise promise something.
+.format {
+  color: var(--on-surface);
+}
+
+.group,
+.file {
+  cursor: default;
+
+  &:hover {
+    background: transparent;
+  }
+}
+
+.group {
+  color: var(--on-surface);
+
+  &:hover {
+    color: var(--on-surface);
+  }
+}
+
+.file {
+  &:hover {
+    color: var(--on-surface-muted);
+  }
+}
+
+// A file the .smv named and the directory does not have. Muted rather than
+// loud: an interrupted run leaves these behind by the dozen, and they are
+// something to notice, not something that went wrong here.
+.file.absent {
+  color: var(--on-surface-muted);
+  opacity: 0.65;
+}
+
+// The right-hand column of a row: the unit of a group, the size of a file, or
+// the mark that says the directory has not got that file.
+.unit,
+.size {
+  margin-left: auto;
+  padding-left: 0.6rem;
+  color: var(--on-surface-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.missing {
+  margin-left: auto;
+  margin-right: 0;
+}

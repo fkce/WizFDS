@@ -102,6 +102,7 @@ import { SmokeviewApiModule } from '../../../web-smokeview-lib/src/lib/services/
 import { VisualizeComponent } from './views/main/fds/visualize/visualize.component';
 import { RibbonComponent } from './views/main/fds/visualize/ribbon/ribbon.component';
 import { PropertiesPaletteComponent } from './views/main/fds/visualize/properties-palette/properties-palette.component';
+import { ResultsCatalogComponent } from './views/main/fds/visualize/results-catalog/results-catalog.component';
 
 @NgModule({
     declarations: [
@@ -154,6 +155,7 @@ import { PropertiesPaletteComponent } from './views/main/fds/visualize/propertie
     VisualizeComponent,
     RibbonComponent,
     PropertiesPaletteComponent,
+    ResultsCatalogComponent,
     NgKatexShimComponent
     ],
     imports: [

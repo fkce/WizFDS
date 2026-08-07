@@ -11,5 +11,12 @@
       <lib-smokeview></lib-smokeview>
     </div>
     <app-properties-palette></app-properties-palette>
+    <!--
+      The results catalog takes its shelf only once there is something to say:
+      a folder open, one waiting for its permission back, a case to choose
+      between or a failure to report. A scenario with no results folder is the
+      Visualize view exactly as it was (#148).
+    -->
+    <app-results-catalog *ngIf="results.status !== 'closed'"></app-results-catalog>
   </div>
 </div>

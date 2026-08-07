@@ -32,3 +32,10 @@ app-properties-palette {
   flex: 0 0 auto;
   width: 14rem;
 }
+
+// The catalog stands beside the palette on the same shelf, and at the same
+// width: two panels of one application (#148).
+app-results-catalog {
+  flex: 0 0 auto;
+  width: 14rem;
+}

@@ -153,8 +153,17 @@ _Avoid_: zakres pliku, zakres klatki
 **Katalog wyników**:
 Miejsce, z którego viewer bierze `.smv` i pliki wynikowe: w wizfds lokalny
 folder wskazany przez użytkownika, w webSmokeview katalog serwowany przez
-backend. `.smv` jest spisem treści katalogu wyników.
+backend. `.smv` jest spisem treści katalogu wyników — ale wpis spisu bywa
+niedostępny: `.smv` potrafi wymieniać pliki, których w katalogu nie ma
+(przerwana symulacja, częściowa kopia); dostępność i rozmiar sprawdza się
+przed ładowaniem.
 _Avoid_: upload wyników (nic nie jest wysyłane na serwer)
+
+**Grupa wielkości**:
+Pliki jednej wielkości fizycznej (dla slice także jednego położenia) ze
+wszystkich siatek; jednostka listowania i ładowania wyników.
+_Avoid_: plik wyniku (plik to odłamek per siatka, nie rzecz, którą się
+ogląda)
 
 ### Nawigacja kamerą
 

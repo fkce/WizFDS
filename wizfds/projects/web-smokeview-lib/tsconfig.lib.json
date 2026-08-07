@@ -9,6 +9,7 @@
     "types": [],
     "lib": [
       "dom",
+      "dom.asynciterable",
       "es2020"
     ]
   },

@@ -94,25 +94,6 @@ export class SliceService implements SceneScoped {
   }
 
   /**
-   * Get default slice from server
-   */
-  public getFromServer() {
-
-    //this.httpManager.get(environment.host + '/api/slices').then(
-    //  (result: Result) => {
-    //    if (result.meta.status == 'success') {
-
-    //      // If loaded slice has less frames change frame number || current frame no is equal to 0
-    //      if (this.playerService.frameNo > result.data.texData.length / (result.data.vertices.length / 3) || this.playerService.frameNo == 0) {
-    //        this.playerService.frameNo = result.data.texData.length / (result.data.vertices.length / 3);
-    //      }
-
-    //      this.slices.push(new Slice(result.data.vertices, result.data.indices, result.data.blank, new Float32Array(result.data.texData), this.babylonService.scene));
-    //    }
-    //  });
-  }
-
-  /**
    * Set holes in slice
    */
   public toogleBlank() {

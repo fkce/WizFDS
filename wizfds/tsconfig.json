@@ -14,7 +14,8 @@
   "target": "es2022",
     "lib": [
   "es2022",
-      "dom"
+      "dom",
+      "dom.asynciterable"
     ],
     "paths": {
       "web-smokeview-lib": [
