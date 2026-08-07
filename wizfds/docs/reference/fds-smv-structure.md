@@ -88,7 +88,7 @@ FDS zapisuje wyniki do plików binarnych (potwierdzone w [`Source/dump.f90`](htt
 
 ### Czym karmi się `webSmokeview`
 
-Standalone viewer nie ma scenariusza — czyta **sam plik `.smv`** (#115): backend serwuje surowy tekst (`/api/loadSmv`), a [`parsers/smv/smv-parser.service.ts`](../../projects/web-smokeview-lib/src/lib/services/parsers/smv/smv-parser.service.ts) buduje z niego `SceneInput` w metrach (token `PDIM` niesie wymiary siatek) oraz katalog plików wynikowych (tokeny `SLCF`/`BNDF`/`PRT5`/`SMOKF3D`/`ISOG`) dla fazy 6 (#89).
+Standalone viewer nie ma scenariusza — czyta **sam plik `.smv`** (#115): backend serwuje surowe bajty każdego pliku przypadku przez `/api/results/<ścieżka>` z obsługą `Range` (#148), a [`parsers/smv/smv-parser.service.ts`](../../projects/web-smokeview-lib/src/lib/services/parsers/smv/smv-parser.service.ts) buduje z niego `SceneInput` w metrach (token `PDIM` niesie wymiary siatek) oraz katalog plików wynikowych (tokeny `SLCF`/`BNDF`/`PRT5`/`SMOKF3D`/`ISOG`) dla fazy 6 (#89).
 
 > **Historia.** Do 2026-08 backend wołał `smokeview -runhtmlscript`, a viewer czytał `<chid>_obst.json` — trzy płaskie tablice z samymi obstami, znormalizowane do sześcianu jednostkowego bez możliwości odzyskania metrów (stały wyjątek od ADR-0002). Ścieżka wycofana w całości wraz z `ObstJsonService`.
 

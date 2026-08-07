@@ -55,6 +55,16 @@ describe('HttpResultsDirectory', () => {
       expect(handle.size).toBe(0);
     });
 
+    it('fails on a 416 that reports bytes, because then the refusal is the server, not the file', async () => {
+      answerWith(new Response(null, {
+        status: 416,
+        headers: { 'Content-Range': 'bytes */64' }
+      }));
+
+      await expectAsync(new HttpResultsDirectory(baseUrl).open('demo_01.sf'))
+        .toBeRejectedWithError(/cannot be trusted/);
+    });
+
     it('fails on a 200, because that is a server that ignored the range', async () => {
       answerWith(new Response(new Uint8Array([0, 1, 2]), { status: 200 }));
 
@@ -103,6 +113,17 @@ describe('HttpResultsDirectory', () => {
       fetchSpy.and.callFake(() => Promise.resolve(new Response(new Uint8Array(64), { status: 200 })));
 
       await expectAsync(handle.read(10, 4)).toBeRejectedWithError(/expected 206/);
+    });
+
+    it('drops the body of an answer it refuses, instead of leaving a whole file arriving', async () => {
+      const { handle, fetchSpy } = await openedHandle();
+      const whole = new Response(new Uint8Array(64), { status: 200 });
+      const cancelled = spyOn(whole.body, 'cancel').and.returnValue(Promise.resolve());
+      fetchSpy.and.callFake(() => Promise.resolve(whole));
+
+      await expectAsync(handle.read(10, 4)).toBeRejected();
+
+      expect(cancelled).toHaveBeenCalled();
     });
   });
 });

@@ -125,6 +125,16 @@ describe('LocalResultsDirectory', () => {
       expect(await directory.open('demo/demo.smv')).toBeNull();
     });
 
+    it('falls back to the plain name when the browser filled in no relative path', async () => {
+      // Files picked one by one, rather than as a directory, carry an empty
+      // webkitRelativePath - so the flat names are all there is to go by.
+      const directory = LocalResultsDirectory.fromFiles([
+        new File([new Uint8Array([1, 2, 3])], 'demo_01.sf')
+      ]);
+
+      expect((await directory.open('demo_01.sf')).size).toBe(3);
+    });
+
     it('reads exactly the requested slice', async () => {
       const directory = LocalResultsDirectory.fromFiles([
         pickedFile('demo/demo_01.sf', new Uint8Array([10, 11, 12, 13, 14, 15]))

@@ -27,8 +27,18 @@ export class HttpResultsDirectory implements ResultsDirectory {
 
     // No first byte to give, at offset zero, means the file is there and empty
     // - which an interrupted run leaves behind often enough to be worth telling
-    // apart from a server that cannot do ranges at all.
-    if (response.status === 416) { return new HttpFileHandle(url, 0); }
+    // apart from a server that cannot do ranges at all. A server that has
+    // bytes and still refuses the first one is not saying that, though: it is
+    // a server whose ranges cannot be trusted, and handing its size upwards
+    // would send the Phase 6 readers seeking through a file they will never be
+    // allowed to read.
+    if (response.status === 416) {
+      const unsatisfied = unsatisfiedLength(response.headers.get('Content-Range'));
+      if (unsatisfied !== null && unsatisfied > 0) {
+        throw new Error(`${url}: 416 for bytes=0-0 on ${unsatisfied} bytes - the server's ranges cannot be trusted`);
+      }
+      return new HttpFileHandle(url, 0);
+    }
 
     if (response.status !== 206) {
       // A 200 here means the whole file is already on its way; drop it rather
@@ -66,6 +76,16 @@ function totalLength(contentRange: string | null): number | null {
   return match === null ? null : Number(match[1]);
 }
 
+/**
+ * The same total, spelled the way a 416 spells it: a star where the satisfied
+ * range would be, because none was. Servers are only told they *should* send
+ * it, so silence here is not a contradiction - it is just no answer.
+ */
+function unsatisfiedLength(contentRange: string | null): number | null {
+  const match = /^bytes \*\/(\d+)$/.exec((contentRange ?? '').trim());
+  return match === null ? null : Number(match[1]);
+}
+
 class HttpFileHandle implements ResultFileHandle {
 
   constructor(
@@ -80,6 +100,9 @@ class HttpFileHandle implements ResultFileHandle {
     const response = await fetch(this.url, { headers: { Range: range } });
 
     if (response.status !== 206) {
+      // A 200 is the whole file on its way for a few bytes' worth of question;
+      // drop it rather than let it finish arriving just to be thrown away.
+      response.body?.cancel().catch(() => undefined);
       throw new Error(`${this.url}: expected 206 for ${range}, got ${response.status}`);
     }
 
