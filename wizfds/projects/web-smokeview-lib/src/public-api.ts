@@ -14,3 +14,6 @@
  export * from './lib/services/results/local-results-directory';
  export * from './lib/services/results/http-results-directory';
  export * from './lib/services/results/quantity-groups';
+ export * from './lib/services/parsers/sf/sf-file';
+ export * from './lib/services/parsers/sf/sf-parser';
+ export * from './lib/services/drawing/slice/slice.service';

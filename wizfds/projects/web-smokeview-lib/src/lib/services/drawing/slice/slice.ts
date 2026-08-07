@@ -1,97 +1,61 @@
-import { colorbars as Colorbars } from '../../../consts/colorbars';
 import * as BABYLON from 'babylonjs';
-import { toInteger } from 'lodash';
-import { BabylonService } from '../../babylon/babylon.service';
+import { SliceGeometry } from './slice-geometry';
 
+/**
+ * One slice plane on screen: the mesh of one `.sf` file on one FDS mesh.
+ *
+ * Everything asynchronous happened before this constructor: the material is
+ * built and configured by SliceService per quantity group, the geometry and
+ * blank are computed, the values parsed. What is left is strictly synchronous
+ * mesh assembly - which is the fix for the old slice.ts, whose constructor
+ * raced its own material against the first setInt (#149).
+ */
 export class Slice {
 
-    mesh: BABYLON.Mesh;
-    material: BABYLON.ShaderMaterial;
+    public readonly mesh: BABYLON.Mesh;
+    public readonly frameCount: number;
 
-    // Color index for each vertex
-    tex: Float32Array;
-    texData: Float32Array;
-    frameSize: number;
+    private frame = -1;
 
-    isBlank: number = 1;
-
-    /**
-     * Create Slice class
-     * @param vertices 
-     * @param indices 
-     * @param blank 
-     * @param texData 
-     * @param scene 
-     * @param frameSize 
-     */
     constructor(
-        vertices: Float32Array,
-        indices: Int32Array,
+        material: BABYLON.ShaderMaterial,
+        geometry: SliceGeometry,
         blank: Float32Array,
-        texData: Float32Array,
-        scene: BABYLON.Scene,
-        frameCur: number = 0
+        /** All frames, `pointsPerFrame` apart, in vertex order. */
+        private readonly values: Float32Array,
+        private readonly pointsPerFrame: number,
+        scene: BABYLON.Scene
     ) {
+        this.frameCount = pointsPerFrame > 0 ? Math.floor(values.length / pointsPerFrame) : 0;
 
-        // Create new custom mesh and vertex data
-        this.mesh = new BABYLON.Mesh("custom", scene);
-        let vertexData = new BABYLON.VertexData();
-        this.texData = texData;
+        this.mesh = new BABYLON.Mesh('slice', scene);
+        const vertexData = new BABYLON.VertexData();
+        vertexData.positions = geometry.positions;
+        vertexData.indices = geometry.indices;
+        vertexData.applyToMesh(this.mesh, false);
 
-        // Compute normals
-        let normals = new Float32Array();
-        BABYLON.VertexData.ComputeNormals(vertices, indices, normals);
+        this.mesh.setVerticesData('blank', blank, false, 1);
+        // Updatable: setFrame() rewrites it for as long as the slice lives.
+        this.mesh.setVerticesData('slice_value', new Float32Array(pointsPerFrame), true, 1);
+        this.mesh.material = material;
 
-        // Assign data
-        vertexData.positions = vertices;
-        vertexData.indices = indices;
-        vertexData.normals = normals;
-        vertexData.applyToMesh(this.mesh, true);
-
-        // Add colors to vertices
-        this.frameSize = toInteger(vertices.length / 3);
-        this.tex = this.texData.slice(frameCur * this.frameSize, (frameCur + 1) * this.frameSize);
-
-        this.mesh.setVerticesData('texture_coordinate', this.tex, true, 1);
-
-        // Add colors to vertices
-        this.mesh.setVerticesData('blank', blank, true, 1);
-
-        // Create RawTexture to sample the colors in fragment shaders
-        const texture_colorbar = new BABYLON.RawTexture(Colorbars.rainbow.colors, 1, Colorbars.rainbow.number, BABYLON.Engine.TEXTUREFORMAT_RGBA, scene, false, false, BABYLON.Texture.LINEAR_LINEAR, BABYLON.Engine.TEXTURETYPE_UNSIGNED_BYTE);
-
-        texture_colorbar.wrapR = BABYLON.Texture.CLAMP_ADDRESSMODE;
-        texture_colorbar.wrapU = BABYLON.Texture.CLAMP_ADDRESSMODE;
-
-        // The scene carries a back-reference to BabylonService, which owns shader loading
-        const babylonService = (scene as any).babylonService as BabylonService;
-        babylonService.createShaderMaterial({ name: 'shader', shader: 'slice' })
-            .then((material) => {
-                this.material = material;
-                this.material.setInt('is_blank', this.isBlank);
-                this.material.setTexture('texture_colorbar_sampler_tex', texture_colorbar);
-                this.material.backFaceCulling = false;
-                this.material.zOffset = 0.2;
-                this.mesh.material = this.material;
-            })
-            .catch((e: any) => { console.error('[Slice] Failed to create the slice material', e); });
+        this.setFrame(0);
     }
 
     /**
-     * Set color texture data from texData
-     * @param frameCur current frame
+     * Show frame `index`, clamped to this file's last frame - a shorter file
+     * of the group holds its last known state rather than vanishing, the
+     * step-function semantics "Oś czasu" in CONTEXT.md asks for (#149).
      */
-    public setTex(frameCur: number) {
-        this.tex = this.texData.slice(frameCur * this.frameSize, (frameCur + 1) * this.frameSize);
-        this.mesh.setVerticesData("texture_coordinate", this.tex, true, 1);
+    public setFrame(index: number): void {
+        const clamped = Math.min(Math.max(index, 0), this.frameCount - 1);
+        if (clamped === this.frame || clamped < 0) return;
+        this.frame = clamped;
+        this.mesh.updateVerticesData('slice_value',
+            this.values.subarray(clamped * this.pointsPerFrame, (clamped + 1) * this.pointsPerFrame));
     }
 
-    /**
-     * Toogle blank triangles 
-     */
-    public toogleBlank() {
-        this.isBlank = this.isBlank == 0 ? 1 : 0;
-        this.material.setInt('is_blank', this.isBlank);
+    public dispose(): void {
+        this.mesh.dispose();
     }
-
 }

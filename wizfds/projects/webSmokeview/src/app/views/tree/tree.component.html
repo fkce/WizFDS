@@ -38,11 +38,18 @@
 
   <!--
     The results catalog of the loaded case: format, then quantity group, then
-    one file per mesh. Nothing here is clickable except the format headers -
-    it is a listing, and opening a result file is the readers' job (#149...#155).
+    one file per mesh. A loadable quantity group opens on click - slices today,
+    the other formats as their readers land (#149...#155).
   -->
   <ng-container *ngIf="resultFormats.length > 0">
     <div class="header">Results</div>
+
+    <!-- Interim frame picker - #150 replaces it with the shared timeline. -->
+    <div class="frame-picker" *ngIf="sliceService.frameCount > 0">
+      <input type="range" min="0" [max]="sliceService.frameCount - 1"
+        [value]="sliceService.frame" (input)="onFrameInput($event)" aria-label="Frame">
+      <span class="mono">{{ sliceService.frame + 1 }} / {{ sliceService.frameCount }}</span>
+    </div>
 
     <div *ngFor="let format of resultFormats">
       <p class="menu-l1 format" (click)="toggleFormat(format.kind)">
@@ -52,9 +59,14 @@
 
       <div [ngClass]="isFormatOpen(format.kind) ? 'open' : 'close'">
         <ng-container *ngFor="let group of format.groups">
-          <p class="menu-l2 group">
+          <p class="menu-l2 group" [class.loadable]="canLoadGroup(group)"
+            [class.loaded]="sliceService.isLoaded(group)"
+            [class.loading]="sliceService.isLoading(group)"
+            (click)="onGroupClick(group)">
             {{group.label}}
             <span class="unit" *ngIf="group.unit">{{group.unit}}</span>
+            <mat-icon class="loaded-mark" *ngIf="sliceService.isLoaded(group)"
+              svgIcon="eye-outline" aria-label="loaded"></mat-icon>
           </p>
 
           <!--

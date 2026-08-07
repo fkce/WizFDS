@@ -141,6 +141,47 @@
       font-size: 0.66rem;
       color: var(--on-surface-muted);
     }
+
+    // A group the slice reader can open (#149): it earns a pointer, and a
+    // loaded one carries the accent - azure, never green (success only).
+    &.loadable {
+      cursor: pointer;
+
+      &:hover {
+        color: var(--accent);
+      }
+    }
+    &.loaded {
+      color: var(--accent);
+    }
+    &.loading {
+      opacity: 0.6;
+    }
+    mat-icon.loaded-mark {
+      flex: 0 0 auto;
+      width: 0.85rem;
+      height: 0.85rem;
+      color: var(--accent);
+    }
+  }
+
+  // The interim frame picker (#149) - #150 replaces it with the timeline.
+  .frame-picker {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+
+    input[type="range"] {
+      flex: 1;
+      min-width: 0;
+      accent-color: var(--accent);
+    }
+    .mono {
+      color: var(--on-surface-muted);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
   }
 
   // One shard per mesh, indented under its quantity

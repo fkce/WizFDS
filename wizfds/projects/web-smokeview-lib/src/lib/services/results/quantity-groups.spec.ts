@@ -1,5 +1,5 @@
 import { SmvResultFile, SmvSliceBounds } from '../parsers/smv/smv-file';
-import { groupResults } from './quantity-groups';
+import { groupResults, isLoadableSliceGroup } from './quantity-groups';
 
 // Grouping is the one place the catalog decides what a person is looking at:
 // a case writes hundreds of files and the reader shows a handful of things.
@@ -123,5 +123,32 @@ describe('groupResults', () => {
 
   it('has nothing to say about a case that wrote nothing', () => {
     expect(groupResults([])).toEqual([]);
+  });
+
+  describe('isLoadableSliceGroup', () => {
+    const groupOf = (fields: Partial<SmvResultFile>) => ({
+      label: 'TEMPERATURE', unit: 'C',
+      files: [entry({ bounds: planeK(1), ior: 3, ...fields })]
+    });
+
+    it('accepts a node-centered plane slice', () => {
+      expect(isLoadableSliceGroup(groupOf({}))).toBeTrue();
+    });
+
+    it('accepts a plane spelled with a negative ior', () => {
+      expect(isLoadableSliceGroup(groupOf({ ior: -3 }))).toBeTrue();
+    });
+
+    it('rejects cell-centered groups until #159', () => {
+      expect(isLoadableSliceGroup(groupOf({ cellCentered: true }))).toBeFalse();
+    });
+
+    it('rejects volume slices until #160', () => {
+      expect(isLoadableSliceGroup(groupOf({ ior: 0 }))).toBeFalse();
+    });
+
+    it('rejects other formats', () => {
+      expect(isLoadableSliceGroup(groupOf({ kind: 'bndf' }))).toBeFalse();
+    });
   });
 });

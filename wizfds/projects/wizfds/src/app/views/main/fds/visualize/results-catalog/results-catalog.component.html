@@ -43,9 +43,14 @@
       </div>
 
       <ng-container *ngFor="let group of format.groups">
-        <div class="row quantity">
+        <div class="row quantity" [class.loadable]="canLoadGroup(group)"
+          [class.loaded]="sliceService.isLoaded(group)"
+          [class.loading]="sliceService.isLoading(group)"
+          (click)="onGroupClick(group)">
           <span class="label">{{ group.label }}</span>
           <span class="unit" *ngIf="group.unit">{{ group.unit }}</span>
+          <mat-icon class="loaded-mark" *ngIf="sliceService.isLoaded(group)"
+            svgIcon="eye-outline" aria-label="loaded"></mat-icon>
         </div>
 
         <!-- The right of the row answers the same question either way: how big
@@ -59,8 +64,15 @@
       </ng-container>
     </div>
 
+    <!-- Interim frame picker - #150 replaces it with the shared timeline. -->
+    <div class="frame-picker" *ngIf="sliceService.frameCount > 0">
+      <input type="range" min="0" [max]="sliceService.frameCount - 1"
+        [value]="sliceService.frame" (input)="onFrameInput($event)" aria-label="Frame">
+      <span class="mono">{{ sliceService.frame + 1 }} / {{ sliceService.frameCount }}</span>
+    </div>
+
     <p class="note">
-      A listing of what the run wrote. Opening a result file arrives with the
+      Click a slice quantity to load it; other formats arrive with their
       readers.
     </p>
   </div>

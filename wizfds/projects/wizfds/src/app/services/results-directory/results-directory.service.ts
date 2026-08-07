@@ -6,7 +6,7 @@ import { MainService } from '@services/main/main.service';
 import { FdsScenario } from '@services/fds-scenario/fds-scenario';
 import { LocalResultsDirectory } from '../../../../../web-smokeview-lib/src/lib/services/results/local-results-directory';
 import { SmvParserService } from '../../../../../web-smokeview-lib/src/lib/services/parsers/smv/smv-parser.service';
-import { SmvResultFile } from '../../../../../web-smokeview-lib/src/lib/services/parsers/smv/smv-file';
+import { SmvFile, SmvResultFile } from '../../../../../web-smokeview-lib/src/lib/services/parsers/smv/smv-file';
 import {
   groupResults, ResultFormatGroup
 } from '../../../../../web-smokeview-lib/src/lib/services/results/quantity-groups';
@@ -84,6 +84,9 @@ export class ResultsDirectoryService {
   /** The source the catalog was read from, and reads its files through. */
   private directory: LocalResultsDirectory | null = null;
 
+  /** The parsed master file behind the catalog - grids and obst boxes for #149. */
+  private smvFile: SmvFile | null = null;
+
   /**
    * The handle behind that source, when there is one. The fallback path has
    * none: a `<input webkitdirectory>` yields a snapshot of files, which is
@@ -124,6 +127,12 @@ export class ResultsDirectoryService {
   public get message(): string { return this.stateSubject.value.message; }
 
   public get catalog(): ResultsCatalog | null { return this.catalogSubject.value; }
+
+  /** The parsed `.smv` behind the catalog, for the format readers (#149...). */
+  public get smv(): SmvFile | null { return this.smvFile; }
+
+  /** The byte source of the case on screen, for the format readers (#149...). */
+  public get source(): LocalResultsDirectory | null { return this.directory; }
 
   public get smvChoice(): readonly string[] { return this.smvChoiceSubject.value; }
 
@@ -274,6 +283,7 @@ export class ResultsDirectoryService {
    */
   private async scan(directory: LocalResultsDirectory, directoryName: string, mine: number): Promise<void> {
     this.directory = directory;
+    this.smvFile = null;
     this.directoryName = directoryName;
     this.smvChoiceSubject.next([]);
     this.catalogSubject.next(null);
@@ -326,6 +336,7 @@ export class ResultsDirectoryService {
       const smv = this.smvParserService.parse(
         new TextDecoder().decode(await master.read(0, master.size)));
       if (mine !== this.generation) { return; }
+      this.smvFile = smv;
 
       // The map this scan writes into is taken now rather than reached for
       // later: picking another folder gives the service a fresh one, and a
@@ -402,6 +413,7 @@ export class ResultsDirectoryService {
    */
   private reset(): number {
     this.directory = null;
+    this.smvFile = null;
     this.handle = null;
     this.directoryName = '';
     this.availability = new Map();

@@ -165,6 +165,12 @@ wszystkich siatek; jednostka listowania i ładowania wyników.
 _Avoid_: plik wyniku (plik to odłamek per siatka, nie rzecz, którą się
 ogląda)
 
+**Blank**:
+Węzeł wyniku leżący wewnątrz geometrii (OBST); zasłonięte wnętrza nie są
+rysowane, z przełącznikiem ich pokazania. Zasłaniają tylko OBST-y — GEOM
+nie uczestniczy.
+_Avoid_: hole w slice'ie (HOLE to namelist FDS), maska
+
 ### Nawigacja kamerą
 
 **Pan**:

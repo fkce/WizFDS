@@ -54,6 +54,13 @@ describe('SmvParserService', () => {
   });
 
   describe('obsts', () => {
+    it('keeps each obst node-index range for blank culling (#149)', () => {
+      const blockages = parser.parse(smvFixture()).blockages;
+      expect(blockages.length).toBe(2);
+      expect(blockages[0]).toEqual({ meshIndex: 1, i1: 0, i2: 1, j1: 0, j2: 2, k1: 0, k2: 1 });
+      expect(blockages[1]).toEqual({ meshIndex: 1, i1: 2, i2: 3, j1: 0, j2: 1, k1: 0, k2: 1 });
+    });
+
     it('reads the box in metres and the label after the bang', () => {
       const obsts = parser.parse(smvFixture()).scene.obsts;
 

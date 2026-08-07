@@ -85,6 +85,19 @@ export function groupResults(results: readonly SmvResultFile[]): readonly Result
 }
 
 /**
+ * Whether #149's reader can open this group: node-centered plane slices only.
+ * Cell-centered rendering is #159, volume slices (ior 0) are #160 - both are
+ * listed in the catalog but stay unloadable until their issue lands. `ior`
+ * may be written negative (a slice pinned to the far face of a solid), so
+ * only its magnitude picks the axis.
+ */
+export function isLoadableSliceGroup(group: QuantityGroup): boolean {
+    const first = group.files[0];
+    return !!first && first.kind === 'slcf' && !first.cellCentered
+        && first.ior !== undefined && [1, 2, 3].indexOf(Math.abs(first.ior)) !== -1;
+}
+
+/**
  * The heading a file is filed under, which doubles as the key it is grouped
  * by.
  *
