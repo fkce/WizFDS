@@ -4,7 +4,8 @@ import { SmvParserService } from 'projects/web-smokeview-lib/src/lib/services/pa
 import { SmvResultFile, SmvResultKind } from 'projects/web-smokeview-lib/src/lib/services/parsers/smv/smv-file';
 import { ResultsDirectory } from 'projects/web-smokeview-lib/src/lib/services/results/results-directory';
 import { HttpResultsDirectory } from 'projects/web-smokeview-lib/src/lib/services/results/http-results-directory';
-import { groupResults, ResultFormatGroup } from 'projects/web-smokeview-lib/src/lib/services/results/quantity-groups';
+import { groupResults, isLoadableSliceGroup, QuantityGroup, ResultFormatGroup } from 'projects/web-smokeview-lib/src/lib/services/results/quantity-groups';
+import { SliceService } from 'projects/web-smokeview-lib/src/lib/services/drawing/slice/slice.service';
 import { TreeService, SimulationNode } from '../../services/tree/tree.service';
 import { ConfigService } from '../../services/config/config.service';
 
@@ -72,7 +73,8 @@ export class TreeComponent implements OnInit, AfterViewInit {
   constructor(
     private smvApiService: SmokeviewApiService,
     private smvParserService: SmvParserService,
-    private treeService: TreeService
+    private treeService: TreeService,
+    public sliceService: SliceService
   ) { }
 
   ngOnInit(): void {
@@ -119,6 +121,9 @@ export class TreeComponent implements OnInit, AfterViewInit {
       // Failures are logged by the library rather than rejected, so there is
       // nothing here to recover from - see SmokeviewApiService.render().
       void this.smvApiService.render(smv.scene);
+      // The slices of Phase 6 come out of the same parsed master file and the
+      // same byte source the catalog was read from (#149).
+      this.sliceService.setCase(smv, directory);
       // Awaited so that loading a case means the whole of it; the panel does
       // not wait on this, its rows fill in as the answers land.
       await this.probeAvailability(directory, smv.results);
@@ -172,6 +177,19 @@ export class TreeComponent implements OnInit, AfterViewInit {
       }));
 
     return Promise.all(probes).then(() => undefined);
+  }
+
+  public canLoadGroup(group: QuantityGroup): boolean {
+    return isLoadableSliceGroup(group);
+  }
+
+  public onGroupClick(group: QuantityGroup): void {
+    if (!this.canLoadGroup(group)) return;
+    void this.sliceService.toggleGroup(group);
+  }
+
+  public onFrameInput(event: Event): void {
+    this.sliceService.setFrame(Number((event.target as HTMLInputElement).value));
   }
 
   public isFormatOpen(kind: SmvResultKind): boolean {
