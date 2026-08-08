@@ -27,16 +27,30 @@ a odpowiedź brzmiałaby „ukryte", czyli dokładnie to, co jednostronność ro
 sama i lokalnie. Kierunek jest w danych; przełącznik byłby wymyślaniem tej
 informacji drugi raz.
 
-**Cena: kierunek zależy od konwencji silnika, a tej nie da się sprawdzić
-testem.** Geometria pinuje tyle, ile jest niezależne od Babylona — trójkąty
-nawijamy tak, żeby reguła prawej dłoni wskazywała stronę `ior`, i to stwierdza
-spec `buildBoundary`, licząc iloczyn wektorowy krawędzi. Który obrót silnik
-uzna za przedni, jest już własnością materiału i ustawień sceny, a biblioteka
-jest WebGPU-only (ADR-0001), więc Karma nie ma czym tego wykonać. Gdyby
-konwencja okazała się odwrotna, objaw jest jaskrawy i natychmiastowy — model
-wygląda na wywrócony na lewą stronę — a poprawka to jedno pole materiału
-w `BndfService`. Ryzyko przyjęte świadomie: alternatywą było zgadywanie
-konwencji w kodzie i nazywanie tego pewnością.
+**Kierunek dzieli się na dwie rzeczy i tylko jedną da się sprawdzić testem.**
+Geometria pinuje to, co jest niezależne od Babylona: trójkąty nawijamy tak, żeby
+reguła prawej dłoni wskazywała stronę `ior`, i to stwierdza spec
+`buildBoundary`, licząc iloczyn wektorowy krawędzi. Który obrót silnik uzna za
+przedni, jest już własnością materiału, a biblioteka jest WebGPU-only
+(ADR-0001), więc Karma nie ma czym tego wykonać — rozstrzyga to jeden rzut oka
+na prawdziwy przebieg.
+
+Rzut oka rozstrzygnął na nie: przy scenie prawoskrętnej (`useRightHandedSystem`)
+Babylon uznaje za przednie nawinięcie **przeciwne** do reguły prawej dłoni, więc
+płaty były widoczne z dokładnie odwrotnej strony niż miały być. Objaw był taki,
+jak przewidywano — zamiast patrzeć do wnętrza, oglądało się zewnętrzną stronę
+bliskich ścian, a podłoga z góry nie istniała — i poprawką jest jedno pole:
+`material.sideOrientation = CounterClockWiseSideOrientation` w `BndfService`.
+Podział pozostaje właściwy: czysta funkcja odpowiada za kierunek, materiał za
+konwencję, i tylko to drugie wymagało oczu.
+
+**Współpłaszczyznowość ma dwa człony biasu i liczy się ten stały.**
+`material.zOffset` mnoży się przez nachylenie wielokąta względem kamery, więc
+dla podłogi oglądanej z góry — nachylenie zero — nie robi zupełnie nic; to
+właśnie tam blat obsta iskrzył przeplatanymi paskami. Stały człon to
+`zOffsetUnits`, i on rozstrzyga. `SliceService` ma sam `zOffset` i to mu
+wystarcza, bo płaszczyzna slice'a rzadko leży dokładnie na czymkolwiek —
+przeniesienie tej samej liczby do boundary było kopią bez zastanowienia.
 
 Konsekwencja dla reszty Fazy 6 (#89): to rozstrzygnięcie dotyczy wyłącznie
 formatów przyklejonych do geometrii. Slice zostaje dwustronny — jego

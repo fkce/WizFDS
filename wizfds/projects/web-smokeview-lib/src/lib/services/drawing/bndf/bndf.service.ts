@@ -308,14 +308,23 @@ export class BndfService implements SceneScoped, TimelineClient, ScaleClient {
         material.setFloat('clipY', this.clipY);
         material.setFloat('clipZ', this.clipZ);
         material.setTexture('texture_colorbar_sampler_tex', paletteTexture);
-        // One-sided, wound from ior (ADR-0020): the back of a patch is the
-        // inside of a solid or the outside of the domain, and neither is
-        // anything to look at.
+        // One-sided, wound from ior (ADR-0020). buildBoundary() winds each
+        // triangle so that the right-hand rule points the way ior does; this is
+        // where that becomes a front face, and the value is the engine's
+        // convention rather than a derivation - in a right-handed scene Babylon
+        // treats the other winding as front, so a patch would otherwise be
+        // visible from exactly the wrong side (checked on a real run: the
+        // domain walls hid the model instead of stepping aside).
+        material.sideOrientation = BABYLON.Material.CounterClockWiseSideOrientation;
         material.backFaceCulling = true;
         // The patch lies exactly in the plane of the face it describes, so at
-        // equal depth the two would fight. Depth-buffer units rather than
-        // metres, so it holds at every zoom and on every cell size.
-        material.zOffset = 0.2;
+        // equal depth the two fight. Both terms of the depth bias, and the
+        // constant one is the one that matters: `zOffset` is scaled by the
+        // polygon's slope, which is zero for a floor seen from above - exactly
+        // the case that speckled. Depth units rather than metres, so it holds at
+        // every zoom and on every cell size.
+        material.zOffset = -2;
+        material.zOffsetUnits = -8;
         return {
             material: material, paletteTexture: paletteTexture, paletteName: DEFAULT_COLORBAR
         };
