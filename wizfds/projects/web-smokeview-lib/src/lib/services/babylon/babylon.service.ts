@@ -107,7 +107,13 @@ const SHADER_INTERFACES: Record<string, { attributes: string[]; uniforms: string
   mesh: { attributes: ['position', 'normal', 'color'], uniforms: ['transparent'] },
   meshInstanced: { attributes: ['position', 'normal'], uniforms: ['transparent'] },
   arrow: { attributes: ['position', 'normal'], uniforms: [] },
-  slice: { attributes: ['position', 'slice_value', 'blank'], uniforms: ['is_blank', 'range_min', 'range_max'] }
+  slice: { attributes: ['position', 'slice_value', 'blank'], uniforms: ['is_blank', 'range_min', 'range_max'] },
+  // No blank attribute, unlike slice: a boundary cell with nothing behind it
+  // never reaches the index buffer, so there is nothing left to mask (#152).
+  bndf: {
+    attributes: ['position', 'boundary_value'],
+    uniforms: ['range_min', 'range_max', 'clipX', 'clipY', 'clipZ']
+  }
 };
 
 @Injectable({

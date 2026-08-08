@@ -12,7 +12,7 @@ import { SfFile } from '../../parsers/sf/sf-file';
 import { parseSf } from '../../parsers/sf/sf-parser';
 import { buildSliceGeometry } from './slice-geometry';
 import { computeSliceBlank } from './slice-blank';
-import { visibleExtent } from './slice-extent';
+import { visibleExtent } from '../../scale/visible-extent';
 import { Slice } from './slice';
 import { mergeSpans, TimelineClient, TimelineService, TimeSpan } from '../../timeline/timeline.service';
 import {
@@ -110,6 +110,10 @@ export class SliceService implements SceneScoped, TimelineClient, ScaleClient {
    * The case the slices come from: the parsed `.smv` (grids in metres, obst
    * boxes for blank) and the directory its bytes sit in. Replacing the case
    * disposes whatever the previous one had loaded.
+   *
+   * Called by ResultsLoaderService, which is also what tells the timeline and
+   * the scale that the case has changed. Those two calls used to sit here, when
+   * SLCF was the only format that knew - see ADR-0021.
    */
   public setCase(smv: SmvFile, directory: ResultsDirectory): void {
     this.loaded.forEach(group => this.disposeGroup(group));
@@ -118,12 +122,6 @@ export class SliceService implements SceneScoped, TimelineClient, ScaleClient {
     this.grids = smv.grids;
     this.blockages = smv.blockages;
     this.directory = directory;
-    // Another simulation: a position from the previous one means nothing here,
-    // and neither does a range someone cut to fit the last one. Both calls sit
-    // here because SLCF is still the only format that knows a case has changed
-    // - the seam they belong in is owed to #152 (ADR-0018, ADR-0019).
-    this.timeline.resetForNewCase();
-    this.scales.resetForNewCase();
   }
 
   public canLoad(group: QuantityGroup): boolean {

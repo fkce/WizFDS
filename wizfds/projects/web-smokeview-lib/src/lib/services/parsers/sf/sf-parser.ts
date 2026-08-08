@@ -1,4 +1,5 @@
 import { SfFile } from './sf-file';
+import { asciiOf, detectEndianness, RecordWalk } from '../fortran-record';
 
 /**
  * Read one `.sf` slice file (ADR-0016) - Fortran unformatted records, per
@@ -8,22 +9,12 @@ import { SfFile } from './sf-file';
  * A pure function, deliberately free of Angular and Babylon: the whole file
  * is already in memory (#149 reads it in one go), and everything it returns
  * is plain data a spec can assert on.
- *
- * The byte order is whatever machine ran the solver. The first record is a
- * 30-byte label, so the first marker read as the wrong endianness is
- * 0x1E000000 rather than 0x0000001E - which is how the right one is found,
- * and how bytes that are no `.sf` at all are refused.
  */
 export function parseSf(buffer: ArrayBuffer): SfFile {
-    if (buffer.byteLength < 4) throw new Error('not a .sf file: shorter than one record marker');
     const view = new DataView(buffer);
+    const littleEndian = detectEndianness(view, 30, '.sf');
 
-    let littleEndian: boolean;
-    if (view.getUint32(0, true) === 30) littleEndian = true;
-    else if (view.getUint32(0, false) === 30) littleEndian = false;
-    else throw new Error('not a .sf file: the first record is not a 30-byte label');
-
-    const walk = new RecordWalk(view, littleEndian);
+    const walk = new RecordWalk(view, littleEndian, '.sf');
     const longLabel = asciiOf(walk.demand(30));
     const shortLabel = asciiOf(walk.demand(30));
     const unit = asciiOf(walk.demand(30));
@@ -70,42 +61,4 @@ export function parseSf(buffer: ArrayBuffer): SfFile {
         bounds: bounds, pointsPerFrame: pointsPerFrame,
         times: new Float32Array(times), values: values
     };
-}
-
-/** The record cursor: each step checks both markers and hands back the payload. */
-class RecordWalk {
-
-    private at = 0;
-
-    constructor(
-        private readonly view: DataView,
-        private readonly littleEndian: boolean
-    ) { }
-
-    /** The next record, which must be whole and `expected` bytes long. */
-    public demand(expected: number): DataView {
-        const record = this.tryNext(expected);
-        if (record === null) throw new Error('.sf file ends inside its header');
-        return record;
-    }
-
-    /** The next record, or null when the bytes run out or the length differs. */
-    public tryNext(expected: number): DataView | null {
-        const total = this.view.byteLength;
-        if (this.at + 8 + expected > total) return null;
-        const length = this.view.getUint32(this.at, this.littleEndian);
-        if (length !== expected) return null;
-        const trailing = this.view.getUint32(this.at + 4 + expected, this.littleEndian);
-        if (trailing !== length) return null;
-
-        const payload = new DataView(this.view.buffer, this.view.byteOffset + this.at + 4, expected);
-        this.at += 8 + expected;
-        return payload;
-    }
-}
-
-function asciiOf(bytes: DataView): string {
-    let text = '';
-    for (let at = 0; at < bytes.byteLength; at++) text += String.fromCharCode(bytes.getUint8(at));
-    return text.trim();
 }

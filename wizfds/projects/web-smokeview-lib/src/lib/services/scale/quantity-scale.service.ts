@@ -222,7 +222,7 @@ export class QuantityScaleService implements SceneScoped {
         this.viewsSubject.next([]);
     }
 
-    /** A different case is being opened - see SliceService.setCase(). */
+    /** A different case is being opened - see ResultsLoaderService.setCase(). */
     public resetForNewCase(): void {
         this.overrides.clear();
         this.publish();

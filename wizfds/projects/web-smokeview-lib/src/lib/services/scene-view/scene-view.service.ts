@@ -11,6 +11,7 @@ import { GeomService } from '../drawing/geom/geom.service';
 import { InitService } from '../drawing/init/init.service';
 import { ZoneService } from '../drawing/zone/zone.service';
 import { HoleRegionService } from '../drawing/hole/hole-region.service';
+import { BndfService } from '../drawing/bndf/bndf.service';
 import { BabylonService } from '../babylon/babylon.service';
 import { ViewCubeService } from '../babylon/viewCube/view-cube.service';
 import { SceneAxis, SceneBoundsService } from '../scene-bounds/scene-bounds.service';
@@ -121,6 +122,7 @@ export class SceneViewService {
     private initService: InitService,
     private zoneService: ZoneService,
     private holeRegionService: HoleRegionService,
+    private bndfService: BndfService,
     private babylonService: BabylonService,
     private sceneBounds: SceneBoundsService,
     private viewCube: ViewCubeService,
@@ -283,6 +285,9 @@ export class SceneViewService {
     this.initService.clip(metres, axis);
     this.zoneService.clip(metres, axis);
     this.holeRegionService.clip(metres, axis);
+    // Results, not scenario: a boundary is painted on geometry, so a plane that
+    // cuts an obst away has to take the values painted on it (#152).
+    this.bndfService.clip(metres, axis);
   }
 
   /**
@@ -304,6 +309,7 @@ export class SceneViewService {
     this.initService.resetClipping();
     this.zoneService.resetClipping();
     this.holeRegionService.resetClipping();
+    this.bndfService.resetClipping();
   }
 
   // ==========================================
