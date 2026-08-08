@@ -1,39 +1,309 @@
-export const colorbars = {
-    rainbow: {
-        colors: new Uint8Array([
-            0, 0, 255, 255, 0, 3, 255, 255, 0, 7, 255, 255, 0, 11, 255, 255, 0, 15, 255, 255, 0, 19, 255, 255, 0, 23, 255, 255, 0, 27, 255, 255,
-            0, 31, 255, 255, 0, 35, 255, 255, 0, 39, 255, 255, 0, 43, 255, 255, 0, 47, 255, 255, 0, 51, 255, 255, 0, 55, 255, 255, 0, 59, 255, 255,
-            0, 63, 255, 255, 0, 67, 255, 255, 0, 71, 255, 255, 0, 75, 255, 255, 0, 79, 255, 255, 0, 83, 255, 255, 0, 87, 255, 255, 0, 91, 255, 255,
-            0, 95, 255, 255, 0, 99, 255, 255, 0, 103, 255, 255, 0, 107, 255, 255, 0, 111, 255, 255, 0, 115, 255, 255, 0, 119, 255, 255, 0, 123, 255, 255,
-            0, 127, 255, 255, 0, 131, 255, 255, 0, 135, 255, 255, 0, 139, 255, 255, 0, 143, 255, 255, 0, 147, 255, 255, 0, 151, 255, 255, 0, 155, 255, 255,
-            0, 159, 255, 255, 0, 163, 255, 255, 0, 167, 255, 255, 0, 171, 255, 255, 0, 175, 255, 255, 0, 179, 255, 255, 0, 183, 255, 255, 0, 187, 255, 255,
-            0, 191, 255, 255, 0, 195, 255, 255, 0, 199, 255, 255, 0, 203, 255, 255, 0, 207, 255, 255, 0, 211, 255, 255, 0, 215, 255, 255, 0, 219, 255, 255,
-            0, 223, 255, 255, 0, 227, 255, 255, 0, 231, 255, 255, 0, 235, 255, 255, 0, 239, 255, 255, 0, 243, 255, 255, 0, 247, 255, 255, 0, 251, 255, 255,
-            0, 255, 255, 255, 0, 255, 251, 255, 0, 255, 247, 255, 0, 255, 243, 255, 0, 255, 239, 255, 0, 255, 235, 255, 0, 255, 231, 255, 0, 255, 227, 255,
-            0, 255, 223, 255, 0, 255, 219, 255, 0, 255, 215, 255, 0, 255, 211, 255, 0, 255, 207, 255, 0, 255, 203, 255, 0, 255, 199, 255, 0, 255, 195, 255,
-            0, 255, 191, 255, 0, 255, 187, 255, 0, 255, 183, 255, 0, 255, 179, 255, 0, 255, 175, 255, 0, 255, 171, 255, 0, 255, 167, 255, 0, 255, 163, 255,
-            0, 255, 159, 255, 0, 255, 155, 255, 0, 255, 151, 255, 0, 255, 147, 255, 0, 255, 143, 255, 0, 255, 139, 255, 0, 255, 135, 255, 0, 255, 131, 255,
-            0, 255, 127, 255, 0, 255, 123, 255, 0, 255, 119, 255, 0, 255, 115, 255, 0, 255, 111, 255, 0, 255, 107, 255, 0, 255, 103, 255, 0, 255, 99, 255,
-            0, 255, 95, 255, 0, 255, 91, 255, 0, 255, 87, 255, 0, 255, 83, 255, 0, 255, 79, 255, 0, 255, 75, 255, 0, 255, 71, 255, 0, 255, 67, 255,
-            0, 255, 63, 255, 0, 255, 59, 255, 0, 255, 55, 255, 0, 255, 51, 255, 0, 255, 47, 255, 0, 255, 43, 255, 0, 255, 39, 255, 0, 255, 35, 255,
-            0, 255, 31, 255, 0, 255, 27, 255, 0, 255, 23, 255, 0, 255, 19, 255, 0, 255, 15, 255, 0, 255, 11, 255, 0, 255, 7, 255, 0, 255, 3, 255,
-            0, 255, 0, 255, 3, 255, 0, 255, 7, 255, 0, 255, 11, 255, 0, 255, 15, 255, 0, 255, 19, 255, 0, 255, 23, 255, 0, 255, 27, 255, 0, 255,
-            31, 255, 0, 255, 35, 255, 0, 255, 39, 255, 0, 255, 43, 255, 0, 255, 47, 255, 0, 255, 51, 255, 0, 255, 55, 255, 0, 255, 59, 255, 0, 255,
-            63, 255, 0, 255, 67, 255, 0, 255, 71, 255, 0, 255, 75, 255, 0, 255, 79, 255, 0, 255, 83, 255, 0, 255, 87, 255, 0, 255, 91, 255, 0, 255,
-            95, 255, 0, 255, 99, 255, 0, 255, 103, 255, 0, 255, 107, 255, 0, 255, 111, 255, 0, 255, 115, 255, 0, 255, 119, 255, 0, 255, 123, 255, 0, 255,
-            127, 255, 0, 255, 131, 255, 0, 255, 135, 255, 0, 255, 139, 255, 0, 255, 143, 255, 0, 255, 147, 255, 0, 255, 151, 255, 0, 255, 155, 255, 0, 255,
-            159, 255, 0, 255, 163, 255, 0, 255, 167, 255, 0, 255, 171, 255, 0, 255, 175, 255, 0, 255, 179, 255, 0, 255, 183, 255, 0, 255, 187, 255, 0, 255,
-            191, 255, 0, 255, 195, 255, 0, 255, 199, 255, 0, 255, 203, 255, 0, 255, 207, 255, 0, 255, 211, 255, 0, 255, 215, 255, 0, 255, 219, 255, 0, 255,
-            223, 255, 0, 255, 227, 255, 0, 255, 231, 255, 0, 255, 235, 255, 0, 255, 239, 255, 0, 255, 243, 255, 0, 255, 247, 255, 0, 255, 251, 255, 0, 255,
-            255, 255, 0, 255, 255, 250, 0, 255, 255, 246, 0, 255, 255, 242, 0, 255, 255, 238, 0, 255, 255, 234, 0, 255, 255, 230, 0, 255, 255, 226, 0, 255,
-            255, 222, 0, 255, 255, 218, 0, 255, 255, 214, 0, 255, 255, 210, 0, 255, 255, 206, 0, 255, 255, 202, 0, 255, 255, 198, 0, 255, 255, 194, 0, 255,
-            255, 190, 0, 255, 255, 186, 0, 255, 255, 182, 0, 255, 255, 178, 0, 255, 255, 174, 0, 255, 255, 169, 0, 255, 255, 165, 0, 255, 255, 161, 0, 255,
-            255, 157, 0, 255, 255, 153, 0, 255, 255, 149, 0, 255, 255, 145, 0, 255, 255, 141, 0, 255, 255, 137, 0, 255, 255, 133, 0, 255, 255, 129, 0, 255,
-            255, 125, 0, 255, 255, 121, 0, 255, 255, 117, 0, 255, 255, 113, 0, 255, 255, 109, 0, 255, 255, 105, 0, 255, 255, 101, 0, 255, 255, 97, 0, 255,
-            255, 93, 0, 255, 255, 89, 0, 255, 255, 84, 0, 255, 255, 80, 0, 255, 255, 76, 0, 255, 255, 72, 0, 255, 255, 68, 0, 255, 255, 64, 0, 255,
-            255, 60, 0, 255, 255, 56, 0, 255, 255, 52, 0, 255, 255, 48, 0, 255, 255, 44, 0, 255, 255, 40, 0, 255, 255, 36, 0, 255, 255, 32, 0, 255,
-            255, 28, 0, 255, 255, 24, 0, 255, 255, 20, 0, 255, 255, 16, 0, 255, 255, 12, 0, 255, 255, 8, 0, 255, 255, 4, 0, 255, 255, 0, 0, 255
-        ]),
-        number: 256
+/**
+ * The palettes a result quantity can be drawn with ("Paleta", CONTEXT.md).
+ *
+ * A port of SmokeView's twenty default colorbars (`Source/shared/colorbar_defs.c`),
+ * kept under SMV's own menu names so a figure from this viewer and a figure from
+ * SmokeView can be put side by side and read as the same scale.
+ *
+ * Stored as the handful of nodes SMV states them in rather than as expanded
+ * texels: a palette is then five lines of data instead of a thousand
+ * transcribed numbers, and the expansion is one function with one test against
+ * what SmokeView itself produced.
+ */
+
+/** One stop of a palette: a colour pinned to a place on the 0..255 ramp. */
+export interface ColorbarNode {
+    readonly at: number;
+    readonly rgb: readonly [number, number, number];
+}
+
+export interface Colorbar {
+    /** SmokeView's menu label, verbatim. */
+    readonly name: string;
+    /** Ascending by `at`; two nodes may share an index - see colorbarTexels(). */
+    readonly nodes: readonly ColorbarNode[];
+}
+
+/** Texels in the expanded ramp - the height of the 1 x N colorbar texture. */
+export const COLORBAR_TEXELS = 256;
+
+/**
+ * SmokeView's default, and ours. Note it is *not* what this library shipped
+ * before #151: that was `Rainbow_orig`, one entry down, which SMV keeps only
+ * for continuity with its own older figures.
+ */
+export const DEFAULT_COLORBAR = 'Rainbow';
+
+export const COLORBARS: readonly Colorbar[] = [
+    {
+        name: "Rainbow",
+        nodes: [
+            { at: 0, rgb: [0, 0, 255] },
+            { at: 64, rgb: [0, 192, 192] },
+            { at: 128, rgb: [0, 255, 0] },
+            { at: 192, rgb: [192, 192, 0] },
+            { at: 255, rgb: [255, 0, 0] }
+        ]
+    },
+    {
+        name: "Rainbow_orig",
+        nodes: [
+            { at: 0, rgb: [0, 0, 255] },
+            { at: 64, rgb: [0, 255, 255] },
+            { at: 128, rgb: [0, 255, 0] },
+            { at: 192, rgb: [255, 255, 0] },
+            { at: 255, rgb: [255, 0, 0] }
+        ]
+    },
+    {
+        name: "Rainbow 2",
+        nodes: [
+            { at: 0, rgb: [4, 0, 108] },
+            { at: 20, rgb: [6, 3, 167] },
+            { at: 60, rgb: [24, 69, 240] },
+            { at: 70, rgb: [31, 98, 214] },
+            { at: 80, rgb: [5, 125, 170] },
+            { at: 96, rgb: [48, 155, 80] },
+            { at: 112, rgb: [82, 177, 8] },
+            { at: 163, rgb: [240, 222, 3] },
+            { at: 170, rgb: [249, 214, 7] },
+            { at: 200, rgb: [252, 152, 22] },
+            { at: 230, rgb: [254, 67, 13] },
+            { at: 255, rgb: [215, 5, 13] }
+        ]
+    },
+    {
+        name: "yellow->red",
+        nodes: [
+            { at: 0, rgb: [255, 255, 0] },
+            { at: 255, rgb: [255, 0, 0] }
+        ]
+    },
+    {
+        name: "blue->green->red",
+        nodes: [
+            { at: 0, rgb: [0, 0, 255] },
+            { at: 128, rgb: [0, 255, 0] },
+            { at: 255, rgb: [255, 0, 0] }
+        ]
+    },
+    {
+        name: "blue->yellow->white",
+        nodes: [
+            { at: 0, rgb: [0, 151, 255] },
+            { at: 113, rgb: [255, 0, 0] },
+            { at: 212, rgb: [255, 255, 0] },
+            { at: 255, rgb: [255, 255, 255] }
+        ]
+    },
+    {
+        name: "blue->red split",
+        nodes: [
+            { at: 0, rgb: [0, 0, 255] },
+            { at: 127, rgb: [0, 255, 255] },
+            { at: 128, rgb: [255, 255, 0] },
+            { at: 255, rgb: [255, 0, 0] }
+        ]
+    },
+    {
+        name: "AFAC split",
+        nodes: [
+            { at: 0, rgb: [0, 178, 90] },
+            { at: 80, rgb: [0, 178, 90] },
+            { at: 81, rgb: [255, 243, 0] },
+            { at: 100, rgb: [255, 243, 0] },
+            { at: 101, rgb: [250, 150, 38] },
+            { at: 140, rgb: [250, 150, 38] },
+            { at: 141, rgb: [209, 34, 41] },
+            { at: 255, rgb: [209, 34, 41] }
+        ]
+    },
+    {
+        name: "black->white",
+        nodes: [
+            { at: 0, rgb: [0, 0, 0] },
+            { at: 255, rgb: [255, 255, 255] }
+        ]
+    },
+    {
+        name: "FED",
+        nodes: [
+            { at: 0, rgb: [96, 96, 255] },
+            { at: 26, rgb: [96, 96, 255] },
+            { at: 26, rgb: [255, 255, 0] },
+            { at: 85, rgb: [255, 255, 0] },
+            { at: 85, rgb: [255, 155, 0] },
+            { at: 255, rgb: [255, 155, 0] }
+        ]
+    },
+    {
+        name: "fire",
+        nodes: [
+            { at: 0, rgb: [0, 0, 0] },
+            { at: 127, rgb: [0, 0, 0] },
+            { at: 128, rgb: [255, 128, 0] },
+            { at: 255, rgb: [255, 128, 0] }
+        ]
+    },
+    {
+        name: "fire 2",
+        nodes: [
+            { at: 0, rgb: [0, 0, 0] },
+            { at: 127, rgb: [38, 0, 0] },
+            { at: 128, rgb: [219, 68, 21] },
+            { at: 160, rgb: [255, 125, 36] },
+            { at: 183, rgb: [255, 157, 52] },
+            { at: 198, rgb: [255, 170, 63] },
+            { at: 214, rgb: [255, 198, 93] },
+            { at: 229, rgb: [255, 208, 109] },
+            { at: 244, rgb: [255, 234, 161] },
+            { at: 255, rgb: [255, 255, 238] }
+        ]
+    },
+    {
+        name: "fire 3",
+        nodes: [
+            { at: 0, rgb: [0, 0, 0] },
+            { at: 108, rgb: [255, 127, 0] },
+            { at: 156, rgb: [255, 255, 0] },
+            { at: 255, rgb: [255, 255, 255] }
+        ]
+    },
+    {
+        name: "cool",
+        nodes: [
+            { at: 0, rgb: [0, 0, 0] },
+            { at: 90, rgb: [64, 64, 255] },
+            { at: 110, rgb: [155, 35, 33] },
+            { at: 120, rgb: [108, 19, 43] },
+            { at: 130, rgb: [208, 93, 40] },
+            { at: 160, rgb: [255, 178, 0] },
+            { at: 255, rgb: [255, 255, 255] }
+        ]
+    },
+    {
+        name: "fire line (level set)",
+        nodes: [
+            { at: 0, rgb: [0, 1, 2] },
+            { at: 120, rgb: [0, 1, 2] },
+            { at: 120, rgb: [255, 0, 0] },
+            { at: 136, rgb: [255, 0, 0] },
+            { at: 136, rgb: [64, 64, 64] },
+            { at: 255, rgb: [64, 64, 64] }
+        ]
+    },
+    {
+        name: "fire line (wall thickness)",
+        nodes: [
+            { at: 0, rgb: [0, 0, 0] },
+            { at: 32, rgb: [0, 0, 0] },
+            { at: 32, rgb: [253, 254, 255] },
+            { at: 255, rgb: [253, 254, 255] }
+        ]
+    },
+    {
+        name: "split",
+        nodes: [
+            { at: 0, rgb: [0, 0, 0] },
+            { at: 127, rgb: [64, 64, 255] },
+            { at: 128, rgb: [0, 192, 0] },
+            { at: 255, rgb: [255, 0, 0] }
+        ]
+    },
+    {
+        name: "Methanol",
+        nodes: [
+            { at: 0, rgb: [9, 190, 255] },
+            { at: 192, rgb: [9, 190, 255] },
+            { at: 200, rgb: [9, 190, 255] },
+            { at: 255, rgb: [9, 190, 255] }
+        ]
+    },
+    {
+        name: "Propane",
+        nodes: [
+            { at: 0, rgb: [0, 0, 0] },
+            { at: 140, rgb: [235, 120, 0] },
+            { at: 160, rgb: [250, 180, 0] },
+            { at: 190, rgb: [252, 248, 70] },
+            { at: 255, rgb: [255, 255, 255] }
+        ]
+    },
+    {
+        name: "CO2",
+        nodes: [
+            { at: 0, rgb: [0, 0, 255] },
+            { at: 192, rgb: [0, 0, 255] },
+            { at: 255, rgb: [255, 255, 255] }
+        ]
+    },];
+
+/** The palette of that name, falling back to the default rather than to nothing. */
+export function colorbarByName(name: string): Colorbar {
+    const found = COLORBARS.find(colorbar => colorbar.name === name);
+    if (found) { return found; }
+    return COLORBARS.find(colorbar => colorbar.name === DEFAULT_COLORBAR) ?? COLORBARS[0];
+}
+
+/**
+ * The palette expanded to `COLORBAR_TEXELS` RGBA texels, ready for a RawTexture.
+ *
+ * A transcription of `UpdateColorbarSplits()` in SMV's `colorbars.c`, down to
+ * its arithmetic, because the point of the port is that a figure from here and
+ * a figure from SmokeView are the same figure. Three details carry that:
+ *
+ * - **Segments are half-open** and the ramp is flat outside the outermost
+ *   nodes, so each index is written by exactly one segment.
+ * - **A pair of nodes sharing an index is skipped, not interpolated.** That
+ *   pair is how SMV spells a scale that jumps rather than blends: `FED` breaks
+ *   at 26 and 85, `fire line (level set)` at 120 and 136, `fire line (wall
+ *   thickness)` at 32. The segment starting on the shared index is what fills
+ *   it, with the later colour. (The `split` palettes read as breaks too, but
+ *   spell theirs as adjacent indices - 127 and 128 - which needs nothing
+ *   special.)
+ * - **The factor is single-precision, the mix is not, and the result is
+ *   truncated.** Not pedantry: at exact thirds the double-precision factor
+ *   lands on 170.0000000003 where the float lands on 169.9999975, and
+ *   `Rainbow_orig` differs from SmokeView's own bytes in two texels if this is
+ *   got wrong. The spec's golden array is what pins it.
+ */
+export function colorbarTexels(colorbar: Colorbar): Uint8Array {
+    const texels = new Uint8Array(COLORBAR_TEXELS * 4);
+    const nodes = colorbar.nodes;
+    if (nodes.length === 0) { return texels; }
+
+    const paint = (at: number, rgb: readonly number[]): void => {
+        const texel = at * 4;
+        texels[texel] = rgb[0];
+        texels[texel + 1] = rgb[1];
+        texels[texel + 2] = rgb[2];
+        texels[texel + 3] = 255;
+    };
+
+    for (let at = 0; at < nodes[0].at && at < COLORBAR_TEXELS; at++) {
+        paint(at, nodes[0].rgb);
     }
+
+    for (let node = 0; node + 1 < nodes.length; node++) {
+        const from = nodes[node];
+        const to = nodes[node + 1];
+        if (to.at === from.at) { continue; }
+
+        for (let at = from.at; at < to.at && at < COLORBAR_TEXELS; at++) {
+            const along = Math.fround(Math.fround(at - from.at) / Math.fround(to.at - from.at));
+            const texel = at * 4;
+            for (let channel = 0; channel < 3; channel++) {
+                texels[texel + channel] = Math.trunc(
+                    along * to.rgb[channel] + (1 - along) * from.rgb[channel]);
+            }
+            texels[texel + 3] = 255;
+        }
+    }
+
+    const last = nodes[nodes.length - 1];
+    for (let at = last.at; at < COLORBAR_TEXELS; at++) {
+        paint(at, last.rgb);
+    }
+
+    return texels;
 }

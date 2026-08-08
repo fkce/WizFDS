@@ -148,11 +148,30 @@ prawda. Tempo odtwarzania to mnożnik czasu rzeczywistego.
 _Avoid_: player, globalny numer klatki (klatki należą do formatu, nie do osi)
 
 **Zakres wielkości**:
-Wspólne min/max mapowania wartość→kolor, liczone ze wszystkich klatek
-wszystkich plików tej samej wielkości fizycznej — TEMPERATURE ma jedną skalę
-w całej scenie, niezależnie od formatu (slice czy boundary). Ręczne
-nadpisanie zastępuje końce zakresu.
+Wspólne min/max mapowania wartość→kolor jednej wielkości fizycznej, a tę
+poznaje się po nazwie i jednostce: TEMPERATURE ma jedną skalę w całej scenie,
+niezależnie od położenia i formatu (slice czy boundary). Liczy się ze
+wszystkich klatek wszystkich załadowanych plików tej wielkości i wyłącznie
+z węzłów, które widać — wartość spod bryły nie ustawia skali temu, co się
+ogląda. Jest funkcją tego, co załadowane w tej chwili: dołożenie grupy potrafi
+go rozszerzyć, odładowanie zwęzić, i jedno, i drugie przemalowuje resztę.
+Każdy koniec bywa nadpisany ręcznie i wtedy stoi, podczas gdy drugi dalej
+podąża za danymi; wartości spoza zakresu klamrują się do końców.
 _Avoid_: zakres pliku, zakres klatki
+
+**Paleta**:
+Uporządkowany ciąg kolorów, w który odwzorowuje się zakres wielkości. Nazwana
+i wybierana osobno dla każdej wielkości — dwie wielkości na ekranie naraz
+rozpoznaje się wtedy po samym kolorze plamy. Nasze palety to port domyślnych
+colorbarów SmokeView.
+_Avoid_: colorbar w polskim tekście, gradient, mapa kolorów
+
+**Legenda**:
+Pionowa skala przy krawędzi kanwy, po jednej na każdą załadowaną wielkość:
+paleta, podpisane podziałki, nazwa wielkości i jednostka. Jest zarazem jedynym
+miejscem, w którym nadpisuje się końce zakresu i wybiera paletę, i mówi,
+kiedy dane sięgają poza koniec ustawiony ręcznie.
+_Avoid_: colorbar (to paleta, nie legenda), pasek skali
 
 **Katalog wyników**:
 Miejsce, z którego viewer bierze `.smv` i pliki wynikowe: w wizfds lokalny

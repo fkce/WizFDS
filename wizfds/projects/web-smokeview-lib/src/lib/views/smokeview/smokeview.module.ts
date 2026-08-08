@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SmokeviewComponent } from './smokeview.component';
 import { TimelineBarComponent } from '../timeline-bar/timeline-bar.component';
+import { QuantityLegendComponent } from '../quantity-legend/quantity-legend.component';
 
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
@@ -13,7 +14,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 //import { SliderDirective } from '../../directives/slider/slider.directive';
 
 @NgModule({
-  declarations: [SmokeviewComponent, TimelineBarComponent],
+  declarations: [SmokeviewComponent, TimelineBarComponent, QuantityLegendComponent],
   imports: [
     CommonModule,
     //SliderDirective,
