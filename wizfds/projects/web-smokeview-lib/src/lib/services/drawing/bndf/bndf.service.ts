@@ -50,11 +50,14 @@ interface LoadedGroup {
  * the same quantity are drawn on one scale without either knowing about the
  * other.
  *
- * Two things are its own. Patches are drawn from the side their `ior` points
- * to and no other (ADR-0020), which is what lets a loaded boundary be looked at
- * from outside the model. And there is no blank toggle: a patch cell with
- * nothing behind it holds the ambient value FDS wrote into a hole, so those
- * cells never reach the index buffer (see buildBoundary).
+ * Three things are its own, and all three follow from a patch being glued to a
+ * face rather than hanging in space. Patches are drawn from the side their `ior`
+ * points to and no other (ADR-0020), which is what lets a loaded boundary be
+ * looked at from outside the model. Only one boundary quantity shows at a time,
+ * because they all paint the same faces - see toggleGroup(). And there is no
+ * blank toggle: a patch cell with nothing behind it holds the ambient value FDS
+ * wrote into a hole, so those cells never reach the index buffer (see
+ * buildBoundary).
  */
 @Injectable({
     providedIn: 'root'
@@ -65,8 +68,12 @@ export class BndfService implements SceneScoped, TimelineClient, ScaleClient {
     private blockages: readonly SmvBlockage[] = [];
     private directory: ResultsDirectory | null = null;
 
+    /** At most one entry - see toggleGroup(). */
     private readonly loaded = new Map<QuantityGroup, LoadedGroup>();
     private readonly loading = new Set<QuantityGroup>();
+
+    /** Which read is the current one; a later click makes an earlier one stale. */
+    private generation = 0;
 
     /** Where the clipping planes stand, in FDS metres. */
     private clipX = 0;
@@ -127,30 +134,64 @@ export class BndfService implements SceneScoped, TimelineClient, ScaleClient {
         return this.loading.has(group);
     }
 
-    /** Load the group, or - loaded already - put it away. The panel's click. */
+    /**
+     * Show the group, or - showing already - put it away. The panel's click.
+     *
+     * Showing one puts away the boundary that was showing, because there is
+     * only room for one: every boundary quantity paints the same faces, so two
+     * of them are coplanar with each other and which one a person sees would be
+     * left to draw order. Slices have no such problem - they hang at different
+     * positions - so this rule is the boundary's own, not the loader's.
+     *
+     * The old one comes off now rather than when the new bytes arrive: a swap
+     * that waited would leave the previous quantity's colours standing under the
+     * new quantity's legend, which is the one thing worse than a bare model.
+     */
     public async toggleGroup(group: QuantityGroup): Promise<void> {
-        const held = this.loaded.get(group);
-        if (held) {
-            this.disposeGroup(held);
-            this.loaded.delete(group);
-            // What is left of the quantity may now span less than it did, and
-            // what is left on screen has to be repainted for it.
-            this.scales.refresh();
+        if (this.loaded.has(group)) {
+            this.putAway();
             return;
         }
         if (!this.canLoad(group) || this.loading.has(group)) return;
 
+        this.putAway();
+        // A click while a read is in flight makes that read stale. Without this
+        // the slower of two loads lands last and wins, which is the opposite of
+        // what was asked for - and with a large `.bf` the race is ordinary.
+        const mine = ++this.generation;
+        this.loading.clear();
         this.loading.add(group);
         try {
-            await this.load(group);
+            const built = await this.build(group);
+            if (built === null) return;
+            if (mine !== this.generation) { this.disposeGroup(built); return; }
+
+            this.loaded.set(group, built);
+            // The quantity may now span more than it did. Everything drawing it
+            // is repainted for the new ends - this group first, which is still
+            // holding the placeholder range its material was built with.
+            this.scales.refresh();
+            // Late arrivals join the show at the moment everything else shows.
+            built.surfaces.forEach(surface => surface.showAt(this.timeline.time));
         } catch (e) {
             if (isDevMode()) { try { console.error('[BndfService] Failed to load a boundary group', e); } catch { } }
         } finally {
-            this.loading.delete(group);
+            if (mine === this.generation) { this.loading.delete(group); }
         }
     }
 
-    /** What the loaded groups span together, or null while nothing is loaded. */
+    /** Take down whatever boundary is showing, and settle the scales for it. */
+    private putAway(): void {
+        if (this.loaded.size === 0) { return; }
+
+        this.loaded.forEach(held => this.disposeGroup(held));
+        this.loaded.clear();
+        // The quantity is gone from the scene, so the legend loses its row and
+        // whatever else draws that quantity may now span less than it did.
+        this.scales.refresh();
+    }
+
+    /** What the group on screen spans, or null while nothing is showing. */
     public timeSpan(): TimeSpan | null {
         const spans: (TimeSpan | null)[] = [];
         this.loaded.forEach(group => spans.push(group.span));
@@ -193,11 +234,13 @@ export class BndfService implements SceneScoped, TimelineClient, ScaleClient {
     }
 
     /**
-     * What the loaded groups hold, per quantity - the scale service's question.
+     * What is on screen, per quantity - the scale service's question.
      *
-     * Boundary faces all over the model fold into one entry per quantity, which
-     * is the point: WALL TEMPERATURE has one scale wherever it is painted, and
-     * shares it with nothing else (ADR-0019).
+     * Boundary faces all over the model fold into one entry, which is the point:
+     * WALL TEMPERATURE has one scale wherever it is painted, and shares it with
+     * nothing else (ADR-0019). At most one entry, since only one boundary
+     * quantity shows at a time - but folded rather than assumed, because that is
+     * the scale's rule and not this format's.
      */
     public quantityExtents(): ReadonlyMap<string, QuantityExtent> {
         const extents = new Map<string, QuantityExtent>();
@@ -222,7 +265,12 @@ export class BndfService implements SceneScoped, TimelineClient, ScaleClient {
         });
     }
 
-    private async load(group: QuantityGroup): Promise<void> {
+    /**
+     * Read the group and make its surfaces, without putting them on the axis or
+     * the scale - the caller does that, and only if this is still the read the
+     * user is waiting for. Null when there is nothing to show.
+     */
+    private async build(group: QuantityGroup): Promise<LoadedGroup | null> {
         // Whole files, one read each (ADR-0016): the frames land in memory for
         // the timeline, and what the group contributes to the scale of its
         // quantity comes out of the same pass.
@@ -233,7 +281,7 @@ export class BndfService implements SceneScoped, TimelineClient, ScaleClient {
             if (handle === null) continue;
             parsed.push({ file: file, bf: parseBf(await handle.read(0, handle.size)) });
         }
-        if (parsed.length === 0) return;
+        if (parsed.length === 0) return null;
 
         // Everything that can fail, before anything that would have to be
         // disposed if it did: the builds are pure, so a throw here leaves the
@@ -253,10 +301,10 @@ export class BndfService implements SceneScoped, TimelineClient, ScaleClient {
             extent = mergeExtents([extent, build.extent]);
             builds.push({ bf: entry.bf, build: build });
         }
-        if (builds.length === 0) return;
+        if (builds.length === 0) return null;
 
         const made = await this.createGroupMaterial(group);
-        if (made === null) return;
+        if (made === null) return null;
 
         const scene = this.babylonService.scene;
         const surfaces = builds.map(held => new BoundarySurface(made.material, held.build,
@@ -268,7 +316,7 @@ export class BndfService implements SceneScoped, TimelineClient, ScaleClient {
             label: group.files[0].longLabel || group.label, unit: group.files[0].unit
         };
 
-        this.loaded.set(group, {
+        return {
             material: made.material,
             paletteTexture: made.paletteTexture,
             paletteName: made.paletteName,
@@ -277,14 +325,7 @@ export class BndfService implements SceneScoped, TimelineClient, ScaleClient {
             key: quantityKey(quantity),
             span: timeSpanOf(parsed.map(entry => entry.bf)),
             extent: extent
-        });
-
-        // The quantity may now span more than it did. Everything drawing it is
-        // repainted for the new ends - this group first, which is still holding
-        // the placeholder range its material was built with.
-        this.scales.refresh();
-        // Late arrivals join the show at the moment everything else is showing.
-        surfaces.forEach(surface => surface.showAt(this.timeline.time));
+        };
     }
 
     /**

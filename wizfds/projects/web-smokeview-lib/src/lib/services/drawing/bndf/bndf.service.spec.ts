@@ -64,6 +64,71 @@ describe('BndfService', () => {
     expect(service.timeSpan()).toBeNull();
   });
 
+  describe('one boundary quantity at a time', () => {
+    // Reaching a loaded state needs a live WebGPU scene, so what is showing is
+    // put there directly and the group is handed a directory that has nothing.
+    // The assertions stay on the public surface: what is loaded afterwards, and
+    // whether what was showing had its scene objects released.
+
+    /** Something that looks enough like a loaded group to be taken down. */
+    function showing() {
+      const disposed = { surfaces: 0, material: 0, palette: 0 };
+      const held = {
+        material: { dispose: () => disposed.material++ },
+        paletteTexture: { dispose: () => disposed.palette++ },
+        paletteName: 'default',
+        surfaces: [{ dispose: () => disposed.surfaces++ }],
+        quantity: { label: 'GAUGE HEAT FLUX', unit: 'kW/m2' },
+        key: 'GAUGE HEAT FLUX|kW/m2',
+        span: { first: 0, last: 30 },
+        extent: { min: 0, max: 66 }
+      };
+      return { held: held, disposed: disposed };
+    }
+
+    /** A previous quantity of the same case, already on the faces. */
+    const previous: QuantityGroup = {
+      label: 'GAUGE HEAT FLUX', unit: 'kW/m2',
+      files: [{ ...group.files[0], longLabel: 'GAUGE HEAT FLUX', unit: 'kW/m2' }]
+    };
+
+    beforeEach(() => {
+      // A directory that holds nothing: the load gets as far as the rule under
+      // test and then finds no bytes, which is all this needs.
+      service.setCase(smv, { open: () => Promise.resolve(null) } as any);
+    });
+
+    it('takes the showing quantity down when another is asked for', async () => {
+      const first = showing();
+      (service as any).loaded.set(previous, first.held);
+      expect(service.isLoaded(previous)).toBeTrue();
+
+      await service.toggleGroup(group);
+
+      expect(service.isLoaded(previous)).toBeFalse();
+      expect(first.disposed).toEqual({ surfaces: 1, material: 1, palette: 1 });
+    });
+
+    it('leaves the axis and the scale with nothing once it has been taken down', async () => {
+      (service as any).loaded.set(previous, showing().held);
+
+      await service.toggleGroup(group);
+
+      expect(service.timeSpan()).toBeNull();
+      expect(service.quantityExtents().size).toBe(0);
+    });
+
+    it('still puts a quantity away when it is the one clicked', async () => {
+      const first = showing();
+      (service as any).loaded.set(previous, first.held);
+
+      await service.toggleGroup(previous);
+
+      expect(service.isLoaded(previous)).toBeFalse();
+      expect(first.disposed.material).toBe(1);
+    });
+  });
+
   it('holds no quantity while nothing is loaded', () => {
     expect(service.quantityExtents().size).toBe(0);
   });

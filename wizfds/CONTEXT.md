@@ -201,7 +201,10 @@ _Avoid_: hole w slice'ie (HOLE to namelist FDS), maska
 Prostokątny kawałek powierzchni, na którym FDS zapisuje wielkość brzegową:
 ściana obsta albo ściana domeny. Ma stronę, w którą patrzy, i widać go
 wyłącznie z niej. Nie jest jednostką oglądania — tą pozostaje grupa
-wielkości; pojedynczego płata się nie wybiera ani nie gasi.
+wielkości; pojedynczego płata się nie wybiera ani nie gasi. Wielkość brzegowa
+jest oglądana **pojedynczo**: wszystkie malują te same lica, więc druga
+przykryłaby pierwszą, a nie stanęła obok niej — w przeciwieństwie do slice'ów,
+które wiszą w różnych położeniach i mogą być na ekranie razem.
 _Avoid_: kafelek, ścianka, patch w polskim tekście
 
 **Ściana domeny**:

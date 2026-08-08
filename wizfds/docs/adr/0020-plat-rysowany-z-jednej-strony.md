@@ -52,7 +52,18 @@ właśnie tam blat obsta iskrzył przeplatanymi paskami. Stały człon to
 wystarcza, bo płaszczyzna slice'a rzadko leży dokładnie na czymkolwiek —
 przeniesienie tej samej liczby do boundary było kopią bez zastanowienia.
 
-Konsekwencja dla reszty Fazy 6 (#89): to rozstrzygnięcie dotyczy wyłącznie
+**Z tej samej współpłaszczyznowości wynika, że wielkość brzegowa jest oglądana
+pojedynczo.** Dwa boundary naraz malują nie sąsiednie miejsca, a *te same*
+lica, więc są współpłaszczyznowe wzajemnie i o tym, co użytkownik widzi,
+decydowałaby kolejność rysowania — czyli nic, co dałoby się wytłumaczyć.
+Załadowanie drugiej wielkości zdejmuje pierwszą, i zdejmuje ją od razu, a nie
+gdy dojdą nowe bajty: obraz starej wielkości pod legendą nowej jest gorszy niż
+puste lica. Odrzucono jawną kolejność „co na wierzchu" — to nowy stan do
+utrzymania po to, żeby dolna warstwa i tak była niewidoczna. SmokeView robi to
+samo. Slice'ów to nie dotyczy: wiszą w różnych położeniach, więc dwa na ekranie
+to dwie różne informacje, nie dwie wersje jednej.
+
+Konsekwencja dla reszty Fazy 6 (#89): oba rozstrzygnięcia dotyczą wyłącznie
 formatów przyklejonych do geometrii. Slice zostaje dwustronny — jego
 płaszczyzna jest cięciem przez gaz, nie powierzchnią czegokolwiek, i ma
 dwie równie prawdziwe strony.
