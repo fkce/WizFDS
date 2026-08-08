@@ -293,9 +293,13 @@ export class BndfService implements SceneScoped, TimelineClient, ScaleClient {
             // A file naming a mesh the `.smv` does not describe has nowhere to
             // be drawn; the rest of the group still loads.
             if (!grid) continue;
-            // A patch states its indices in the mesh whose file it is, even when
-            // it reports on an obst of a neighbouring one, so both the grid and
-            // the blockages are this file's mesh throughout.
+            // A patch states its indices in the mesh whose file it is, even
+            // when it describes an obst of a neighbouring one, so both the grid
+            // and the blockages are this file's mesh throughout - and that is
+            // also what makes such a patch come out blank while its obstruction
+            // stands, which is right: the plane it names is inside matter, so
+            // FDS has no wall cell there and fills it with the ambient value.
+            // Checked on a run built to produce one (#152).
             const build = buildBoundary(entry.bf, grid,
                 this.blockages.filter(box => box.meshIndex === entry.file.meshIndex));
             extent = mergeExtents([extent, build.extent]);

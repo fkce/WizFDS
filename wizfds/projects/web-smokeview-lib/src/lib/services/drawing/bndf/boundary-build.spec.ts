@@ -146,6 +146,45 @@ describe('buildBoundary', () => {
     expect(build.extent).toBeNull();
   });
 
+  describe('a patch that names another mesh', () => {
+    // FDS writes these when a REMOVABLE obstruction has a face exactly on a
+    // mesh interface: the mesh holding the gas describes the neighbour's
+    // obstruction. Its indices are still stated in the file's own mesh, so
+    // nothing here treats it specially - and it must not, as the two cases
+    // below show.
+    const WIDE: SmvMeshGrid = { meshIndex: 1, x: [0, 0.5, 1], y: [0, 0.5, 1], z: [0, 0.5, 1] };
+
+    /** The far-x plane of the file's mesh, facing back into it. */
+    const onInterface: BfFixturePatch =
+      { i1: 2, i2: 2, j1: 0, j2: 2, k1: 0, k2: 2, ior: -1, obstIndex: 1, meshIndex: 2 };
+
+    const buildWith = (blockages: readonly SmvBlockage[]) =>
+      buildBoundary(parseBf(bfFixture({ patches: [onInterface] })), WIDE, blockages);
+
+    it('is blank where the plane it names is inside matter', () => {
+      // The obstruction straddles the interface, so the file's own mesh is
+      // solid right up to that plane. There is no wall cell behind it, and FDS
+      // fills such a patch with the ambient value - on a real run, 20.0000 at
+      // every node of every frame, while an ordinary patch of the same
+      // obstruction had reached 20.7..24.7 by the same instant. It describes
+      // the face that would be exposed if the obstruction were removed, which
+      // is not a thing that has happened.
+      const build = buildWith([{ meshIndex: 1, i1: 1, i2: 2, j1: 0, j2: 2, k1: 0, k2: 2 }]);
+
+      expect(build.indices.length).toBe(0);
+      expect(build.extent).toBeNull();
+    });
+
+    it('draws like any other patch when nothing stands behind it', () => {
+      // The same patch against empty geometry, so that what silenced it above
+      // is plainly the matter and not the mesh it names.
+      const build = buildWith([]);
+
+      expect(build.indices.length).toBe(2 * 2 * 6);
+      expect(build.extent).not.toBeNull();
+    });
+  });
+
   it('has no range while the file holds no frame', () => {
     const bytes = bfFixture({ patches: [{ i1: 0, i2: 1, j1: 0, j2: 1, k1: 0, k2: 0, ior: 3 }], frames: [] });
     const build = buildBoundary(parseBf(bytes), GRID, []);

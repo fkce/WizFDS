@@ -43,6 +43,15 @@ export interface BoundaryBuild {
  * fire. The gas cell sits one layer off the patch plane, on the side `ior`
  * points to, and `blockages` are the `.smv` node boxes of this file's own mesh
  * (a node box `[n1,n2]` holds cells `n1+1 … n2`).
+ *
+ * That one rule also swallows the patches FDS writes for a *neighbouring*
+ * mesh's obstruction, and rightly: their plane lies inside matter, so FDS has
+ * no wall cell there and fills them with the ambient value for as long as the
+ * obstruction stands. They exist to describe the face that removing it would
+ * expose. The bound on that: the blockages are read once from the `.smv`, which
+ * states the geometry as it starts, so an obstruction that really does burn
+ * away mid-run keeps its patch blank afterwards. Nothing in the viewer animates
+ * geometry, so that bound is the whole scene's and not this function's.
  */
 export function buildBoundary(
     bf: BfFile, grid: SmvMeshGrid, blockages: readonly SmvBlockage[]

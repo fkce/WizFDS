@@ -16,11 +16,20 @@ export interface BfPatch {
      * 1-based within its own mesh, 0 for a tile of the mesh's exterior wall.
      *
      * Read but unused: geometry comes from the index box and `ior`, and both
-     * kinds of patch are drawn. Beware if that ever changes - for a patch of an
-     * obst belonging to a neighbouring mesh, this indexes *that* mesh's list.
+     * kinds of patch are drawn. Beware if that ever changes - when `meshIndex`
+     * names another mesh, this indexes *that* mesh's obstruction list.
      */
     readonly obstIndex: number,
-    /** 1-based, and not always the mesh whose file this is - see `obstIndex`. */
+    /**
+     * 1-based, and not always the mesh whose file this is.
+     *
+     * FDS lets the mesh holding the gas describe a *neighbouring* mesh's
+     * obstruction, when that obstruction is REMOVABLE and has a face exactly on
+     * the plane between them. The indices stay in this file's own mesh, so
+     * nothing needs to read this to draw the patch - it is here because it is
+     * the only thing that identifies such a patch, and because assuming it
+     * equals the file's mesh would be wrong.
+     */
     readonly meshIndex: number,
     /** `(i2-i1+1)(j2-j1+1)(k2-k1+1)` - the nodes the solver wrote per frame. */
     readonly nodeCount: number,
