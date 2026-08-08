@@ -16,8 +16,16 @@ varying vblank : f32;
 @vertex
 fn main(input : VertexInputs) -> FragmentInputs {
     vertexOutputs.position = scene.viewProjection * mesh.world * vec4<f32>(vertexInputs.position, 1.0);
-    let span = max(uniforms.range_max - uniforms.range_min, 1e-30);
-    vertexOutputs.vcolorbar = clamp((vertexInputs.slice_value - uniforms.range_min) / span, 0.0, 1.0);
+
+    // A range with no width has no place to put a value, and a token epsilon is
+    // not an answer: dividing the last bits of float noise by 1e-30 saturates
+    // in both directions, so a field that is one temperature everywhere comes
+    // out speckled blue and red. The middle of the palette is the honest
+    // reading - every value here is the same value (ADR-0019).
+    let span = uniforms.range_max - uniforms.range_min;
+    let divisor = select(1.0, span, span > 0.0);
+    let along = (vertexInputs.slice_value - uniforms.range_min) / divisor;
+    vertexOutputs.vcolorbar = select(0.5, clamp(along, 0.0, 1.0), span > 0.0);
     vertexOutputs.vblank = vertexInputs.blank;
     return vertexOutputs;
 }

@@ -1,0 +1,75 @@
+<!--
+    One legend per loaded quantity, stacked. Absent entirely while nothing is
+    loaded: a scale with nothing on it describes nothing.
+-->
+<div class="legend-stack" *ngIf="rows.length">
+
+    <section class="legend" *ngFor="let row of rows; trackBy: trackByKey"
+        [class.open]="isOpen(row.key)">
+
+        <!-- The heading is the control that opens the rest: the bar is read all
+             the time and typed into about once a session. -->
+        <button type="button" class="head" (click)="toggle(row.key)"
+            [attr.aria-expanded]="isOpen(row.key)">
+            <span class="label">{{ row.label }}</span>
+            <span class="unit" *ngIf="row.unit">[{{ row.unit }}]</span>
+            <span class="cut" *ngIf="row.manual" title="Range set by hand">&#9679;</span>
+        </button>
+
+        <!-- What the data reaches beyond the ends in force. Only ever shown for
+             an end the user pinned - an automatic end is the data by definition,
+             so there is nothing outside it to report. -->
+        <div class="beyond above" *ngIf="row.above">
+            <span class="arrow" aria-hidden="true">&#9650;</span>{{ row.above }}
+        </div>
+
+        <div class="scale">
+            <div class="bar" [style.background]="row.gradient"></div>
+            <ul class="ticks">
+                <li class="tick" *ngFor="let tick of row.ticks" [style.bottom.%]="tick.at">
+                    {{ tick.text }}
+                </li>
+            </ul>
+        </div>
+
+        <div class="beyond below" *ngIf="row.below">
+            <span class="arrow" aria-hidden="true">&#9660;</span>{{ row.below }}
+        </div>
+
+        <div class="controls" *ngIf="isOpen(row.key)">
+
+            <!-- The value shown is the one in force either way; what changes is
+                 whether it came from the user or from the data, which is what
+                 the `auto` class says. Emptying the field hands the end back. -->
+            <label class="end end-max" [class.auto]="!row.maxManual">
+                <span class="name">max</span>
+                <input type="text" inputmode="decimal" autocomplete="off"
+                    [value]="row.maxField" aria-label="Range maximum"
+                    (change)="onEnd(row.key, 'max', $event)" />
+            </label>
+
+            <label class="end end-min" [class.auto]="!row.minManual">
+                <span class="name">min</span>
+                <input type="text" inputmode="decimal" autocomplete="off"
+                    [value]="row.minField" aria-label="Range minimum"
+                    (change)="onEnd(row.key, 'min', $event)" />
+            </label>
+
+            <!-- Marked on the option rather than bound to the select: a value
+                 written before *ngFor has made the options matches none and
+                 silently selects nothing. -->
+            <label class="palette">
+                <span class="name">palette</span>
+                <select aria-label="Palette" (change)="onPalette(row.key, $event)">
+                    <option *ngFor="let palette of palettes" [value]="palette"
+                        [selected]="palette === row.palette">{{ palette }}</option>
+                </select>
+            </label>
+
+            <button type="button" class="auto-again" [disabled]="!row.manual"
+                (click)="onAuto(row.key)">back to auto</button>
+        </div>
+
+    </section>
+
+</div>

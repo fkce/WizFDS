@@ -11,6 +11,7 @@ import { PickService } from '../../services/picking/pick.service';
 import { GizmoService } from '../../services/editing/gizmo.service';
 import { SmokeviewComponent } from './smokeview.component';
 import { TimelineBarComponent } from '../timeline-bar/timeline-bar.component';
+import { QuantityLegendComponent } from '../quantity-legend/quantity-legend.component';
 import { TimelineClient, TimelineService, TimeSpan } from '../../services/timeline/timeline.service';
 
 describe('SmokeviewComponent', () => {
@@ -41,7 +42,7 @@ describe('SmokeviewComponent', () => {
       imports: [FormsModule, MatIconModule],
       // The timeline bar is an overlay of this component (#150), so it is
       // declared alongside it here as SmokeviewModule declares them together.
-      declarations: [SmokeviewComponent, TimelineBarComponent],
+      declarations: [SmokeviewComponent, TimelineBarComponent, QuantityLegendComponent],
       providers: [{ provide: BabylonService, useValue: babylonStub }]
     }).compileComponents();
 
@@ -83,7 +84,7 @@ describe('SmokeviewComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [FormsModule, MatIconModule],
-      declarations: [SmokeviewComponent, TimelineBarComponent],
+      declarations: [SmokeviewComponent, TimelineBarComponent, QuantityLegendComponent],
       providers: [{
         provide: BabylonService,
         useValue: {
@@ -357,7 +358,7 @@ describe('SmokeviewComponent', () => {
 
       await TestBed.configureTestingModule({
         imports: [FormsModule, MatIconModule],
-        declarations: [SmokeviewComponent, TimelineBarComponent],
+        declarations: [SmokeviewComponent, TimelineBarComponent, QuantityLegendComponent],
         providers: [
           {
             provide: BabylonService,

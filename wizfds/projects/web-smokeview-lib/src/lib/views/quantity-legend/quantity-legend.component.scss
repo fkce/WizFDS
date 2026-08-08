@@ -1,0 +1,207 @@
+@use '../../styles/tokens' as *;
+
+// How tall one colour bar stands. Six labels need room to breathe, and the
+// stack has to leave the timeline bar its corner even with three quantities up.
+$bar-height: 11rem;
+
+:host {
+  position: absolute;
+  right: 0.75rem;
+  top: 0.75rem;
+  z-index: 3;
+  // Only the legends take the pointer; the host box must not eat clicks meant
+  // for the canvas under it.
+  pointer-events: none;
+}
+
+.legend-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  // Never taller than the canvas: three quantities on a short window scroll
+  // rather than run off the bottom past the timeline bar.
+  max-height: calc(100% - 5rem);
+  overflow-y: auto;
+}
+
+.legend {
+  pointer-events: auto;
+
+  display: flex;
+  flex-direction: column;
+  padding: 0.4rem 0.5rem;
+
+  border: 1px solid $border;
+  border-radius: $radius-sm;
+  background: $surface-1;
+  box-shadow: $shadow-md;
+
+  font-family: $font-ui;
+  font-size: 0.75rem;
+  color: $on-surface;
+  user-select: none;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  padding: 0 0 0.3rem;
+
+  border: none;
+  background: none;
+  color: $on-surface;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover .label { color: $accent; }
+  &:focus-visible { outline: 1px solid $accent; outline-offset: 1px; }
+
+  .label {
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    // A quantity name can be long ("HRR PER UNIT VOLUME"); the bar decides the
+    // width, and the name wraps rather than stretching the whole stack.
+    max-width: 11rem;
+    overflow-wrap: anywhere;
+  }
+
+  .unit { color: $on-surface-muted; }
+
+  // The scale is not the data any more, and that has to be visible without
+  // opening anything.
+  .cut {
+    color: $accent;
+    font-size: 0.6rem;
+  }
+}
+
+// What the data reaches past a hand-set end. Deliberately the same colour as
+// the marker on the heading: both say "you are not looking at all of it".
+.beyond {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.1rem 0;
+
+  color: $accent;
+  font-family: $font-mono;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.7rem;
+
+  .arrow { font-size: 0.55rem; }
+}
+
+.scale {
+  display: flex;
+  gap: 0.35rem;
+  height: $bar-height;
+}
+
+.bar {
+  flex: 0 0 0.85rem;
+  border: 1px solid $border;
+  border-radius: 2px;
+  // The gradient is set inline from the palette; the border is what keeps a
+  // pale top end from bleeding into the panel behind it.
+  order: 2;
+}
+
+.ticks {
+  position: relative;
+  flex: 1;
+  min-width: 3.2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  order: 1;
+}
+
+.tick {
+  position: absolute;
+  right: 0;
+  // The label names the height it sits at, so it is centred on that height
+  // rather than hanging below it - the end labels would otherwise sit half a
+  // line off the ends they name.
+  transform: translateY(50%);
+
+  font-family: $font-mono;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.7rem;
+  color: $on-surface-muted;
+  white-space: nowrap;
+
+  // The tick mark itself, drawn rather than iconed.
+  &::after {
+    content: "";
+    position: absolute;
+    right: -0.3rem;
+    top: 50%;
+    width: 0.25rem;
+    border-top: 1px solid $border;
+  }
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.4rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid $border;
+}
+
+.end,
+.palette {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+
+  .name {
+    flex: 0 0 2.6rem;
+    color: $on-surface-muted;
+  }
+
+  input,
+  select {
+    flex: 1;
+    min-width: 0;
+    padding: 0.1rem 0.25rem;
+
+    border: 1px solid $border;
+    border-radius: $radius-sm;
+    background: $surface-2;
+    color: $on-surface;
+    font-family: $font-mono;
+    font-size: 0.7rem;
+
+    &:focus-visible { outline: 1px solid $accent; outline-offset: 1px; }
+  }
+
+  select { font-family: $font-ui; }
+}
+
+// An end that is still following the data reads as a hint, not as a setting.
+.end.auto input {
+  color: $on-surface-muted;
+  font-style: italic;
+}
+
+.auto-again {
+  margin-top: 0.15rem;
+  padding: 0.15rem 0.35rem;
+
+  border: 1px solid $border;
+  border-radius: $radius-sm;
+  background: $surface-2;
+  color: $on-surface;
+  font-family: $font-ui;
+  font-size: 0.7rem;
+  cursor: pointer;
+
+  &:hover:not([disabled]) { border-color: $accent; }
+  &:focus-visible { outline: 1px solid $accent; outline-offset: 1px; }
+  &[disabled] { opacity: 0.45; cursor: default; }
+}

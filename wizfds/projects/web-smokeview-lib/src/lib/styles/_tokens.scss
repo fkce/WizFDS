@@ -1,0 +1,17 @@
+// The token contract of ADR-0010, in one place.
+//
+// The library draws over a host it knows nothing about, so every colour it uses
+// is the host's custom property where the host defines one and a sane dark
+// value where it does not. Both overlays that stand on the canvas - the
+// timeline bar and the scale legends - dress from here, so a host that restyles
+// one has restyled the other.
+$surface-1:        var(--surface-1, #1a1a1a);
+$surface-2:        var(--surface-2, #1e1e1e);
+$on-surface:       var(--on-surface, #e3e3e3);
+$on-surface-muted: var(--on-surface-muted, #b3b3b3);
+$border:           var(--border, #474747);
+$accent:           var(--accent, #3b82f6);
+$radius-sm:        var(--radius-sm, 4px);
+$shadow-md:        var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.35));
+$font-ui:          var(--font-ui, "Fira Sans", "Segoe UI", Roboto, system-ui, sans-serif);
+$font-mono:        var(--font-mono, "Fira Code", "Consolas", monospace);
