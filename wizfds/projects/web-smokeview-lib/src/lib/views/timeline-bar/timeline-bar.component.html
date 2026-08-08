@@ -1,0 +1,43 @@
+<!--
+    Play, the axis, the readout, the rate - in that order, left to right.
+    Absent entirely until something animated is loaded: an axis with no frames
+    on it names no moment.
+-->
+<div class="timeline-bar" *ngIf="timeline.hasAxis">
+
+    <button type="button" class="play"
+        [attr.aria-label]="timeline.playing ? 'Pause' : 'Play'"
+        [attr.aria-pressed]="timeline.playing"
+        (click)="timeline.toggle()">
+        <span class="glyph" [class.pause]="timeline.playing" aria-hidden="true"></span>
+    </button>
+
+    <!--
+        Pointer down takes the time on itself and pointer up gives it back, so
+        that the clock and the drag are never both writing it. pointercancel
+        counts as up: a drag the browser takes away still ends.
+    -->
+    <input type="range" class="scrub"
+        min="0" [max]="timeline.end" step="0.1"
+        [value]="sliderValue"
+        aria-label="Simulation time"
+        (pointerdown)="onGrab()"
+        (pointerup)="onRelease()"
+        (pointercancel)="onRelease()"
+        (input)="onScrub($event)" />
+
+    <span class="readout mono">{{ readout }}</span>
+
+    <!-- Its own slot, held whether or not it has anything to say, so that its
+         arrival moves nothing beside it. -->
+    <span class="note" [class.hidden]="timeline.hasData">no data yet</span>
+
+    <!-- The current rate is marked on the option, not bound to the select:
+         a value written before *ngFor has made the options finds none to
+         match and silently selects nothing. -->
+    <select class="rate" aria-label="Playback rate" (change)="onRateChange($event)">
+        <option *ngFor="let rate of rates" [value]="rate"
+            [selected]="rate === timeline.rate">{{ rate }}&times;</option>
+    </select>
+
+</div>

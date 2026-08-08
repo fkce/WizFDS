@@ -1,5 +1,6 @@
 import * as BABYLON from 'babylonjs';
 import { SliceGeometry } from './slice-geometry';
+import { frameAt, NO_FRAME } from '../../timeline/frame-at';
 
 /**
  * One slice plane on screen: the mesh of one `.sf` file on one FDS mesh.
@@ -9,12 +10,16 @@ import { SliceGeometry } from './slice-geometry';
  * blank are computed, the values parsed. What is left is strictly synchronous
  * mesh assembly - which is the fix for the old slice.ts, whose constructor
  * raced its own material against the first setInt (#149).
+ *
+ * The file answers the timeline for itself, from its own frame times (#150):
+ * a group whose meshes disagree - an interrupted run leaves one file short -
+ * resolves per file rather than through one shared index.
  */
 export class Slice {
 
     public readonly mesh: BABYLON.Mesh;
-    public readonly frameCount: number;
 
+    private readonly frameCount: number;
     private frame = -1;
 
     constructor(
@@ -23,6 +28,8 @@ export class Slice {
         blank: Float32Array,
         /** All frames, `pointsPerFrame` apart, in vertex order. */
         private readonly values: Float32Array,
+        /** Simulation seconds of each frame, ascending, as the solver wrote them. */
+        private readonly times: Float32Array,
         private readonly pointsPerFrame: number,
         scene: BABYLON.Scene
     ) {
@@ -35,27 +42,43 @@ export class Slice {
         vertexData.applyToMesh(this.mesh, false);
 
         this.mesh.setVerticesData('blank', blank, false, 1);
-        // Updatable: setFrame() rewrites it for as long as the slice lives.
+        // Updatable: showAt() rewrites it for as long as the slice lives.
         this.mesh.setVerticesData('slice_value', new Float32Array(pointsPerFrame), true, 1);
         this.mesh.material = material;
 
-        this.setFrame(0);
+        // Nothing until the timeline says when: the buffer holds zeros, which
+        // are a value like any other and must not be shown as one.
+        this.mesh.setEnabled(false);
     }
 
     /**
-     * Show frame `index`, clamped to this file's last frame - a shorter file
-     * of the group holds its last known state rather than vanishing, the
-     * step-function semantics "Oś czasu" in CONTEXT.md asks for (#149).
+     * Show the state at `time` - the last frame at or before it.
+     *
+     * Before its first frame the file leaves the screen. The step function has
+     * no answer there, and standing in the first frame early would state a
+     * field the solver had not computed yet ("Oś czasu", CONTEXT.md). After the
+     * last frame it holds that frame, which is not extrapolation but the
+     * function itself - and is what lets a truncated file wait for the others.
      */
-    public setFrame(index: number): void {
-        const clamped = Math.min(Math.max(index, 0), this.frameCount - 1);
-        if (clamped === this.frame || clamped < 0) return;
-        this.frame = clamped;
-        this.mesh.updateVerticesData('slice_value',
-            this.values.subarray(clamped * this.pointsPerFrame, (clamped + 1) * this.pointsPerFrame));
+    public showAt(time: number): void {
+        const index = frameAt(this.times, time);
+        if (index === NO_FRAME || this.frameCount === 0) {
+            this.mesh.setEnabled(false);
+            return;
+        }
+
+        this.setFrame(Math.min(index, this.frameCount - 1));
+        this.mesh.setEnabled(true);
     }
 
     public dispose(): void {
         this.mesh.dispose();
+    }
+
+    private setFrame(index: number): void {
+        if (index === this.frame) { return; }
+        this.frame = index;
+        this.mesh.updateVerticesData('slice_value',
+            this.values.subarray(index * this.pointsPerFrame, (index + 1) * this.pointsPerFrame));
     }
 }

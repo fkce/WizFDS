@@ -83,9 +83,6 @@ $font-mono:        var(--font-mono, "Fira Code", "Consolas", monospace);
     }
   }
 
-  // --- Results player -------------------------------------------------------
-  // An overlay along the foot of the canvas, not a sibling of it: the canvas
-  // fills the viewport, so anything laid out beside it has no room to be in.
   // --- Dynamic input: the numbers a gesture is making (#124) ----------------
   //
   // At the cursor, over the canvas, and only while a gesture runs. Offset a
@@ -220,51 +217,4 @@ $font-mono:        var(--font-mono, "Fira Code", "Consolas", monospace);
     }
   }
 
-  .player {
-    position: absolute;
-    left: 1rem;
-    right: 1rem;
-    bottom: 1rem;
-    z-index: 2;
-
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.35rem 0.7rem;
-    border: 1px solid $border-muted;
-    border-radius: $radius-sm;
-    background: $surface-1;
-    box-shadow: $shadow-md;
-    font-size: 0.78rem;
-
-    .control {
-      width: 1.25rem;
-      height: 1.25rem;
-      cursor: pointer;
-      color: $on-surface-muted;
-
-      &:hover { color: $accent; }
-    }
-
-    .frame {
-      min-width: 6rem;
-      font-family: $font-mono;
-      color: $on-surface-muted;
-    }
-
-    .track {
-      flex: 1;
-      height: 0.35rem;
-      border-radius: $radius-sm;
-      background: $surface-2;
-      border: 1px solid $border;
-      overflow: hidden;
-
-      .progress {
-        height: 100%;
-        width: 0;
-        background: $accent;
-      }
-    }
-  }
 }

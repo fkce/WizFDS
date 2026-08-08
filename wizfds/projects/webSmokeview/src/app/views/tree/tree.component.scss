@@ -121,26 +121,6 @@ mat-icon {
   height: 1rem;
 }
 
-// The interim frame picker (#149) - #150 replaces it with the shared timeline.
-.frame-picker {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 1rem 0.3rem 1.6rem;
-
-  input[type="range"] {
-    flex: 1;
-    min-width: 0;
-    accent-color: var(--accent, #3B82F6);
-  }
-
-  .mono {
-    color: var(--on-surface-muted);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-  }
-}
-
 .file {
   &:hover {
     color: var(--on-surface-muted);

@@ -80,10 +80,6 @@ export class ResultsCatalogComponent implements OnDestroy {
     void this.sliceService.toggleGroup(group);
   }
 
-  onFrameInput(event: Event): void {
-    this.sliceService.setFrame(Number((event.target as HTMLInputElement).value));
-  }
-
   get catalog(): ResultsCatalog | null {
     return this.results.catalog;
   }

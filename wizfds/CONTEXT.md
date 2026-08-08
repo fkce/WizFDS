@@ -138,9 +138,13 @@ _Avoid_: anulowanie (bez wskazania, czego)
 ### Wyniki symulacji (post-processing)
 
 **Oś czasu**:
-Wspólny zegar odtwarzania wyników w sekundach czasu symulacji. Każdy format
-animowany pokazuje swoją ostatnią klatkę o czasie ≤ t (schodkowo, bez
-interpolacji); tempo odtwarzania to mnożnik czasu rzeczywistego.
+Wspólny zegar odtwarzania wyników w sekundach czasu symulacji. Biegnie od zera
+do ostatniej klatki tego, co jest w tej chwili załadowane — należy do
+oglądanych wyników, nie do scenariusza. Każdy format animowany pokazuje swoją
+ostatnią klatkę o czasie ≤ t (schodkowo, bez interpolacji), a zanim ma
+pierwszą klatkę, nie pokazuje nic: reguła nie ma tam odpowiedzi, a klatka
+postawiona przed swoim czasem byłaby nieprawdą o symulacji wyglądającą jak
+prawda. Tempo odtwarzania to mnożnik czasu rzeczywistego.
 _Avoid_: player, globalny numer klatki (klatki należą do formatu, nie do osi)
 
 **Zakres wielkości**:

@@ -165,25 +165,6 @@
     }
   }
 
-  // The interim frame picker (#149) - #150 replaces it with the timeline.
-  .frame-picker {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-
-    input[type="range"] {
-      flex: 1;
-      min-width: 0;
-      accent-color: var(--accent);
-    }
-    .mono {
-      color: var(--on-surface-muted);
-      font-variant-numeric: tabular-nums;
-      white-space: nowrap;
-    }
-  }
-
   // One shard per mesh, indented under its quantity
   .row.file {
     padding-left: 0.6rem;
