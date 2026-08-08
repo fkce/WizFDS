@@ -259,7 +259,7 @@ describe('QuantityScaleService', () => {
         it('is SmokeView\'s default until something else is chosen', () => {
             loaded('TEMPERATURE', 'C', 20, 340);
 
-            expect(service.scaleFor(TEMPERATURE).colorbar).toBe('Rainbow');
+            expect(service.scaleFor(TEMPERATURE).palette).toBe('Rainbow');
         });
 
         it('belongs to the quantity, not to the scene', () => {
@@ -268,8 +268,8 @@ describe('QuantityScaleService', () => {
 
             service.setPalette(TEMPERATURE, 'fire');
 
-            expect(service.scaleFor(TEMPERATURE).colorbar).toBe('fire');
-            expect(service.scaleFor(VELOCITY).colorbar).toBe('Rainbow');
+            expect(service.scaleFor(TEMPERATURE).palette).toBe('fire');
+            expect(service.scaleFor(VELOCITY).palette).toBe('Rainbow');
         });
 
         it('reaches the clients as the ends do', () => {
@@ -277,7 +277,7 @@ describe('QuantityScaleService', () => {
 
             service.setPalette(TEMPERATURE, 'cool');
 
-            expect(client.last(TEMPERATURE).colorbar).toBe('cool');
+            expect(client.last(TEMPERATURE).palette).toBe('cool');
         });
     });
 
@@ -291,7 +291,7 @@ describe('QuantityScaleService', () => {
             service.resetForNewCase();
 
             expect(service.scaleFor(TEMPERATURE)).toEqual(
-                jasmine.objectContaining({ min: 20, max: 512, colorbar: 'Rainbow' }));
+                jasmine.objectContaining({ min: 20, max: 512, palette: 'Rainbow' }));
         });
 
         it('leaves the clients registered, as the timeline does', () => {

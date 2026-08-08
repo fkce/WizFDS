@@ -19,19 +19,24 @@ export interface Quantity {
     readonly unit: string;
 }
 
-/** What one client holds of one quantity: the extremes of its visible values. */
-export interface QuantityExtent {
-    readonly quantity: Quantity;
+/** A pair of ends, before anything has decided whose they are. */
+export interface Extent {
     readonly min: number;
     readonly max: number;
 }
 
+/** What one client holds of one quantity: the extremes of its visible values. */
+export interface QuantityExtent extends Extent {
+    readonly quantity: Quantity;
+}
+
 /** How a quantity is to be drawn: the ends in force, and the palette. */
-export interface QuantityScale {
-    readonly min: number;
-    readonly max: number;
-    /** A name from `consts/colorbars`. */
-    readonly colorbar: string;
+export interface QuantityScale extends Extent {
+    /**
+     * The palette, by name. `consts/colorbars` keeps SmokeView's own word for
+     * the artefact it ports; here the domain word is the one in the glossary.
+     */
+    readonly palette: string;
 }
 
 /**
@@ -60,9 +65,27 @@ export interface QuantityScaleView {
     /** The ends actually in force, and the palette drawing them. */
     readonly scale: QuantityScale;
     /** What the loaded data spans - computed whether or not it is overridden. */
-    readonly extent: { readonly min: number, readonly max: number };
+    readonly extent: Extent;
     readonly minOverride: number | null;
     readonly maxOverride: number | null;
+}
+
+/**
+ * The extent covering all of them, or null when none of them is one.
+ *
+ * Shared with the formats, as `mergeSpans()` is: a file folds into its group
+ * this way and the service folds the clients the same, so "what is loaded
+ * spans this" has one meaning wherever it is asked.
+ */
+export function mergeExtents(extents: readonly (Extent | null)[]): Extent | null {
+    let min = Number.POSITIVE_INFINITY;
+    let max = Number.NEGATIVE_INFINITY;
+    for (const extent of extents) {
+        if (!extent) { continue; }
+        if (extent.min < min) { min = extent.min; }
+        if (extent.max > max) { max = extent.max; }
+    }
+    return min <= max ? { min: min, max: max } : null;
 }
 
 /**
@@ -79,7 +102,7 @@ export function quantityKey(quantity: Quantity): string {
 interface Override {
     min: number | null;
     max: number | null;
-    colorbar: string;
+    palette: string;
 }
 
 /**
@@ -181,8 +204,8 @@ export class QuantityScaleService implements SceneScoped {
     }
 
     /** Draw this quantity with that palette, by name from `consts/colorbars`. */
-    public setPalette(key: string, colorbar: string): void {
-        this.overrideFor(key).colorbar = colorbar;
+    public setPalette(key: string, palette: string): void {
+        this.overrideFor(key).palette = palette;
         this.publish();
     }
 
@@ -221,7 +244,7 @@ export class QuantityScaleService implements SceneScoped {
         const held = this.overrides.get(key);
         if (held) { return held; }
 
-        const fresh: Override = { min: null, max: null, colorbar: DEFAULT_COLORBAR };
+        const fresh: Override = { min: null, max: null, palette: DEFAULT_COLORBAR };
         this.overrides.set(key, fresh);
         return fresh;
     }
@@ -231,10 +254,11 @@ export class QuantityScaleService implements SceneScoped {
         const folded = new Map<string, QuantityExtent>();
         this.clients.forEach(client => client.quantityExtents().forEach((extent, key) => {
             const held = folded.get(key);
-            folded.set(key, held === undefined ? extent : {
-                quantity: held.quantity,
-                min: Math.min(held.min, extent.min),
-                max: Math.max(held.max, extent.max)
+            const merged = mergeExtents([held ?? null, extent]);
+            if (!merged) { return; }
+            folded.set(key, {
+                quantity: held?.quantity ?? extent.quantity,
+                min: merged.min, max: merged.max
             });
         }));
         return folded;
@@ -246,7 +270,7 @@ export class QuantityScaleService implements SceneScoped {
         return {
             min: override?.min ?? extent.min,
             max: override?.max ?? extent.max,
-            colorbar: override?.colorbar ?? DEFAULT_COLORBAR
+            palette: override?.palette ?? DEFAULT_COLORBAR
         };
     }
 

@@ -16,7 +16,8 @@ import { visibleExtent } from './slice-extent';
 import { Slice } from './slice';
 import { mergeSpans, TimelineClient, TimelineService, TimeSpan } from '../../timeline/timeline.service';
 import {
-    Quantity, QuantityExtent, QuantityScale, QuantityScaleService, ScaleClient, quantityKey
+    Extent, mergeExtents, Quantity, QuantityExtent, QuantityScale, QuantityScaleService,
+    ScaleClient, quantityKey
 } from '../../scale/quantity-scale.service';
 
 /** One loaded quantity group: its shared material and its per-mesh planes. */
@@ -37,14 +38,14 @@ interface LoadedGroup {
      * What its visible values span, or null when it has none to speak of -
      * the same two reasons as `span`, plus a plane buried whole in matter.
      */
-    readonly extent: { readonly min: number, readonly max: number } | null;
+    readonly extent: Extent | null;
     /**
      * The palette texture in use, and the name it was built from. Both move
      * when the quantity's palette changes, which is why neither is readonly:
      * the group outlives any one choice of colours.
      */
-    colorbar: BABYLON.RawTexture;
-    colorbarName: string;
+    paletteTexture: BABYLON.RawTexture;
+    paletteName: string;
 }
 
 /**
@@ -189,15 +190,12 @@ export class SliceService implements SceneScoped, TimelineClient, ScaleClient {
   public quantityExtents(): ReadonlyMap<string, QuantityExtent> {
     const extents = new Map<string, QuantityExtent>();
     this.loaded.forEach(group => {
-      if (group.extent === null) return;
       const held = extents.get(group.key);
-      extents.set(group.key, held === undefined
-        ? { quantity: group.quantity, min: group.extent.min, max: group.extent.max }
-        : {
-          quantity: held.quantity,
-          min: Math.min(held.min, group.extent.min),
-          max: Math.max(held.max, group.extent.max)
-        });
+      const merged = mergeExtents([held ?? null, group.extent]);
+      if (!merged) return;
+      extents.set(group.key, {
+        quantity: group.quantity, min: merged.min, max: merged.max
+      });
     });
     return extents;
   }
@@ -208,7 +206,7 @@ export class SliceService implements SceneScoped, TimelineClient, ScaleClient {
       if (group.key !== quantity) return;
       group.material.setFloat('range_min', scale.min);
       group.material.setFloat('range_max', scale.max);
-      this.setColorbar(group, scale.colorbar);
+      this.setPalette(group, scale.palette);
     });
   }
 
@@ -230,7 +228,7 @@ export class SliceService implements SceneScoped, TimelineClient, ScaleClient {
 
     const scene = this.babylonService.scene;
     const slices: Slice[] = [];
-    let extent: { min: number, max: number } | null = null;
+    let extent: Extent | null = null;
     for (const entry of parsed) {
       const grid = this.grids.find(candidate => candidate.meshIndex === entry.file.meshIndex);
       if (!grid) continue;
@@ -239,27 +237,30 @@ export class SliceService implements SceneScoped, TimelineClient, ScaleClient {
         this.blockages.filter(box => box.meshIndex === entry.file.meshIndex));
       // The same mask decides what is drawn and what may set the scale, so the
       // two cannot drift apart.
-      extent = widen(extent,
-        visibleExtent(entry.sf.values, blank, entry.sf.pointsPerFrame));
+      extent = mergeExtents([extent,
+        visibleExtent(entry.sf.values, blank, entry.sf.pointsPerFrame)]);
       slices.push(new Slice(made.material, geometry, blank,
         entry.sf.values, entry.sf.times, entry.sf.pointsPerFrame, scene));
     }
     if (slices.length === 0) {
       made.material.dispose();
-      made.colorbar.dispose();
+      made.paletteTexture.dispose();
       return;
     }
 
     // The quantity, as the `.smv` names it: the catalog entry rather than the
-    // `.sf` header, so the legend says the words the user clicked on.
+    // `.sf` header, so the legend says the words the user clicked on. The
+    // group's own heading stands in for a missing long label - an unnamed
+    // entry would otherwise key every such group to one empty name and pile
+    // unrelated files onto a single scale (see labelOf() in quantity-groups).
     const quantity: Quantity = {
-      label: group.files[0].longLabel, unit: group.files[0].unit
+      label: group.files[0].longLabel || group.label, unit: group.files[0].unit
     };
 
     this.loaded.set(group, {
       material: made.material,
-      colorbar: made.colorbar,
-      colorbarName: made.colorbarName,
+      paletteTexture: made.paletteTexture,
+      paletteName: made.paletteName,
       slices: slices,
       quantity: quantity,
       key: quantityKey(quantity),
@@ -283,35 +284,37 @@ export class SliceService implements SceneScoped, TimelineClient, ScaleClient {
    * between - both happen in one turn of load().
    */
   private async createGroupMaterial(group: QuantityGroup): Promise<{
-    material: BABYLON.ShaderMaterial, colorbar: BABYLON.RawTexture, colorbarName: string
+    material: BABYLON.ShaderMaterial, paletteTexture: BABYLON.RawTexture, paletteName: string
   } | null> {
     const material = await tryCreateShaderMaterial(this.babylonService,
       { name: `slice:${group.label}`, shader: 'slice' }, 'SliceService');
     if (material === null) return null;
 
-    const colorbar = this.createColorbarTexture(DEFAULT_COLORBAR);
+    const paletteTexture = this.createPaletteTexture(DEFAULT_COLORBAR);
     material.setFloat('range_min', 0);
     material.setFloat('range_max', 1);
     material.setInt('is_blank', this.cullBlank ? 1 : 0);
-    material.setTexture('texture_colorbar_sampler_tex', colorbar);
+    material.setTexture('texture_colorbar_sampler_tex', paletteTexture);
     material.backFaceCulling = false;
     material.zOffset = 0.2;
-    return { material: material, colorbar: colorbar, colorbarName: DEFAULT_COLORBAR };
+    return {
+      material: material, paletteTexture: paletteTexture, paletteName: DEFAULT_COLORBAR
+    };
   }
 
   /** Repaint the group's palette, if it is not already the one asked for. */
-  private setColorbar(group: LoadedGroup, name: string): void {
-    if (group.colorbarName === name) return;
+  private setPalette(group: LoadedGroup, name: string): void {
+    if (group.paletteName === name) return;
 
-    const previous = group.colorbar;
-    group.colorbar = this.createColorbarTexture(name);
-    group.colorbarName = name;
-    group.material.setTexture('texture_colorbar_sampler_tex', group.colorbar);
+    const previous = group.paletteTexture;
+    group.paletteTexture = this.createPaletteTexture(name);
+    group.paletteName = name;
+    group.material.setTexture('texture_colorbar_sampler_tex', group.paletteTexture);
     // After the material has taken the new one, so nothing samples a corpse.
     previous.dispose();
   }
 
-  private createColorbarTexture(name: string): BABYLON.RawTexture {
+  private createPaletteTexture(name: string): BABYLON.RawTexture {
     const texture = new BABYLON.RawTexture(
       colorbarTexels(colorbarByName(name)), 1, COLORBAR_TEXELS,
       BABYLON.Engine.TEXTUREFORMAT_RGBA, this.babylonService.scene,
@@ -326,17 +329,8 @@ export class SliceService implements SceneScoped, TimelineClient, ScaleClient {
   private disposeGroup(group: LoadedGroup): void {
     group.slices.forEach(slice => slice.dispose());
     group.material.dispose();
-    group.colorbar.dispose();
+    group.paletteTexture.dispose();
   }
-}
-
-/** The span covering both, or whichever of them is one. */
-function widen(
-  held: { min: number, max: number } | null, extent: { min: number, max: number } | null
-): { min: number, max: number } | null {
-  if (extent === null) return held;
-  if (held === null) return extent;
-  return { min: Math.min(held.min, extent.min), max: Math.max(held.max, extent.max) };
 }
 
 /**

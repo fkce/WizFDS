@@ -62,7 +62,7 @@
                 <span class="name">palette</span>
                 <select aria-label="Palette" (change)="onPalette(row.key, $event)">
                     <option *ngFor="let palette of palettes" [value]="palette"
-                        [selected]="palette === row.colorbar">{{ palette }}</option>
+                        [selected]="palette === row.palette">{{ palette }}</option>
                 </select>
             </label>
 

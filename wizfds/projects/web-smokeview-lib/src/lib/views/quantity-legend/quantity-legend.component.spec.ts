@@ -153,6 +153,33 @@ describe('QuantityLegendComponent', () => {
         expect(scales.scaleFor(TEMPERATURE).max).toBe(512);
     });
 
+    it('takes back a value the service refused, rather than leaving it standing', () => {
+        load('TEMPERATURE', 'C', 20, 512);
+        query('.head').click();
+        fixture.detectChanges();
+
+        // Below the bottom in force: the range would come out inside out.
+        const max = query('.end-max input') as HTMLInputElement;
+        max.value = '10';
+        max.dispatchEvent(new Event('change'));
+        fixture.detectChanges();
+
+        expect(scales.scaleFor(TEMPERATURE).max).toBe(512);
+        // The field must not keep answering with a number the scale does not use.
+        expect(max.value).toBe('512');
+    });
+
+    it('shows a pinned end as the number that was typed, not a rounded one', () => {
+        load('TEMPERATURE', 'C', 20, 999999);
+        scales.setEnd(TEMPERATURE, 'max', 123456);
+        query('.head').click();
+        fixture.detectChanges();
+
+        // Rounding the field would have the next edit of it submit 123000 -
+        // the control would be quietly discarding the user's own number.
+        expect((query('.end-max input') as HTMLInputElement).value).toBe('123456');
+    });
+
     it('hands a chosen palette to the service', () => {
         load('TEMPERATURE', 'C', 20, 340);
         query('.head').click();
@@ -163,7 +190,7 @@ describe('QuantityLegendComponent', () => {
         palette.dispatchEvent(new Event('change'));
         fixture.detectChanges();
 
-        expect(scales.scaleFor(TEMPERATURE).colorbar).toBe('fire');
+        expect(scales.scaleFor(TEMPERATURE).palette).toBe('fire');
     });
 
     it('empties itself when the scene goes', () => {

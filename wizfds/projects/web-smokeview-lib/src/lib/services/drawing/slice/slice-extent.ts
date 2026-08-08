@@ -1,3 +1,5 @@
+import { Extent } from '../../scale/quantity-scale.service';
+
 /**
  * What one `.sf` file contributes to its quantity's range: the extremes of the
  * values that can be seen, across every frame it holds.
@@ -18,7 +20,7 @@
  */
 export function visibleExtent(
     values: Float32Array, blank: Float32Array, pointsPerFrame: number
-): { min: number, max: number } | null {
+): Extent | null {
     if (pointsPerFrame <= 0) { return null; }
 
     let min = Number.POSITIVE_INFINITY;

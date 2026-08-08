@@ -1,15 +1,4 @@
-// The token contract of ADR-0010: the host's values when it has them, sane
-// dark defaults when it does not, so the legend looks right in both consumers.
-$surface-1:        var(--surface-1, #1a1a1a);
-$surface-2:        var(--surface-2, #1e1e1e);
-$on-surface:       var(--on-surface, #e3e3e3);
-$on-surface-muted: var(--on-surface-muted, #b3b3b3);
-$border:           var(--border, #474747);
-$accent:           var(--accent, #3b82f6);
-$radius-sm:        var(--radius-sm, 4px);
-$shadow-md:        var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.35));
-$font-ui:          var(--font-ui, "Fira Sans", "Segoe UI", Roboto, system-ui, sans-serif);
-$font-mono:        var(--font-mono, "Fira Code", "Consolas", monospace);
+@use '../../styles/tokens' as *;
 
 // How tall one colour bar stands. Six labels need room to breathe, and the
 // stack has to leave the timeline bar its corner even with three quantities up.

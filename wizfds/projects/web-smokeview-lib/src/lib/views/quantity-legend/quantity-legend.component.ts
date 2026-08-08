@@ -38,7 +38,7 @@ interface LegendRow {
   readonly minManual: boolean;
   readonly maxManual: boolean;
   readonly manual: boolean;
-  readonly colorbar: string;
+  readonly palette: string;
 }
 
 /**
@@ -104,10 +104,17 @@ export class QuantityLegendComponent implements OnInit, OnDestroy {
 
   /** An emptied field hands the end back to the data; anything else pins it. */
   public onEnd(key: string, end: ScaleEnd, event: Event): void {
-    const typed = (event.target as HTMLInputElement).value.trim();
+    const field = event.target as HTMLInputElement;
+    const typed = field.value.trim();
     this.scales.setEnd(key, end, typed === '' ? null : Number(typed));
-    // A refused value leaves the field showing something the scale does not
-    // use, so the row is rebuilt from what the service actually holds.
+
+    // Whatever the service made of it is what the field has to show, and the
+    // binding cannot be relied on to say so: a refused value publishes nothing,
+    // so `rows` is rebuilt to the same strings it already held and Angular
+    // writes nothing back. The field would go on answering with a number the
+    // scale does not use. Written here rather than left to change detection.
+    const row = this.rows.find(candidate => candidate.key === key);
+    if (row) { field.value = end === 'min' ? row.minField : row.maxField; }
     this.changeDetector.markForCheck();
   }
 
@@ -129,21 +136,35 @@ export class QuantityLegendComponent implements OnInit, OnDestroy {
       key: view.key,
       label: view.quantity.label,
       unit: view.quantity.unit,
-      gradient: gradientOf(view.scale.colorbar),
+      gradient: gradientOf(view.scale.palette),
       ticks: ticksOf(view.scale.min, view.scale.max),
       // Only a manual end can hide anything: an automatic one is the data.
       above: view.maxOverride !== null && view.extent.max > view.scale.max
         ? formatScaleValue(view.extent.max) : null,
       below: view.minOverride !== null && view.extent.min < view.scale.min
         ? formatScaleValue(view.extent.min) : null,
-      minField: formatScaleValue(view.scale.min),
-      maxField: formatScaleValue(view.scale.max),
+      minField: fieldOf(view.scale.min, view.minOverride),
+      maxField: fieldOf(view.scale.max, view.maxOverride),
       minManual: view.minOverride !== null,
       maxManual: view.maxOverride !== null,
       manual: view.minOverride !== null || view.maxOverride !== null,
-      colorbar: view.scale.colorbar
+      palette: view.scale.palette
     };
   }
+}
+
+/**
+ * What an editable end shows.
+ *
+ * A pinned end shows the number the user typed, exactly - three significant
+ * digits are right for a tick, which is read, and wrong for a field, which is
+ * edited: a max pinned at 123456 would come back as `1.23e+5` and the next edit
+ * of that field would submit 123000, quietly throwing away the user's own
+ * number. An end still following the data is a readout, so it is written the
+ * way the ticks are.
+ */
+function fieldOf(inForce: number, override: number | null): string {
+  return override === null ? formatScaleValue(inForce) : String(override);
 }
 
 /**
