@@ -48,9 +48,12 @@ konwencję, i tylko to drugie wymagało oczu.
 `material.zOffset` mnoży się przez nachylenie wielokąta względem kamery, więc
 dla podłogi oglądanej z góry — nachylenie zero — nie robi zupełnie nic; to
 właśnie tam blat obsta iskrzył przeplatanymi paskami. Stały człon to
-`zOffsetUnits`, i on rozstrzyga. `SliceService` ma sam `zOffset` i to mu
-wystarcza, bo płaszczyzna slice'a rzadko leży dokładnie na czymkolwiek —
-przeniesienie tej samej liczby do boundary było kopią bez zastanowienia.
+`zOffsetUnits`, i on rozstrzyga. Zmienił się przy tym także **znak**: reszta
+biblioteki przesuwa ku kamerze wartościami ujemnymi (DEVC, FIRE, VENT, czapka
+obsta), więc `zOffset` dodatni w `SliceService` jest tam wyjątkiem, na który
+płaszczyzna slice'a może sobie pozwolić — rzadko leży dokładnie na czymkolwiek.
+Płat leży zawsze, więc idzie za konwencją reszty. Przeniesienie liczby ze
+slice'a bez zastanowienia było błędem w obu członach naraz.
 
 **Z tej samej współpłaszczyznowości wynika, że wielkość brzegowa jest oglądana
 pojedynczo.** Dwa boundary naraz malują nie sąsiednie miejsca, a *te same*

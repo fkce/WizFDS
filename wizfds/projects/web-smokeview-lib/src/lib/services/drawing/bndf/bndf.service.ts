@@ -97,6 +97,12 @@ export class BndfService implements SceneScoped, TimelineClient, ScaleClient {
     public resetSceneState(): void {
         // The meshes and materials died with their scene; dropping the
         // references is the whole of the cleanup.
+        //
+        // Except for one thing that outlives them: a read still in flight. It
+        // would land on the scene that replaced this one - into meshes built
+        // from a dead grid, or worse, into corpses - so it is made stale here,
+        // by the same counter a later click uses.
+        this.generation++;
         this.loaded.clear();
         this.loading.clear();
         this.grids = [];
@@ -114,6 +120,11 @@ export class BndfService implements SceneScoped, TimelineClient, ScaleClient {
      * the scale that the case has changed - see ADR-0021.
      */
     public setCase(smv: SmvFile, directory: ResultsDirectory): void {
+        // A read of the previous case must not land in this one: it would put a
+        // surface from the last simulation on the new scene and hand the axis a
+        // dead run's span, keyed to a group no catalog row holds - so nothing
+        // could ever click it off again.
+        this.generation++;
         this.loaded.forEach(group => this.disposeGroup(group));
         this.loaded.clear();
         this.loading.clear();
@@ -158,8 +169,13 @@ export class BndfService implements SceneScoped, TimelineClient, ScaleClient {
         // A click while a read is in flight makes that read stale. Without this
         // the slower of two loads lands last and wins, which is the opposite of
         // what was asked for - and with a large `.bf` the race is ordinary.
+        //
+        // The superseded read is *not* taken out of `loading`, though: it is
+        // still running, still holding its bytes, and saying otherwise would
+        // let a third click start a second read of the same file beside the
+        // first. The panel keeps its mark until the read really ends, which is
+        // the truth about what the disk is doing.
         const mine = ++this.generation;
-        this.loading.clear();
         this.loading.add(group);
         try {
             const built = await this.build(group);
@@ -176,7 +192,7 @@ export class BndfService implements SceneScoped, TimelineClient, ScaleClient {
         } catch (e) {
             if (isDevMode()) { try { console.error('[BndfService] Failed to load a boundary group', e); } catch { } }
         } finally {
-            if (mine === this.generation) { this.loading.delete(group); }
+            this.loading.delete(group);
         }
     }
 
@@ -311,8 +327,18 @@ export class BndfService implements SceneScoped, TimelineClient, ScaleClient {
         if (made === null) return null;
 
         const scene = this.babylonService.scene;
-        const surfaces = builds.map(held => new BoundarySurface(made.material, held.build,
-            held.bf.values, held.bf.times, held.bf.pointsPerFrame, scene));
+        let surfaces: BoundarySurface[];
+        try {
+            surfaces = builds.map(held => new BoundarySurface(made.material, held.build,
+                held.bf.values, held.bf.times, held.bf.pointsPerFrame, scene));
+        } catch (e) {
+            // The material and its palette exist by now, and only this function
+            // knows about them yet - so this is the one place that can put them
+            // away rather than leave them to the scene.
+            made.material.dispose();
+            made.paletteTexture.dispose();
+            throw e;
+        }
 
         // The quantity, as the `.smv` names it: the catalog entry rather than
         // the `.bf` header, so the legend says the words the user clicked on.

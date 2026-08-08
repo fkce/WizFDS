@@ -118,6 +118,56 @@ describe('BndfService', () => {
       expect(service.quantityExtents().size).toBe(0);
     });
 
+    it('drops a read that was still running when the case changed', async () => {
+      // The read is slow and the user opens another case meanwhile. Its bytes
+      // belong to the previous simulation: landing them here would put a
+      // surface from the old run on the new scene, hand the axis a dead run's
+      // span, and key it to a group no catalog row holds - so nothing could
+      // click it off again.
+      const late = showing();
+      let deliver: (built: unknown) => void;
+      spyOn(service as any, 'build').and.returnValue(
+        new Promise(resolve => { deliver = resolve; }));
+
+      const reading = service.toggleGroup(group);
+      service.setCase(smv, { open: () => Promise.resolve(null) } as any);
+      deliver(late.held);
+      await reading;
+
+      expect(service.isLoaded(group)).toBeFalse();
+      expect(service.timeSpan()).toBeNull();
+      expect(late.disposed).toEqual({ surfaces: 1, material: 1, palette: 1 });
+    });
+
+    it('drops a read that was still running when the scene went away', async () => {
+      const late = showing();
+      let deliver: (built: unknown) => void;
+      spyOn(service as any, 'build').and.returnValue(
+        new Promise(resolve => { deliver = resolve; }));
+
+      const reading = service.toggleGroup(group);
+      service.resetSceneState();
+      deliver(late.held);
+      await reading;
+
+      expect(service.isLoaded(group)).toBeFalse();
+    });
+
+    it('never reads the same group twice at once', async () => {
+      // A superseded read is still running and still holding its bytes, so the
+      // group stays marked - otherwise a third click starts a second read of
+      // the same file beside the first, which on a large `.bf` is the whole
+      // file in memory twice.
+      const build = spyOn(service as any, 'build').and.returnValue(new Promise(() => undefined));
+
+      void service.toggleGroup(group);
+      void service.toggleGroup(previous);
+      void service.toggleGroup(group);
+
+      expect(service.isLoading(group)).toBeTrue();
+      expect(build).toHaveBeenCalledTimes(2);
+    });
+
     it('still puts a quantity away when it is the one clicked', async () => {
       const first = showing();
       (service as any).loaded.set(previous, first.held);
