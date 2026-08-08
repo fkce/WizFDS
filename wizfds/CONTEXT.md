@@ -189,10 +189,31 @@ _Avoid_: plik wyniku (plik to odłamek per siatka, nie rzecz, którą się
 ogląda)
 
 **Blank**:
-Węzeł wyniku leżący wewnątrz geometrii (OBST); zasłonięte wnętrza nie są
-rysowane, z przełącznikiem ich pokazania. Zasłaniają tylko OBST-y — GEOM
-nie uczestniczy.
+Węzeł wyniku, za którym nie ma nic prawdziwego do pokazania, więc się go nie
+rysuje ani nie liczy do zakresu wielkości. Na slice'ie to węzeł leżący
+wewnątrz geometrii (OBST), z przełącznikiem ich pokazania; na płacie — węzeł,
+za którym nie ma komórki ściany, bo zasłania ją inna bryła, a tam FDS wpisuje
+wartość otoczenia i pokazywać jej nie ma po co, więc nie ma i przełącznika.
+Zasłaniają tylko OBST-y — GEOM nie uczestniczy.
 _Avoid_: hole w slice'ie (HOLE to namelist FDS), maska
+
+**Płat**:
+Prostokątny kawałek powierzchni, na którym FDS zapisuje wielkość brzegową:
+ściana obsta albo ściana domeny. Ma stronę, w którą patrzy, i widać go
+wyłącznie z niej. Nie jest jednostką oglądania — tą pozostaje grupa
+wielkości; pojedynczego płata się nie wybiera ani nie gasi. Wielkość brzegowa
+jest oglądana **pojedynczo** — druga zajęłaby te same ściany, zamiast stanąć
+obok — inaczej niż slice'y, które leżą w różnych położeniach i bywają na
+ekranie razem.
+_Avoid_: kafelek, ścianka, patch w polskim tekście
+
+**Ściana domeny**:
+Płat leżący na zewnętrznej ścianie siatki, a nie na bryle — podłoga i ściany
+modelu. Patrzy do wnętrza domeny, więc oglądana z zewnątrz ustępuje i pokazuje,
+co jest w środku. FDS nie zapisuje takich płatów tam, gdzie stykają się siatki,
+ani na otworach, więc to zawsze prawdziwa przegroda — a palnik postawiony na
+podłodze jako &VENT leży właśnie tutaj.
+_Avoid_: ściana siatki (siatka to &MESH), obrys domeny
 
 ### Nawigacja kamerą
 

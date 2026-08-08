@@ -13,6 +13,7 @@ import { GeomService } from '../drawing/geom/geom.service';
 import { InitService } from '../drawing/init/init.service';
 import { ZoneService } from '../drawing/zone/zone.service';
 import { HoleRegionService } from '../drawing/hole/hole-region.service';
+import { BndfService } from '../drawing/bndf/bndf.service';
 import { BabylonService } from '../babylon/babylon.service';
 import { SceneBoundsService } from '../scene-bounds/scene-bounds.service';
 import { ViewCubeService } from '../babylon/viewCube/view-cube.service';
@@ -89,6 +90,15 @@ describe('SceneViewService', () => {
         { provide: InitService, useValue: twoStateLayer(record, 'init') },
         { provide: ZoneService, useValue: twoStateLayer(record, 'zone') },
         { provide: HoleRegionService, useValue: twoStateLayer(record, 'hole') },
+        {
+          // Results rather than a layer: it has no visibility button, but a
+          // boundary is painted on geometry and has to be cut with it (#152).
+          provide: BndfService,
+          useValue: {
+            clip: (metres: number, axis: string) => record.push(`clip:bndf:${axis}:${metres}`),
+            resetClipping: () => record.push('reset:bndf')
+          }
+        },
         {
           provide: BabylonService,
           useValue: {
@@ -180,7 +190,7 @@ describe('SceneViewService', () => {
       expect(record).toEqual([
         'clip:obst:z:2.5', 'clip:fire:z:2.5', 'clip:vent:z:2.5', 'clip:open:z:2.5',
         'clip:jetfan:z:2.5', 'clip:devc:z:2.5', 'clip:geom:z:2.5', 'clip:init:z:2.5',
-        'clip:zone:z:2.5', 'clip:hole:z:2.5'
+        'clip:zone:z:2.5', 'clip:hole:z:2.5', 'clip:bndf:z:2.5'
       ]);
     });
 
@@ -189,7 +199,8 @@ describe('SceneViewService', () => {
 
       expect(record).toEqual([
         'reset:obst', 'reset:fire', 'reset:vent', 'reset:open', 'reset:jetfan',
-        'reset:devc', 'reset:geom', 'reset:init', 'reset:zone', 'reset:hole'
+        'reset:devc', 'reset:geom', 'reset:init', 'reset:zone', 'reset:hole',
+        'reset:bndf'
       ]);
     });
 

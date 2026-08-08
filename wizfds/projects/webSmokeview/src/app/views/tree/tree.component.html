@@ -53,12 +53,12 @@
       <div [ngClass]="isFormatOpen(format.kind) ? 'open' : 'close'">
         <ng-container *ngFor="let group of format.groups">
           <p class="menu-l2 group" [class.loadable]="canLoadGroup(group)"
-            [class.loaded]="sliceService.isLoaded(group)"
-            [class.loading]="sliceService.isLoading(group)"
+            [class.loaded]="loader.isLoaded(group)"
+            [class.loading]="loader.isLoading(group)"
             (click)="onGroupClick(group)">
             {{group.label}}
             <span class="unit" *ngIf="group.unit">{{group.unit}}</span>
-            <mat-icon class="loaded-mark" *ngIf="sliceService.isLoaded(group)"
+            <mat-icon class="loaded-mark" *ngIf="loader.isLoaded(group)"
               svgIcon="eye-outline" aria-label="loaded"></mat-icon>
           </p>
 

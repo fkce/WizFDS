@@ -1,4 +1,5 @@
 import { SmvSliceBounds } from '../smv/smv-file';
+import { assemble, floats, ints, label } from '../fortran-record.fixture';
 
 /** What a fixture `.sf` should contain; every field has a sane default. */
 export interface SfFixtureSpec {
@@ -38,44 +39,5 @@ export function sfFixture(spec: SfFixtureSpec = {}): ArrayBuffer {
         records.push(floats([...frame.values], le));
     }
 
-    const framed = records.map(payload => record(payload, le));
-    const total = framed.reduce((sum, part) => sum + part.length, 0) - (spec.truncateBytes ?? 0);
-    const out = new Uint8Array(total);
-    let at = 0;
-    for (const part of framed) {
-        const take = Math.min(part.length, total - at);
-        if (take <= 0) break;
-        out.set(part.subarray(0, take), at);
-        at += take;
-    }
-    return out.buffer;
-}
-
-function label(text: string): Uint8Array {
-    const bytes = new Uint8Array(30).fill(0x20);
-    for (let at = 0; at < Math.min(text.length, 30); at++) bytes[at] = text.charCodeAt(at);
-    return bytes;
-}
-
-function ints(values: number[], le: boolean): Uint8Array {
-    const bytes = new Uint8Array(values.length * 4);
-    const view = new DataView(bytes.buffer);
-    values.forEach((value, at) => view.setInt32(at * 4, value, le));
-    return bytes;
-}
-
-function floats(values: number[], le: boolean): Uint8Array {
-    const bytes = new Uint8Array(values.length * 4);
-    const view = new DataView(bytes.buffer);
-    values.forEach((value, at) => view.setFloat32(at * 4, value, le));
-    return bytes;
-}
-
-function record(payload: Uint8Array, le: boolean): Uint8Array {
-    const bytes = new Uint8Array(payload.length + 8);
-    const view = new DataView(bytes.buffer);
-    view.setUint32(0, payload.length, le);
-    bytes.set(payload, 4);
-    view.setUint32(payload.length + 4, payload.length, le);
-    return bytes;
+    return assemble(records, le, spec.truncateBytes);
 }

@@ -53,6 +53,7 @@ const SHADERS = [
   { name: 'arrow' },
   { name: 'fire' },
   { name: 'slice' },
+  { name: 'bndf' },
 ];
 const NAMES = SHADERS.map((shader) => shader.name);
 const COMPILE_TIMEOUT_MS = 6000;
@@ -116,9 +117,11 @@ function buildProbeMesh(scene, shader) {
   }
   vd.applyToMesh(mesh);
   const perVertex = vd.positions.length / 3;
-  // slice shaders read these two custom attributes
+  // the results shaders read a value per vertex, and slice also reads a mask
   mesh.setVerticesData('texture_coordinate', new Float32Array(perVertex), false, 1);
   mesh.setVerticesData('blank', new Float32Array(perVertex), false, 1);
+  mesh.setVerticesData('slice_value', new Float32Array(perVertex), false, 1);
+  mesh.setVerticesData('boundary_value', new Float32Array(perVertex), false, 1);
 
   if (shader.instanced) {
     // world0..world3 and instanceColor exist only once the mesh has thin
@@ -146,8 +149,8 @@ async function compileAll(scene) {
 
     const mesh = buildProbeMesh(scene, shader);
     const mat = new BABYLON.ShaderMaterial(name, scene, sources, {
-      attributes: ['position', 'normal', 'color', 'texture_coordinate', 'blank'],
-      uniforms: ['clipX', 'clipY', 'clipZ', 'transparent', 'is_blank'],
+      attributes: ['position', 'normal', 'color', 'texture_coordinate', 'blank', 'slice_value', 'boundary_value'],
+      uniforms: ['clipX', 'clipY', 'clipZ', 'transparent', 'is_blank', 'range_min', 'range_max'],
       uniformBuffers: ['Scene', 'Mesh'],
       shaderLanguage: BABYLON.ShaderLanguage.WGSL,
       entryPoint: { vertex: 'main', fragment: 'main' },

@@ -1,4 +1,4 @@
-import { visibleExtent } from './slice-extent';
+import { visibleExtent } from './visible-extent';
 
 /**
  * What one `.sf` file contributes to its quantity's range ("Zakres wielkości",

@@ -6,9 +6,9 @@ import {
   SmvResultFile, SmvResultKind
 } from '../../../../../../../../web-smokeview-lib/src/lib/services/parsers/smv/smv-file';
 import {
-  QuantityGroup, isLoadableSliceGroup
+  QuantityGroup
 } from '../../../../../../../../web-smokeview-lib/src/lib/services/results/quantity-groups';
-import { SliceService } from '../../../../../../../../web-smokeview-lib/src/lib/services/drawing/slice/slice.service';
+import { ResultsLoaderService } from '../../../../../../../../web-smokeview-lib/src/lib/services/results/results-loader.service';
 
 /**
  * How this app words the result formats, and which icon it gives them.
@@ -57,12 +57,13 @@ export class ResultsCatalogComponent implements OnDestroy {
 
   private readonly caseSub: Subscription;
 
-  constructor(public results: ResultsDirectoryService, public sliceService: SliceService) {
-    // Rebind the readers whenever the catalog changes folder or case; the
-    // service disposes whatever the previous case had loaded (#149).
+  constructor(public results: ResultsDirectoryService, public loader: ResultsLoaderService) {
+    // Rebind the readers whenever the catalog changes folder or case; each one
+    // disposes whatever the previous case had loaded, and the timeline and the
+    // range go back to where a new simulation starts (ADR-0021).
     this.caseSub = this.results.catalog$.subscribe(() => {
       if (this.results.smv && this.results.source) {
-        this.sliceService.setCase(this.results.smv, this.results.source);
+        this.loader.setCase(this.results.smv, this.results.source);
       }
     });
   }
@@ -72,12 +73,11 @@ export class ResultsCatalogComponent implements OnDestroy {
   }
 
   canLoadGroup(group: QuantityGroup): boolean {
-    return isLoadableSliceGroup(group);
+    return this.loader.canLoad(group);
   }
 
   onGroupClick(group: QuantityGroup): void {
-    if (!this.canLoadGroup(group)) return;
-    void this.sliceService.toggleGroup(group);
+    this.loader.toggle(group);
   }
 
   get catalog(): ResultsCatalog | null {

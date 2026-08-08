@@ -1,5 +1,5 @@
 import { SmvResultFile, SmvSliceBounds } from '../parsers/smv/smv-file';
-import { groupResults, isLoadableSliceGroup } from './quantity-groups';
+import { groupResults, isLoadableBoundaryGroup, isLoadableSliceGroup } from './quantity-groups';
 
 // Grouping is the one place the catalog decides what a person is looking at:
 // a case writes hundreds of files and the reader shows a handful of things.
@@ -149,6 +149,34 @@ describe('groupResults', () => {
 
     it('rejects other formats', () => {
       expect(isLoadableSliceGroup(groupOf({ kind: 'bndf' }))).toBeFalse();
+    });
+  });
+
+  describe('isLoadableBoundaryGroup', () => {
+
+    /** A boundary group of one file, with the fields a test is about. */
+    const boundaryOf = (fields: Partial<SmvResultFile>) => ({
+      label: 'WALL TEMPERATURE', unit: 'C',
+      files: [entry({ kind: 'bndf' as const, longLabel: 'WALL TEMPERATURE', ...fields })]
+    });
+
+    it('accepts a node-centered boundary', () => {
+      expect(isLoadableBoundaryGroup(boundaryOf({}))).toBeTrue();
+    });
+
+    it('rejects cell-centered boundaries, as the slice side rejects SLCC', () => {
+      expect(isLoadableBoundaryGroup(boundaryOf({ cellCentered: true }))).toBeFalse();
+    });
+
+    it('rejects other formats', () => {
+      expect(isLoadableBoundaryGroup({
+        label: 'TEMPERATURE, K=1', unit: 'C',
+        files: [entry({ bounds: planeK(1), ior: 3 })]
+      })).toBeFalse();
+    });
+
+    it('rejects a group with no files at all', () => {
+      expect(isLoadableBoundaryGroup({ label: 'x', unit: '', files: [] })).toBeFalse();
     });
   });
 });

@@ -98,6 +98,19 @@ export function isLoadableSliceGroup(group: QuantityGroup): boolean {
 }
 
 /**
+ * Whether #152's reader can open this group: node-centered boundaries only.
+ *
+ * A `BNDC` group is listed and stays unloadable, exactly as `SLCC` does. Both
+ * write a record the size of the node grid, but a cell-centered one names the
+ * cells and its last row and column are filler, so drawing it honestly needs a
+ * geometry of its own - shared work with the slice side, and not this issue's.
+ */
+export function isLoadableBoundaryGroup(group: QuantityGroup): boolean {
+    const first = group.files[0];
+    return !!first && first.kind === 'bndf' && !first.cellCentered;
+}
+
+/**
  * The heading a file is filed under, which doubles as the key it is grouped
  * by.
  *
